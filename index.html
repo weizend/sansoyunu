@@ -1,0 +1,1996 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WeizendTv Şans Oyunu</title>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<style>
+  body {
+    background: #111;
+    color: #fff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+    line-height: 1.6;
+  }
+  header {
+    background: linear-gradient(90deg, #b71c1c, #000);
+    padding: 15px;
+    font-size: 28px;
+    font-weight: bold;
+    letter-spacing: 1.5px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+  }
+  input, button {
+    padding: 10px 15px;
+    margin: 8px 5px;
+    border-radius: 8px;
+    border: 1px solid #333;
+    font-size: 16px;
+    background-color: #333;
+    color: #eee;
+    transition: all 0.3s ease;
+  }
+  input:focus {
+    outline: none;
+    border-color: #b71c1c;
+    box-shadow: 0 0 8px rgba(183, 28, 28, 0.6);
+  }
+  button {
+    background: #b71c1c;
+    color: #fff;
+    cursor: pointer;
+    min-width: 120px;
+    font-weight: bold;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  }
+  button:hover {
+    background: #ff4444;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+  }
+  /* Kick yeşili butonu */
+  button.kick-green {
+    background: #00FF00; /* Kick'in yeşili */
+    color: #111; /* Koyu metin */
+  }
+  button.kick-green:hover {
+    background: #33FF33;
+  }
+
+  .box-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+    gap: 8px;
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 0 10px;
+  }
+  .box {
+    background: #222;
+    border: 2px solid #b71c1c;
+    height: 70px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 16px;
+    border-radius: 8px;
+    position: relative;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  }
+  .box:hover:not(.opened) {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 10px rgba(0,0,0,0.5);
+  }
+  .box.opened {
+    background: #333;
+    cursor: default;
+    border-color: #555;
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+  }
+  .bomba {
+    background: #ff4444 !important;
+    border-color: #ff0000 !important;
+    color: #fff !important;
+  }
+  .winner {
+    background: #44ff44 !important;
+    border-color: #00cc00 !important;
+    color: #000 !important;
+    animation: pulse 1.5s infinite alternate;
+  }
+
+  @keyframes pulse {
+    from { transform: scale(1); }
+    to { transform: scale(1.05); }
+  }
+
+  #adminPanel, #loginDiv {
+    margin: 30px auto;
+    max-width: 550px;
+    border: 1px solid #b71c1c;
+    padding: 20px;
+    border-radius: 12px;
+    background: #222;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+  }
+  #adminPanel h3, #loginDiv h2 {
+    color: #ffcc00;
+    margin-top: 0;
+    margin-bottom: 20px;
+  }
+  .userItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    margin: 6px 0;
+    background: #333;
+    border-radius: 5px;
+    border-left: 3px solid #b71c1c;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  .userItem:hover {
+    background-color: #444;
+  }
+  .userItem button {
+    margin-left: 10px;
+    padding: 5px 10px;
+    font-size: 14px;
+    min-width: auto;
+  }
+  .userItem .icon {
+    margin-left: 5px;
+    cursor: pointer;
+  }
+  .box .opener {
+    font-size: 10px; /* Smaller text for opener name */
+    color: rgba(255, 255, 255, 0.7); /* Slightly faded color */
+    position: absolute;
+    bottom: 2px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    overflow: hidden; /* Prevent text overflow */
+    white-space: nowrap; /* Keep text on one line */
+    text-overflow: ellipsis; /* Add ellipsis for overflow */
+    padding: 0 2px;
+  }
+  #tablesWrapper {
+    display: flex;
+    justify-content: center;
+    gap: 25px;
+    margin: 30px;
+    flex-wrap: wrap;
+  }
+  .tableBox {
+    text-align: left;
+    background: #222;
+    padding: 15px;
+    border-radius: 8px;
+    max-width: 350px;
+    flex: 1;
+    min-width: 280px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+    border: 1px solid #b71c1c;
+  }
+  .tableBox h3 {
+    color: #ffcc00;
+    border-bottom: 1px solid #444;
+    padding-bottom: 8px;
+    margin-top: 0;
+  }
+  #loginDiv p {
+    margin-top: 20px;
+  }
+  #loginDiv a {
+    color: #ff4444;
+    text-decoration: none;
+    font-weight: bold;
+    transition: color 0.2s ease;
+  }
+  #loginDiv a:hover {
+    color: #fff;
+  }
+
+  /* Yeni Eklenen CSS Kuralları */
+  .scrollable-list {
+    max-height: 300px; /* Maksimum yükseklik */
+    overflow-y: auto; /* Dikey kaydırma çubuğu */
+    border: 1px solid #444;
+    border-radius: 8px;
+    padding: 10px;
+    background-color: #1a1a1a;
+  }
+  /* Kaydırma çubuğunun stilini güzelleştirelim */
+  .scrollable-list::-webkit-scrollbar {
+    width: 8px;
+  }
+  .scrollable-list::-webkit-scrollbar-track {
+    background: #333;
+    border-radius: 10px;
+  }
+  .scrollable-list::-webkit-scrollbar-thumb {
+    background: #b71c1c;
+    border-radius: 10px;
+  }
+  .scrollable-list::-webkit-scrollbar-thumb:hover {
+    background: #ff4444;
+  }
+
+  /* Modal Styles */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  .modal-content {
+    background-color: #222;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.7);
+    max-width: 450px;
+    width: 90%;
+    text-align: center; /* Modallardaki yazıları ortala */
+    position: relative;
+    border: 1px solid #b71c1c;
+  }
+  .modal-content h4 {
+    color: #ffcc00;
+    margin-bottom: 20px;
+  }
+  .modal-content input[type="number"],
+  .modal-content input[type="text"] {
+    width: calc(100% - 20px);
+    margin-bottom: 15px;
+  }
+  .modal-content button {
+    margin: 5px 10px;
+    min-width: 100px;
+  }
+  .modal-close-button {
+    position: absolute;
+    top: 5px; /* Biraz daha yukarı */
+    right: 10px; /* Biraz daha sağa */
+    background: none;
+    border: none;
+    font-size: 30px; /* Boyutu büyütüldü */
+    color: #fff;
+    cursor: pointer;
+    padding: 5px;
+    line-height: 1;
+    min-width: auto;
+  }
+  .modal-close-button:hover {
+    color: #ff4444;
+    transform: none; /* Override button hover transform */
+    box-shadow: none;
+  }
+
+  /* Responsive Düzenlemeler */
+  @media (max-width: 768px) {
+    .box-container {
+      grid-template-columns: repeat(auto-fill, minmax(55px, 1fr));
+      max-width: 95%;
+    }
+    header {
+      font-size: 22px;
+    }
+    #tablesWrapper {
+      flex-direction: column;
+      align-items: center;
+    }
+    .tableBox {
+      width: 90%;
+      max-width: 400px;
+    }
+    #adminPanel, #loginDiv {
+      max-width: 90%;
+      padding: 15px;
+    }
+    input, button {
+      width: calc(100% - 20px);
+      box-sizing: border-box;
+      margin-left: 0;
+      margin-right: 0;
+    }
+  }
+
+  /* Yeni Kart Seçim Modal Stilleri */
+  #cardSelectionModal .modal-content {
+    max-width: 600px;
+  }
+  .card-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 20px;
+  }
+  .card {
+    background: #333;
+    border: 2px solid #b71c1c;
+    border-radius: 10px;
+    width: 100px;
+    height: 140px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    position: relative;
+    overflow: hidden; /* İçerik taşmasını engelle */
+  }
+  .card:hover:not(.opened) {
+    transform: translateY(-5px) scale(1.05);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.6);
+  }
+  .card.opened {
+    background: #444;
+    cursor: default;
+    border-color: #00cc00; /* Açılan kart yeşil olsun */
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.7);
+  }
+  .card-back {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, #b71c1c, #ff4444);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    color: #fff;
+    transition: transform 0.5s ease-in-out;
+    backface-visibility: hidden;
+  }
+  .card.opened .card-back {
+    transform: rotateY(180deg);
+  }
+  .card-front {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #222;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: #ffcc00;
+    transform: rotateY(-180deg); /* Başlangıçta arkada gizli */
+    transition: transform 0.5s ease-in-out;
+    backface-visibility: hidden;
+  }
+  .card.opened .card-front {
+    transform: rotateY(0deg);
+  }
+  .card-value {
+    z-index: 1; /* Değerin önde görünmesini sağla */
+  }
+  /* Seçilen kartın özel stili */
+  .card.selected {
+    border-color: #00FF00; /* Seçilen kartın çerçevesi parlak yeşil */
+    box-shadow: 0 0 20px #00FF00; /* Parlak yeşil gölge */
+    animation: pulseSelected 1s infinite alternate;
+  }
+  @keyframes pulseSelected {
+    from { transform: scale(1); box-shadow: 0 0 10px #00FF00; }
+    to { transform: scale(1.05); box-shadow: 0 0 25px #00FF00; }
+  }
+
+  /* Küçük ekranlar için kart boyutları */
+  @media (max-width: 480px) {
+    .card {
+      width: 80px;
+      height: 110px;
+      font-size: 20px;
+    }
+    .card-back {
+      font-size: 30px;
+    }
+  }
+</style>
+</head>
+<body>
+<header>WEIZENDTV ŞANS OYUNU</header>
+
+<div id="loginDiv">
+  <h2>KİCK KULLANICI ADI ZORUNLU!!</h2>
+  <input type="text" id="username" placeholder="Kick Kullanıcı Adı" autocomplete="username" /><br/>
+  <input type="password" id="password" placeholder="Şifre (Kayıt Ol)" autocomplete="new-password" /><br/>
+  <button onclick="login()">Giriş Yap / Kayıt Ol</button>
+  <button class="kick-green" onclick="openKickVerificationModal()">Kullanıcı Adını Doğrula</button>
+  <p><a href="https://instagram.com/weizendtv" target="_blank" style="color:#ff4444;">Şifremi Unuttum</a></p>
+</div>
+
+<div id="gameDiv" style="display:none;">
+  <h3>Hoşgeldin, <span id="currentUser"></span> <span id="role"></span></h3>
+  <p id="balance">Mevcut Puan: 0 | Kutu Hakkı: 0 | Toplam Harcanan Puan: 0</p>
+  <button onclick="logout()">Çıkış Yap</button>
+
+  <p>Toplam Açılan Kutu Sayısı: <span id="totalOpenedBoxesCount">0</span></p>
+
+  <div class="box-container" id="boxContainer"></div>
+
+  <div id="tablesWrapper">
+    <div class="tableBox">
+      <h3>POPÜLER KULLANICI SIRALAMASI</h3>
+      <p>Toplam Kullanıcı: <span id="totalUsers">0</span></p>
+      <div id="allUserRankings" class="scrollable-list">Yükleniyor...</div>
+    </div>
+    <div class="tableBox">
+      <h3>KAZANANLAR SIRALAMASI</h3>
+      <div id="winners">Yükleniyor...</div>
+    </div>
+  </div>
+
+  <div id="adminPanel" style="display:none;">
+    <h3>Admin Paneli</h3>
+
+    <h4>Onay Bekleyen Kullanıcılar</h4>
+    <div id="pendingUsers" class="scrollable-list">Yükleniyor...</div>
+
+    <h4>Tüm Kullanıcı İşlemleri</h4>
+    <input type="number" id="globalPoint" placeholder="Puan Miktarı" min="1" /><br>
+    <button onclick="changeAllPoints(true)">Toplu Puan Ekle</button>
+    <button onclick="changeAllPoints(false)">Toplu Puan Sil</button>
+    <br>
+    <input type="number" id="globalBoxRight" placeholder="Kutu Hakkı Miktarı" min="1" /><br>
+    <button onclick="changeAllBoxRights(true)">Toplu Kutu Hakkı Ekle</button>
+    <button onclick="changeAllBoxRights(false)">Toplu Kutu Hakkı Sil</button>
+    <br>
+    <button onclick="revealAll()">Tüm Kutuları Aç</button>
+    <button onclick="resetGame()">Oyunu Baştan Başlat</button>
+    <br>
+    <button onclick="resetCurrentBalances()">Mevcut Puanları Sıfırla</button>
+    <button onclick="resetAllTimeData()">Tüm Zamanları Sıfırla</button>
+    <br>
+    <button onclick="resetWinnersRanking()">Hediye Kazananlar Sıralamasını Sıfırla</button>
+
+
+    <h4>Kullanıcı Yönetimi</h4>
+    <input type="text" id="searchUser" placeholder="Kullanıcı Ara" oninput="searchUsers()" /><br>
+    <div id="allUsers" class="scrollable-list">Yükleniyor...</div>
+  </div>
+</div>
+
+<div id="pointAdjustmentModal" class="modal-overlay" style="display:none;">
+  <div class="modal-content">
+    <button class="modal-close-button" onclick="closePointAdjustmentModal()">&times;</button>
+    <h4>Kullanıcı Puan Ayarı: <span id="adjUserName"></span></h4>
+    <p>Mevcut Puan: <span id="adjUserBalance"></span></p>
+    <input type="number" id="adjAmount" placeholder="Puan Miktarı" min="1" /><br>
+    <button onclick="adjustUserPoints(true)">Puan Ekle</button>
+    <button onclick="adjustUserPoints(false)">Puan Çıkar</button>
+  </div>
+</div>
+
+<div id="boxRightAdjustmentModal" class="modal-overlay" style="display:none;">
+  <div class="modal-content">
+    <button class="modal-close-button" onclick="closeBoxRightAdjustmentModal()">&times;</button>
+    <h4>Kullanıcı Kutu Hakkı Ayarı: <span id="adjBoxRightUserName"></span></h4>
+    <p>Mevcut Kutu Hakkı: <span id="adjUserBoxRight"></span></p>
+    <input type="number" id="adjBoxRightAmount" placeholder="Kutu Hakkı Miktarı" min="1" /><br>
+    <button onclick="adjustUserBoxRights(true)">Kutu Hakkı Ekle</button>
+    <button onclick="adjustUserBoxRights(false)">Kutu Hakkı Çıkar</button>
+  </div>
+</div>
+
+<div id="blockDurationModal" class="modal-overlay" style="display:none;">
+  <div class="modal-content">
+    <button class="modal-close-button" onclick="closeBlockDurationModal()">&times;</button>
+    <h4>Kullanıcıyı Engelle: <span id="blockUserName"></span></h4>
+    <p>Engelleme Süresi (Dakika):</p>
+    <input type="number" id="blockDuration" placeholder="Süre (dakika)" min="1" /><br>
+    <button onclick="confirmBlockUser()">Engellemeyi Onayla</button>
+  </div>
+</div>
+
+<div id="blockedMessageModal" class="modal-overlay" style="display:none;">
+  <div class="modal-content">
+    <h4>Hesabınız Engellendi!</h4>
+    <p id="blockedReason"></p>
+    <p id="blockedCountdown"></p>
+    <!-- Engelli modunda başka bir şeye tıklamayı engellemek için sadece Tamam butonu olacak -->
+  </div>
+</div>
+
+<div id="kickVerificationModal" class="modal-overlay" style="display:none;">
+  <div class="modal-content">
+    <button class="modal-close-button" onclick="closeKickVerificationModal()">&times;</button>
+    <h4>Kullanıcı Adı Doğrulaması</h4>
+    <p>Kullanıcı adı doğrulama talebi için kick hesabımızın sohbet kısmına <span style="color:#00FF00; font-weight:bold;">!doğrula</span> yazıp gönderin.</p>
+    <button onclick="window.open('https://kick.com/popout/weizendtv/chat', '_blank')">Kick Sohbete Yönlendir</button>
+  </div>
+</div>
+
+<!-- Yeni genel mesaj modalı -->
+<div id="generalMessageModal" class="modal-overlay" style="display:none;">
+  <div class="modal-content">
+    <button class="modal-close-button" onclick="closeGeneralMessageModal()">&times;</button>
+    <p id="generalMessageContent"></p>
+    <button onclick="closeGeneralMessageModal()">Tamam</button>
+  </div>
+</div>
+
+<!-- Yeni Rozet Ayarı Modal -->
+<div id="badgeAdjustmentModal" class="modal-overlay" style="display:none;">
+  <div class="modal-content">
+    <button class="modal-close-button" onclick="closeBadgeAdjustmentModal()">&times;</button>
+    <h4>Kullanıcı Rozet Ayarı: <span id="adjBadgeUserName"></span></h4>
+    <p>Mevcut Kupalar: <span id="adjUserTrophyCount"></span> 🏆</p>
+    <p>Mevcut Kral Taçları: <span id="adjUserKingCrownCount"></span> 👑</p>
+    <p>Mevcut Sürpriz Kutu Ödülleri: <span id="adjUserSurpriseWinCount"></span> 🎁</p>
+    
+    <div style="margin-bottom: 15px;">
+      <input type="number" id="adjTrophyAmount" placeholder="Kupa Miktarı" min="1" style="width: calc(50% - 10px); display: inline-block;" />
+      <button onclick="adjustUserBadge('trophy', true)" style="width: calc(25% - 10px);">Kupa Ekle</button>
+      <button onclick="adjustUserBadge('trophy', false)" style="width: calc(25% - 10px); background: #f44336;">Kupa Çıkar</button>
+    </div>
+    <div style="margin-bottom: 20px;">
+      <input type="number" id="adjKingCrownAmount" placeholder="Taç Miktarı" min="1" style="width: calc(50% - 10px); display: inline-block;" />
+      <button onclick="adjustUserBadge('kingCrown', true)" style="width: calc(25% - 10px);">Taç Ekle</button>
+      <button onclick="adjustUserBadge('kingCrown', false)" style="width: calc(25% - 10px); background: #f44336;">Taç Çıkar</button>
+    </div>
+    <div style="margin-bottom: 20px;">
+      <input type="number" id="adjSurpriseWinAmount" placeholder="Sürpriz Kutu Miktarı" min="1" style="width: calc(50% - 10px); display: inline-block;" />
+      <button onclick="adjustUserBadge('surpriseWin', true)" style="width: calc(25% - 10px);">Sürpriz Kutu Ekle</button>
+      <button onclick="adjustUserBadge('surpriseWin', false)" style="width: calc(25% - 10px); background: #f44336;">Sürpriz Kutu Çıkar</button>
+    </div>
+    
+    <button onclick="resetUserBadges(targetUserForBadgeAdjustment)">Tüm Rozetleri Sıfırla</button>
+  </div>
+</div>
+
+<!-- Yeni Kart Seçim Modalı -->
+<div id="cardSelectionModal" class="modal-overlay" style="display:none;">
+  <div class="modal-content">
+    <h4>Sürpriz Kutu! Bir Kart Seçin</h4>
+    <div class="card-container" id="cardContainer">
+      <!-- Kartlar buraya JS ile yüklenecek -->
+    </div>
+  </div>
+</div>
+
+
+<script>
+  // Firebase yapılandırması
+  const firebaseConfig = {
+    apiKey: "AIzaSyAVuyT2Hb7v9omKSgcwtoj0gzjTbXRtQn8",
+    authDomain: "weizendtv-oyun.firebaseapp.com",
+    databaseURL: "https://weizendtv-oyun-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "weizendtv-oyun",
+    storageBucket: "weizendtv-oyun.firebase-storage.app",
+    messagingSenderId: "762409187638",
+    appId: "1:762409187638:web:6e9888f4bdacfac017db97"
+  };
+
+  try {
+    firebase.initializeApp(firebaseConfig);
+    console.log("Firebase başarıyla başlatıldı.");
+  } catch (e) {
+    if (!e.message.includes("already exists")) {
+      console.error("Firebase başlatma hatası: ", e);
+    } else {
+      console.warn("Firebase zaten başlatılmış.");
+    }
+  }
+
+  const db = firebase.database();
+  const auth = firebase.auth(); // Firebase Auth servisi
+
+  let currentUser = null;
+  let isAdmin = false;
+  let boxes = [];
+  const BOX_RIGHTS_COST_PER_BOX = 1; // Kutu açmak için gereken kutu hakkı
+  // Puan değerleri ve dağılımları
+  const BOX_CONTENTS = [
+    { type: 'surpriz', value: 0, count: 1 }, // Sürpriz kutu artık direkt puan vermeyecek, değeri 0 olarak ayarlandı
+    { type: 'points', value: 1000, count: 2 },
+    { type: 'iflas', count: 2 },
+    { type: 'points', value: 750, count: 4 },
+    { type: 'points', value: 500, count: 6 },
+    { type: 'points', value: 250, count: 8 },
+    { type: 'points', value: 100, count: 10 },
+    { type: 'points', value: 50, count: 15 },
+    { type: 'points', value: 10, count: 20 },
+    { type: 'points', value: 1, count: 30 },
+    { type: 'multiplier', value: 2, count: 1 }, // 2x puan
+    { type: 'multiplier', value: 3, count: 1 }  // 3x puan
+  ];
+  const TOTAL_BOXES = BOX_CONTENTS.reduce((sum, item) => sum + item.count, 0); // Toplam 100 kutu
+
+  const pointAdjustmentModal = document.getElementById('pointAdjustmentModal');
+  const boxRightAdjustmentModal = document.getElementById('boxRightAdjustmentModal'); // Yeni kutu hakkı modalı
+  const blockDurationModal = document.getElementById('blockDurationModal');
+  const blockedMessageModal = document.getElementById('blockedMessageModal');
+  const kickVerificationModal = document.getElementById('kickVerificationModal');
+  const generalMessageModal = document.getElementById('generalMessageModal');
+  const badgeAdjustmentModal = document.getElementById('badgeAdjustmentModal'); // Yeni rozet ayarı modalı
+  const cardSelectionModal = document.getElementById('cardSelectionModal'); // Yeni kart seçim modalı
+  const cardContainer = document.getElementById('cardContainer'); // Kartların yükleneceği div
+
+  let targetUserForAdjustment = null; // Puan ayarı için
+  let targetUserForBoxRightAdjustment = null; // Kutu hakkı ayarı için
+  let targetUserForBlock = null;
+  let targetUserForBadgeAdjustment = null; // Rozet ayarı için
+  let countdownInterval = null;
+  let allWinnersData = {}; // Kazananlar sıralaması için global cache
+  let cardValues = [1000, 2000, 3000, 4000, 5000]; // Kartların içindeki puanlar
+  
+  // Yeni global değişkenler: Kart seçim mini oyunu durumu için
+  let currentCardsToOpen = 0;
+  let cardsOpenedInCurrentSurpriseSession = 0;
+  let totalPointsGainedInSurpriseSession = 0;
+
+  // Sayfa yüklendiğinde ve oturum durumu değiştiğinde çalışacak kısım
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      // Firebase Auth ile giriş yapmış bir kullanıcı var
+      const firebaseAuthUsername = user.email.split('@')[0].toLowerCase(); // E-postanın başını kullanıcı adı olarak alıyoruz
+      console.log("Firebase Auth üzerinden oturum algılandı:", firebaseAuthUsername);
+
+      // Admin özel kullanıcı adı kontrolü (Firebase Auth email'i ile)
+      if (firebaseAuthUsername === "weizendtv") {
+        currentUser = "WeizendTv"; // Görüntülenen isim
+        isAdmin = true;
+        afterLogin();
+      } else {
+        // Normal bir Firebase Auth kullanıcısı (eğer ilerde kullanmak istersek)
+        // Şimdilik sadece Realtime DB kullanıcılarını ele alıyoruz.
+        // auth.signOut() yaparak bu oturumu kapatabiliriz eğer Realtime DB'deki kullanıcılar harici bir girişse.
+        // Şimdilik, admin dışındaki Auth kullanıcılarını direkt normal loginDiv'e yönlendiriyoruz.
+        auth.signOut().then(() => {
+          displayMessage("Lütfen Kick Kullanıcı Adınız ile giriş yapın.");
+          document.getElementById("loginDiv").style.display = "block";
+          document.getElementById("gameDiv").style.display = "none";
+        });
+      }
+    } else {
+      // Oturum yok veya çıkış yapıldı
+      console.log("Firebase Auth oturumu bulunamadı.");
+      document.getElementById("loginDiv").style.display = "block";
+      document.getElementById("gameDiv").style.display = "none";
+    }
+  });
+
+
+  async function login() {
+    const user = document.getElementById("username").value.trim().toLowerCase();
+    const pass = document.getElementById("password").value.trim();
+
+    console.log("Giriş denemesi:", { user, pass });
+
+    if (!user || !pass) {
+      displayMessage("Kullanıcı adı ve şifre boş bırakılamaz!");
+      return;
+    }
+    if (user.length < 3) {
+      displayMessage("Kullanıcı adı en az 3 karakter olmalı!");
+      return;
+    }
+    if (pass.length < 6) {
+      displayMessage("Şifre en az 6 karakter olmalı!");
+      return;
+    }
+
+    // Admin girişi (Firebase Authentication üzerinden)
+    if (user === "weizendtv") {
+      const adminEmail = "weizendtv@weizendtvoyun.com"; // Firebase Auth'a eklediğin e-posta
+      try {
+        await auth.signInWithEmailAndPassword(adminEmail, pass);
+        // onAuthStateChanged tetiklenecek ve afterLogin çağrılacak
+        displayMessage("Admin olarak giriş başarılı!");
+      } catch (error) {
+        console.error("Admin Firebase Auth giriş hatası: ", error); // Hata konsola yazdırılır (debugging için)
+        let displayErrorMessage = "Admin girişi sırasında bir hata oluştu. Lütfen tekrar deneyin.";
+
+        // Firebase Auth hata kodlarını kontrol et
+        if (error.code) {
+          if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+            displayErrorMessage = "Admin kullanıcı adı veya şifresi yanlış!";
+          } else if (error.code === 'auth/invalid-email') {
+            displayErrorMessage = "Geçersiz admin e-posta formatı. Lütfen kontrol edin.";
+          } else if (error.code === 'auth/network-request-failed') {
+            displayErrorMessage = "İnternet bağlantısı sorunu. Lütfen bağlantınızı kontrol edin.";
+          }
+        }
+        // Firebase Auth hata kodu yoksa ancak mesajda tanıdık bir ifade varsa
+        if (error.message && error.message.includes("INVALID_LOGIN_CREDENTIALS")) {
+            displayErrorMessage = "Admin kullanıcı adı veya şifresi yanlış!";
+        }
+        
+        displayMessage(displayErrorMessage);
+      }
+      return;
+    }
+
+    // Normal kullanıcı girişi (Realtime Database üzerinden)
+    db.ref('users/' + user).once('value').then(snap => {
+      if (snap.exists()) {
+        let data = snap.val();
+        console.log("Kullanıcı verisi bulundu:", data);
+
+        if (data.password !== pass) {
+          displayMessage("Şifre yanlış!");
+        } else if (!data.approved) {
+          displayMessage("Hesabınız Kick kullanıcı adı onayı bekliyor. Lütfen bekleyiniz.");
+        } else if (data.blocked) {
+          checkUserBlockStatusAndLogin(user, data);
+        } else {
+          currentUser = user;
+          isAdmin = false; // Normal kullanıcı
+          console.log("Kullanıcı olarak giriş yapıldı:", currentUser);
+          afterLogin();
+        }
+      } else {
+        // Yeni kullanıcı kaydı
+        console.log("Yeni kullanıcı kaydı yapılıyor:", user);
+        db.ref('users/' + user).set({
+          password: pass,
+          balance: 0, // Mevcut puan
+          highestBalanceEver: 0, // Yeni: Ulaşılan en yüksek puan
+          totalSpentPoints: 0, // Yeni: Toplam harcanan puan
+          kutuHakki: 0, // Yeni kutu hakkı alanı
+          approved: false,
+          blocked: false,
+          blockedUntil: null,
+          boxesOpenedCount: 0,
+          currentSessionBoxesOpened: 0,
+          trophyCount: 0, // Yeni: Kupa sayısı
+          kingCrownCount: 0, // Yeni: Kral tacı sayısı (trophyCount'tan türetilecek)
+          surpriseWinCount: 0, // Yeni: Sürpriz kutu kazanma sayısı
+          activeMultiplier: 1, // Yeni: Aktif çarpan (varsayılan 1)
+          multiplierEffectActive: false, // Yeni: Çarpan etkisi aktif mi
+          registeredAt: new Date().toLocaleString()
+        }).then(() => {
+          displayMessage("Hesabınız başarıyla oluşturuldu! Kick kullanıcı adı doğrulaması bekleniyor.");
+        }).catch(error => {
+          console.error("Firebase kayıt hatası: ", error);
+          displayMessage("Kayıt olurken bir hata oluştu. Lütfen tekrar deneyin.");
+        });
+      }
+    }).catch(error => {
+      console.error("Firebase veritabanı okuma hatası: ", error);
+      displayMessage("Giriş yaparken bir sorun oluştu (veritabanı bağlantısı). Lütfen internet bağlantınızı kontrol edin.");
+    });
+  }
+
+  function checkUserBlockStatusAndLogin(userToCheck, userData = null) {
+    const user = userData;
+    if (user && user.blocked) {
+      const blockedUntil = user.blockedUntil;
+      if (blockedUntil && Date.now() < blockedUntil) {
+        displayBlockedMessage(blockedUntil);
+      } else if (blockedUntil && Date.now() >= blockedUntil) {
+        db.ref('users/' + userToCheck).update({ blocked: false, blockedUntil: null })
+          .then(() => {
+            displayMessage("Engelleme süreniz doldu. Giriş yapılıyor...");
+            currentUser = userToCheck;
+            isAdmin = false;
+            afterLogin();
+          })
+          .catch(error => console.error("Engeli kaldırma hatası:", error));
+      } else {
+        displayMessage("Hesabınız süresiz engellendi. Lütfen admin ile iletişime geçin.");
+        document.getElementById("loginDiv").style.display = "block";
+        document.getElementById("gameDiv").style.display = "none";
+      }
+    } else {
+      currentUser = userToCheck;
+      isAdmin = false;
+      afterLogin();
+    }
+  }
+
+  async function afterLogin() {
+    document.getElementById("loginDiv").style.display = "none";
+    document.getElementById("gameDiv").style.display = "block";
+    
+    // Kullanıcının ikonlarını hoşgeldin mesajında göster
+    let userDisplayName = currentUser;
+    if (!isAdmin) {
+      const userSnap = await db.ref('users/' + currentUser).once('value');
+      const userData = userSnap.val();
+      let userIconsHtml = '';
+      if (userData.kingCrownCount > 0) {
+        userIconsHtml += `<span class="icon" onclick="showKingMessage('${currentUser}', ${userData.kingCrownCount})">👑</span>`;
+      }
+      if (userData.trophyCount > 0) {
+        userIconsHtml += `<span class="icon" onclick="showWeeklyPopularUserMessage('${currentUser}', ${userData.trophyCount})">🏆</span>`;
+      }
+      if (userData.surpriseWinCount > 0) {
+        userIconsHtml += `<span class="icon" onclick="showBigPrizeWinMessage('${currentUser}', ${userData.surpriseWinCount})">🎁</span>`;
+      }
+      document.getElementById("currentUser").innerHTML = `${userIconsHtml} ${currentUser}`;
+    } else {
+      document.getElementById("currentUser").textContent = currentUser;
+    }
+    
+    document.getElementById("role").textContent = isAdmin ? "(Admin)" : "";
+
+    if (isAdmin) {
+      document.getElementById("adminPanel").style.display = "block";
+      loadPendingUsers();
+      loadAllUsers();
+    } else {
+      document.getElementById("adminPanel").style.display = "none";
+    }
+
+    loadBalanceAndBoxRights(); // Güncellendi
+    loadWinners(); // Kazananlar verisini önden yükle
+    loadUserRankingsAndBoxCounts();
+    loadBoxes();
+    loadTotalOpenedBoxesCount();
+
+    // GLOBAL DUYURU DİNLEYİCİSİ KALDIRILDI
+    /*
+    db.ref('globalAnnouncements/latestSurpriseWin').on('value', snap => {
+        const announcement = snap.val();
+        // Sadece yeni duyuruları ve mevcut kullanıcı tarafından tetiklenmeyenleri göster
+        if (announcement && announcement.timestamp > lastGlobalAnnouncementTimestamp && announcement.winner !== currentUser) {
+            displayMessage(`BÜYÜK ÖDÜL BULUNDU TEBRİKLER! (${announcement.winner})`);
+            lastGlobalAnnouncementTimestamp = announcement.timestamp; // Duyuruyu gösterdikten sonra zaman damgasını güncelle
+        }
+    });
+    */
+  }
+
+  async function logout() {
+    try {
+      await auth.signOut(); // Firebase Auth oturumunu kapat
+      currentUser = null;
+      isAdmin = false;
+      location.reload(); // Sayfayı yenileyerek giriş ekranına dön
+    } catch (error) {
+      console.error("Çıkış yaparken hata oluştu: ", error);
+      displayMessage("Çıkış yaparken bir hata oluştu.");
+    }
+  }
+
+  // Puan, Kutu Hakkı ve Toplam Harcanan Puan bilgisini yükle
+  function loadBalanceAndBoxRights() {
+    if (isAdmin) {
+      document.getElementById("balance").textContent = "Mevcut Puan: ∞ (Admin) | Kutu Hakkı: ∞ (Admin) | Toplam Harcanan Puan: ∞ (Admin)";
+      return;
+    }
+    db.ref('users/' + currentUser).on('value', snap => {
+      const userData = snap.val() || { balance: 0, kutuHakki: 0, totalSpentPoints: 0 };
+      document.getElementById("balance").textContent = `Mevcut Puan: ${userData.balance} | Kutu Hakkı: ${userData.kutuHakki} | Toplam Harcanan Puan: ${userData.totalSpentPoints}`;
+    });
+  }
+
+  async function loadUserRankingsAndBoxCounts() {
+    // Kazananlar verisini çek ve cache'le
+    await db.ref('winners').once('value').then(snap => {
+      allWinnersData = {};
+      snap.forEach(child => {
+        const winnerName = child.val().name;
+        allWinnersData[winnerName] = (allWinnersData[winnerName] || 0) + 1;
+      });
+    }).catch(error => console.error("Kazananlar verisi yükleme hatası:", error));
+
+    db.ref('users').on('value', userSnap => {
+      let usersData = userSnap.val();
+
+      if (!usersData) {
+        document.getElementById("allUserRankings").innerHTML = "Henüz veri yok.";
+        document.getElementById("totalUsers").textContent = "0";
+        return;
+      }
+
+      let allUsersArray = Object.entries(usersData);
+      let rankedUsers = [];
+      let totalUsers = 0;
+
+      allUsersArray.forEach(([username, userData]) => {
+        if (username === "weizendtv" && isAdmin) return;
+
+        totalUsers++;
+        const boxesOpenedCount = userData.boxesOpenedCount || 0;
+        const currentSessionBoxesOpened = userData.currentSessionBoxesOpened || 0;
+        const balance = userData.balance || 0;
+        const highestBalanceEver = userData.highestBalanceEver || 0; // Yeni: En yüksek puan
+        const kutuHakki = userData.kutuHakki || 0;
+        const trophyCount = userData.trophyCount || 0;
+        const kingCrownCount = userData.kingCrownCount || 0;
+        const surpriseWinCount = userData.surpriseWinCount || 0; // Yeni: Sürpriz kutu kazanma sayısı
+        const winnerCount = allWinnersData[username] || 0; // Kazanan sayısını al (winners tablosundan)
+
+        if (userData.approved && !userData.blocked) {
+          rankedUsers.push({
+            username: username,
+            balance: balance,
+            highestBalanceEver: highestBalanceEver, // Yeni
+            kutuHakki: kutuHakki,
+            boxesOpenedCount: boxesOpenedCount,
+            currentSessionBoxesOpened: currentSessionBoxesOpened,
+            trophyCount: trophyCount,
+            kingCrownCount: kingCrownCount,
+            surpriseWinCount: surpriseWinCount, // Yeni
+            winnerCount: winnerCount
+          });
+        }
+      });
+
+      // Mevcut puana (balance) göre sırala
+      rankedUsers.sort((a, b) => b.balance - a.balance);
+
+      let html = rankedUsers.map((u, i) => {
+        let userIcons = '';
+        // En yüksek puanlı kullanıcıya özel ikon (highestBalanceEver'a göre)
+        // Bu ikon artık highestBalanceEver'a göre değil, mevcut puana göre lideri gösterecek.
+        let isTopScorer = (i === 0 && rankedUsers.length > 0 && rankedUsers[0].balance > 0); 
+
+        if (isTopScorer) {
+          userIcons += `<span class="icon" onclick="showHighestPointUserMessage()">🥇</span>`;
+        }
+        // Rozetlerin önceliği: Kral tacı > Kupa > Sürpriz Kutu
+        if (u.kingCrownCount > 0) {
+          userIcons += `<span class="icon" onclick="showKingMessage('${u.username}', ${u.kingCrownCount})">👑</span>`;
+        }
+        if (u.trophyCount > 0) {
+          userIcons += `<span class="icon" onclick="showWeeklyPopularUserMessage('${u.username}', ${u.trophyCount})">🏆</span>`;
+        }
+        if (u.surpriseWinCount > 0) { // Sürpriz Kutu rozeti
+          userIcons += `<span class="icon" onclick="showBigPrizeWinMessage('${u.username}', ${u.surpriseWinCount})">🎁</span>`;
+        }
+        
+        return `<b>${i + 1}.</b> ${userIcons} ${u.username}<br>` +
+               `&nbsp;&nbsp;<span style="color: #ffcc00;">Mevcut Puan: ${u.balance}</span> - <span style="color: #00FF00;">En Yüksek Puan: ${u.highestBalanceEver}</span><br>` +
+               `&nbsp;&nbsp;Açılan Kutu (Şuan): ${u.currentSessionBoxesOpened} - Tüm Zamanlar: ${u.boxesOpenedCount}<br>` +
+               `&nbsp;&nbsp;Kutu Hakkı: ${u.kutuHakki}`;
+      }).join("<br><br>");
+
+      document.getElementById("allUserRankings").innerHTML = html || "Henüz sıralanacak kullanıcı yok.";
+      document.getElementById("totalUsers").textContent = totalUsers;
+    });
+  }
+
+  function loadWinners() {
+    db.ref('winners').on('value', snap => {
+      let data = snap.val();
+      if (!data) { document.getElementById("winners").innerHTML = "Henüz kazanan yok."; return; }
+      let winnerCount = {};
+      Object.values(data).forEach(w => { winnerCount[w.name] = (winnerCount[w.name] || 0) + 1; });
+      let sorted = Object.entries(winnerCount).sort((a,b) => b[1]-a[1]).slice(0,10);
+      // Kazananlar sıralamasına kutu emojisi ve tıklama mesajı eklendi
+      let html = sorted.map((w,i) => `<b>${i+1}.</b> <span class="icon" onclick="showBigPrizeWinMessage('${w[0]}', ${w[1]})">🎁</span> ${w[0]} - ${w[1]}x`).join("<br>");
+      document.getElementById("winners").innerHTML = html;
+    });
+  }
+
+  function loadPendingUsers() {
+    db.ref('users').on('value', snap => {
+      const data = snap.val();
+      let html = "";
+      for (const u in data) {
+        if (!data[u].approved) {
+          html += `<div class="userItem">
+            <span>${u} (Kayıt: ${data[u].registeredAt || 'Bilinmiyor'})</span>
+            <div>
+            <button onclick="approveUser('${u}')">Onayla</button>
+            <button onclick="denyUser('${u}', true)" style="background: #e57373;">Sil</button></div></div>`;
+        }
+      }
+      document.getElementById("pendingUsers").innerHTML = html || "Onay bekleyen kullanıcı yok.";
+    });
+  }
+
+  function loadAllUsers() {
+    db.ref('users').on('value', snap => {
+      const data = snap.val();
+      let html = "";
+      for (const u in data) {
+        if (u === "weizendtv" && isAdmin) continue;
+
+        html += `<div class="userItem">
+            <span>${u} - Puan: ${data[u].balance || 0} - Kutu Hakkı: ${data[u].kutuHakki || 0} ${data[u].blocked ? '(Engelli)' : ''} (🏆 ${data[u].trophyCount || 0} | 👑 ${data[u].kingCrownCount || 0} | 🎁 ${data[u].surpriseWinCount || 0})</span>
+            <div>
+            <button onclick="event.stopPropagation(); openPointAdjustmentModal('${u}')">Puan Ayarı</button>
+            <button onclick="event.stopPropagation(); openBoxRightAdjustmentModal('${u}')">Kutu Hakkı Ayarı</button>
+            <button onclick="event.stopPropagation(); openBadgeAdjustmentModal('${u}')">Rozet Ayarı</button>
+            <button onclick="event.stopPropagation(); toggleBlockUser('${u}', ${data[u].blocked || false})">
+              ${data[u].blocked ? 'Engeli Kaldır' : 'Engelle'}
+            </button>
+            <button onclick="event.stopPropagation(); denyUser('${u}')" style="background: #e57373;">Sil</button>
+            </div>
+            </div>`;
+      }
+      document.getElementById("allUsers").innerHTML = html || "Kullanıcı yok.";
+    });
+  }
+
+  // displayMessage fonksiyonunu modal olarak güncelledik
+  function displayMessage(message) {
+    document.getElementById('generalMessageContent').textContent = message;
+    generalMessageModal.style.display = 'flex';
+  }
+
+  function closeGeneralMessageModal() {
+    generalMessageModal.style.display = 'none';
+  }
+
+  function customConfirm(message, callback) {
+    const confirmBox = document.createElement('div');
+    confirmBox.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: #222;
+      color: #fff;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.7);
+      z-index: 1000;
+      text-align: center;
+      font-size: 18px;
+      border: 2px solid #b71c1c;
+      max-width: 400px;
+      width: 90%;
+    `;
+    confirmBox.innerHTML = `
+      <p>${message}</p>
+      <button id="confirmYes" style="margin-right: 15px; background: #4CAF50;">Evet</button>
+      <button id="confirmNo" style="background: #f44336;">Hayır</button>
+    `;
+    document.body.appendChild(confirmBox);
+
+    document.getElementById('confirmYes').onclick = () => {
+      confirmBox.remove();
+      callback(true);
+    };
+    document.getElementById('confirmNo').onclick = () => {
+      confirmBox.remove();
+      callback(false);
+    };
+  }
+
+  function openPointAdjustmentModal(username) {
+    targetUserForAdjustment = username;
+    document.getElementById('adjUserName').textContent = username;
+    db.ref('users/' + username + '/balance').once('value').then(snap => {
+      document.getElementById('adjUserBalance').textContent = snap.val() || 0;
+    }).catch(error => console.error("Bakiye okuma hatası:", error));
+    pointAdjustmentModal.style.display = 'flex';
+  }
+
+  function closePointAdjustmentModal() {
+    pointAdjustmentModal.style.display = 'none';
+    document.getElementById('adjAmount').value = '';
+    targetUserForAdjustment = null;
+  }
+
+  function adjustUserPoints(add) {
+    const amount = parseInt(document.getElementById('adjAmount').value);
+    if (isNaN(amount) || amount <= 0) {
+      displayMessage("Geçerli bir pozitif puan miktarı girin!");
+      return;
+    }
+
+    db.ref('users/' + targetUserForAdjustment).once('value').then(snap => {
+      let userData = snap.val();
+      let userBalance = userData.balance || 0;
+      let highestBalanceEver = userData.highestBalanceEver || 0;
+
+      userBalance = add ? userBalance + amount : Math.max(userBalance - amount, 0);
+      
+      // En yüksek puanı güncelle
+      if (userBalance > highestBalanceEver) {
+          highestBalanceEver = userBalance;
+      }
+
+      db.ref('users/' + targetUserForAdjustment).update({
+        balance: userBalance,
+        highestBalanceEver: highestBalanceEver
+      })
+        .then(() => {
+          displayMessage(`${targetUserForAdjustment} kullanıcısının yeni bakiyesi: ${userBalance} puan. En Yüksek Puan: ${highestBalanceEver}`);
+          closePointAdjustmentModal();
+          loadAllUsers();
+          loadUserRankingsAndBoxCounts();
+          if (targetUserForAdjustment === currentUser) loadBalanceAndBoxRights();
+        })
+        .catch(error => console.error("Bakiye güncelleme hatası: ", error));
+    }).catch(error => console.error("Kullanıcı verisi okuma hatası: ", error));
+  }
+
+  // Yeni Kutu Hakkı Ayarı Modal Fonksiyonları
+  function openBoxRightAdjustmentModal(username) {
+    targetUserForBoxRightAdjustment = username;
+    document.getElementById('adjBoxRightUserName').textContent = username;
+    db.ref('users/' + username + '/kutuHakki').once('value').then(snap => {
+      document.getElementById('adjUserBoxRight').textContent = snap.val() || 0;
+    }).catch(error => console.error("Kutu hakkı okuma hatası:", error));
+    boxRightAdjustmentModal.style.display = 'flex';
+  }
+
+  function closeBoxRightAdjustmentModal() {
+    boxRightAdjustmentModal.style.display = 'none';
+    document.getElementById('adjBoxRightAmount').value = '';
+    targetUserForBoxRightAdjustment = null;
+  }
+
+  function adjustUserBoxRights(add) {
+    const amount = parseInt(document.getElementById('adjBoxRightAmount').value);
+    if (isNaN(amount) || amount <= 0) {
+      displayMessage("Geçerli bir pozitif kutu hakkı miktarı girin!");
+      return;
+    }
+
+    db.ref('users/' + targetUserForBoxRightAdjustment).once('value').then(snap => {
+      let userBoxRights = snap.val().kutuHakki || 0;
+      userBoxRights = add ? userBoxRights + amount : Math.max(userBoxRights - amount, 0);
+      db.ref('users/' + targetUserForBoxRightAdjustment + '/kutuHakki').set(userBoxRights)
+        .then(() => {
+          displayMessage(`${targetUserForBoxRightAdjustment} kullanıcısının yeni kutu hakkı: ${userBoxRights}`);
+          closeBoxRightAdjustmentModal();
+          loadAllUsers();
+          loadUserRankingsAndBoxCounts();
+          if (targetUserForBoxRightAdjustment === currentUser) loadBalanceAndBoxRights();
+        })
+        .catch(error => console.error("Kutu hakkı güncelleme hatası: ", error));
+    }).catch(error => console.error("Kullanıcı verisi okuma hatası: ", error));
+  }
+
+  function openBlockDurationModal(username) {
+    targetUserForBlock = username;
+    document.getElementById('blockUserName').textContent = username;
+    blockDurationModal.style.display = 'flex';
+  }
+
+  function closeBlockDurationModal() {
+    blockDurationModal.style.display = 'none';
+    document.getElementById('blockDuration').value = '';
+    targetUserForBlock = null;
+  }
+
+  function confirmBlockUser() {
+    const duration = parseInt(document.getElementById('blockDuration').value);
+    if (isNaN(duration) || duration <= 0) {
+      displayMessage("Geçerli bir pozitif süre (dakika) girin!");
+      return;
+    }
+
+    const blockedUntil = Date.now() + duration * 60 * 1000;
+    db.ref('users/' + targetUserForBlock).update({
+      blocked: true,
+      blockedUntil: blockedUntil
+    }).then(() => {
+      displayMessage(`${targetUserForBlock} kullanıcısı ${duration} dakika engellendi.`);
+      closeBlockDurationModal();
+      loadAllUsers();
+      loadUserRankingsAndBoxCounts();
+    }).catch(error => console.error("Kullanıcı engelleme hatası:", error));
+  }
+
+  function toggleBlockUser(user, currentStatus) {
+    if (currentStatus) {
+      customConfirm(user + " kullanıcısının engelini kaldırmak istediğinize emin misiniz?", (result) => {
+        if (result) {
+          db.ref('users/' + user).update({ blocked: false, blockedUntil: null })
+            .then(() => {
+              displayMessage(user + " kullanıcısının engeli kaldırıldı.");
+              loadAllUsers();
+              loadUserRankingsAndBoxCounts();
+            })
+            .catch(error => console.error("Engeli kaldırma hatası: ", error));
+        }
+      });
+    } else {
+      openBlockDurationModal(user);
+    }
+  }
+
+  function approveUser(user) {
+    customConfirm(user + " kullanıcısını onaylamak istediğinize emin misiniz?", (result) => {
+      if (result) {
+        db.ref('users/' + user).update({ approved: true, blocked: false, blockedUntil: null })
+          .then(() => {
+            displayMessage(user + " kullanıcısı onaylandı.");
+            loadPendingUsers();
+            loadAllUsers();
+            loadUserRankingsAndBoxCounts();
+          }).catch(error => console.error("Kullanıcı onaylama hatası: ", error));
+      }
+    });
+  }
+
+  function denyUser(user, fromPending = false) {
+    customConfirm(user + " kullanıcısını tamamen silmek istediğinize emin misiniz? Bu işlem geri alınamaz ve kullanıcı adı tekrar kullanılabilir hale gelir!", (result) => {
+      if (result) {
+        db.ref('users/' + user).remove()
+          .then(() => {
+            displayMessage(user + " kullanıcısı silindi ve adı tekrar kullanılabilir.");
+            if (fromPending) {
+              loadPendingUsers();
+            }
+            loadAllUsers();
+            loadUserRankingsAndBoxCounts();
+          }).catch(error => console.error("Kullanıcı silme hatası: ", error));
+      }
+    });
+  }
+
+  function changeAllPoints(add) {
+    const amount = parseInt(document.getElementById("globalPoint").value);
+    if (isNaN(amount) || amount <= 0) {
+      displayMessage("Geçerli bir pozitif puan miktarı girin!");
+      return;
+    }
+
+    customConfirm(`Tüm onaylı ve engellenmemiş kullanıcılara ${add ? 'eklemek' : 'silmek'} istediğinizden emin misiniz?`, (result) => {
+      if (result) {
+        db.ref('users').once('value').then(snap => {
+          const updates = {};
+          snap.forEach(child => {
+            if (child.val().approved && !child.val().blocked && child.key !== "weizendtv") {
+              let balance = child.val().balance || 0;
+              let highestBalanceEver = child.val().highestBalanceEver || 0; // En yüksek puanı al
+
+              balance = add ? balance + amount : Math.max(balance - amount, 0);
+              
+              // En yüksek puanı güncelle
+              if (balance > highestBalanceEver) {
+                  highestBalanceEver = balance;
+              }
+
+              updates['users/' + child.key + '/balance'] = balance;
+              updates['users/' + child.key + '/highestBalanceEver'] = highestBalanceEver; // En yüksek puanı güncelle
+            }
+          });
+          db.ref().update(updates)
+            .then(() => displayMessage("Tüm onaylı kullanıcıların bakiyeleri güncellendi."))
+            .catch(error => console.error("Toplu bakiye güncelleme hatası: ", error));
+        });
+      }
+    });
+  }
+
+  // Tüm kullanıcılara toplu kutu hakkı ekle/sil
+  function changeAllBoxRights(add) {
+    const amount = parseInt(document.getElementById("globalBoxRight").value);
+    if (isNaN(amount) || amount <= 0) {
+      displayMessage("Geçerli bir pozitif kutu hakkı miktarı girin!");
+      return;
+    }
+
+    customConfirm(`Tüm onaylı ve engellenmemiş kullanıcılara ${add ? 'eklemek' : 'silmek'} istediğinizden emin misiniz?`, (result) => {
+      if (result) {
+        db.ref('users').once('value').then(snap => {
+          const updates = {};
+          snap.forEach(child => {
+            if (child.val().approved && !child.val().blocked && child.key !== "weizendtv") {
+              let kutuHakki = child.val().kutuHakki || 0;
+              kutuHakki = add ? kutuHakki + amount : Math.max(kutuHakki - amount, 0);
+              updates['users/' + child.key + '/kutuHakki'] = kutuHakki;
+            }
+          });
+          db.ref().update(updates)
+            .then(() => displayMessage("Tüm onaylı kullanıcıların kutu hakları güncellendi."))
+            .catch(error => console.error("Toplu kutu hakkı güncelleme hatası: ", error));
+        });
+      }
+    });
+  }
+
+  function createBoxes() {
+    boxes = [];
+    let allContents = [];
+
+    // Kutu içeriklerini belirtilen sayılarda ekle
+    BOX_CONTENTS.forEach(item => {
+      for (let i = 0; i < item.count; i++) {
+        // For 'surpriz' type, ensure it has a value for points
+        allContents.push({ type: item.type, value: item.value || 0 }); // Use item.value if exists, else 0
+      }
+    });
+
+    // Shuffle the contents
+    for (let i = allContents.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [allContents[i], allContents[j]] = [allContents[j], allContents[i]]; // Fisher-Yates shuffle
+    }
+
+    // Create boxes with shuffled contents
+    for (let i = 0; i < TOTAL_BOXES; i++) {
+      boxes.push({
+        id: i + 1,
+        content: allContents[i].type,
+        value: allContents[i].value, // Store value for points/multiplier
+        opened: false,
+        opener: ''
+      });
+    }
+
+    db.ref('boxes').set(boxes)
+      .then(() => console.log("Kutular oluşturuldu/sıfırlandı."))
+      .catch(error => console.error("Kutu oluşturma hatası: ", error));
+  }
+
+  function loadBoxes() {
+    db.ref('boxes').on('value', snap => {
+      if (!snap.exists()) {
+        createBoxes();
+      } else {
+        boxes = snap.val();
+        renderBoxes();
+        loadTotalOpenedBoxesCount();
+      }
+    });
+  }
+
+  function renderBoxes() {
+    const container = document.getElementById("boxContainer");
+    container.innerHTML = '';
+    boxes.forEach((box, i) => {
+      let div = document.createElement('div');
+      div.className = 'box ' + (box.opened ? 'opened' : '');
+      let displayContent = box.id; // Varsayılan olarak kutu numarası
+
+      if (box.opened) {
+        if (box.content === 'points') {
+          displayContent = `+${box.value}`;
+          div.classList.add('winner'); // Puan kutuları yeşil olsun
+        } else if (box.content === 'surpriz') {
+          displayContent = `🎁 Sürpriz!`; // Sürpriz kutusu için özel metin
+          div.classList.add('winner');
+        } else if (box.content === 'iflas') {
+          displayContent = '💣'; // İflas ikonu
+          div.classList.add('bomba'); // Kırmızı olsun
+        } else if (box.content === 'multiplier') {
+          displayContent = `${box.value}X`;
+          div.classList.add('winner'); // Çarpan kutuları da yeşil olsun
+        }
+        // Kutuyu açan kullanıcının adını ekle
+        if (box.opener) {
+          let openerDiv = document.createElement('div');
+          openerDiv.className = 'opener';
+          openerDiv.textContent = box.opener;
+          div.appendChild(openerDiv);
+        }
+      }
+      div.textContent = displayContent; // Kutu içeriğini veya numarasını göster
+      div.onclick = () => openBox(i);
+      container.appendChild(div);
+    });
+  }
+
+
+  async function openBox(index) {
+    if (boxes[index].opened) return;
+
+    if (isAdmin) { // Adminler kutu hakkı harcamadan kutu açabilir
+      boxes[index].opened = true;
+      boxes[index].opener = 'Admin';
+      db.ref('boxes').set(boxes)
+        .then(() => renderBoxes())
+        .catch(error => console.error("Admin kutu açma hatası: ", error));
+      return;
+    }
+
+    const userRef = db.ref('users/' + currentUser);
+    const userSnap = await userRef.once('value');
+    let user = userSnap.val();
+
+    if (!user) {
+      displayMessage("Kullanıcı bilginiz bulunamadı. Lütfen tekrar giriş yapın.");
+      logout();
+      return;
+    }
+    if (user.blocked) {
+      displayMessage("Hesabınız engelli olduğu için kutu açamazsınız.");
+      return;
+    }
+    // Kutu hakkı kontrolü
+    if ((user.kutuHakki || 0) < BOX_RIGHTS_COST_PER_BOX) {
+      displayMessage(`Kutu açmak için ${BOX_RIGHTS_COST_PER_BOX} kutu hakkına ihtiyacın var. Mevcut kutu hakkın: ${user.kutuHakki || 0}.`);
+      return;
+    }
+
+    user.kutuHakki = (user.kutuHakki || 0) - BOX_RIGHTS_COST_PER_BOX;
+    boxes[index].opened = true;
+    boxes[index].opener = currentUser;
+
+    user.boxesOpenedCount = (user.boxesOpenedCount || 0) + 1;
+    user.currentSessionBoxesOpened = (user.currentSessionBoxesOpened || 0) + 1;
+
+    let message = '';
+    let pointsGained = 0;
+    
+    // Get the current active multiplier and its status
+    let multiplierEffectActive = user.multiplierEffectActive || false;
+    let activeMultiplier = user.activeMultiplier || 1;
+
+    const box = boxes[index];
+
+    if (box.content === 'iflas') {
+      if (multiplierEffectActive) { // If a multiplier is active, protect from bomb
+        message = `${activeMultiplier}x çarpanı koruma sağladı! İflas etkisiz kaldı. Bir kutu hakkı hediye edildi.`;
+        user.kutuHakki = (user.kutuHakki || 0) + 1; // +1 kutu hakkı hediye
+        // Consume the multiplier after protection
+        user.activeMultiplier = 1;
+        user.multiplierEffectActive = false;
+      } else {
+        user.balance = 0; // All points are lost
+        message = `İflas! Tüm puanlarınız silindi. Yeni bakiyeniz: ${user.balance}.`;
+      }
+    } else if (box.content === 'points') { // Sürpriz kutu dışındaki puan kutuları
+      pointsGained = box.value * activeMultiplier; // Apply the active multiplier
+      user.balance = (user.balance || 0) + pointsGained;
+      message = `+${pointsGained} puan kazandınız! Yeni bakiyeniz: ${user.balance}.`;
+      
+      // Update highest balance if current balance is greater
+      if (user.balance > (user.highestBalanceEver || 0)) {
+          user.highestBalanceEver = user.balance;
+      }
+
+      // Consume the multiplier after a points box is opened
+      user.activeMultiplier = 1;
+      user.multiplierEffectActive = false;
+
+    } else if (box.content === 'surpriz') { // Sürpriz kutu bulunduğunda kart seçim modalını aç
+        // Sürpriz kutu bulunduğunda çarpanı tüket
+        user.activeMultiplier = 1;
+        user.multiplierEffectActive = false;
+        
+        let cardsToOpen = 1; // Varsayılan: 1 kart
+        if (activeMultiplier === 5) { // Hem 2x hem 3x aktifse (5x çarpanı)
+            cardsToOpen = 5;
+        } else if (activeMultiplier === 2) { // Sadece 2x aktifse
+            cardsToOpen = 2;
+        } else if (activeMultiplier === 3) { // Sadece 3x aktifse
+            cardsToOpen = 3;
+        }
+
+        // Kart seçim modalını aç
+        openCardSelectionModal(currentUser, cardsToOpen);
+        message = `Sürpriz Kutu buldunuz! Şimdi ${cardsToOpen} kart seçin.`;
+        // Bu noktada puan eklenmeyecek, kart seçiminden sonra eklenecek.
+        // surpriseWinCount da kart seçiminden sonra eklenecek.
+    }
+    else if (box.content === 'multiplier') {
+      user.kutuHakki = (user.kutuHakki || 0) + 1; // User gets one more box right
+      user.multiplierEffectActive = true;
+      
+      // Çarpan mantığı güncellendi
+      if (activeMultiplier === 2 && box.value === 3) {
+          user.activeMultiplier = 5; // 2x aktifken 3x gelirse 5x olur
+          message = `2x çarpanınız varken 3x çarpanı buldunuz! Süper! Şimdi 5x çarpanınız aktif. Bir kutu hakkı kazandınız.`;
+      } else {
+          user.activeMultiplier = box.value; // Yeni çarpan geçerli olur
+          message = `${box.value}x çarpan buldunuz! Bir kutu hakkı kazandınız. Sonraki kutu ${user.activeMultiplier} ile çarpılacak.`;
+      }
+    }
+
+    const updates = {};
+    updates['users/' + currentUser + '/balance'] = user.balance;
+    updates['users/' + currentUser + '/highestBalanceEver'] = user.highestBalanceEver;
+    updates['users/' + currentUser + '/kutuHakki'] = user.kutuHakki;
+    updates['users/' + currentUser + '/boxesOpenedCount'] = user.boxesOpenedCount;
+    updates['users/' + currentUser + '/currentSessionBoxesOpened'] = user.currentSessionBoxesOpened;
+    updates['users/' + currentUser + '/activeMultiplier'] = user.activeMultiplier;
+    updates['users/' + currentUser + '/multiplierEffectActive'] = user.multiplierEffectActive;
+    updates['users/' + currentUser + '/surpriseWinCount'] = user.surpriseWinCount; // surpriseWinCount burada güncellenmiyor, kart seçiminde güncellenecek
+    updates['boxes'] = boxes;
+
+    await db.ref().update(updates)
+      .then(() => {
+        console.log("Box opened, message:", message); // Debug log
+        // Sürpriz kutu açıldığında mesajı göster ama kart seçim modalı açılacağı için ek kutu hakkı mesajını burada gösterme
+        if (box.content !== 'surpriz') {
+            displayMessage(message + ` Mevcut kutu hakkınız: ${user.kutuHakki}.`);
+        } else {
+            displayMessage(message); // Sadece "Sürpriz Kutu buldunuz!" mesajı
+        }
+        renderBoxes();
+        loadBalanceAndBoxRights();
+      })
+      .catch(error => {
+        console.error("Kutu açma işlemi hatası: ", error);
+        displayMessage("Kutu açılırken bir hata oluştu. Lütfen internet bağlantınızı veya konsolu kontrol edin.");
+      });
+  }
+
+  function revealAll() {
+    customConfirm("Tüm kutuları açmak istediğinize emin misiniz?", (result) => {
+      if (result) {
+        boxes.forEach(b => {
+          if (!b.opened) {
+            b.opened = true;
+            b.opener = 'Admin (Hepsi Açıldı)';
+          }
+        });
+        db.ref('boxes').set(boxes)
+          .then(() => renderBoxes())
+          .catch(error => console.error("Tüm kutuları açma hatası: ", error));
+      }
+    });
+  }
+
+  function resetGame() {
+    customConfirm("Oyunu sıfırlamak istediğinize emin misiniz? Tüm kutular kapanacak ve yeni bir kazanan kutusu belirlenecek. Kullanıcı bakiyeleri ve kutu hakları etkilenmez.", (result) => {
+      if (result) {
+        createBoxes();
+
+        db.ref('users').once('value').then(snap => {
+          const updates = {};
+          snap.forEach(child => {
+            if (child.key !== "weizendtv") { // Admini sıfırlama dışında bırak
+              updates['users/' + child.key + '/currentSessionBoxesOpened'] = 0;
+            }
+          });
+          db.ref().update(updates)
+            .then(() => displayMessage("Oyun başarıyla sıfırlandı. Tüm kullanıcıların günlük kutu açma sayıları sıfırlandı."))
+            .catch(error => console.error("Günlük kutu açma sıfırlama hatası: ", error));
+        }).catch(error => console.error("Kullanıcıları sıfırlama hatası:", error));
+      }
+    });
+  }
+
+  // Mevcut Puanları Sıfırla (Eski Haftalık Sıfırlama)
+  async function resetCurrentBalances() {
+    customConfirm("Tüm kullanıcıların mevcut puanlarını sıfırlamak istediğinize emin misiniz? En yüksek puanlar ve rozetler etkilenmez.", async (result) => {
+      if (result) {
+        try {
+          const userSnap = await db.ref('users').once('value');
+          const usersData = userSnap.val();
+          const updates = {};
+
+          for (const u in usersData) {
+            if (u !== "weizendtv") { // Admini sıfırlama dışında bırak
+              const currentBalance = usersData[u].balance || 0;
+              const currentTotalSpentPoints = usersData[u].totalSpentPoints || 0;
+              
+              // Mevcut puanı totalSpentPoints'e ekle ve sıfırla
+              updates['users/' + u + '/totalSpentPoints'] = currentTotalSpentPoints + currentBalance;
+              updates['users/' + u + '/balance'] = 0; // Mevcut puanı sıfırla
+              updates['users/' + u + '/currentSessionBoxesOpened'] = 0; // Günlük kutu açma sayılarını sıfırla
+            }
+          }
+
+          await db.ref().update(updates);
+          displayMessage("Tüm kullanıcıların mevcut puanları ve günlük kutu açma sayıları başarıyla sıfırlandı!");
+          loadUserRankingsAndBoxCounts(); // Sıralamayı yeniden yükle
+        } catch (error) {
+          console.error("Mevcut puanları sıfırlama hatası: ", error);
+          displayMessage("Mevcut puanlar sıfırlanırken bir hata oluştu.");
+        }
+      }
+    });
+  }
+
+  // Tüm Zamanları Sıfırla (Yeni Kapsamlı Sıfırlama)
+  async function resetAllTimeData() {
+    customConfirm("Tüm kullanıcıların mevcut puanlarını, en yüksek puanlarını, açılan kutu sayılarını ve rozetlerini tamamen sıfırlamak istediğinize emin misiniz? Bu işlem geri alınamaz ve tüm oyun geçmişi silinir!", async (result) => {
+      if (result) {
+        try {
+          const userSnap = await db.ref('users').once('value');
+          const usersData = userSnap.val();
+          const updates = {};
+
+          for (const u in usersData) {
+            if (u !== "weizendtv") { // Admini sıfırlama dışında bırak
+              updates['users/' + u + '/balance'] = 0;
+              updates['users/' + u + '/highestBalanceEver'] = 0; // En yüksek puanı sıfırla
+              updates['users/' + u + '/totalSpentPoints'] = 0; // Toplam harcanan puanı da sıfırla
+              updates['users/' + u + '/boxesOpenedCount'] = 0;
+              updates['users/' + u + '/currentSessionBoxesOpened'] = 0;
+              updates['users/' + u + '/trophyCount'] = 0;
+              updates['users/' + u + '/kingCrownCount'] = 0;
+              updates['users/' + u + '/surpriseWinCount'] = 0;
+            }
+          }
+
+          // Kullanıcı verilerini sıfırla
+          await db.ref().update(updates);
+
+          // Kazananlar sıralamasını sıfırla
+          await db.ref('winners').remove();
+
+          // Oyun kutularını baştan başlat
+          createBoxes();
+
+          displayMessage("Tüm zamanlara ait veriler başarıyla sıfırlandı! Oyun geçmişi temizlendi.");
+          loadUserRankingsAndBoxCounts(); // Sıralamaları yeniden yükle
+          loadWinners(); // Kazananlar sıralamasını yeniden yükle
+        } catch (error) {
+          console.error("Tüm zamanları sıfırlama hatası: ", error);
+          displayMessage("Tüm zamanları sıfırlanırken bir hata oluştu.");
+        }
+      }
+    });
+  }
+
+  function resetWinnersRanking() {
+    customConfirm("Hediye kazananlar sıralamasını sıfırlamak istediğinize emin misiniz? Bu işlem geri alınamaz.", (result) => {
+      if (result) {
+        db.ref('winners').remove()
+          .then(() => {
+            // Sürpriz kutu kazanma sayılarını da sıfırla
+            db.ref('users').once('value').then(snap => {
+                const updates = {};
+                snap.forEach(child => {
+                    if (child.key !== "weizendtv") {
+                        updates['users/' + child.key + '/surpriseWinCount'] = 0;
+                    }
+                });
+                db.ref().update(updates)
+                    .then(() => {
+                        displayMessage("Hediye kazananlar sıralaması ve sürpriz kutu rozetleri sıfırlandı.");
+                        loadWinners(); // Kazananlar sıralamasını yeniden yükle (emojilerin gitmesi için)
+                        loadUserRankingsAndBoxCounts(); // Popüler kullanıcı sıralamasını da güncelle
+                    })
+                    .catch(error => console.error("Sürpriz kutu rozetlerini sıfırlama hatası:", error));
+            }).catch(error => console.error("Kullanıcı verilerini okuma hatası (sıfırlama):", error));
+          })
+          .catch(error => console.error("Kazananlar sıralaması sıfırlama hatası: ", error));
+      }
+    });
+  }
+
+  function loadTotalOpenedBoxesCount() {
+    db.ref('boxes').on('value', snap => {
+      const allBoxes = snap.val();
+      let openedCount = 0;
+      if (allBoxes) {
+        openedCount = allBoxes.filter(box => box.opened).length;
+      }
+      document.getElementById('totalOpenedBoxesCount').textContent = openedCount;
+    });
+  }
+
+  function searchUsers() {
+    const term = document.getElementById("searchUser").value.trim().toLowerCase();
+    db.ref('users').once('value').then(snap => {
+      const data = snap.val();
+      let html = "";
+      for (const u in data) {
+        if (u === "weizendtv" && isAdmin) continue;
+
+        if (u.toLowerCase().includes(term)) {
+          html += `<div class="userItem">
+            <span>${u} - Puan: ${data[u].balance || 0} - Kutu Hakkı: ${data[u].kutuHakki || 0} ${data[u].blocked ? '(Engelli)' : ''} (🏆 ${data[u].trophyCount || 0} | 👑 ${data[u].kingCrownCount || 0} | 🎁 ${data[u].surpriseWinCount || 0})</span>
+            <div>
+            <button onclick="event.stopPropagation(); openPointAdjustmentModal('${u}')">Puan Ayarı</button>
+            <button onclick="event.stopPropagation(); openBoxRightAdjustmentModal('${u}')">Kutu Hakkı Ayarı</button>
+            <button onclick="event.stopPropagation(); openBadgeAdjustmentModal('${u}')">Rozet Ayarı</button>
+            <button onclick="event.stopPropagation(); toggleBlockUser('${u}', ${data[u].blocked || false})">
+              ${data[u].blocked ? 'Engeli Kaldır' : 'Engelle'}
+            </button>
+            <button onclick="event.stopPropagation(); denyUser('${u}')" style="background: #e57373;">Sil</button>
+            </div>
+            </div>`;
+      }
+      }
+      document.getElementById("allUsers").innerHTML = html || "Kullanıcı bulunamadı.";
+    });
+  }
+
+  // Engelli Mesaj Modalını Görüntüle ve Geri Sayım Başlat
+  function displayBlockedMessage(blockedUntil) {
+    blockedMessageModal.style.display = 'flex';
+    document.getElementById('blockedReason').textContent = "Hesabınız geçici olarak engellendi.";
+
+    // Modal aktifken diğer elementlere tıklamayı engellemek için
+    document.body.style.pointerEvents = 'none';
+    blockedMessageModal.style.pointerEvents = 'auto'; // Modalın kendisi tıklanabilir kalsın
+
+    clearInterval(countdownInterval);
+
+    const updateCountdown = () => {
+      const timeLeft = blockedUntil - Date.now();
+      if (timeLeft <= 0) {
+        document.getElementById('blockedCountdown').textContent = "Engel süreniz doldu. Lütfen tekrar giriş yapın.";
+        clearInterval(countdownInterval);
+        db.ref('users/' + currentUser).update({ blocked: false, blockedUntil: null })
+          .then(() => {
+            displayMessage("Engeliniz kaldırıldı, lütfen tekrar giriş yapın.");
+            closeBlockedMessageModal(); // Modalı kapat ve logout çağır
+          })
+          .catch(error => console.error("Engeli kaldırma hatası:", error));
+
+        return;
+      }
+
+      const minutes = Math.floor(timeLeft / (1000 * 60));
+      const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+      document.getElementById('blockedCountdown').textContent = `Kalan süre: ${minutes} dakika ${seconds} saniye`;
+    };
+
+    countdownInterval = setInterval(updateCountdown, 1000);
+    updateCountdown();
+  }
+
+  // Engelli Mesaj Modalını Kapat
+  function closeBlockedMessageModal() {
+    blockedMessageModal.style.display = 'none';
+    clearInterval(countdownInterval);
+    document.body.style.pointerEvents = 'auto'; // Sayfayı tekrar tıklanabilir yap
+    logout(); // Engeli kalkan kullanıcıyı tekrar giriş ekranına yönlendir
+  }
+
+  // Kick Doğrulama Modal Fonksiyonları
+  function openKickVerificationModal() {
+    kickVerificationModal.style.display = 'flex';
+  }
+
+  function closeKickVerificationModal() {
+    kickVerificationModal.style.display = 'none';
+  }
+
+  // Yeni: En Yüksek Puana Sahip Kullanıcı Mesajı
+  function showHighestPointUserMessage() {
+    displayMessage(`EN YÜKSEK PUANA SAHİP OLAN KULLANICI`);
+  }
+
+  // Yeni: Kral Tacı Tıklandığında Mesaj Göster
+  function showKingMessage(username, count) {
+    displayMessage(`${count} KEZ AYIN EN POPÜLER KULLANICISI`);
+  }
+
+  // Yeni: Kupa Tıklandığında Mesaj Göster
+  function showWeeklyPopularUserMessage(username, count) {
+    displayMessage(`${count} KEZ HAFTANIN EN POPÜLER KULLANICISI`);
+  }
+
+  // Kutu İkonu Tıklandığında Kazanan Sayısı Mesajı Göster
+  function showWinnerCountMessage(username, count) {
+    displayMessage(`BU KULLANICI ${count}x ÖDÜL KAZANMIŞTIR.`);
+  }
+
+  // Yeni: Büyük Ödül Kazandı Mesajı
+  function showBigPrizeWinMessage(username, count) {
+    displayMessage(`${username} BU KULLANICI ${count} KEZ BÜYÜK ÖDÜL KAZANDI`);
+  }
+
+  // Yeni: Kullanıcı Rozetlerini Sıfırlama Fonksiyonu
+  async function resetUserBadges(username) {
+      customConfirm(`${username} kullanıcısının tüm rozetlerini (kupa, kral tacı, sürpriz kutu) sıfırlamak istediğinize emin misiniz?`, async (result) => {
+          if (result) {
+              try {
+                  await db.ref('users/' + username).update({
+                      trophyCount: 0,
+                      kingCrownCount: 0,
+                      surpriseWinCount: 0 // Sürpriz kutu rozetini de sıfırla
+                  });
+                  displayMessage(`${username} kullanıcısının rozetleri sıfırlandı.`);
+                  closeBadgeAdjustmentModal(); // Modalı kapat
+                  loadAllUsers(); // Admin panelindeki kullanıcı listesini yeniden yükle
+                  loadUserRankingsAndBoxCounts(); // Sıralamaları güncelle
+              } catch (error) {
+                  console.error("Rozet sıfırlama hatası:", error);
+                  displayMessage("Rozetler sıfırlanırken bir hata oluştu.");
+              }
+          }
+      });
+  }
+
+  // Yeni: Rozet Ayarı Modal Fonksiyonları
+  async function openBadgeAdjustmentModal(username) {
+    targetUserForBadgeAdjustment = username;
+    document.getElementById('adjBadgeUserName').textContent = username;
+    
+    // Kullanıcının mevcut rozet sayılarını yükle
+    try {
+      const userSnap = await db.ref('users/' + username).once('value');
+      const userData = userSnap.val();
+      document.getElementById('adjUserTrophyCount').textContent = userData.trophyCount || 0;
+      document.getElementById('adjUserKingCrownCount').textContent = userData.kingCrownCount || 0;
+      document.getElementById('adjUserSurpriseWinCount').textContent = userData.surpriseWinCount || 0; // Sürpriz kutu sayısını yükle
+    } catch (error) {
+      console.error("Rozet bilgisi okuma hatası:", error);
+      displayMessage("Kullanıcı rozet bilgileri yüklenirken bir hata oluştu.");
+    }
+
+    badgeAdjustmentModal.style.display = 'flex';
+  }
+
+  function closeBadgeAdjustmentModal() {
+    badgeAdjustmentModal.style.display = 'none';
+    document.getElementById('adjTrophyAmount').value = '';
+    document.getElementById('adjKingCrownAmount').value = '';
+    document.getElementById('adjSurpriseWinAmount').value = ''; // Sürpriz kutu inputunu da sıfırla
+    targetUserForBadgeAdjustment = null;
+  }
+
+  async function adjustUserBadge(badgeType, add) {
+    const trophyAmountInput = document.getElementById('adjTrophyAmount');
+    const kingCrownAmountInput = document.getElementById('adjKingCrownAmount');
+    const surpriseWinAmountInput = document.getElementById('adjSurpriseWinAmount'); // Yeni sürpriz kutu inputu
+
+    let amount = 0;
+    let updatePath = '';
+    let currentCount = 0;
+
+    if (badgeType === 'trophy') {
+      amount = parseInt(trophyAmountInput.value);
+      updatePath = 'trophyCount';
+      currentCount = parseInt(document.getElementById('adjUserTrophyCount').textContent);
+    } else if (badgeType === 'kingCrown') {
+      amount = parseInt(kingCrownAmountInput.value);
+      updatePath = 'kingCrownCount';
+      currentCount = parseInt(document.getElementById('adjUserKingCrownCount').textContent);
+    } else if (badgeType === 'surpriseWin') { // Yeni sürpriz kutu tipi
+      amount = parseInt(surpriseWinAmountInput.value);
+      updatePath = 'surpriseWinCount';
+      currentCount = parseInt(document.getElementById('adjUserSurpriseWinCount').textContent);
+    }
+
+    if (isNaN(amount) || amount <= 0) {
+      displayMessage("Geçerli bir pozitif miktar girin!");
+      return;
+    }
+
+    let newCount = add ? currentCount + amount : Math.max(currentCount - amount, 0);
+
+    try {
+      await db.ref('users/' + targetUserForBadgeAdjustment).update({
+        [updatePath]: newCount
+      });
+      displayMessage(`${targetUserForBadgeAdjustment} kullanıcısının ${badgeType === 'trophy' ? 'kupa' : badgeType === 'kingCrown' ? 'kral tacı' : 'sürpriz kutu'} sayısı ${newCount} olarak güncellendi.`);
+      // Modalı güncellemek için yeniden yükle
+      openBadgeAdjustmentModal(targetUserForBadgeAdjustment); 
+      loadAllUsers(); // Admin panelindeki kullanıcı listesini yeniden yükle
+      loadUserRankingsAndBoxCounts(); // Sıralamaları güncelle
+    } catch (error) {
+      console.error("Rozet güncelleme hatası:", error);
+      displayMessage("Rozet güncellenirken bir hata oluştu.");
+    }
+  }
+
+  // Kartları karıştırma fonksiyonu
+  function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+  }
+
+  // Kart seçim modalını açan fonksiyon
+  function openCardSelectionModal(userId, cardsToOpenCount) {
+    cardContainer.innerHTML = ''; // Önceki kartları temizle
+    // selectedCardIndex = -1; // Artık buna gerek yok
+    currentCardsToOpen = cardsToOpenCount; // Açılacak kart sayısını kaydet
+    cardsOpenedInCurrentSurpriseSession = 0; // Mevcut oturumda açılan kart sayısını sıfırla
+    totalPointsGainedInSurpriseSession = 0; // Mevcut oturumda kazanılan toplam puanı sıfırla
+
+    const shuffledCardValues = shuffleArray([...cardValues]); // Puanları karıştır
+
+    for (let i = 0; i < 5; i++) {
+      const cardDiv = document.createElement('div');
+      cardDiv.classList.add('card');
+      cardDiv.dataset.value = shuffledCardValues[i]; // Puanı data attribute olarak sakla
+      cardDiv.dataset.index = i; // Kartın kendi index'ini sakla
+
+      // Kartın arka yüzü (kapalı hali)
+      const cardBack = document.createElement('div');
+      cardBack.classList.add('card-back');
+      cardBack.textContent = '?'; // Kapalı kart üzerinde soru işareti
+      cardDiv.appendChild(cardBack);
+
+      // Kartın ön yüzü (açık hali)
+      const cardFront = document.createElement('div');
+      cardFront.classList.add('card-front');
+      cardFront.classList.add('card-value'); // Değerin gösterileceği yer
+      cardDiv.appendChild(cardFront);
+
+      cardDiv.onclick = () => selectCard(cardDiv, userId); // Tıklama olayını ata
+      cardContainer.appendChild(cardDiv);
+    }
+
+    cardSelectionModal.style.display = 'flex'; // Modalı göster
+    // Modal başlığını güncelleyerek kaç kart seçileceğini belirt
+    cardSelectionModal.querySelector('h4').textContent = `Sürpriz Kutu! ${currentCardsToOpen} Kart Seçin`;
+  }
+
+  // Kart seçme ve puan ekleme fonksiyonu
+  async function selectCard(selectedCardDiv, userId) {
+    // Bu kart zaten açıldıysa veya izin verilen kart sayısı aşıldıysa geri dön
+    if (selectedCardDiv.classList.contains('opened') || cardsOpenedInCurrentSurpriseSession >= currentCardsToOpen) {
+      return;
+    }
+
+    // Kartı açıldı olarak işaretle ve değerini göster
+    selectedCardDiv.classList.add('opened');
+    selectedCardDiv.querySelector('.card-front').textContent = `+${selectedCardDiv.dataset.value}`;
+
+    const points = parseInt(selectedCardDiv.dataset.value);
+    totalPointsGainedInSurpriseSession += points; // Kazanılan puanı toplama ekle
+    cardsOpenedInCurrentSurpriseSession++; // Açılan kart sayısını artır
+
+    // Kullanıcının puanını güncelle
+    const userRef = db.ref('users/' + userId);
+    const userSnap = await userRef.once('value');
+    let user = userSnap.val();
+
+    if (user) {
+      user.balance = (user.balance || 0) + points;
+      if (user.balance > (user.highestBalanceEver || 0)) {
+        user.highestBalanceEver = user.balance;
+      }
+
+      await userRef.update({
+        balance: user.balance,
+        highestBalanceEver: user.highestBalanceEver,
+      }).then(() => {
+        displayMessage(`Karttan +${points} puan kazandınız!`); // Her kart için kısa mesaj
+        loadBalanceAndBoxRights(); // Bakiyeyi güncelle
+        loadUserRankingsAndBoxCounts(); // Sıralamaları güncelle
+      }).catch(error => {
+        console.error("Puan güncelleme hatası:", error);
+        displayMessage("Puan eklenirken bir hata oluştu.");
+      });
+    } else {
+      displayMessage("Kullanıcı verisi bulunamadı.");
+    }
+
+    // İzin verilen tüm kartlar açıldıysa
+    if (cardsOpenedInCurrentSurpriseSession >= currentCardsToOpen) {
+      // Kalan tüm kartları aç
+      const allCards = cardContainer.querySelectorAll('.card');
+      allCards.forEach(card => {
+        if (!card.classList.contains('opened')) {
+          card.classList.add('opened');
+          card.querySelector('.card-front').textContent = `+${card.dataset.value}`;
+        }
+      });
+
+      // Sürpriz kutu kazanma sayısını artır ve kazananlar listesine ekle (bir kez)
+      const finalUserRef = db.ref('users/' + userId);
+      const finalUserSnap = await finalUserRef.once('value');
+      let finalUser = finalUserSnap.val();
+      if (finalUser) {
+          finalUser.surpriseWinCount = (finalUser.surpriseWinCount || 0) + 1;
+          await finalUserRef.update({
+              surpriseWinCount: finalUser.surpriseWinCount
+          });
+          db.ref('winners').push({ name: userId, date: new Date().toLocaleString(), points: totalPointsGainedInSurpriseSession }); // Toplam kazanılan puanı kaydet
+      }
+
+      // Son mesajı göster ve modalı gecikmeli kapat
+      displayMessage(`Tebrikler! Toplam ${currentCardsToOpen} kart açtınız ve ${totalPointsGainedInSurpriseSession} puan kazandınız! Yeni bakiyeniz: ${user.balance}.`);
+      setTimeout(() => {
+        closeCardSelectionModal();
+      }, 3000); // 3 saniye sonra modalı kapat
+    } else {
+      // Henüz tüm kartlar açılmadıysa, modal başlığını güncelleyerek kalan seçim sayısını göster
+      cardSelectionModal.querySelector('h4').textContent = `Sürpriz Kutu! ${currentCardsToOpen - cardsOpenedInCurrentSurpriseSession} kart daha seçin`;
+    }
+  }
+
+  // Kart seçim modalını kapatan fonksiyon
+  function closeCardSelectionModal() {
+    cardSelectionModal.style.display = 'none';
+    cardContainer.innerHTML = ''; // Kartları temizle
+    // selectedCardIndex = -1; // Artık buna gerek yok
+  }
+</script>
+</body>
+</html>
