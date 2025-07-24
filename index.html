@@ -467,10 +467,8 @@
     <button onclick="revealAll()">Tüm Kutuları Aç</button>
     <button onclick="resetGame()">Oyunu Baştan Başlat</button>
     <br>
-    <button onclick="resetCurrentBalances()">Mevcut Puanları Sıfırla</button>
-    <button onclick="resetAllTimeData()">Tüm Zamanları Sıfırla</button>
-    <br>
-    <button onclick="resetBadgedUsersRanking()">Rozetli Kullanıcılar Sıralamasını Sıfırla</button>
+    <!-- Yeni buton: Sistemi Baştan Başlat -->
+    <button onclick="restartSystem()">Sistemi Baştan Başlat</button>
 
 
     <h4>Kullanıcı Yönetimi</h4>
@@ -972,7 +970,7 @@
           }
           // En yüksek ulaşılan puanı ve kullanıcısını bul
           if (highestBalanceEver > highestEverBalance) {
-            highestEverBalance = highestBalanceEver;
+            highestEverBalance = highestEverBalance;
             highestEverBalanceUser = username;
           }
         }
@@ -986,8 +984,8 @@
         
         // King Crown (👑) display logic for ranking list
         const hasKingCrownDisplay = 
-            (u.username === highestCurrentBalanceUser && highestCurrentBalance > 0) &&
-            (u.username === highestEverBalanceUser && highestEverBalance > 0) &&
+            (u.username === highestCurrentBalanceUser && u.balance > 0) &&
+            (u.username === highestEverBalanceUser && u.highestBalanceEver > 0) &&
             (u.trophyCount || 0) > 0 && 
             (u.surpriseWinCount || 0) > 0 &&
             (u.kingCrownCount || 0) > 0; // Also check if kingCrownCount exists in DB
@@ -1723,102 +1721,60 @@
     });
   }
 
-  // Mevcut Puanları Sıfırla (Eski Haftalık Sıfırlama)
-  async function resetCurrentBalances() {
-    customConfirm("Tüm kullanıcıların mevcut puanlarını sıfırlamak istediğinize emin misiniz? En yüksek puanlar ve rozetler etkilenmez.", async (result) => {
+  // Yeni: Sistemi Baştan Başlat (Tüm verileri sıfırlayan kapsamlı fonksiyon)
+  async function restartSystem() {
+    customConfirm("Sistemi baştan başlatmak istediğinize emin misiniz? Bu işlem, tüm kullanıcıların puanlarını, ulaşılan en yüksek puanlarını, harcanan puanlarını, kutu haklarını, açılan kutu sayılarını ve tüm rozetlerini tamamen sıfırlayacak, ayrıca oyun kutularını yeniden oluşturacaktır. Bu işlem geri alınamaz!", async (result) => {
       if (result) {
         try {
+          displayMessage("Sistem yeniden başlatılıyor: Kullanıcı verileri sıfırlanıyor...");
           const userSnap = await db.ref('users').once('value');
           const usersData = userSnap.val();
           const updates = {};
 
-          for (const u in usersData) {
-            if (u !== "weizendtv") { // Admini sıfırlama dışında bırak
-              const currentBalance = usersData[u].balance || 0;
-              const currentTotalSpentPoints = usersData[u].totalSpentPoints || 0;
-              
-              // Mevcut puanı totalSpentPoints'e ekle ve sıfırla
-              updates['users/' + u + '/totalSpentPoints'] = currentTotalSpentPoints + currentBalance;
-              updates['users/' + u + '/balance'] = 0; // Mevcut puanı sıfırla
-              updates['users/' + u + '/currentSessionBoxesOpened'] = 0; // Günlük kutu açma sayılarını sıfırla
+          if (usersData) {
+            for (const u in usersData) {
+              // Admin kullanıcısını sıfırlama dışında bırak
+              if (u !== "weizendtv") {
+                updates['users/' + u + '/balance'] = 0;
+                updates['users/' + u + '/highestBalanceEver'] = 0;
+                updates['users/' + u + '/totalSpentPoints'] = 0;
+                updates['users/' + u + '/kutuHakki'] = 0;
+                updates['users/' + u + '/boxesOpenedCount'] = 0;
+                updates['users/' + u + '/currentSessionBoxesOpened'] = 0;
+                updates['users/' + u + '/trophyCount'] = 0;
+                updates['users/' + u + '/kingCrownCount'] = 0;
+                updates['users/' + u + '/surpriseWinCount'] = 0;
+                updates['users/' + u + '/activeMultiplier'] = 1;
+                updates['users/' + u + '/multiplierEffectActive'] = false;
+              }
             }
+            await db.ref().update(updates);
+            console.log("Kullanıcı verileri başarıyla sıfırlandı.");
+          } else {
+            console.log("Sıfırlanacak kullanıcı verisi bulunamadı.");
           }
 
-          await db.ref().update(updates);
-          displayMessage("Tüm kullanıcıların mevcut puanları ve günlük kutu açma sayıları başarıyla sıfırlandı!");
-          loadUserRankingsAndBoxCounts(); // Sıralamayı yeniden yükle
-        } catch (error) {
-          console.error("Mevcut puanları sıfırlama hatası: ", error);
-          displayMessage("Mevcut puanlar sıfırlanırken bir hata oluştu.");
-        }
-      }
-    });
-  }
-
-  // Tüm Zamanları Sıfırla (Yeni Kapsamlı Sıfırlama)
-  async function resetAllTimeData() {
-    customConfirm("Tüm kullanıcıların mevcut puanlarını, ulaşılan en yüksek puanlarını, açılan kutu sayılarını ve rozetlerini tamamen sıfırlamak istediğinize emin misiniz? Bu işlem geri alınamaz ve tüm oyun geçmişi silinir!", async (result) => {
-      if (result) {
-        try {
-          const userSnap = await db.ref('users').once('value');
-          const usersData = userSnap.val();
-          const updates = {};
-
-          for (const u in usersData) {
-            if (u !== "weizendtv") { // Admini sıfırlama dışında bırak
-              updates['users/' + u + '/balance'] = 0;
-              updates['users/' + u + '/highestBalanceEver'] = 0; // Ulaşılan en yüksek puanı sıfırla
-              updates['users/' + u + '/totalSpentPoints'] = 0; // Toplam harcanan puanı da sıfırla
-              updates['users/' + u + '/boxesOpenedCount'] = 0;
-              updates['users/' + u + '/currentSessionBoxesOpened'] = 0;
-              updates['users/' + u + '/trophyCount'] = 0;
-              updates['users/' + u + '/kingCrownCount'] = 0;
-              updates['users/' + u + '/surpriseWinCount'] = 0;
-            }
+          // Winners tablosunu kaldır (artık kullanılmasa da, emin olmak için)
+          try {
+            await db.ref('winners').remove();
+            console.log("Winners tablosu başarıyla kaldırıldı (varsa).");
+          } catch (removeError) {
+            console.warn("Winners tablosu kaldırılırken hata oluştu veya tablo mevcut değil:", removeError);
           }
-
-          // Kullanıcı verilerini sıfırla
-          await db.ref().update(updates);
-
-          // Kazananlar sıralamasını sıfırla (winners tablosu artık kullanılmıyor, ancak temizlik için bırakılabilir)
-          await db.ref('winners').remove();
 
           // Oyun kutularını baştan başlat
-          createBoxes();
+          displayMessage("Sistem yeniden başlatılıyor: Oyun kutuları yeniden oluşturuluyor...");
+          await createBoxes();
+          console.log("Oyun kutuları başarıyla yeniden oluşturuldu.");
 
-          displayMessage("Tüm zamanlara ait veriler başarıyla sıfırlandı! Oyun geçmişi temizlendi.");
+          displayMessage("Sistem başarıyla baştan başlatıldı! Tüm kullanıcı verileri ve oyun geçmişi temizlendi.");
           loadUserRankingsAndBoxCounts(); // Sıralamaları yeniden yükle
           loadBadgedUsersRanking(); // Rozetli kullanıcılar sıralamasını yeniden yükle
+          loadBalanceAndBoxRights(); // Adminin kendi bakiyesini güncellemesi için
         } catch (error) {
-          console.error("Tüm zamanları sıfırlama hatası: ", error);
-          displayMessage("Tüm zamanları sıfırlanırken bir hata oluştu.");
+          console.error("Sistemi baştan başlatma hatası: ", error);
+          displayMessage(`Sistemi baştan başlatılırken bir hata oluştu: ${error.message || error}. Lütfen konsolu kontrol edin.`);
         }
-      }
-    });
-  }
-
-  // Rozetli Kullanıcılar Sıralamasını Sıfırla (Eski resetWinnersRanking)
-  function resetBadgedUsersRanking() {
-    customConfirm("Rozetli kullanıcılar sıralamasını ve tüm kullanıcıların rozet sayılarını sıfırlamak istediğinize emin misiniz? Bu işlem geri alınamaz.", (result) => {
-      if (result) {
-        // Kullanıcıların rozet sayılarını sıfırla
-        db.ref('users').once('value').then(snap => {
-            const updates = {};
-            snap.forEach(child => {
-                if (child.key !== "weizendtv") {
-                    updates['users/' + child.key + '/surpriseWinCount'] = 0;
-                    updates['users/' + child.key + '/trophyCount'] = 0;
-                    updates['users/' + child.key + '/kingCrownCount'] = 0;
-                }
-            });
-            db.ref().update(updates)
-                .then(() => {
-                    displayMessage("Rozetli kullanıcılar sıralaması ve tüm rozetler sıfırlandı.");
-                    loadBadgedUsersRanking(); // Rozetli kullanıcılar sıralamasını yeniden yükle
-                    loadUserRankingsAndBoxCounts(); // Kullanıcı sıralamasını da güncelle
-                })
-                .catch(error => console.error("Rozetleri sıfırlama hatası:", error));
-        }).catch(error => console.error("Kullanıcı verilerini okuma hatası (rozet sıfırlama):", error));
       }
     });
   }
@@ -2229,3 +2185,4 @@
 </script>
 </body>
 </html>
+
