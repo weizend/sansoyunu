@@ -152,6 +152,7 @@
     margin-left: 5px;
     cursor: pointer;
   }
+  /* Updated opener style */
   .box .opener {
     font-size: 10px; /* Smaller text for opener name */
     color: rgba(255, 255, 255, 0.7); /* Slightly faded color */
@@ -438,13 +439,13 @@
 
   <div id="tablesWrapper">
     <div class="tableBox">
-      <h3>POPÜLER KULLANICI SIRALAMASI</h3>
+      <h3>KULLANICI SIRALAMASI</h3>
       <p>Toplam Kullanıcı: <span id="totalUsers">0</span></p>
       <div id="allUserRankings" class="scrollable-list">Yükleniyor...</div>
     </div>
     <div class="tableBox">
-      <h3>KAZANANLAR SIRALAMASI</h3>
-      <div id="winners">Yükleniyor...</div>
+      <h3>ROZETLİ KULLANICILAR SIRALAMASI</h3>
+      <div id="badgedUsersRanking" class="scrollable-list">Yükleniyor...</div>
     </div>
   </div>
 
@@ -469,7 +470,7 @@
     <button onclick="resetCurrentBalances()">Mevcut Puanları Sıfırla</button>
     <button onclick="resetAllTimeData()">Tüm Zamanları Sıfırla</button>
     <br>
-    <button onclick="resetWinnersRanking()">Hediye Kazananlar Sıralamasını Sıfırla</button>
+    <button onclick="resetBadgedUsersRanking()">Rozetli Kullanıcılar Sıralamasını Sıfırla</button>
 
 
     <h4>Kullanıcı Yönetimi</h4>
@@ -542,24 +543,24 @@
   <div class="modal-content">
     <button class="modal-close-button" onclick="closeBadgeAdjustmentModal()">&times;</button>
     <h4>Kullanıcı Rozet Ayarı: <span id="adjBadgeUserName"></span></h4>
-    <p>Mevcut Kupalar: <span id="adjUserTrophyCount"></span> 🏆</p>
-    <p>Mevcut Kral Taçları: <span id="adjUserKingCrownCount"></span> 👑</p>
+    <p>Mevcut Haftalık Popülerlik Kupası: <span id="adjUserTrophyCount"></span> ⭐</p>
+    <p>Mevcut Aylık Kral Tacı: <span id="adjUserKingCrownCount"></span> 👑</p>
     <p>Mevcut Sürpriz Kutu Ödülleri: <span id="adjUserSurpriseWinCount"></span> 🎁</p>
     
     <div style="margin-bottom: 15px;">
-      <input type="number" id="adjTrophyAmount" placeholder="Kupa Miktarı" min="1" style="width: calc(50% - 10px); display: inline-block;" />
-      <button onclick="adjustUserBadge('trophy', true)" style="width: calc(25% - 10px);">Kupa Ekle</button>
-      <button onclick="adjustUserBadge('trophy', false)" style="width: calc(25% - 10px); background: #f44336;">Kupa Çıkar</button>
+      <input type="number" id="adjTrophyAmount" placeholder="Haftalık Kupa Miktarı" min="1" style="width: calc(50% - 10px); display: inline-block;" />
+      <button onclick="adjustUserBadge('trophy', true)" style="width: calc(25% - 10px);">Ekle</button>
+      <button onclick="adjustUserBadge('trophy', false)" style="width: calc(25% - 10px); background: #f44336;">Çıkar</button>
     </div>
     <div style="margin-bottom: 20px;">
-      <input type="number" id="adjKingCrownAmount" placeholder="Taç Miktarı" min="1" style="width: calc(50% - 10px); display: inline-block;" />
-      <button onclick="adjustUserBadge('kingCrown', true)" style="width: calc(25% - 10px);">Taç Ekle</button>
-      <button onclick="adjustUserBadge('kingCrown', false)" style="width: calc(25% - 10px); background: #f44336;">Taç Çıkar</button>
+      <input type="number" id="adjKingCrownAmount" placeholder="Aylık Taç Miktarı" min="1" style="width: calc(50% - 10px); display: inline-block;" />
+      <button onclick="adjustUserBadge('kingCrown', true)" style="width: calc(25% - 10px);">Ekle</button>
+      <button onclick="adjustUserBadge('kingCrown', false)" style="width: calc(25% - 10px); background: #f44336;">Çıkar</button>
     </div>
     <div style="margin-bottom: 20px;">
       <input type="number" id="adjSurpriseWinAmount" placeholder="Sürpriz Kutu Miktarı" min="1" style="width: calc(50% - 10px); display: inline-block;" />
-      <button onclick="adjustUserBadge('surpriseWin', true)" style="width: calc(25% - 10px);">Sürpriz Kutu Ekle</button>
-      <button onclick="adjustUserBadge('surpriseWin', false)" style="width: calc(25% - 10px); background: #f44336;">Sürpriz Kutu Çıkar</button>
+      <button onclick="adjustUserBadge('surpriseWin', true)" style="width: calc(25% - 10px);">Ekle</button>
+      <button onclick="adjustUserBadge('surpriseWin', false)" style="width: calc(25% - 10px); background: #f44336;">Çıkar</button>
     </div>
     
     <button onclick="resetUserBadges(targetUserForBadgeAdjustment)">Tüm Rozetleri Sıfırla</button>
@@ -573,6 +574,15 @@
     <div class="card-container" id="cardContainer">
       <!-- Kartlar buraya JS ile yüklenecek -->
     </div>
+  </div>
+</div>
+
+<!-- Yeni: Açılan Kutu Bilgi Modalı -->
+<div id="openedBoxInfoModal" class="modal-overlay" style="display:none;">
+  <div class="modal-content">
+    <button class="modal-close-button" onclick="closeOpenedBoxInfoModal()">&times;</button>
+    <p id="openedBoxInfoContent"></p>
+    <button onclick="closeOpenedBoxInfoModal()">Tamam</button>
   </div>
 </div>
 
@@ -633,13 +643,13 @@
   const badgeAdjustmentModal = document.getElementById('badgeAdjustmentModal'); // Yeni rozet ayarı modalı
   const cardSelectionModal = document.getElementById('cardSelectionModal'); // Yeni kart seçim modalı
   const cardContainer = document.getElementById('cardContainer'); // Kartların yükleneceği div
+  const openedBoxInfoModal = document.getElementById('openedBoxInfoModal'); // Yeni: Açılan Kutu Bilgi Modalı
 
   let targetUserForAdjustment = null; // Puan ayarı için
   let targetUserForBoxRightAdjustment = null; // Kutu hakkı ayarı için
   let targetUserForBlock = null;
   let targetUserForBadgeAdjustment = null; // Rozet ayarı için
   let countdownInterval = null;
-  let allWinnersData = {}; // Kazananlar sıralaması için global cache
   let cardValues = [1000, 2000, 3000, 4000, 5000]; // Kartların içindeki puanlar
   
   // Yeni global değişkenler: Kart seçim mini oyunu durumu için
@@ -761,8 +771,8 @@
           blockedUntil: null,
           boxesOpenedCount: 0,
           currentSessionBoxesOpened: 0,
-          trophyCount: 0, // Yeni: Kupa sayısı
-          kingCrownCount: 0, // Yeni: Kral tacı sayısı (trophyCount'tan türetilecek)
+          trophyCount: 0, // Yeni: Kupa sayısı (haftalık popülerlik)
+          kingCrownCount: 0, // Yeni: Kral tacı sayısı (aylık popülerlik)
           surpriseWinCount: 0, // Yeni: Sürpriz kutu kazanma sayısı
           activeMultiplier: 1, // Yeni: Aktif çarpan (varsayılan 1)
           multiplierEffectActive: false, // Yeni: Çarpan etkisi aktif mi
@@ -817,14 +827,52 @@
       const userSnap = await db.ref('users/' + currentUser).once('value');
       const userData = userSnap.val();
       let userIconsHtml = '';
-      if (userData.kingCrownCount > 0) {
-        userIconsHtml += `<span class="icon" onclick="showKingMessage('${currentUser}', ${userData.kingCrownCount})">👑</span>`;
+
+      // Determine highest current and highest ever users for dynamic badge display
+      const allUsersSnap = await db.ref('users').once('value');
+      const allUsersData = allUsersSnap.val();
+      let highestCurrentBalance = -1;
+      let highestCurrentBalanceUser = null;
+      let highestEverBalance = -1;
+      let highestEverBalanceUser = null;
+
+      for (const u in allUsersData) {
+        if (allUsersData[u].approved && !allUsersData[u].blocked) {
+          if ((allUsersData[u].balance || 0) > highestCurrentBalance) {
+            highestCurrentBalance = allUsersData[u].balance || 0;
+            highestCurrentBalanceUser = u;
+          }
+          if ((allUsersData[u].highestBalanceEver || 0) > highestEverBalance) {
+            highestEverBalance = allUsersData[u].highestBalanceEver || 0;
+            highestEverBalanceUser = u;
+          }
+        }
       }
-      if (userData.trophyCount > 0) {
-        userIconsHtml += `<span class="icon" onclick="showWeeklyPopularUserMessage('${currentUser}', ${userData.trophyCount})">🏆</span>`;
-      }
-      if (userData.surpriseWinCount > 0) {
-        userIconsHtml += `<span class="icon" onclick="showBigPrizeWinMessage('${currentUser}', ${userData.surpriseWinCount})">🎁</span>`;
+
+      // King Crown (👑) display logic
+      const hasKingCrownDisplay = 
+        (currentUser === highestCurrentBalanceUser && highestCurrentBalance > 0) &&
+        (currentUser === highestEverBalanceUser && highestEverBalance > 0) &&
+        (userData.trophyCount || 0) > 0 && 
+        (userData.surpriseWinCount || 0) > 0 &&
+        (userData.kingCrownCount || 0) > 0; // Also check if kingCrownCount exists in DB
+
+      if (hasKingCrownDisplay) {
+        userIconsHtml += `<span class="icon" onclick="showKingCrownMessage('${currentUser}')">👑</span>`;
+      } else {
+        // Display individual badges if King Crown is not displayed
+        if (currentUser === highestCurrentBalanceUser && highestCurrentBalance > 0) {
+            userIconsHtml += `<span class="icon" onclick="showHighestCurrentPointUserMessage('${currentUser}')">🥇</span>`;
+        }
+        if (currentUser === highestEverBalanceUser && highestEverBalance > 0) {
+            userIconsHtml += `<span class="icon" onclick="showHighestEverPointUserMessage('${currentUser}')">🏆</span>`;
+        }
+        if (userData.trophyCount > 0) {
+            userIconsHtml += `<span class="icon" onclick="showTrophyCountMessage('${currentUser}', ${userData.trophyCount})">⭐</span>`;
+        }
+        if (userData.surpriseWinCount > 0) {
+            userIconsHtml += `<span class="icon" onclick="showBigPrizeWinMessage('${currentUser}', ${userData.surpriseWinCount})">🎁</span>`;
+        }
       }
       document.getElementById("currentUser").innerHTML = `${userIconsHtml} ${currentUser}`;
     } else {
@@ -842,22 +890,10 @@
     }
 
     loadBalanceAndBoxRights(); // Güncellendi
-    loadWinners(); // Kazananlar verisini önden yükle
-    loadUserRankingsAndBoxCounts();
+    loadBadgedUsersRanking(); // Rozetli kullanıcılar sıralamasını yükle
+    loadUserRankingsAndBoxCounts(); // Kullanıcı sıralamalarını yükle
     loadBoxes();
     loadTotalOpenedBoxesCount();
-
-    // GLOBAL DUYURU DİNLEYİCİSİ KALDIRILDI
-    /*
-    db.ref('globalAnnouncements/latestSurpriseWin').on('value', snap => {
-        const announcement = snap.val();
-        // Sadece yeni duyuruları ve mevcut kullanıcı tarafından tetiklenmeyenleri göster
-        if (announcement && announcement.timestamp > lastGlobalAnnouncementTimestamp && announcement.winner !== currentUser) {
-            displayMessage(`BÜYÜK ÖDÜL BULUNDU TEBRİKLER! (${announcement.winner})`);
-            lastGlobalAnnouncementTimestamp = announcement.timestamp; // Duyuruyu gösterdikten sonra zaman damgasını güncelle
-        }
-    });
-    */
   }
 
   async function logout() {
@@ -885,15 +921,6 @@
   }
 
   async function loadUserRankingsAndBoxCounts() {
-    // Kazananlar verisini çek ve cache'le
-    await db.ref('winners').once('value').then(snap => {
-      allWinnersData = {};
-      snap.forEach(child => {
-        const winnerName = child.val().name;
-        allWinnersData[winnerName] = (allWinnersData[winnerName] || 0) + 1;
-      });
-    }).catch(error => console.error("Kazananlar verisi yükleme hatası:", error));
-
     db.ref('users').on('value', userSnap => {
       let usersData = userSnap.val();
 
@@ -907,6 +934,11 @@
       let rankedUsers = [];
       let totalUsers = 0;
 
+      let highestCurrentBalance = -1;
+      let highestCurrentBalanceUser = null;
+      let highestEverBalance = -1;
+      let highestEverBalanceUser = null;
+
       allUsersArray.forEach(([username, userData]) => {
         if (username === "weizendtv" && isAdmin) return;
 
@@ -914,26 +946,35 @@
         const boxesOpenedCount = userData.boxesOpenedCount || 0;
         const currentSessionBoxesOpened = userData.currentSessionBoxesOpened || 0;
         const balance = userData.balance || 0;
-        const highestBalanceEver = userData.highestBalanceEver || 0; // Yeni: En yüksek puan
+        const highestBalanceEver = userData.highestBalanceEver || 0;
         const kutuHakki = userData.kutuHakki || 0;
         const trophyCount = userData.trophyCount || 0;
         const kingCrownCount = userData.kingCrownCount || 0;
-        const surpriseWinCount = userData.surpriseWinCount || 0; // Yeni: Sürpriz kutu kazanma sayısı
-        const winnerCount = allWinnersData[username] || 0; // Kazanan sayısını al (winners tablosundan)
+        const surpriseWinCount = userData.surpriseWinCount || 0;
 
         if (userData.approved && !userData.blocked) {
           rankedUsers.push({
             username: username,
             balance: balance,
-            highestBalanceEver: highestBalanceEver, // Yeni
+            highestBalanceEver: highestBalanceEver,
             kutuHakki: kutuHakki,
             boxesOpenedCount: boxesOpenedCount,
             currentSessionBoxesOpened: currentSessionBoxesOpened,
             trophyCount: trophyCount,
             kingCrownCount: kingCrownCount,
-            surpriseWinCount: surpriseWinCount, // Yeni
-            winnerCount: winnerCount
+            surpriseWinCount: surpriseWinCount
           });
+
+          // En yüksek mevcut puanı ve kullanıcısını bul
+          if (balance > highestCurrentBalance) {
+            highestCurrentBalance = balance;
+            highestCurrentBalanceUser = username;
+          }
+          // En yüksek ulaşılan puanı ve kullanıcısını bul
+          if (highestBalanceEver > highestEverBalance) {
+            highestEverBalance = highestBalanceEver;
+            highestEverBalanceUser = username;
+          }
         }
       });
 
@@ -942,26 +983,36 @@
 
       let html = rankedUsers.map((u, i) => {
         let userIcons = '';
-        // En yüksek puanlı kullanıcıya özel ikon (highestBalanceEver'a göre)
-        // Bu ikon artık highestBalanceEver'a göre değil, mevcut puana göre lideri gösterecek.
-        let isTopScorer = (i === 0 && rankedUsers.length > 0 && rankedUsers[0].balance > 0); 
+        
+        // King Crown (👑) display logic for ranking list
+        const hasKingCrownDisplay = 
+            (u.username === highestCurrentBalanceUser && highestCurrentBalance > 0) &&
+            (u.username === highestEverBalanceUser && highestEverBalance > 0) &&
+            (u.trophyCount || 0) > 0 && 
+            (u.surpriseWinCount || 0) > 0 &&
+            (u.kingCrownCount || 0) > 0; // Also check if kingCrownCount exists in DB
 
-        if (isTopScorer) {
-          userIcons += `<span class="icon" onclick="showHighestPointUserMessage()">🥇</span>`;
-        }
-        // Rozetlerin önceliği: Kral tacı > Kupa > Sürpriz Kutu
-        if (u.kingCrownCount > 0) {
-          userIcons += `<span class="icon" onclick="showKingMessage('${u.username}', ${u.kingCrownCount})">👑</span>`;
-        }
-        if (u.trophyCount > 0) {
-          userIcons += `<span class="icon" onclick="showWeeklyPopularUserMessage('${u.username}', ${u.trophyCount})">🏆</span>`;
-        }
-        if (u.surpriseWinCount > 0) { // Sürpriz Kutu rozeti
-          userIcons += `<span class="icon" onclick="showBigPrizeWinMessage('${u.username}', ${u.surpriseWinCount})">🎁</span>`;
+        if (hasKingCrownDisplay) {
+          userIcons += `<span class="icon" onclick="showKingCrownMessage('${u.username}')">👑</span>`;
+        } else {
+          // Display individual badges if King Crown is not displayed
+          if (u.username === highestCurrentBalanceUser && highestCurrentBalance > 0) {
+            userIcons += `<span class="icon" onclick="showHighestCurrentPointUserMessage('${u.username}')">🥇</span>`;
+          }
+          if (u.username === highestEverBalanceUser && highestEverBalance > 0) {
+            userIcons += `<span class="icon" onclick="showHighestEverPointUserMessage('${u.username}')">🏆</span>`;
+          }
+          if (u.trophyCount > 0) { // Haftalık Popülerlik Kupası için ⭐
+            userIcons += `<span class="icon" onclick="showTrophyCountMessage('${u.username}', ${u.trophyCount})">⭐</span>`;
+          }
+          if (u.surpriseWinCount > 0) {
+            userIcons += `<span class="icon" onclick="showBigPrizeWinMessage('${u.username}', ${u.surpriseWinCount})">🎁</span>`;
+          }
         }
         
         return `<b>${i + 1}.</b> ${userIcons} ${u.username}<br>` +
-               `&nbsp;&nbsp;<span style="color: #ffcc00;">Mevcut Puan: ${u.balance}</span> - <span style="color: #00FF00;">En Yüksek Puan: ${u.highestBalanceEver}</span><br>` +
+               `&nbsp;&nbsp;<span style="color: #ffcc00;">Mevcut Puan: ${u.balance}</span><br>` +
+               `&nbsp;&nbsp;<span style="color: #00FF00;">Ulaşılan En Yüksek Puan: ${u.highestBalanceEver}</span><br>` + // Moved below
                `&nbsp;&nbsp;Açılan Kutu (Şuan): ${u.currentSessionBoxesOpened} - Tüm Zamanlar: ${u.boxesOpenedCount}<br>` +
                `&nbsp;&nbsp;Kutu Hakkı: ${u.kutuHakki}`;
       }).join("<br><br>");
@@ -971,16 +1022,103 @@
     });
   }
 
-  function loadWinners() {
-    db.ref('winners').on('value', snap => {
-      let data = snap.val();
-      if (!data) { document.getElementById("winners").innerHTML = "Henüz kazanan yok."; return; }
-      let winnerCount = {};
-      Object.values(data).forEach(w => { winnerCount[w.name] = (winnerCount[w.name] || 0) + 1; });
-      let sorted = Object.entries(winnerCount).sort((a,b) => b[1]-a[1]).slice(0,10);
-      // Kazananlar sıralamasına kutu emojisi ve tıklama mesajı eklendi
-      let html = sorted.map((w,i) => `<b>${i+1}.</b> <span class="icon" onclick="showBigPrizeWinMessage('${w[0]}', ${w[1]})">🎁</span> ${w[0]} - ${w[1]}x`).join("<br>");
-      document.getElementById("winners").innerHTML = html;
+  // ROZETLİ KULLANICILAR SIRALAMASI
+  function loadBadgedUsersRanking() {
+    db.ref('users').on('value', async snap => { // Made async to fetch highestCurrent/Ever for King Crown check
+      let usersData = snap.val();
+      if (!usersData) { document.getElementById("badgedUsersRanking").innerHTML = "Henüz rozetli kullanıcı yok."; return; }
+
+      let badgedUsers = [];
+      
+      // Determine highest current and highest ever users for dynamic badge display
+      let highestCurrentBalance = -1;
+      let highestCurrentBalanceUser = null;
+      let highestEverBalance = -1;
+      let highestEverBalanceUser = null;
+
+      for (const u in usersData) {
+        if (usersData[u].approved && !usersData[u].blocked) {
+          if ((usersData[u].balance || 0) > highestCurrentBalance) {
+            highestCurrentBalance = usersData[u].balance || 0;
+            highestCurrentBalanceUser = u;
+          }
+          if ((usersData[u].highestBalanceEver || 0) > highestEverBalance) {
+            highestEverBalance = usersData[u].highestBalanceEver || 0;
+            highestEverBalanceUser = u;
+          }
+        }
+      }
+
+      Object.entries(usersData).forEach(([username, userData]) => {
+        if (username === "weizendtv" && isAdmin) return;
+
+        const trophyCount = userData.trophyCount || 0;
+        const kingCrownCount = userData.kingCrownCount || 0;
+        const surpriseWinCount = userData.surpriseWinCount || 0;
+        const totalBadges = trophyCount + kingCrownCount + surpriseWinCount; // Total for sorting
+
+        if (totalBadges > 0 || kingCrownCount > 0 || trophyCount > 0 || surpriseWinCount > 0) { // Check if any badge exists
+          badgedUsers.push({
+            username: username,
+            balance: userData.balance || 0, // Needed for king crown check
+            highestBalanceEver: userData.highestBalanceEver || 0, // Needed for king crown check
+            trophyCount: trophyCount,
+            kingCrownCount: kingCrownCount,
+            surpriseWinCount: surpriseWinCount,
+            totalBadges: totalBadges // Used for initial sorting
+          });
+        }
+      });
+
+      // Sıralama: Toplam rozet sayısına göre azalan, sonra kral tacı, sonra kupa, sonra sürpriz kutu sayısına göre azalan
+      badgedUsers.sort((a, b) => {
+        // First, sort by whether they have the King Crown display status
+        const aHasKingCrown = (a.username === highestCurrentBalanceUser && a.balance > 0) &&
+                              (a.username === highestEverBalanceUser && a.highestBalanceEver > 0) &&
+                              (a.trophyCount > 0) && (a.surpriseWinCount > 0) && (a.kingCrownCount > 0);
+        const bHasKingCrown = (b.username === highestCurrentBalanceUser && b.balance > 0) &&
+                              (b.username === highestEverBalanceUser && b.highestBalanceEver > 0) &&
+                              (b.trophyCount > 0) && (b.surpriseWinCount > 0) && (b.kingCrownCount > 0);
+
+        if (aHasKingCrown && !bHasKingCrown) return -1; // A comes first if A has crown and B doesn't
+        if (!aHasKingCrown && bHasKingCrown) return 1;  // B comes first if B has crown and A doesn't
+
+        // If both have or both don't have the crown, sort by total badges, then individual counts
+        if (b.totalBadges !== a.totalBadges) return b.totalBadges - a.totalBadges;
+        if (b.kingCrownCount !== a.kingCrownCount) return b.kingCrownCount - a.kingCrownCount;
+        if (b.trophyCount !== a.trophyCount) return b.trophyCount - a.trophyCount;
+        return b.surpriseWinCount - a.surpriseWinCount;
+      });
+
+      let html = badgedUsers.map((u, i) => {
+        let badgesHtml = '';
+        
+        // King Crown (👑) display logic for badged ranking list
+        const hasKingCrownDisplay = 
+            (u.username === highestCurrentBalanceUser && u.balance > 0) &&
+            (u.username === highestEverBalanceUser && u.highestBalanceEver > 0) &&
+            (u.trophyCount || 0) > 0 && 
+            (u.surpriseWinCount || 0) > 0 &&
+            (u.kingCrownCount || 0) > 0; // Also check if kingCrownCount exists in DB
+
+        if (hasKingCrownDisplay) {
+          badgesHtml += `<span class="icon" onclick="showKingCrownMessage('${u.username}')">👑</span> ${u.kingCrownCount}x `;
+        } else {
+          // Display individual badge counts if King Crown is not displayed
+          if (u.kingCrownCount > 0) { // Still show king crown count if they have it but not the "all badges" status
+            badgesHtml += `<span class="icon" onclick="showKingCrownMessage('${u.username}')">👑</span> ${u.kingCrownCount}x `;
+          }
+          if (u.trophyCount > 0) {
+            badgesHtml += `<span class="icon" onclick="showTrophyCountMessage('${u.username}', ${u.trophyCount})">⭐</span> ${u.trophyCount}x `;
+          }
+          if (u.surpriseWinCount > 0) {
+            badgesHtml += `<span class="icon" onclick="showBigPrizeWinMessage('${u.username}', ${u.surpriseWinCount})">🎁</span> ${u.surpriseWinCount}x `;
+          }
+        }
+        return `<b>${i + 1}.</b> ${u.username}<br>&nbsp;&nbsp;${badgesHtml}`;
+      }).join("<br><br>");
+
+      document.getElementById("badgedUsersRanking").innerHTML = html || "Henüz rozetli kullanıcı yok.";
     });
   }
 
@@ -1009,7 +1147,7 @@
         if (u === "weizendtv" && isAdmin) continue;
 
         html += `<div class="userItem">
-            <span>${u} - Puan: ${data[u].balance || 0} - Kutu Hakkı: ${data[u].kutuHakki || 0} ${data[u].blocked ? '(Engelli)' : ''} (🏆 ${data[u].trophyCount || 0} | 👑 ${data[u].kingCrownCount || 0} | 🎁 ${data[u].surpriseWinCount || 0})</span>
+            <span>${u} - Puan: ${data[u].balance || 0} - Kutu Hakkı: ${data[u].kutuHakki || 0} ${data[u].blocked ? '(Engelli)' : ''} (⭐ ${data[u].trophyCount || 0} | 👑 ${data[u].kingCrownCount || 0} | 🎁 ${data[u].surpriseWinCount || 0})</span>
             <div>
             <button onclick="event.stopPropagation(); openPointAdjustmentModal('${u}')">Puan Ayarı</button>
             <button onclick="event.stopPropagation(); openBoxRightAdjustmentModal('${u}')">Kutu Hakkı Ayarı</button>
@@ -1027,7 +1165,7 @@
 
   // displayMessage fonksiyonunu modal olarak güncelledik
   function displayMessage(message) {
-    document.getElementById('generalMessageContent').textContent = message;
+    document.getElementById('generalMessageContent').innerHTML = message; // innerHTML kullanıldı
     generalMessageModal.style.display = 'flex';
   }
 
@@ -1110,7 +1248,7 @@
         highestBalanceEver: highestBalanceEver
       })
         .then(() => {
-          displayMessage(`${targetUserForAdjustment} kullanıcısının yeni bakiyesi: ${userBalance} puan. En Yüksek Puan: ${highestBalanceEver}`);
+          displayMessage(`${targetUserForAdjustment} kullanıcısının yeni bakiyesi: ${userBalance} puan. Ulaşılan En Yüksek Puan: ${highestBalanceEver}`);
           closePointAdjustmentModal();
           loadAllUsers();
           loadUserRankingsAndBoxCounts();
@@ -1376,7 +1514,14 @@
         }
       }
       div.textContent = displayContent; // Kutu içeriğini veya numarasını göster
-      div.onclick = () => openBox(i);
+      // Updated: If box is opened, show info modal; otherwise, open the box
+      div.onclick = () => {
+        if (box.opened) {
+          showOpenedBoxInfo(box);
+        } else {
+          openBox(i);
+        }
+      };
       container.appendChild(div);
     });
   }
@@ -1517,6 +1662,31 @@
       });
   }
 
+  // Yeni: Açılan Kutu Bilgi Modalını Göster
+  function showOpenedBoxInfo(box) {
+    let contentDisplay = '';
+    if (box.content === 'points') {
+      contentDisplay = `+${box.value} Puan`;
+    } else if (box.content === 'surpriz') {
+      contentDisplay = `🎁 Sürpriz Kutu`;
+    } else if (box.content === 'iflas') {
+      contentDisplay = `💣 İflas`;
+    } else if (box.content === 'multiplier') {
+      contentDisplay = `${box.value}X Çarpan`;
+    }
+
+    document.getElementById('openedBoxInfoContent').innerHTML = 
+      `<b>${box.id} NUMARALI KUTUYU AÇAN KULLANICI:</b> ${box.opener}<br><br>` +
+      `<b>Kutu İçeriği:</b> ${contentDisplay}`;
+    openedBoxInfoModal.style.display = 'flex';
+  }
+
+  // Yeni: Açılan Kutu Bilgi Modalını Kapat
+  function closeOpenedBoxInfoModal() {
+    openedBoxInfoModal.style.display = 'none';
+  }
+
+
   function revealAll() {
     customConfirm("Tüm kutuları açmak istediğinize emin misiniz?", (result) => {
       if (result) {
@@ -1587,7 +1757,7 @@
 
   // Tüm Zamanları Sıfırla (Yeni Kapsamlı Sıfırlama)
   async function resetAllTimeData() {
-    customConfirm("Tüm kullanıcıların mevcut puanlarını, en yüksek puanlarını, açılan kutu sayılarını ve rozetlerini tamamen sıfırlamak istediğinize emin misiniz? Bu işlem geri alınamaz ve tüm oyun geçmişi silinir!", async (result) => {
+    customConfirm("Tüm kullanıcıların mevcut puanlarını, ulaşılan en yüksek puanlarını, açılan kutu sayılarını ve rozetlerini tamamen sıfırlamak istediğinize emin misiniz? Bu işlem geri alınamaz ve tüm oyun geçmişi silinir!", async (result) => {
       if (result) {
         try {
           const userSnap = await db.ref('users').once('value');
@@ -1597,7 +1767,7 @@
           for (const u in usersData) {
             if (u !== "weizendtv") { // Admini sıfırlama dışında bırak
               updates['users/' + u + '/balance'] = 0;
-              updates['users/' + u + '/highestBalanceEver'] = 0; // En yüksek puanı sıfırla
+              updates['users/' + u + '/highestBalanceEver'] = 0; // Ulaşılan en yüksek puanı sıfırla
               updates['users/' + u + '/totalSpentPoints'] = 0; // Toplam harcanan puanı da sıfırla
               updates['users/' + u + '/boxesOpenedCount'] = 0;
               updates['users/' + u + '/currentSessionBoxesOpened'] = 0;
@@ -1610,7 +1780,7 @@
           // Kullanıcı verilerini sıfırla
           await db.ref().update(updates);
 
-          // Kazananlar sıralamasını sıfırla
+          // Kazananlar sıralamasını sıfırla (winners tablosu artık kullanılmıyor, ancak temizlik için bırakılabilir)
           await db.ref('winners').remove();
 
           // Oyun kutularını baştan başlat
@@ -1618,7 +1788,7 @@
 
           displayMessage("Tüm zamanlara ait veriler başarıyla sıfırlandı! Oyun geçmişi temizlendi.");
           loadUserRankingsAndBoxCounts(); // Sıralamaları yeniden yükle
-          loadWinners(); // Kazananlar sıralamasını yeniden yükle
+          loadBadgedUsersRanking(); // Rozetli kullanıcılar sıralamasını yeniden yükle
         } catch (error) {
           console.error("Tüm zamanları sıfırlama hatası: ", error);
           displayMessage("Tüm zamanları sıfırlanırken bir hata oluştu.");
@@ -1627,29 +1797,28 @@
     });
   }
 
-  function resetWinnersRanking() {
-    customConfirm("Hediye kazananlar sıralamasını sıfırlamak istediğinize emin misiniz? Bu işlem geri alınamaz.", (result) => {
+  // Rozetli Kullanıcılar Sıralamasını Sıfırla (Eski resetWinnersRanking)
+  function resetBadgedUsersRanking() {
+    customConfirm("Rozetli kullanıcılar sıralamasını ve tüm kullanıcıların rozet sayılarını sıfırlamak istediğinize emin misiniz? Bu işlem geri alınamaz.", (result) => {
       if (result) {
-        db.ref('winners').remove()
-          .then(() => {
-            // Sürpriz kutu kazanma sayılarını da sıfırla
-            db.ref('users').once('value').then(snap => {
-                const updates = {};
-                snap.forEach(child => {
-                    if (child.key !== "weizendtv") {
-                        updates['users/' + child.key + '/surpriseWinCount'] = 0;
-                    }
-                });
-                db.ref().update(updates)
-                    .then(() => {
-                        displayMessage("Hediye kazananlar sıralaması ve sürpriz kutu rozetleri sıfırlandı.");
-                        loadWinners(); // Kazananlar sıralamasını yeniden yükle (emojilerin gitmesi için)
-                        loadUserRankingsAndBoxCounts(); // Popüler kullanıcı sıralamasını da güncelle
-                    })
-                    .catch(error => console.error("Sürpriz kutu rozetlerini sıfırlama hatası:", error));
-            }).catch(error => console.error("Kullanıcı verilerini okuma hatası (sıfırlama):", error));
-          })
-          .catch(error => console.error("Kazananlar sıralaması sıfırlama hatası: ", error));
+        // Kullanıcıların rozet sayılarını sıfırla
+        db.ref('users').once('value').then(snap => {
+            const updates = {};
+            snap.forEach(child => {
+                if (child.key !== "weizendtv") {
+                    updates['users/' + child.key + '/surpriseWinCount'] = 0;
+                    updates['users/' + child.key + '/trophyCount'] = 0;
+                    updates['users/' + child.key + '/kingCrownCount'] = 0;
+                }
+            });
+            db.ref().update(updates)
+                .then(() => {
+                    displayMessage("Rozetli kullanıcılar sıralaması ve tüm rozetler sıfırlandı.");
+                    loadBadgedUsersRanking(); // Rozetli kullanıcılar sıralamasını yeniden yükle
+                    loadUserRankingsAndBoxCounts(); // Kullanıcı sıralamasını da güncelle
+                })
+                .catch(error => console.error("Rozetleri sıfırlama hatası:", error));
+        }).catch(error => console.error("Kullanıcı verilerini okuma hatası (rozet sıfırlama):", error));
       }
     });
   }
@@ -1675,7 +1844,7 @@
 
         if (u.toLowerCase().includes(term)) {
           html += `<div class="userItem">
-            <span>${u} - Puan: ${data[u].balance || 0} - Kutu Hakkı: ${data[u].kutuHakki || 0} ${data[u].blocked ? '(Engelli)' : ''} (🏆 ${data[u].trophyCount || 0} | 👑 ${data[u].kingCrownCount || 0} | 🎁 ${data[u].surpriseWinCount || 0})</span>
+            <span>${u} - Puan: ${data[u].balance || 0} - Kutu Hakkı: ${data[u].kutuHakki || 0} ${data[u].blocked ? '(Engelli)' : ''} (⭐ ${data[u].trophyCount || 0} | 👑 ${data[u].kingCrownCount || 0} | 🎁 ${data[u].surpriseWinCount || 0})</span>
             <div>
             <button onclick="event.stopPropagation(); openPointAdjustmentModal('${u}')">Puan Ayarı</button>
             <button onclick="event.stopPropagation(); openBoxRightAdjustmentModal('${u}')">Kutu Hakkı Ayarı</button>
@@ -1744,45 +1913,110 @@
     kickVerificationModal.style.display = 'none';
   }
 
-  // Yeni: En Yüksek Puana Sahip Kullanıcı Mesajı
-  function showHighestPointUserMessage() {
-    displayMessage(`EN YÜKSEK PUANA SAHİP OLAN KULLANICI`);
+  // Yeni: En Yüksek Mevcut Puana Sahip Kullanıcı Mesajı (🥇)
+  function showHighestCurrentPointUserMessage(username) {
+    displayMessage(`
+      <span style="color:#ffcc00; font-weight:bold;">GÜNLÜK YÜKSEK PUAN ROZETİ</span><br>
+      <span style="color:#fff;">${username}</span><br>
+      <span style="color:#00FF00;">KULLANICI SIRALAMASINDA BİRİNCİ</span>
+    `);
   }
 
-  // Yeni: Kral Tacı Tıklandığında Mesaj Göster
-  function showKingMessage(username, count) {
-    displayMessage(`${count} KEZ AYIN EN POPÜLER KULLANICISI`);
+  // Yeni: En Yüksek Ulaşılan Puana Sahip Kullanıcı Mesajı (🏆)
+  function showHighestEverPointUserMessage(username) {
+    displayMessage(`
+      <span style="color:#ffcc00; font-weight:bold;">TÜM ZAMANLARIN ULAŞILAN EN YÜKSEK PUAN ROZETİ</span><br>
+      <span style="color:#fff;">${username}</span><br>
+      <span style="color:#00FF00;">KULLANICI SIRALAMASINDA BİRİNCİ</span>
+    `);
   }
 
-  // Yeni: Kupa Tıklandığında Mesaj Göster
-  function showWeeklyPopularUserMessage(username, count) {
-    displayMessage(`${count} KEZ HAFTANIN EN POPÜLER KULLANICISI`);
+  // Yeni: Kral Tacı Tıklandığında Mesaj Göster (👑)
+  async function showKingCrownMessage(username) {
+    const userSnap = await db.ref('users/' + username).once('value');
+    const userData = userSnap.val();
+
+    // Determine highest current and highest ever users for dynamic badge display
+    const allUsersSnap = await db.ref('users').once('value');
+    const allUsersData = allUsersSnap.val();
+    let highestCurrentBalance = -1;
+    let highestCurrentBalanceUser = null;
+    let highestEverBalance = -1;
+    let highestEverBalanceUser = null;
+
+    for (const u in allUsersData) {
+      if (allUsersData[u].approved && !allUsersData[u].blocked) {
+        if ((allUsersData[u].balance || 0) > highestCurrentBalance) {
+          highestCurrentBalance = allUsersData[u].balance || 0;
+          highestCurrentBalanceUser = u;
+        }
+        if ((allUsersData[u].highestBalanceEver || 0) > highestEverBalance) {
+          highestEverBalance = allUsersData[u].highestBalanceEver || 0;
+          highestEverBalanceUser = u;
+        }
+      }
+    }
+
+    let badgesInfo = '';
+    if (userData) {
+        if (username === highestCurrentBalanceUser && highestCurrentBalance > 0) {
+            badgesInfo += `🥇 Mevcut Puan Lideri<br>`;
+        }
+        if (username === highestEverBalanceUser && highestEverBalance > 0) {
+            badgesInfo += `🏆 Tüm Zamanların En Yüksek Puanı<br>`;
+        }
+        if (userData.trophyCount > 0) {
+            badgesInfo += `⭐ Haftalık Popülerlik Kupası: ${userData.trophyCount}x<br>`;
+        }
+        if (userData.kingCrownCount > 0) { // Keep this for the count in the detailed message
+            badgesInfo += `👑 Aylık Kral Tacı: ${userData.kingCrownCount}x<br>`;
+        }
+        if (userData.surpriseWinCount > 0) {
+            badgesInfo += `🎁 Sürpriz Kutu Ödülü: ${userData.surpriseWinCount}x<br>`;
+        }
+    }
+
+    displayMessage(`
+      <span style="color:#ffcc00; font-weight:bold;">TÜM ROZETLERİN SAHİBİ!</span><br>
+      <span style="color:#fff;">${username}</span><br>
+      <span style="color:#00FF00;">Kazandığı rozetler:</span><br>
+      ${badgesInfo || 'Henüz rozet yok.'}
+    `);
   }
 
-  // Kutu İkonu Tıklandığında Kazanan Sayısı Mesajı Göster
-  function showWinnerCountMessage(username, count) {
-    displayMessage(`BU KULLANICI ${count}x ÖDÜL KAZANMIŞTIR.`);
+  // Yeni: Haftalık Popülerlik Kupası Tıklandığında Mesaj Göster (⭐)
+  function showTrophyCountMessage(username, count) {
+    displayMessage(`
+      <span style="color:#ffcc00; font-weight:bold;">HAFTANIN EN POPÜLER KULLANICISI ROZETİ</span><br>
+      <span style="color:#fff;">${username}</span><br>
+      <span style="color:#00FF00;">${count} KEZ BU ROZETİ KAZANDI</span>
+    `);
   }
 
-  // Yeni: Büyük Ödül Kazandı Mesajı
+  // Yeni: Büyük Ödül Kazandı Mesajı (🎁)
   function showBigPrizeWinMessage(username, count) {
-    displayMessage(`${username} BU KULLANICI ${count} KEZ BÜYÜK ÖDÜL KAZANDI`);
+    displayMessage(`
+      <span style="color:#ffcc00; font-weight:bold;">SÜRPRİZ KUTU BÜYÜK ÖDÜL ROZETİ</span><br>
+      <span style="color:#fff;">${username}</span><br>
+      <span style="color:#00FF00;">${count} KEZ BU ROZETİ KAZANDI</span>
+    `);
   }
 
   // Yeni: Kullanıcı Rozetlerini Sıfırlama Fonksiyonu
   async function resetUserBadges(username) {
-      customConfirm(`${username} kullanıcısının tüm rozetlerini (kupa, kral tacı, sürpriz kutu) sıfırlamak istediğinize emin misiniz?`, async (result) => {
+      customConfirm(`${username} kullanıcısının tüm rozetlerini (haftalık kupa, aylık taç, sürpriz kutu) sıfırlamak istediğinize emin misiniz?`, async (result) => {
           if (result) {
               try {
                   await db.ref('users/' + username).update({
                       trophyCount: 0,
                       kingCrownCount: 0,
-                      surpriseWinCount: 0 // Sürpriz kutu rozetini de sıfırla
+                      surpriseWinCount: 0
                   });
                   displayMessage(`${username} kullanıcısının rozetleri sıfırlandı.`);
                   closeBadgeAdjustmentModal(); // Modalı kapat
                   loadAllUsers(); // Admin panelindeki kullanıcı listesini yeniden yükle
-                  loadUserRankingsAndBoxCounts(); // Sıralamaları güncelle
+                  loadUserRankingsAndBoxCounts(); // Kullanıcı sıralamalarını güncelle
+                  loadBadgedUsersRanking(); // Rozetli kullanıcılar sıralamasını güncelle
               } catch (error) {
                   console.error("Rozet sıfırlama hatası:", error);
                   displayMessage("Rozetler sıfırlanırken bir hata oluştu.");
@@ -1802,7 +2036,7 @@
       const userData = userSnap.val();
       document.getElementById('adjUserTrophyCount').textContent = userData.trophyCount || 0;
       document.getElementById('adjUserKingCrownCount').textContent = userData.kingCrownCount || 0;
-      document.getElementById('adjUserSurpriseWinCount').textContent = userData.surpriseWinCount || 0; // Sürpriz kutu sayısını yükle
+      document.getElementById('adjUserSurpriseWinCount').textContent = userData.surpriseWinCount || 0;
     } catch (error) {
       console.error("Rozet bilgisi okuma hatası:", error);
       displayMessage("Kullanıcı rozet bilgileri yüklenirken bir hata oluştu.");
@@ -1815,14 +2049,14 @@
     badgeAdjustmentModal.style.display = 'none';
     document.getElementById('adjTrophyAmount').value = '';
     document.getElementById('adjKingCrownAmount').value = '';
-    document.getElementById('adjSurpriseWinAmount').value = ''; // Sürpriz kutu inputunu da sıfırla
+    document.getElementById('adjSurpriseWinAmount').value = '';
     targetUserForBadgeAdjustment = null;
   }
 
   async function adjustUserBadge(badgeType, add) {
     const trophyAmountInput = document.getElementById('adjTrophyAmount');
     const kingCrownAmountInput = document.getElementById('adjKingCrownAmount');
-    const surpriseWinAmountInput = document.getElementById('adjSurpriseWinAmount'); // Yeni sürpriz kutu inputu
+    const surpriseWinAmountInput = document.getElementById('adjSurpriseWinAmount');
 
     let amount = 0;
     let updatePath = '';
@@ -1836,7 +2070,7 @@
       amount = parseInt(kingCrownAmountInput.value);
       updatePath = 'kingCrownCount';
       currentCount = parseInt(document.getElementById('adjUserKingCrownCount').textContent);
-    } else if (badgeType === 'surpriseWin') { // Yeni sürpriz kutu tipi
+    } else if (badgeType === 'surpriseWin') {
       amount = parseInt(surpriseWinAmountInput.value);
       updatePath = 'surpriseWinCount';
       currentCount = parseInt(document.getElementById('adjUserSurpriseWinCount').textContent);
@@ -1853,11 +2087,12 @@
       await db.ref('users/' + targetUserForBadgeAdjustment).update({
         [updatePath]: newCount
       });
-      displayMessage(`${targetUserForBadgeAdjustment} kullanıcısının ${badgeType === 'trophy' ? 'kupa' : badgeType === 'kingCrown' ? 'kral tacı' : 'sürpriz kutu'} sayısı ${newCount} olarak güncellendi.`);
+      displayMessage(`${targetUserForBadgeAdjustment} kullanıcısının ${badgeType === 'trophy' ? 'haftalık kupa' : badgeType === 'kingCrown' ? 'aylık taç' : 'sürpriz kutu'} sayısı ${newCount} olarak güncellendi.`);
       // Modalı güncellemek için yeniden yükle
       openBadgeAdjustmentModal(targetUserForBadgeAdjustment); 
       loadAllUsers(); // Admin panelindeki kullanıcı listesini yeniden yükle
-      loadUserRankingsAndBoxCounts(); // Sıralamaları güncelle
+      loadUserRankingsAndBoxCounts(); // Kullanıcı sıralamalarını güncelle
+      loadBadgedUsersRanking(); // Rozetli kullanıcılar sıralamasını güncelle
     } catch (error) {
       console.error("Rozet güncelleme hatası:", error);
       displayMessage("Rozet güncellenirken bir hata oluştu.");
@@ -1876,7 +2111,6 @@
   // Kart seçim modalını açan fonksiyon
   function openCardSelectionModal(userId, cardsToOpenCount) {
     cardContainer.innerHTML = ''; // Önceki kartları temizle
-    // selectedCardIndex = -1; // Artık buna gerek yok
     currentCardsToOpen = cardsToOpenCount; // Açılacak kart sayısını kaydet
     cardsOpenedInCurrentSurpriseSession = 0; // Mevcut oturumda açılan kart sayısını sıfırla
     totalPointsGainedInSurpriseSession = 0; // Mevcut oturumda kazanılan toplam puanı sıfırla
@@ -1971,7 +2205,9 @@
           await finalUserRef.update({
               surpriseWinCount: finalUser.surpriseWinCount
           });
-          db.ref('winners').push({ name: userId, date: new Date().toLocaleString(), points: totalPointsGainedInSurpriseSession }); // Toplam kazanılan puanı kaydet
+          // winners tablosu artık rozetli kullanıcılar sıralaması için kullanılmıyor,
+          // ancak isterseniz sürpriz kutu kazananlarını ayrı bir yerde tutmak için push yapabilirsiniz.
+          // db.ref('winners').push({ name: userId, date: new Date().toLocaleString(), points: totalPointsGainedInSurpriseSession }); 
       }
 
       // Son mesajı göster ve modalı gecikmeli kapat
@@ -1989,7 +2225,6 @@
   function closeCardSelectionModal() {
     cardSelectionModal.style.display = 'none';
     cardContainer.innerHTML = ''; // Kartları temizle
-    // selectedCardIndex = -1; // Artık buna gerek yok
   }
 </script>
 </body>
