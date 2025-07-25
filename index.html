@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WeizendTv Şans Oyunu</title>
 <!-- Tailwind CSS CDN -->
-<script src="https://cdn.tailwindcss.com"></script>
+<script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
 <!-- Google Fonts - Inter -->
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<!-- Firebase JS SDK v8.10.1 (Kullanıcının isteği üzerine eski sürüm geri yüklendi) -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<link href="[https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap](https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap)" rel="stylesheet">
+<!-- Firebase JS SDK v8.10.1 -->
+<script src="[https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js](https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js)"></script>
+<script src="[https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js](https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js)"></script>
+<script src="[https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js](https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js)"></script>
 
 <style>
   /* Custom styles for scrollbar, specific colors, and animations not easily done with Tailwind */
@@ -36,12 +36,12 @@
 
   /* Keyframe animations for pulse effects */
   @keyframes pulse {
-    from { transform: scale(1); }
-    to { transform: scale(1.05); }
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
   }
   @keyframes pulseSelected {
-    from { transform: scale(1); box-shadow: 0 0 10px #00FF00; }
-    to { transform: scale(1.05); box-shadow: 0 0 25px #00FF00; }
+    0%, 100% { transform: scale(1); box-shadow: 0 0 10px #00FF00; }
+    50% { transform: scale(1.05); box-shadow: 0 0 25px #00FF00; }
   }
   /* Card flip animation */
   .card-back, .card-front {
@@ -56,6 +56,23 @@
   }
   .card-front {
     transform: rotateY(-180deg); /* Initially hidden */
+  }
+
+  /* Modal overlay styles */
+  .modal-overlay {
+    background-color: rgba(0, 0, 0, 0.7);
+    animation: fadeIn 0.3s ease-out;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .modal-content {
+    animation: slideIn 0.3s ease-out;
+  }
+  @keyframes slideIn {
+    from { transform: translateY(-50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
   }
 </style>
 </head>
@@ -78,10 +95,10 @@
     </button>
     <button class="w-full py-3 mb-4 bg-green-500 hover:bg-green-400 text-gray-900 font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300"
             onclick="openKickVerificationModal()">
-      Kick Kullanıcı Adını Doğrula
+      Kullanıcı Adını Doğrula
     </button>
     <p class="mt-4">
-      <a href="https://instagram.com/weizendtv" target="_blank" class="text-red-500 hover:text-red-400 font-bold transition duration-200">
+      <a href="[https://instagram.com/weizendtv](https://instagram.com/weizendtv)" target="_blank" class="text-red-500 hover:text-red-400 font-bold transition duration-200">
         Şifremi Unuttum
       </a>
     </p>
@@ -101,6 +118,11 @@
         <button id="adminPanelToggleButton" onclick="openAdminPanelModal()"
                 class="py-2 px-6 bg-blue-700 hover:bg-blue-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300 hidden">
           Admin Paneli
+        </button>
+        <!-- Store Button -->
+        <button id="storeToggleButton" onclick="openStoreModal()"
+                class="py-2 px-6 bg-yellow-600 hover:bg-yellow-500 text-gray-900 font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
+          Mağaza
         </button>
       </div>
     </div>
@@ -124,9 +146,6 @@
         <div id="badgedUsersRanking" class="scrollable-list max-h-80 overflow-y-auto border border-gray-600 rounded-lg p-3 bg-gray-900 text-sm leading-relaxed">Yükleniyor...</div>
       </div>
     </div>
-
-    <!-- Admin Panel (Moved into a modal structure) -->
-    <!-- This div is now just a placeholder, the content is in adminPanelModal -->
   </div>
 
   <!-- Modals -->
@@ -185,8 +204,12 @@
               Oyunu Baştan Başlat
             </button>
             <button onclick="restartSystem()"
-                    class="py-2 px-4 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
+                    class="py-2 px-4 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg shadow-md hover:-translate-y-1 transition duration-300">
               Sistemi Baştan Başlat
+            </button>
+            <button onclick="resetStoreItems()"
+                    class="py-2 px-4 bg-yellow-700 hover:bg-yellow-600 text-white font-bold rounded-lg shadow-md hover:-translate-y-1 transition duration-300">
+              Mağazayı Sıfırla
             </button>
           </div>
         </div>
@@ -278,7 +301,7 @@
         Kullanıcı adı doğrulama talebi için kick hesabımızın sohbet kısmına
         <span class="text-green-400 font-bold">!doğrula</span> yazıp gönderin.
       </p>
-      <button onclick="window.open('https://kick.com/popout/weizendtv/chat', '_blank')"
+      <button onclick="window.open('[https://kick.com/popout/weizendtv/chat](https://kick.com/popout/weizendtv/chat)', '_blank')"
               class="w-full py-3 bg-green-500 hover:bg-green-400 text-gray-900 font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
         Kick Sohbete Yönlendir
       </button>
@@ -320,13 +343,24 @@
     </div>
   </div>
 
+  <!-- Store Modal -->
+  <div id="storeModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 hidden">
+    <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-yellow-700 w-11/12 max-w-3xl text-center relative max-h-[90vh] overflow-y-auto">
+      <button class="modal-close-button absolute top-2 right-4 text-white text-4xl leading-none bg-transparent border-none cursor-pointer hover:text-red-500 transition duration-200" onclick="closeStoreModal()">&times;</button>
+      <h3 class="text-yellow-400 text-3xl font-bold mb-6 text-center">Mağaza</h3>
+      <div id="storeItemsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Store items will be rendered here by JavaScript -->
+      </div>
+    </div>
+  </div>
+
 
 <script>
   // Firebase yapılandırması
   const firebaseConfig = {
     apiKey: "AIzaSyAVuyT2Hb7v9omKSgcwtoj0gzjTbXRtQn8",
     authDomain: "weizendtv-oyun.firebaseapp.com",
-    databaseURL: "https://weizendtv-oyun-default-rtdb.europe-west1.firebasedatabase.app",
+    databaseURL: "[https://weizendtv-oyun-default-rtdb.europe-west1.firebasedatabase.app](https://weizendtv-oyun-default-rtdb.europe-west1.firebasedatabase.app)",
     projectId: "weizendtv-oyun",
     storageBucket: "weizendtv-oyun.firebase-storage.app",
     messagingSenderId: "762409187638",
@@ -353,6 +387,7 @@
   let currentUser = null;
   let isAdmin = false;
   let boxes = [];
+  let storeItems = []; // Mağaza öğeleri için yeni global değişken
   const BOX_RIGHTS_COST_PER_BOX = 1; // Kutu açmak için gereken kutu hakkı
   
   // Puan değerleri ve dağılımları
@@ -372,6 +407,15 @@
   ];
   const TOTAL_BOXES = BOX_CONTENTS.reduce((sum, item) => sum + item.count, 0); // Toplam 100 kutu
 
+  // Mağaza öğeleri tanımlaması
+  const INITIAL_STORE_ITEMS = [
+    { id: 'box_rights_5', name: '5 Kutu Hakkı', description: '5 adet kutu açma hakkı kazanın.', cost: 500, type: 'boxRights', effect: 5, icon: '📦' },
+    { id: 'box_rights_10', name: '10 Kutu Hakkı', description: '10 adet kutu açma hakkı kazanın.', cost: 900, type: 'boxRights', effect: 10, icon: '📦' },
+    { id: 'multiplier_2x_1use', name: '2X Çarpan (1 Kullanım)', description: 'Sonraki kutu açışınızda 2 kat puan kazanın.', cost: 1500, type: 'multiplier', value: 2, uses: 1, icon: '⚡' },
+    { id: 'multiplier_3x_1use', name: '3X Çarpan (1 Kullanım)', description: 'Sonraki kutu açışınızda 3 kat puan kazanın.', cost: 2500, type: 'multiplier', value: 3, uses: 1, icon: '⚡' },
+    { id: 'iflas_shield_1use', name: 'İflas Kalkanı (1 Kullanım)', description: 'Bir sonraki iflas kutusunda puanlarınızı korur.', cost: 3000, type: 'iflasShield', uses: 1, icon: '🛡️' }
+  ];
+
   // Modal elementleri
   const pointAdjustmentModal = document.getElementById('pointAdjustmentModal');
   const boxRightAdjustmentModal = document.getElementById('boxRightAdjustmentModal');
@@ -380,16 +424,18 @@
   const kickVerificationModal = document.getElementById('kickVerificationModal');
   const generalMessageModal = document.getElementById('generalMessageModal');
   const cardSelectionModal = document.getElementById('cardSelectionModal');
-  const cardContainer = document.querySelector('#cardSelectionModal .card-container'); // Updated selector
+  const cardContainer = document.querySelector('#cardSelectionModal .card-container');
   const openedBoxInfoModal = document.getElementById('openedBoxInfoModal');
-  const adminPanelModal = document.getElementById('adminPanelModal'); // Admin panel modal'ı
-  const adminPanelToggleButton = document.getElementById('adminPanelToggleButton'); // Admin panel butonu
+  const adminPanelModal = document.getElementById('adminPanelModal');
+  const adminPanelToggleButton = document.getElementById('adminPanelToggleButton');
+  const storeModal = document.getElementById('storeModal'); // Yeni mağaza modalı
+  const storeItemsContainer = document.getElementById('storeItemsContainer'); // Mağaza öğeleri container'ı
 
   let targetUserForAdjustment = null;
   let targetUserForBoxRightAdjustment = null;
   let targetUserForBlock = null;
   let countdownInterval = null;
-  let cardValues = [1000, 2000, 3000, 4000, 5000]; // Kartların içindeki puanlar
+  let cardValues = [1000, 2000, 3000, 4000, 5000];
   
   // Yeni global değişkenler: Kart seçim mini oyunu durumu için
   let currentCardsToOpen = 0;
@@ -505,8 +551,11 @@
           boxesOpenedCount: 0,
           currentSessionBoxesOpened: 0,
           surpriseBoxesOpened: 0,
-          activeMultiplier: 1,
-          multiplierEffectActive: false,
+          activeMultiplier: 1, // Kutu çarpanı
+          multiplierEffectActive: false, // Kutu çarpanı aktif mi
+          purchasedMultiplierUses: 0, // Satın alınan çarpan kullanım hakkı
+          purchasedMultiplierValue: 1, // Satın alınan çarpan değeri
+          iflasShieldUses: 0, // İflas kalkanı kullanım hakkı
           registeredAt: new Date().toLocaleString()
         }).then(() => {
           displayMessage("Hesabınız başarıyla oluşturuldu! Kick kullanıcı adı doğrulaması bekleniyor.");
@@ -629,6 +678,7 @@
     loadUserRankingsAndBoxCounts();
     loadBoxes();
     loadTotalOpenedBoxesCount();
+    loadStoreItems(); // Mağaza öğelerini yükle
   }
 
   // Admin panel modalını açma fonksiyonu
@@ -1351,13 +1401,33 @@
     let message = '';
     let pointsGained = 0;
     
-    let multiplierEffectActive = user.multiplierEffectActive || false;
-    let activeMultiplier = user.activeMultiplier || 1;
+    let activeMultiplier = user.activeMultiplier || 1; // From box
+    let multiplierEffectActive = user.multiplierEffectActive || false; // From box
+    let purchasedMultiplierUses = user.purchasedMultiplierUses || 0; // From store
+    let purchasedMultiplierValue = user.purchasedMultiplierValue || 1; // From store
+    let iflasShieldUses = user.iflasShieldUses || 0; // From store
+
+    let finalMultiplier = 1;
+    let usedPurchasedMultiplier = false;
+
+    // Determine final multiplier
+    if (multiplierEffectActive) { // Box multiplier takes precedence
+      finalMultiplier = activeMultiplier;
+      user.activeMultiplier = 1; // Reset box multiplier
+      user.multiplierEffectActive = false;
+    } else if (purchasedMultiplierUses > 0) { // Use purchased multiplier if available
+      finalMultiplier = purchasedMultiplierValue;
+      user.purchasedMultiplierUses--;
+      usedPurchasedMultiplier = true;
+    }
 
     const box = boxes[index];
 
     if (box.content === 'iflas') {
-      if (multiplierEffectActive) {
+      if (iflasShieldUses > 0) {
+        message = `İflas Kalkanı sizi korudu! Puanlarınız güvende. Kalkan kullanım hakkınız: ${iflasShieldUses - 1}.`;
+        user.iflasShieldUses--;
+      } else if (multiplierEffectActive) { // Box multiplier also protects from iflas
         message = `${activeMultiplier}x çarpanı koruma sağladı! İflas etkisiz kaldı. Bir kutu hakkı hediye edildi.`;
         user.kutuHakki = (user.kutuHakki || 0) + 1;
         user.activeMultiplier = 1;
@@ -1367,14 +1437,14 @@
         message = `İflas! Tüm puanlarınız silindi. Yeni bakiyeniz: ${user.balance}.`;
       }
     } else if (box.content === 'points') {
-      pointsGained = box.value * activeMultiplier;
+      pointsGained = box.value * finalMultiplier;
       user.balance = (user.balance || 0) + pointsGained;
       message = `+${pointsGained} puan kazandınız! Yeni bakiyeniz: ${user.balance}.`;
       
       if (user.balance > (user.highestBalanceEver || 0)) {
           user.highestBalanceEver = user.balance;
       }
-
+      // Reset box multiplier after use
       user.activeMultiplier = 1;
       user.multiplierEffectActive = false;
 
@@ -1385,11 +1455,11 @@
         user.surpriseBoxesOpened = (user.surpriseBoxesOpened || 0) + 1;
 
         let cardsToOpen = 1;
-        if (activeMultiplier === 5) {
+        if (finalMultiplier === 5) { // If 5x multiplier was active (either from box or purchased)
             cardsToOpen = 5;
-        } else if (activeMultiplier === 2) {
+        } else if (finalMultiplier === 2) {
             cardsToOpen = 2;
-        } else if (activeMultiplier === 3) {
+        } else if (finalMultiplier === 3) {
             cardsToOpen = 3;
         }
 
@@ -1418,6 +1488,9 @@
     updates['activeMultiplier'] = user.activeMultiplier;
     updates['multiplierEffectActive'] = user.multiplierEffectActive;
     updates['surpriseBoxesOpened'] = user.surpriseBoxesOpened;
+    updates['purchasedMultiplierUses'] = user.purchasedMultiplierUses; // Update purchased multiplier uses
+    updates['purchasedMultiplierValue'] = user.purchasedMultiplierValue; // Update purchased multiplier value
+    updates['iflasShieldUses'] = user.iflasShieldUses; // Update iflas shield uses
 
     await userRef.update(updates) // Eski Firebase Realtime DB update() kullanımı
       .then(() => {
@@ -1503,7 +1576,7 @@
 
   // Sistemi baştan başlat (Tüm verileri sıfırlayan kapsamlı fonksiyon)
   async function restartSystem() {
-    customConfirm("Sistemi baştan başlatmak istediğinize emin misiniz? Bu işlem, tüm kullanıcıların puanlarını, ulaşılan en yüksek puanlarını, harcanan puanlarını, kutu haklarını, açılan kutu sayılarını ve tüm rozetlerini tamamen sıfırlayacak, ayrıca oyun kutularını yeniden oluşturacaktır. Bu işlem geri alınamaz!", async (result) => {
+    customConfirm("Sistemi baştan başlatmak istediğinize emin misiniz? Bu işlem, tüm kullanıcıların puanlarını, ulaşılan en yüksek puanlarını, harcanan puanlarını, kutu haklarını, açılan kutu sayılarını ve tüm rozetlerini tamamen sıfırlayacak, ayrıca oyun kutularını ve mağaza öğelerini yeniden oluşturacaktır. Bu işlem geri alınamaz!", async (result) => {
       if (result) {
         try {
           displayMessage("Sistem yeniden başlatılıyor: Kullanıcı verileri sıfırlanıyor...");
@@ -1523,6 +1596,9 @@
                 updates['users/' + u + '/surpriseBoxesOpened'] = 0;
                 updates['users/' + u + '/activeMultiplier'] = 1;
                 updates['users/' + u + '/multiplierEffectActive'] = false;
+                updates['users/' + u + '/purchasedMultiplierUses'] = 0; // Sıfırla
+                updates['users/' + u + '/purchasedMultiplierValue'] = 1; // Sıfırla
+                updates['users/' + u + '/iflasShieldUses'] = 0; // Sıfırla
               }
             }
             await db.ref().update(updates); // Eski Firebase Realtime DB update() kullanımı
@@ -1542,10 +1618,15 @@
           await createBoxes();
           console.log("Oyun kutuları başarıyla yeniden oluşturuldu.");
 
-          displayMessage("Sistem başarıyla baştan başlatıldı! Tüm kullanıcı verileri ve oyun geçmişi temizlendi.");
+          displayMessage("Sistem yeniden başlatılıyor: Mağaza öğeleri yeniden oluşturuluyor...");
+          await createStoreItems(); // Mağaza öğelerini de sıfırla
+          console.log("Mağaza öğeleri başarıyla yeniden oluşturuldu.");
+
+          displayMessage("Sistem başarıyla baştan başlatıldı! Tüm kullanıcı verileri, oyun geçmişi ve mağaza temizlendi.");
           loadUserRankingsAndBoxCounts();
           loadLeaderboardRanking();
           loadBalanceAndBoxRights();
+          loadStoreItems(); // Mağaza öğelerini yeniden yükle
         } catch (error) {
           console.error("Sistemi baştan başlatma hatası: ", error);
           displayMessage(`Sistemi baştan başlatılırken bir hata oluştu: ${error.message || error}. Lütfen konsolu kontrol edin.`);
@@ -1803,7 +1884,176 @@
     cardSelectionModal.style.display = 'none';
     cardContainer.innerHTML = '';
   }
+
+  // Mağaza öğelerini oluştur/başlat
+  function createStoreItems() {
+    db.ref('storeItems').once('value').then(snap => { // Eski Firebase Realtime DB once('value') kullanımı
+      if (!snap.exists()) {
+        const itemsToSet = {};
+        INITIAL_STORE_ITEMS.forEach(item => {
+          itemsToSet[item.id] = item;
+        });
+        db.ref('storeItems').set(itemsToSet) // Eski Firebase Realtime DB set() kullanımı
+          .then(() => console.log("Mağaza öğeleri başlatıldı."))
+          .catch(error => console.error("Mağaza öğeleri başlatma hatası: ", error));
+      } else {
+        console.log("Mağaza öğeleri zaten mevcut.");
+      }
+    }).catch(error => console.error("Mağaza öğeleri kontrol hatası: ", error));
+  }
+
+  // Mağaza öğelerini sıfırla (Admin paneli için)
+  function resetStoreItems() {
+    customConfirm("Mağaza öğelerini sıfırlamak istediğinize emin misiniz? Mevcut tüm mağaza öğeleri silinecek ve varsayılan öğeler yeniden oluşturulacaktır.", (result) => {
+      if (result) {
+        db.ref('storeItems').remove() // Eski Firebase Realtime DB remove() kullanımı
+          .then(() => {
+            console.log("Mağaza öğeleri silindi.");
+            createStoreItems(); // Varsayılan öğeleri yeniden oluştur
+            displayMessage("Mağaza öğeleri başarıyla sıfırlandı.");
+            loadStoreItems(); // Yeni öğeleri yükle
+          })
+          .catch(error => console.error("Mağaza öğelerini sıfırlama hatası: ", error));
+      }
+    });
+  }
+
+  // Mağaza öğelerini yükle
+  function loadStoreItems() {
+    db.ref('storeItems').on('value', snap => { // Eski Firebase Realtime DB on('value') kullanımı
+      if (!snap.exists()) {
+        createStoreItems(); // Eğer mağaza öğeleri yoksa oluştur
+      } else {
+        storeItems = [];
+        snap.forEach(child => {
+          storeItems.push(child.val());
+        });
+        renderStoreItems();
+      }
+    });
+  }
+
+  // Mağaza öğelerini render et
+  function renderStoreItems() {
+    const container = document.getElementById('storeItemsContainer');
+    container.innerHTML = '';
+    if (storeItems.length === 0) {
+      container.innerHTML = "<div class='col-span-full text-center text-gray-400'>Mağazada henüz ürün yok.</div>";
+      return;
+    }
+
+    storeItems.forEach(item => {
+      const itemDiv = document.createElement('div');
+      itemDiv.className = 'bg-gray-700 p-4 rounded-xl shadow-lg border border-yellow-600 flex flex-col items-center text-center transition-all duration-300 hover:scale-105';
+      itemDiv.innerHTML = `
+        <div class="text-5xl mb-4">${item.icon || '✨'}</div>
+        <h4 class="text-yellow-300 text-xl font-bold mb-2">${item.name}</h4>
+        <p class="text-gray-300 text-sm mb-4">${item.description}</p>
+        <p class="text-green-400 text-2xl font-bold mb-4">${item.cost} Puan</p>
+        <button onclick="purchaseItem('${item.id}')"
+                class="w-full py-2 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
+          Satın Al
+        </button>
+      `;
+      container.appendChild(itemDiv);
+    });
+  }
+
+  // Mağaza modalını aç
+  function openStoreModal() {
+    if (isAdmin) {
+      displayMessage("Adminler mağazadan alışveriş yapamaz.");
+      return;
+    }
+    storeModal.style.display = 'flex';
+    loadStoreItems(); // Modalı açtığımızda öğeleri güncelleyelim
+  }
+
+  // Mağaza modalını kapat
+  function closeStoreModal() {
+    storeModal.style.display = 'none';
+  }
+
+  // Ürün satın alma fonksiyonu
+  async function purchaseItem(itemId) {
+    if (isAdmin) {
+      displayMessage("Adminler mağazadan alışveriş yapamaz.");
+      return;
+    }
+
+    const item = storeItems.find(i => i.id === itemId);
+    if (!item) {
+      displayMessage("Ürün bulunamadı!");
+      return;
+    }
+
+    const userRef = db.ref('users/' + currentUser);
+    const userSnap = await userRef.once('value'); // Eski Firebase Realtime DB once('value') kullanımı
+    let user = userSnap.val();
+
+    if (!user) {
+      displayMessage("Kullanıcı bilginiz bulunamadı. Lütfen tekrar giriş yapın.");
+      logout();
+      return;
+    }
+    if (user.blocked) {
+      displayMessage("Hesabınız engelli olduğu için alışveriş yapamazsınız.");
+      return;
+    }
+    if ((user.balance || 0) < item.cost) {
+      displayMessage(`Yetersiz puan! Bu ürünü satın almak için ${item.cost} puana ihtiyacınız var. Mevcut puanınız: ${user.balance || 0}.`);
+      return;
+    }
+
+    customConfirm(`${item.name} ürününü ${item.cost} puana satın almak istediğinize emin misiniz?`, async (result) => {
+      if (result) {
+        user.balance = (user.balance || 0) - item.cost;
+        user.totalSpentPoints = (user.totalSpentPoints || 0) + item.cost;
+
+        let message = '';
+        const updates = {};
+
+        if (item.type === 'boxRights') {
+          user.kutuHakki = (user.kutuHakki || 0) + item.effect;
+          message = `${item.name} satın alındı! ${item.effect} kutu hakkı eklendi.`;
+        } else if (item.type === 'multiplier') {
+          user.purchasedMultiplierUses = (user.purchasedMultiplierUses || 0) + item.uses;
+          user.purchasedMultiplierValue = item.value; // Son satın alınan çarpan değeri geçerli olur
+          message = `${item.name} satın alındı! ${item.value}x çarpan ${item.uses} kullanım için eklendi.`;
+        } else if (item.type === 'iflasShield') {
+          user.iflasShieldUses = (user.iflasShieldUses || 0) + item.uses;
+          message = `${item.name} satın alındı! ${item.uses} adet iflas kalkanı eklendi.`;
+        }
+        // Diğer item tipleri buraya eklenebilir
+
+        updates['balance'] = user.balance;
+        updates['totalSpentPoints'] = user.totalSpentPoints;
+        updates['kutuHakki'] = user.kutuHakki;
+        updates['purchasedMultiplierUses'] = user.purchasedMultiplierUses;
+        updates['purchasedMultiplierValue'] = user.purchasedMultiplierValue;
+        updates['iflasShieldUses'] = user.iflasShieldUses;
+
+        await userRef.update(updates) // Eski Firebase Realtime DB update() kullanımı
+          .then(() => {
+            displayMessage(message + ` Yeni bakiyeniz: ${user.balance}.`);
+            loadBalanceAndBoxRights();
+            loadUserRankingsAndBoxCounts();
+            loadLeaderboardRanking();
+            closeStoreModal();
+          })
+          .catch(error => {
+            console.error("Ürün satın alma hatası: ", error);
+            displayMessage("Ürün satın alınırken bir hata oluştu. Lütfen tekrar deneyin.");
+          });
+      }
+    });
+  }
+
+  // Sayfa yüklendiğinde mağaza öğelerini ve kutuları başlat
+  window.onload = function() {
+    createBoxes();
+    createStoreItems();
+  };
 </script>
 </body>
 </html>
-
