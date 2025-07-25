@@ -88,19 +88,26 @@
   </div>
 
   <!-- Game Section -->
-  <div id="gameDiv" class="w-full max-w-4xl hidden pb-16"> <!-- Increased pb-16 for more bottom spacing -->
+  <div id="gameDiv" class="w-full max-w-4xl hidden pb-16">
     <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700 mb-8 text-center">
       <h3 class="text-yellow-400 text-2xl font-bold mb-2">Hoşgeldin, <span id="currentUser" class="inline-flex items-center"></span> <span id="role" class="text-base text-gray-400"></span></h3>
       <p id="balance" class="text-lg text-gray-300 mb-4">Mevcut Puan: 0 | Kutu Hakkı: 0 | Toplam Harcanan Puan: 0</p>
-      <button onclick="logout()"
-              class="py-2 px-6 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
-        Çıkış Yap
-      </button>
+      <div class="flex justify-center flex-wrap gap-4 mt-4">
+        <button onclick="logout()"
+                class="py-2 px-6 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
+          Çıkış Yap
+        </button>
+        <!-- Admin Panel Button (initially hidden) -->
+        <button id="adminPanelToggleButton" onclick="openAdminPanelModal()"
+                class="py-2 px-6 bg-blue-700 hover:bg-blue-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300 hidden">
+          Admin Paneli
+        </button>
+      </div>
     </div>
 
     <p class="text-lg text-gray-300 mb-6 text-center">Toplam Açılan Kutu Sayısı: <span id="totalOpenedBoxesCount" class="font-bold text-yellow-400">0</span></p>
 
-    <!-- Box Container (Adjusted for better mobile responsiveness using auto-fill) -->
+    <!-- Box Container (Adjusted for better mobile responsiveness - using auto-fill) -->
     <div id="boxContainer" class="grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-2 w-full mx-auto mb-8 p-2">
       <!-- Boxes will be rendered here by JavaScript -->
     </div>
@@ -118,11 +125,18 @@
       </div>
     </div>
 
-    <!-- Admin Panel -->
-    <div id="adminPanel" class="bg-gray-800 p-8 rounded-xl shadow-lg border border-red-700 w-full max-w-4xl hidden">
+    <!-- Admin Panel (Moved into a modal structure) -->
+    <!-- This div is now just a placeholder, the content is in adminPanelModal -->
+  </div>
+
+  <!-- Modals -->
+  <!-- Admin Panel Modal -->
+  <div id="adminPanelModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 hidden">
+    <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-red-700 w-11/12 max-w-4xl text-center relative max-h-[90vh] overflow-y-auto">
+      <button class="modal-close-button absolute top-2 right-4 text-white text-4xl leading-none bg-transparent border-none cursor-pointer hover:text-red-500 transition duration-200" onclick="closeAdminPanelModal()">&times;</button>
       <h3 class="text-yellow-400 text-3xl font-bold mb-6 text-center">Admin Paneli</h3>
 
-      <!-- Admin Panel Tabs/Sections -->
+      <!-- Admin Panel Tabs/Sections - Content moved here -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Onay Bekleyen Kullanıcılar -->
         <div class="bg-gray-900 p-6 rounded-lg border border-gray-700">
@@ -142,7 +156,7 @@
                 Toplu Puan Ekle
               </button>
               <button onclick="changeAllPoints(false)"
-                      class="flex-1 py-2 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
+                      class="flex-1 py-2 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg shadow-md hover:-translate-y-1 transition duration-300">
                 Toplu Puan Sil
               </button>
             </div>
@@ -156,7 +170,7 @@
                 Toplu Kutu Hakkı Ekle
               </button>
               <button onclick="changeAllBoxRights(false)"
-                      class="flex-1 py-2 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
+                      class="flex-1 py-2 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg shadow-md hover:-translate-y-1 transition duration-300">
                 Toplu Kutu Hakkı Sil
               </button>
             </div>
@@ -188,7 +202,6 @@
     </div>
   </div>
 
-  <!-- Modals -->
   <!-- Point Adjustment Modal -->
   <div id="pointAdjustmentModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 hidden">
     <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-red-700 w-11/12 max-w-md text-center relative">
@@ -369,6 +382,8 @@
   const cardSelectionModal = document.getElementById('cardSelectionModal');
   const cardContainer = document.querySelector('#cardSelectionModal .card-container'); // Updated selector
   const openedBoxInfoModal = document.getElementById('openedBoxInfoModal');
+  const adminPanelModal = document.getElementById('adminPanelModal'); // Admin panel modal'ı
+  const adminPanelToggleButton = document.getElementById('adminPanelToggleButton'); // Admin panel butonu
 
   let targetUserForAdjustment = null;
   let targetUserForBoxRightAdjustment = null;
@@ -604,12 +619,13 @@
     
     document.getElementById("role").textContent = isAdmin ? "(Admin)" : "";
 
+    // Admin paneli butonu ve görünürlüğü yönetimi
     if (isAdmin) {
-      document.getElementById("adminPanel").style.display = "block";
-      loadPendingUsers();
-      loadAllUsers();
+      adminPanelToggleButton.classList.remove('hidden'); // Butonu göster
+      adminPanelModal.classList.add('hidden'); // Paneli başlangıçta gizle
     } else {
-      document.getElementById("adminPanel").style.display = "none";
+      adminPanelToggleButton.classList.add('hidden'); // Butonu gizle
+      adminPanelModal.classList.add('hidden'); // Paneli gizle
     }
 
     loadBalanceAndBoxRights();
@@ -617,6 +633,19 @@
     loadUserRankingsAndBoxCounts();
     loadBoxes();
     loadTotalOpenedBoxesCount();
+  }
+
+  // Admin panel modalını açma fonksiyonu
+  function openAdminPanelModal() {
+    adminPanelModal.style.display = 'flex';
+    // Modalı açtığımızda paneli yükle (eğer zaten yüklenmemişse veya güncel değilse)
+    loadPendingUsers();
+    loadAllUsers();
+  }
+
+  // Admin panel modalını kapatma fonksiyonu
+  function closeAdminPanelModal() {
+    adminPanelModal.style.display = 'none';
   }
 
   // Çıkış yapma fonksiyonu
