@@ -603,9 +603,9 @@
         }
         // Check for surprise leader first
         if (isSurpriseLeader) {
-            userIconsHtml += `<span class="inline-block cursor-pointer text-xl mr-1" onclick="showMessage('Sürpriz Kutu Lideri', '${currentUser} en çok sürpriz kutu açan kullanıcı!')">🎁</span>`;
+            userIconsHtml += `<span class="inline-block cursor-pointer text-xl mr-1" onclick="showMessage('Sürpriz Kutu Lideri', '${currentUser} en çok sürpriz kutu açan kullanıcı!')">🎉</span>`;
         } else if (hasOpenedAnySurpriseBox) { // If not leader but opened a surprise box
-            userIconsHtml += `<span class="inline-block cursor-pointer text-xl mr-1" onclick="showMessage('SÜRPRİZ KUTU ROZETİ', '${currentUser} bir sürpriz kutu açtı!')">🎁</span>`;
+            userIconsHtml += `<span class="inline-block cursor-pointer text-xl mr-1" onclick="showMessage('SÜRPRİZ KUTU ROZETİ', '${currentUser} daha önce sürpriz kutu buldu!')">🎁</span>`;
         }
       }
       document.getElementById("currentUser").innerHTML = `${userIconsHtml} ${currentUser}`;
@@ -1689,7 +1689,7 @@
         badgesInfo += `<span class="text-green-400">🏆 Ulaşılan Yüksek Puan Lideri</span><br>`;
     }
     if (username === maxSurpriseBoxesUser && maxSurpriseBoxes > 0) {
-        badgesInfo += `<span class="text-green-400">🎁 Sürpriz Kutu Lideri</span><br>`;
+        badgesInfo += `<span class="text-green-400">🎉 Sürpriz Kutu Lideri</span><br>`;
     }
 
     displayMessage(`
