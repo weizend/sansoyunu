@@ -78,7 +78,7 @@
     </button>
     <button class="w-full py-3 mb-4 bg-green-500 hover:bg-green-400 text-gray-900 font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300"
             onclick="openKickVerificationModal()">
-      Kick Kullanıcı Adını Doğrula
+      Kullanıcı Adını Doğrula
     </button>
     <p class="mt-4">
       <a href="https://instagram.com/weizendtv" target="_blank" class="text-red-500 hover:text-red-400 font-bold transition duration-200">
@@ -332,7 +332,7 @@
           Kalkan Ekle
         </button>
         <button onclick="adjustUserIflasShields(false)"
-                class="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg shadow-md hover:-translate-y-1 transition duration-300">
+                class="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
           Kalkan Çıkar
         </button>
       </div>
@@ -408,7 +408,7 @@
   <div id="kickVerificationModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 hidden">
     <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-red-700 w-11/12 max-w-md text-center relative">
       <button class="modal-close-button absolute top-2 right-4 text-white text-4xl leading-none bg-transparent border-none cursor-pointer hover:text-red-500 transition duration-200" onclick="closeKickVerificationModal()">&times;</button>
-      <h4 class="text-yellow-400 text-2xl font-bold mb-6">Kick Kullanıcı Adı Doğrulaması</h4>
+      <h4 class="text-yellow-400 text-2xl font-bold mb-6">Kullanıcı Adı Doğrulaması</h4>
       <p class="text-lg text-gray-300 mb-6">
         Kullanıcı adı doğrulama talebi için kick hesabımızın sohbet kısmına
         <span class="text-green-400 font-bold">!doğrula</span> yazıp gönderin.
@@ -931,7 +931,7 @@
 
       let highestCurrentBalance = -1;
       let highestCurrentBalanceUser = null;
-      let highestEverBalance = -1; // Initialize to -1 to ensure any positive balance is higher
+      let highestEverBalance = -1;
       let highestEverBalanceUser = null;
       let maxSurpriseBoxes = -1;
       let maxSurpriseBoxesUser = null;
@@ -2122,7 +2122,7 @@
         badgesInfo += `<span class="text-green-400">🏆 Ulaşılan En Yüksek Puan Lideri</span><br>`;
     }
     if (username === maxSurpriseBoxesUser && maxSurpriseBoxes > 0) {
-        badgesInfo += `<span class="text-green-400">🎉 Sürpriz Kutu Lideri</span><br>`;
+        badgesInfo += `<span class="text-green-400">� Sürpriz Kutu Lideri</span><br>`;
     }
 
     displayMessage(`
@@ -2241,6 +2241,28 @@
     cardContainer.innerHTML = '';
   }
 
+  /**
+   * Helper function to get the effective countdown end time.
+   * Handles null, undefined, empty string, and zero values as indefinite.
+   * @param {*} countdownValue The raw countdownEndTime value from Firebase.
+   * @returns {number} The effective timestamp or Infinity if indefinite.
+   */
+  function getEffectiveCountdownEndTime(countdownValue) {
+    if (countdownValue === null || countdownValue === undefined || countdownValue === '' || countdownValue === 0) {
+      return Infinity; // Treat as indefinite
+    }
+    // If it's a string that might represent a number (e.g., "1678886400000")
+    if (typeof countdownValue === 'string') {
+        const parsedValue = parseInt(countdownValue);
+        if (!isNaN(parsedValue) && parsedValue > 0) {
+            return parsedValue;
+        }
+        return Infinity; // If string is not a valid positive number, treat as indefinite
+    }
+    // If it's already a number (timestamp)
+    return countdownValue;
+  }
+
   // Mağaza öğelerini yükle (hem kullanıcı hem admin için)
   function loadStoreItems() {
     db.ref('storeItems').on('value', snap => {
@@ -2264,12 +2286,12 @@
     Object.keys(items).forEach(itemId => {
       const item = items[itemId];
       const now = Date.now();
-      // Correctly handle countdownEndTime being null (timeless)
-      const endTime = item.countdownEndTime === null ? Infinity : item.countdownEndTime; 
+      // Use the robust helper function for endTime
+      const endTime = getEffectiveCountdownEndTime(item.countdownEndTime); 
 
       const isExpired = now >= endTime && endTime !== Infinity;
       const outOfStock = item.stock !== undefined && item.stock <= 0;
-      const isAvailable = (item.stock === undefined || item.stock > 0) && (item.countdownEndTime === null || now < endTime);
+      const isAvailable = (item.stock === undefined || item.stock > 0) && (endTime === Infinity || now < endTime);
 
       let statusText = '';
       let buttonDisabled = '';
@@ -2283,7 +2305,7 @@
           statusText = '<span class="text-red-500 font-bold">Süresi Doldu!</span>';
           buttonDisabled = 'disabled';
           buttonClass = 'bg-gray-600 cursor-not-allowed';
-      } else if (item.countdownEndTime === null) {
+      } else if (endTime === Infinity) { // Check against Infinity for indefinite
           statusText = `<span class="text-green-500 font-bold">Stok: ${item.stock !== undefined ? item.stock : 'Sınırsız'}</span><br><span class="text-yellow-400">Süresiz</span>`;
       } else {
           statusText = `<span class="text-green-500 font-bold">Stok: ${item.stock !== undefined ? item.stock : 'Sınırsız'}</span><br><span class="text-sm text-gray-400">Kalan: ${formatTimeLeft(endTime - now)}</span>`;
@@ -2363,7 +2385,8 @@
     }
 
     const now = Date.now();
-    const endTime = item.countdownEndTime === null ? Infinity : item.countdownEndTime;
+    // Use the robust helper function for endTime here as well
+    const endTime = getEffectiveCountdownEndTime(item.countdownEndTime);
 
     if (now >= endTime && endTime !== Infinity) {
         displayMessage("Bu ürünün satış süresi doldu.");
@@ -2413,15 +2436,6 @@
                 updates.balance = (updates.balance || 0) + item.value;
                 message += ` (+${item.value} puan)`;
             }
-            // Notify admin for special item purchase
-            db.ref('adminNotifications').push({
-                timestamp: firebase.database.ServerValue.TIMESTAMP,
-                type: 'specialItemPurchase',
-                username: currentUser,
-                itemName: item.name,
-                itemCost: item.cost,
-                itemValue: item.value || 'N/A'
-            }).catch(error => console.error("Admin bildirimi gönderme hatası:", error));
           }
 
           // Decrement stock if applicable
@@ -2482,10 +2496,12 @@
       }
       
       let countdownInfo = '';
-      if (item.countdownEndTime === null) {
+      // Use the robust helper function for countdownInfo display
+      const effectiveEndTime = getEffectiveCountdownEndTime(item.countdownEndTime);
+      if (effectiveEndTime === Infinity) {
           countdownInfo = 'Süresiz';
       } else {
-          const timeLeft = item.countdownEndTime - Date.now();
+          const timeLeft = effectiveEndTime - Date.now();
           countdownInfo = `Kalan: ${formatTimeLeft(timeLeft)}`;
           if (timeLeft <= 0) countdownInfo = 'Süresi Doldu';
       }
@@ -2922,3 +2938,4 @@
 </script>
 </body>
 </html>
+�
