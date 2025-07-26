@@ -2420,6 +2420,9 @@
 
     customConfirm(`${item.name} ürününü ${item.cost} puan karşılığında satın almak istediğinize emin misiniz?`, async (result) => {
       if (result) {
+        let success = true; // Flag to track overall success
+        let errorMessage = "";
+
         try {
           console.log("Satın alma işlemi başlatılıyor...");
           let newBalance = (user.balance || 0) - item.cost;
@@ -2440,6 +2443,7 @@
             // Check if a store multiplier is already active
             if (user.multiplierSource === 'store' && user.multiplierRemainingUses > 0) {
               displayMessage("Zaten aktif bir mağaza çarpanınız var. Yeni bir çarpan satın alamazsiniz.");
+              success = false; // Mark as failure for this specific reason
               return; // Exit here if already has a store multiplier
             }
             updates.activeMultiplier = item.value;
@@ -2464,7 +2468,8 @@
               console.log("Stok güncellendi.");
           } else if (item.stock === 0) { // Explicitly handle if stock is already 0, though checked earlier
               displayMessage("Bu ürün stokta kalmıştır.");
-              return;
+              success = false; // Mark as failure
+              return; // Exit here
           }
           // If item.stock is undefined (unlimited), no update is needed for stock.
 
@@ -2491,16 +2496,25 @@
           await newPurchaseRef.set(purchaseRecord); // Use set to write the full record
           console.log("Satın alma kaydı yazıldı.");
 
-          displayMessage(message); // Display success message only after all operations
+          // If all operations above succeeded, display the success message
+          displayMessage(message);
+
+        } catch (error) {
+          success = false;
+          errorMessage = `Ürün satın alınırken bir hata oluştu: ${error.message || error}. Lütfen konsolu kontrol edin veya admin ile iletişime geçin.`;
+          console.error("Ürün satın alma işlemi sırasında detaylı hata: ", error); // More specific error log
+        } finally {
+          // Only display the generic error message if 'success' flag is false
+          if (!success) {
+              displayMessage(errorMessage);
+          }
+          // Always attempt to refresh UI elements, even if an error occurred in one part
           loadBalanceAndBoxRights();
           loadUserRankingsAndBoxCounts();
           loadLeaderboardRanking();
           loadStoreItems();
           loadPurchaseHistory();
           if (isAdmin) loadPendingSpecialPurchases(); // Refresh admin view
-        } catch (error) {
-          console.error("Ürün satın alma işlemi sırasında detaylı hata: ", error); // More specific error log
-          displayMessage("Ürün satın alınırken bir hata oluştu. Lütfen konsolu kontrol edin veya admin ile iletişime geçin.");
         }
       }
     });
@@ -2836,19 +2850,23 @@
     // Clear previous content and show loading message
     purchaseHistoryList.innerHTML = '<div class="text-center text-gray-400">Satın alma geçmişi yükleniyor...</div>';
 
-    db.ref('purchaseHistory').orderByChild('timestamp').on('value', snap => { // Removed limitToLast(50)
+    db.ref('purchaseHistory').orderByChild('timestamp').on('value', snap => {
       const history = snap.val();
+      console.log("loadPurchaseHistory - Raw history snap:", history); // Debug log
       let html = '';
       if (!history) {
         html = '<div class="text-center text-gray-400">Henüz satın alma geçmişi yok.</div>';
+        console.log("loadPurchaseHistory - No history found."); // Debug log
       } else {
         // Convert object to array, sort by timestamp descending
         const sortedHistory = Object.values(history).sort((a, b) => b.timestamp - a.timestamp);
+        console.log("loadPurchaseHistory - Sorted history:", sortedHistory); // Debug log
         
         sortedHistory.forEach(record => {
           // Only show records for the current user if not admin
           if (!isAdmin && record.username !== currentUser) {
-            return;
+            console.log(`loadPurchaseHistory - Skipping record for ${record.username} (not current user and not admin).`); // Debug log
+            return; // Skip this record if it's not for the current user and not admin
           }
 
           const date = new Date(record.timestamp).toLocaleString('tr-TR');
@@ -2873,9 +2891,11 @@
               </div>
             </div>
           `;
+          console.log(`loadPurchaseHistory - Processing record for ${record.username}: ${record.itemName}`); // Debug log
         });
       }
       purchaseHistoryList.innerHTML = html || '<div class="text-center text-gray-400">Henüz satın alma geçmişi yok.</div>';
+      console.log("loadPurchaseHistory - Final HTML length:", html.length); // Debug log
     });
   }
 
@@ -2979,15 +2999,17 @@
 
       // Load and display the selected user's purchase history
       const managedUserPurchaseHistoryList = document.getElementById('managedUserPurchaseHistory');
-      managedUserPurchaseHistoryList.innerHTML = '<div class="text-center text-gray-400">Satın alma geçmişi yükleniyor...</div>';
+      managedUserPurchaseHistoryList.innerHTML = '<div class="text-center text-gray-400'>Satın alma geçmişi yükleniyor...</div>';
 
       db.ref('purchaseHistory').orderByChild('timestamp').on('value', historySnap => {
         const allHistory = historySnap.val();
+        console.log(`User Management Modal - Raw history for ${username}:`, allHistory); // Debug log
         let userHistoryHtml = '';
         if (allHistory) {
           const filteredHistory = Object.values(allHistory)
             .filter(record => record.username === username)
             .sort((a, b) => b.timestamp - a.timestamp); // Sort descending by timestamp
+          console.log(`User Management Modal - Filtered history for ${username}:`, filteredHistory); // Debug log
 
           if (filteredHistory.length > 0) {
             filteredHistory.forEach(record => {
@@ -3012,14 +3034,18 @@
                   </div>
                 </div>
               `;
+              console.log(`User Management Modal - Processing record for ${username}: ${record.itemName}`); // Debug log
             });
           } else {
             userHistoryHtml = '<div class="text-center text-gray-400">Bu kullanıcının satın alma geçmişi bulunmuyor.</div>';
+            console.log(`User Management Modal - No filtered history for ${username}.`); // Debug log
           }
         } else {
           userHistoryHtml = '<div class="text-center text-gray-400">Genel satın alma geçmişi bulunmuyor.</div>';
+          console.log("User Management Modal - No general history found."); // Debug log
         }
         managedUserPurchaseHistoryList.innerHTML = userHistoryHtml;
+        console.log(`User Management Modal - Final HTML length for ${username}:`, userHistoryHtml.length); // Debug log
       });
 
       userManagementModal.style.display = 'flex';
@@ -3122,7 +3148,7 @@
       if (result) {
         try {
           const userRef = db.ref('users/' + username);
-          const userSnap = await userRef.ref.once('value'); // Corrected from userRef.once('value') to userRef.ref.once('value')
+          const userSnap = await userRef.once('value'); 
           let userData = userSnap.val();
 
           if (userData) {
