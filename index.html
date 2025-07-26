@@ -318,6 +318,27 @@
     </div>
   </div>
 
+  <!-- NEW: Iflas Shield Adjustment Modal -->
+  <div id="iflasShieldAdjustmentModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 hidden">
+    <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-red-700 w-11/12 max-w-md text-center relative">
+      <button class="modal-close-button absolute top-2 right-4 text-white text-4xl leading-none bg-transparent border-none cursor-pointer hover:text-red-500 transition duration-200" onclick="closeIflasShieldAdjustmentModal()">&times;</button>
+      <h4 class="text-yellow-400 text-2xl font-bold mb-6">Kullanıcı İflas Kalkanı Ayarı: <span id="adjIflasShieldUserName"></span></h4>
+      <p class="text-lg text-gray-300 mb-4">Mevcut İflas Kalkanı: <span id="adjUserIflasShield" class="font-bold"></span></p>
+      <input type="number" id="adjIflasShieldAmount" placeholder="İflas Kalkanı Miktarı" min="1"
+             class="w-full p-3 mb-6 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300" /><br>
+      <div class="flex gap-4 justify-center">
+        <button onclick="adjustUserIflasShields(true)"
+                class="flex-1 py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
+          Kalkan Ekle
+        </button>
+        <button onclick="adjustUserIflasShields(false)"
+                class="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
+          Kalkan Çıkar
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Block Duration Modal -->
   <div id="blockDurationModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 hidden">
     <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-red-700 w-11/12 max-w-md text-center relative">
@@ -394,6 +415,49 @@
     </div>
   </div>
 
+  <!-- NEW: User Management Detail Modal -->
+  <div id="userManagementModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 hidden">
+    <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-red-700 w-11/12 max-w-xl text-center relative max-h-[90vh] overflow-y-auto">
+      <button class="modal-close-button absolute top-2 right-4 text-white text-4xl leading-none bg-transparent border-none cursor-pointer hover:text-red-500 transition duration-200" onclick="closeUserManagementModal()">&times;</button>
+      <h4 class="text-yellow-400 text-2xl font-bold mb-6">Kullanıcı Yönetimi: <span id="managedUserName"></span></h4>
+      
+      <div id="managedUserDetails" class="text-left text-gray-300 mb-6">
+        <p>Mevcut Puan: <span id="managedUserBalance" class="font-bold text-yellow-300"></span></p>
+        <p>Ulaşılan En Yüksek Puan: <span id="managedUserHighestBalance" class="font-bold text-green-400"></span></p>
+        <p>Kutu Hakkı: <span id="managedUserBoxRight" class="font-bold text-green-400"></span></p>
+        <p>İflas Kalkanı: <span id="managedUserIflasShield" class="font-bold text-blue-400"></span></p>
+        <p>Aktif Çarpan: <span id="managedUserMultiplier" class="font-bold text-purple-400"></span></p>
+        <p>Çarpan Kalan Kullanım: <span id="managedUserMultiplierUses" class="font-bold text-purple-400"></span></p>
+        <p>Açılan Kutu (Tüm Zamanlar): <span id="managedUserBoxesOpened" class="font-bold text-gray-400"></span></p>
+        <p>Sürpriz Kutu Buldu: <span id="managedUserSurpriseBoxes" class="font-bold text-gray-400"></span></p>
+        <p>Engelli Durumu: <span id="managedUserBlockedStatus" class="font-bold"></span></p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <button onclick="openPointAdjustmentModal(selectedUserForManagement)"
+                class="py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
+          Puan Ayarı
+        </button>
+        <button onclick="openBoxRightAdjustmentModal(selectedUserForManagement)"
+                class="py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
+          Kutu Hakkı Ayarı
+        </button>
+        <button onclick="openIflasShieldAdjustmentModal(selectedUserForManagement)"
+                class="py-3 bg-teal-600 hover:bg-teal-500 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
+          İflas Kalkanı Ayarı
+        </button>
+        <button id="toggleBlockUserBtn" onclick=""
+                class="py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
+          Engelle / Engeli Kaldır
+        </button>
+        <button onclick="denyUser(selectedUserForManagement, false, true)"
+                class="py-3 bg-gray-600 hover:bg-gray-500 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300 col-span-full">
+          Kullanıcıyı Sil
+        </button>
+      </div>
+    </div>
+  </div>
+
 
 <script>
   // Firebase yapılandırması
@@ -449,6 +513,7 @@
   // Modal elementleri
   const pointAdjustmentModal = document.getElementById('pointAdjustmentModal');
   const boxRightAdjustmentModal = document.getElementById('boxRightAdjustmentModal');
+  const iflasShieldAdjustmentModal = document.getElementById('iflasShieldAdjustmentModal'); // NEW
   const blockDurationModal = document.getElementById('blockDurationModal');
   const blockedMessageModal = document.getElementById('blockedMessageModal');
   const kickVerificationModal = document.getElementById('kickVerificationModal');
@@ -458,10 +523,13 @@
   const openedBoxInfoModal = document.getElementById('openedBoxInfoModal');
   const adminPanelModal = document.getElementById('adminPanelModal'); // Admin panel modal'ı
   const adminPanelToggleButton = document.getElementById('adminPanelToggleButton'); // Admin panel butonu
+  const userManagementModal = document.getElementById('userManagementModal'); // NEW: User Management Detail Modal
 
   let targetUserForAdjustment = null;
   let targetUserForBoxRightAdjustment = null;
+  let targetUserForIflasShieldAdjustment = null; // NEW
   let targetUserForBlock = null;
+  let selectedUserForManagement = null; // NEW: Stores the username for the user management modal
   let countdownInterval = null;
   let cardValues = [1000, 2000, 3000, 4000, 5000]; // Kartların içindeki puanlar
   
@@ -847,6 +915,10 @@
         const highestBalanceEver = userData.highestBalanceEver || 0;
         const kutuHakki = userData.kutuHakki || 0;
         const surpriseBoxesOpened = userData.surpriseBoxesOpened || 0;
+        const iflasShieldUses = userData.iflasShieldUses || 0; // NEW: Get iflas shield uses
+        const activeMultiplier = userData.activeMultiplier || 1; // NEW: Get active multiplier
+        const multiplierSource = userData.multiplierSource || 'none'; // NEW: Get multiplier source
+        const multiplierRemainingUses = userData.multiplierRemainingUses || 0; // NEW: Get remaining uses
 
         if (userData.approved && !userData.blocked) {
           rankedUsers.push({
@@ -856,7 +928,11 @@
             kutuHakki: kutuHakki,
             boxesOpenedCount: boxesOpenedCount,
             currentSessionBoxesOpened: currentSessionBoxesOpened,
-            surpriseBoxesOpened: surpriseBoxesOpened
+            surpriseBoxesOpened: surpriseBoxesOpened,
+            iflasShieldUses: iflasShieldUses, // NEW
+            activeMultiplier: activeMultiplier, // NEW
+            multiplierSource: multiplierSource, // NEW
+            multiplierRemainingUses: multiplierRemainingUses // NEW
           });
         }
       });
@@ -872,6 +948,13 @@
         const hasOpenedAnySurpriseBox = u.surpriseBoxesOpened > 0;
 
         const hasKingCrownDisplay = isCurrentLeader && isHighLeader && isSurpriseLeader;
+
+        let multiplierInfo = '';
+        if (u.multiplierSource === 'store' && u.multiplierRemainingUses > 0) {
+            multiplierInfo = ` | Çarpan: ${u.activeMultiplier}x (${u.multiplierRemainingUses} kullanım)`;
+        } else if (u.multiplierSource === 'box') {
+            multiplierInfo = ` | Çarpan: ${u.activeMultiplier}x (1 kullanım)`; // Box multipliers are single use
+        }
 
         if (hasKingCrownDisplay) {
           userIcons += `<span class="inline-block cursor-pointer text-xl mr-1" onclick="showKingCrownBadges('${u.username}')">👑</span>`;
@@ -896,7 +979,8 @@
                   &nbsp;&nbsp;<span class="text-green-400">Ulaşılan En Yüksek Puan: ${u.highestBalanceEver}</span><br>
                   &nbsp;&nbsp;Açılan Kutu (Şuan): ${u.currentSessionBoxesOpened} - Tüm Zamanlar: ${u.boxesOpenedCount}<br>
                   &nbsp;&nbsp;Sürpriz Kutu Buldu: ${u.surpriseBoxesOpened}<br>
-                  &nbsp;&nbsp;Kutu Hakkı: ${u.kutuHakki}
+                  &nbsp;&nbsp;Kutu Hakkı: ${u.kutuHakki}<br>
+                  &nbsp;&nbsp;İflas Kalkanı: ${u.iflasShieldUses}${multiplierInfo}
                 </div>`;
       }).join("");
 
@@ -1043,16 +1127,15 @@
       for (const u in data) {
         if (u === "weizendtv" && isAdmin) continue;
 
-        html += `<div class="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 mb-2 bg-gray-700 rounded-md border-l-4 border-blue-500">
-            <span class="text-gray-200 mb-2 sm:mb-0">${u} - Puan: <span class="font-bold text-yellow-300">${data[u].balance || 0}</span> - Kutu Hakkı: <span class="font-bold text-green-400">${data[u].kutuHakki || 0}</span> ${data[u].blocked ? '<span class="text-red-400">(Engelli)</span>' : ''}</span>
-            <div class="flex flex-wrap gap-2">
-            <button onclick="event.stopPropagation(); openPointAdjustmentModal('${u}')" class="py-1 px-3 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-md transition duration-200">Puan Ayarı</button>
-            <button onclick="event.stopPropagation(); openBoxRightAdjustmentModal('${u}')" class="py-1 px-3 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-md transition duration-200">Kutu Hakkı Ayarı</button>
-            <button onclick="event.stopPropagation(); toggleBlockUser('${u}', ${data[u].blocked || false})" class="py-1 px-3 ${data[u].blocked ? 'bg-orange-600 hover:bg-orange-500' : 'bg-red-600 hover:bg-red-500'} text-white text-xs font-bold rounded-md transition duration-200">
-              ${data[u].blocked ? 'Engeli Kaldır' : 'Engelle'}
-            </button>
-            <button onclick="event.stopPropagation(); denyUser('${u}')" class="py-1 px-3 bg-gray-600 hover:bg-gray-500 text-white text-xs font-bold rounded-md transition duration-200">Sil</button>
-            </div>
+        let multiplierInfo = '';
+        if (data[u].multiplierSource === 'store' && data[u].multiplierRemainingUses > 0) {
+            multiplierInfo = ` | Çarpan: ${data[u].activeMultiplier || 1}x (${data[u].multiplierRemainingUses} kullanım)`;
+        } else if (data[u].multiplierSource === 'box') {
+            multiplierInfo = ` | Çarpan: ${data[u].activeMultiplier || 1}x (1 kullanım)`;
+        }
+
+        html += `<div class="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 mb-2 bg-gray-700 rounded-md border-l-4 border-blue-500 cursor-pointer" onclick="openUserManagementModal('${u}')">
+            <span class="text-gray-200 mb-2 sm:mb-0">${u} - Puan: <span class="font-bold text-yellow-300">${data[u].balance || 0}</span> - Kutu Hakkı: <span class="font-bold text-green-400">${data[u].kutuHakki || 0}</span> - Kalkan: <span class="font-bold text-blue-400">${data[u].iflasShieldUses || 0}</span>${multiplierInfo} ${data[u].blocked ? '<span class="text-red-400">(Engelli)</span>' : ''}</span>
             </div>`;
       }
       document.getElementById("allUsers").innerHTML = html || "<div class='text-center text-gray-400'>Kullanıcı yok.</div>";
@@ -1110,6 +1193,8 @@
     pointAdjustmentModal.style.display = 'none';
     document.getElementById('adjAmount').value = '';
     targetUserForAdjustment = null;
+    loadAllUsers(); // Refresh the user list in admin panel
+    if (selectedUserForManagement) openUserManagementModal(selectedUserForManagement); // Refresh user detail modal
   }
 
   // Kullanıcı puanlarını ayarla
@@ -1162,6 +1247,8 @@
     boxRightAdjustmentModal.style.display = 'none';
     document.getElementById('adjBoxRightAmount').value = '';
     targetUserForBoxRightAdjustment = null;
+    loadAllUsers(); // Refresh the user list in admin panel
+    if (selectedUserForManagement) openUserManagementModal(selectedUserForManagement); // Refresh user detail modal
   }
 
   // Kullanıcı kutu haklarını ayarla
@@ -1188,6 +1275,48 @@
     }).catch(error => console.error("Kullanıcı verisi okuma hatası: ", error));
   }
 
+  // NEW: Iflas Shield Adjustment Modal functions
+  function openIflasShieldAdjustmentModal(username) {
+    targetUserForIflasShieldAdjustment = username;
+    document.getElementById('adjIflasShieldUserName').textContent = username;
+    db.ref('users/' + username + '/iflasShieldUses').once('value').then(snap => {
+      document.getElementById('adjUserIflasShield').textContent = snap.val() || 0;
+    }).catch(error => console.error("İflas kalkanı okuma hatası:", error));
+    iflasShieldAdjustmentModal.style.display = 'flex';
+  }
+
+  function closeIflasShieldAdjustmentModal() {
+    iflasShieldAdjustmentModal.style.display = 'none';
+    document.getElementById('adjIflasShieldAmount').value = '';
+    targetUserForIflasShieldAdjustment = null;
+    loadAllUsers(); // Refresh the user list in admin panel
+    if (selectedUserForManagement) openUserManagementModal(selectedUserForManagement); // Refresh user detail modal
+  }
+
+  function adjustUserIflasShields(add) {
+    const amount = parseInt(document.getElementById('adjIflasShieldAmount').value);
+    if (isNaN(amount) || amount <= 0) {
+      displayMessage("Geçerli bir pozitif iflas kalkanı miktarı girin!");
+      return;
+    }
+
+    db.ref('users/' + targetUserForIflasShieldAdjustment).once('value').then(snap => {
+      let userIflasShields = snap.val().iflasShieldUses || 0;
+      userIflasShields = add ? userIflasShields + amount : Math.max(userIflasShields - amount, 0);
+      db.ref('users/' + targetUserForIflasShieldAdjustment).update({iflasShieldUses: userIflasShields})
+        .then(() => {
+          displayMessage(`${targetUserForIflasShieldAdjustment} kullanıcısının yeni iflas kalkanı: ${userIflasShields}`);
+          closeIflasShieldAdjustmentModal();
+          loadAllUsers();
+          loadUserRankingsAndBoxCounts();
+          loadLeaderboardRanking();
+          if (targetUserForIflasShieldAdjustment === currentUser) loadBalanceAndBoxRights();
+        })
+        .catch(error => console.error("İflas kalkanı güncelleme hatası: ", error));
+    }).catch(error => console.error("Kullanıcı verisi okuma hatası: ", error));
+  }
+
+
   // Engelleme süresi modalını aç
   function openBlockDurationModal(username) {
     targetUserForBlock = username;
@@ -1200,6 +1329,8 @@
     blockDurationModal.style.display = 'none';
     document.getElementById('blockDuration').value = '';
     targetUserForBlock = null;
+    loadAllUsers(); // Refresh the user list in admin panel
+    if (selectedUserForManagement) openUserManagementModal(selectedUserForManagement); // Refresh user detail modal
   }
 
   // Kullanıcıyı engellemeyi onayla
@@ -1234,6 +1365,7 @@
               loadAllUsers();
               loadUserRankingsAndBoxCounts();
               loadLeaderboardRanking();
+              if (selectedUserForManagement) openUserManagementModal(selectedUserForManagement); // Refresh user detail modal
             })
             .catch(error => console.error("Engeli kaldırma hatası: ", error));
         }
@@ -1260,7 +1392,7 @@
   }
 
   // Kullanıcıyı sil
-  function denyUser(user, fromPending = false) {
+  function denyUser(user, fromPending = false, fromManagementModal = false) {
     customConfirm(user + " kullanıcısını tamamen silmek istediğinize emin misiniz? Bu işlem geri alınamaz ve kullanıcı adı tekrar kullanılabilir hale gelir!", (result) => {
       if (result) {
         db.ref('users/' + user).remove() // Eski Firebase Realtime DB remove() kullanımı
@@ -1268,6 +1400,9 @@
             displayMessage(user + " kullanıcısı silindi ve adı tekrar kullanılabilir.");
             if (fromPending) {
               loadPendingUsers();
+            }
+            if (fromManagementModal) {
+                closeUserManagementModal();
             }
             loadAllUsers();
             loadUserRankingsAndBoxCounts();
@@ -1726,16 +1861,15 @@
         if (u === "weizendtv" && isAdmin) continue;
 
         if (u.toLowerCase().includes(term)) {
-          html += `<div class="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 mb-2 bg-gray-700 rounded-md border-l-4 border-blue-500">
-            <span class="text-gray-200 mb-2 sm:mb-0">${u} - Puan: <span class="font-bold text-yellow-300">${data[u].balance || 0}</span> - Kutu Hakkı: <span class="font-bold text-green-400">${data[u].kutuHakki || 0}</span> ${data[u].blocked ? '<span class="text-red-400">(Engelli)</span>' : ''}</span>
-            <div class="flex flex-wrap gap-2">
-            <button onclick="event.stopPropagation(); openPointAdjustmentModal('${u}')" class="py-1 px-3 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-md transition duration-200">Puan Ayarı</button>
-            <button onclick="event.stopPropagation(); openBoxRightAdjustmentModal('${u}')" class="py-1 px-3 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-md transition duration-200">Kutu Hakkı Ayarı</button>
-            <button onclick="event.stopPropagation(); toggleBlockUser('${u}', ${data[u].blocked || false})" class="py-1 px-3 ${data[u].blocked ? 'bg-orange-600 hover:bg-orange-500' : 'bg-red-600 hover:bg-red-500'} text-white text-xs font-bold rounded-md transition duration-200">
-              ${data[u].blocked ? 'Engeli Kaldır' : 'Engelle'}
-            </button>
-            <button onclick="event.stopPropagation(); denyUser('${u}')" class="py-1 px-3 bg-gray-600 hover:bg-gray-500 text-white text-xs font-bold rounded-md transition duration-200">Sil</button>
-            </div>
+          let multiplierInfo = '';
+          if (data[u].multiplierSource === 'store' && data[u].multiplierRemainingUses > 0) {
+              multiplierInfo = ` | Çarpan: ${data[u].activeMultiplier || 1}x (${data[u].multiplierRemainingUses} kullanım)`;
+          } else if (data[u].multiplierSource === 'box') {
+              multiplierInfo = ` | Çarpan: ${data[u].activeMultiplier || 1}x (1 kullanım)`;
+          }
+
+          html += `<div class="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 mb-2 bg-gray-700 rounded-md border-l-4 border-blue-500 cursor-pointer" onclick="openUserManagementModal('${u}')">
+            <span class="text-gray-200 mb-2 sm:mb-0">${u} - Puan: <span class="font-bold text-yellow-300">${data[u].balance || 0}</span> - Kutu Hakkı: <span class="font-bold text-green-400">${data[u].kutuHakki || 0}</span> - Kalkan: <span class="font-bold text-blue-400">${data[u].iflasShieldUses || 0}</span>${multiplierInfo} ${data[u].blocked ? '<span class="text-red-400">(Engelli)</span>' : ''}</span>
             </div>`;
         }
       }
@@ -2571,6 +2705,68 @@
         }
       }
     });
+  }
+
+  // NEW: User Management Detail Modal functions
+  async function openUserManagementModal(username) {
+    selectedUserForManagement = username;
+    document.getElementById('managedUserName').textContent = username;
+
+    const userRef = db.ref('users/' + username);
+    const userSnap = await userRef.once('value');
+    const userData = userSnap.val();
+
+    if (userData) {
+      document.getElementById('managedUserBalance').textContent = userData.balance || 0;
+      document.getElementById('managedUserHighestBalance').textContent = userData.highestBalanceEver || 0;
+      document.getElementById('managedUserBoxRight').textContent = userData.kutuHakki || 0;
+      document.getElementById('managedUserIflasShield').textContent = userData.iflasShieldUses || 0;
+      
+      let multiplierText = `${userData.activeMultiplier || 1}x`;
+      if (userData.multiplierSource === 'store' && userData.multiplierRemainingUses > 0) {
+          multiplierText += ` (Mağaza)`;
+      } else if (userData.multiplierSource === 'box') {
+          multiplierText += ` (Kutu)`;
+      } else {
+          multiplierText = 'Yok';
+      }
+      document.getElementById('managedUserMultiplier').textContent = multiplierText;
+      document.getElementById('managedUserMultiplierUses').textContent = userData.multiplierRemainingUses || 0;
+
+
+      document.getElementById('managedUserBoxesOpened').textContent = userData.boxesOpenedCount || 0;
+      document.getElementById('managedUserSurpriseBoxes').textContent = userData.surpriseBoxesOpened || 0;
+
+      const blockedStatusSpan = document.getElementById('managedUserBlockedStatus');
+      const toggleBlockBtn = document.getElementById('toggleBlockUserBtn');
+
+      if (userData.blocked) {
+        blockedStatusSpan.textContent = "Engelli";
+        blockedStatusSpan.classList.remove('text-green-400');
+        blockedStatusSpan.classList.add('text-red-400');
+        toggleBlockBtn.textContent = "Engeli Kaldır";
+        toggleBlockBtn.classList.remove('bg-red-600', 'hover:bg-red-500');
+        toggleBlockBtn.classList.add('bg-orange-600', 'hover:bg-orange-500');
+      } else {
+        blockedStatusSpan.textContent = "Aktif";
+        blockedStatusSpan.classList.remove('text-red-400');
+        blockedStatusSpan.classList.add('text-green-400');
+        toggleBlockBtn.textContent = "Engelle";
+        toggleBlockBtn.classList.remove('bg-orange-600', 'hover:bg-orange-500');
+        toggleBlockBtn.classList.add('bg-red-600', 'hover:bg-red-500');
+      }
+      toggleBlockBtn.onclick = () => toggleBlockUser(selectedUserForManagement, userData.blocked || false);
+
+      userManagementModal.style.display = 'flex';
+    } else {
+      displayMessage("Kullanıcı bilgisi bulunamadı.");
+    }
+  }
+
+  function closeUserManagementModal() {
+    userManagementModal.style.display = 'none';
+    selectedUserForManagement = null;
+    loadAllUsers(); // Refresh the main user list in admin panel
   }
 
 </script>
