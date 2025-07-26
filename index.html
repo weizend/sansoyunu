@@ -499,6 +499,15 @@
           Kullanıcıyı Sil
         </button>
       </div>
+
+      <!-- NEW: User's Purchase History Section -->
+      <div class="bg-gray-900 p-6 rounded-lg border border-gray-700 mt-6">
+        <h4 class="text-yellow-300 text-xl font-semibold mb-4">Kullanıcının Satın Alma Geçmişi</h4>
+        <div id="managedUserPurchaseHistory" class="scrollable-list max-h-60 overflow-y-auto p-3 bg-gray-800 rounded-md">
+          <!-- User's purchase history will be loaded here -->
+          <div class='text-center text-gray-400'>Satın alma geçmişi yükleniyor...</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -2122,7 +2131,7 @@
         badgesInfo += `<span class="text-green-400">🏆 Ulaşılan En Yüksek Puan Lideri</span><br>`;
     }
     if (username === maxSurpriseBoxesUser && maxSurpriseBoxes > 0) {
-        badgesInfo += `<span class="text-green-400">� Sürpriz Kutu Lideri</span><br>`;
+        badgesInfo += `<span class="text-green-400">🎉 Sürpriz Kutu Lideri</span><br>`;
     }
 
     displayMessage(`
@@ -2797,6 +2806,7 @@
   // Load Purchase History
   function loadPurchaseHistory() {
     const purchaseHistoryList = document.getElementById('purchaseHistoryList');
+    // Clear previous content and show loading message
     purchaseHistoryList.innerHTML = '<div class="text-center text-gray-400">Satın alma geçmişi yükleniyor...</div>';
 
     db.ref('purchaseHistory').orderByChild('timestamp').limitToLast(50).on('value', snap => {
@@ -2923,6 +2933,41 @@
       }
       toggleBlockBtn.onclick = () => toggleBlockUser(selectedUserForManagement, userData.blocked || false);
 
+      // Load and display the selected user's purchase history
+      const managedUserPurchaseHistoryList = document.getElementById('managedUserPurchaseHistory');
+      managedUserPurchaseHistoryList.innerHTML = '<div class="text-center text-gray-400">Satın alma geçmişi yükleniyor...</div>';
+
+      db.ref('purchaseHistory').orderByChild('timestamp').on('value', historySnap => {
+        const allHistory = historySnap.val();
+        let userHistoryHtml = '';
+        if (allHistory) {
+          const filteredHistory = Object.values(allHistory)
+            .filter(record => record.username === username)
+            .sort((a, b) => b.timestamp - a.timestamp); // Sort descending by timestamp
+
+          if (filteredHistory.length > 0) {
+            filteredHistory.forEach(record => {
+              const date = new Date(record.timestamp).toLocaleString('tr-TR');
+              userHistoryHtml += `
+                <div class="flex items-center p-3 mb-2 bg-gray-700 rounded-md border-l-4 border-blue-500">
+                  <img src="${record.imageUrl || 'https://placehold.co/50x50/333333/FFFFFF?text=Item'}" alt="${record.itemName}" class="w-10 h-10 rounded-full mr-3 object-cover">
+                  <div>
+                    <p class="text-gray-200 font-semibold">${record.itemName}</p>
+                    <p class="text-sm text-gray-400">Maliyet: ${record.itemCost} Puan | Tip: ${record.itemType} | Değer: ${record.itemValue !== null ? record.itemValue : 'N/A'}</p>
+                    <p class="text-xs text-gray-500">${date}</p>
+                  </div>
+                </div>
+              `;
+            });
+          } else {
+            userHistoryHtml = '<div class="text-center text-gray-400">Bu kullanıcının satın alma geçmişi bulunmuyor.</div>';
+          }
+        } else {
+          userHistoryHtml = '<div class="text-center text-gray-400">Genel satın alma geçmişi bulunmuyor.</div>';
+        }
+        managedUserPurchaseHistoryList.innerHTML = userHistoryHtml;
+      });
+
       userManagementModal.style.display = 'flex';
     } else {
       displayMessage("Kullanıcı bilgisi bulunamadı.");
@@ -2938,4 +2983,3 @@
 </script>
 </body>
 </html>
-�
