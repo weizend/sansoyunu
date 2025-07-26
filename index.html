@@ -172,7 +172,7 @@
           
           <input type="text" id="newItemImageUrl" placeholder="Resim URL (Opsiyonel)" class="w-full p-2 mb-4 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
           <button onclick="saveStoreItem()" id="addUpdateStoreItemBtn" class="w-full py-2 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">ÜRÜN EKLE</button>
-          <button onclick="resetStoreItemForm()" class="w-full py-2 mt-2 bg-gray-600 hover:bg-gray-500 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">Formu Temizle</button>
+          <button onclick="resetStoreItemForm()" class="w-full py-2 mt-2 bg-gray-600 hover:bg-gray-500 text-white font-bold rounded-lg shadow-md hover:-translate-y-1 transition duration-300">Formu Temizle</button>
         </div>
         <h5 class="text-gray-200 text-lg font-semibold mb-2 mt-6">Mevcut Ürünler</h5>
         <div id="currentStoreItems" class="scrollable-list max-h-60 overflow-y-auto p-3 bg-gray-800 rounded-md">Yükleniyor...</div>
@@ -332,8 +332,48 @@
           Kalkan Ekle
         </button>
         <button onclick="adjustUserIflasShields(false)"
-                class="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
+                class="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg shadow-md hover:-translate-y-1 transition duration-300">
           Kalkan Çıkar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NEW: Multiplier Adjustment Modal -->
+  <div id="multiplierAdjustmentModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 hidden">
+    <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-red-700 w-11/12 max-w-md text-center relative">
+      <button class="modal-close-button absolute top-2 right-4 text-white text-4xl leading-none bg-transparent border-none cursor-pointer hover:text-red-500 transition duration-200" onclick="closeMultiplierAdjustmentModal()">&times;</button>
+      <h4 class="text-yellow-400 text-2xl font-bold mb-6">Kullanıcı Çarpan Ayarı: <span id="adjMultiplierUserName"></span></h4>
+      <p class="text-lg text-gray-300 mb-4">Mevcut Çarpan: <span id="adjUserMultiplier" class="font-bold"></span> (Kalan Kullanım: <span id="adjUserMultiplierUses" class="font-bold"></span>)</p>
+      
+      <div class="mb-4">
+        <label for="setMultiplierValue" class="block text-left text-gray-300 mb-1">Çarpan Değeri:</label>
+        <input type="number" id="setMultiplierValue" placeholder="Çarpan Değeri (örn: 2, 3, 5)" min="1"
+               class="w-full p-3 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300" />
+      </div>
+      <div class="mb-4">
+        <label for="setMultiplierSource" class="block text-left text-gray-300 mb-1">Çarpan Kaynağı:</label>
+        <select id="setMultiplierSource"
+                class="w-full p-3 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
+          <option value="none">Yok</option>
+          <option value="store">Mağaza</option>
+          <option value="box">Kutu</option>
+        </select>
+      </div>
+      <div class="mb-6">
+        <label for="setMultiplierUses" class="block text-left text-gray-300 mb-1">Kalan Kullanım (Sadece Mağaza İçin):</label>
+        <input type="number" id="setMultiplierUses" placeholder="Kalan Kullanım" min="0"
+               class="w-full p-3 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300" />
+      </div>
+
+      <div class="flex gap-4 justify-center">
+        <button onclick="setMultiplier()"
+                class="flex-1 py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
+          Çarpanı Ayarla
+        </button>
+        <button onclick="resetMultiplier()"
+                class="flex-1 py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
+          Çarpanı Sıfırla
         </button>
       </div>
     </div>
@@ -446,6 +486,10 @@
                 class="py-3 bg-teal-600 hover:bg-teal-500 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
           İflas Kalkanı Ayarı
         </button>
+        <button onclick="openMultiplierAdjustmentModal(selectedUserForManagement)"
+                class="py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
+          Çarpan Ayarı
+        </button>
         <button id="toggleBlockUserBtn" onclick=""
                 class="py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
           Engelle / Engeli Kaldır
@@ -513,49 +557,51 @@
   // Modal elementleri
   const pointAdjustmentModal = document.getElementById('pointAdjustmentModal');
   const boxRightAdjustmentModal = document.getElementById('boxRightAdjustmentModal');
-  const iflasShieldAdjustmentModal = document.getElementById('iflasShieldAdjustmentModal'); // NEW
+  const iflasShieldAdjustmentModal = document.getElementById('iflasShieldAdjustmentModal');
+  const multiplierAdjustmentModal = document.getElementById('multiplierAdjustmentModal'); // NEW
   const blockDurationModal = document.getElementById('blockDurationModal');
   const blockedMessageModal = document.getElementById('blockedMessageModal');
   const kickVerificationModal = document.getElementById('kickVerificationModal');
   const generalMessageModal = document.getElementById('generalMessageModal');
   const cardSelectionModal = document.getElementById('cardSelectionModal');
-  const cardContainer = document.querySelector('#cardSelectionModal .card-container'); // Updated selector
+  const cardContainer = document.querySelector('#cardSelectionModal .card-container');
   const openedBoxInfoModal = document.getElementById('openedBoxInfoModal');
-  const adminPanelModal = document.getElementById('adminPanelModal'); // Admin panel modal'ı
-  const adminPanelToggleButton = document.getElementById('adminPanelToggleButton'); // Admin panel butonu
-  const userManagementModal = document.getElementById('userManagementModal'); // NEW: User Management Detail Modal
+  const adminPanelModal = document.getElementById('adminPanelModal');
+  const adminPanelToggleButton = document.getElementById('adminPanelToggleButton');
+  const userManagementModal = document.getElementById('userManagementModal');
 
   let targetUserForAdjustment = null;
   let targetUserForBoxRightAdjustment = null;
-  let targetUserForIflasShieldAdjustment = null; // NEW
+  let targetUserForIflasShieldAdjustment = null;
+  let targetUserForMultiplierAdjustment = null; // NEW
   let targetUserForBlock = null;
-  let selectedUserForManagement = null; // NEW: Stores the username for the user management modal
+  let selectedUserForManagement = null;
   let countdownInterval = null;
-  let cardValues = [1000, 2000, 3000, 4000, 5000]; // Kartların içindeki puanlar
+  let cardValues = [1000, 2000, 3000, 4000, 5000];
   
   // Yeni global değişkenler: Kart seçim mini oyunu durumu için
   let currentCardsToOpen = 0;
   let cardsOpenedInCurrentSurpriseSession = 0;
   let totalPointsGainedInSurpriseSession = 0;
-  let surpriseBoxMultiplier = 1; // Sürpriz kutudan kazanılan puanlara uygulanacak çarpan
+  let surpriseBoxMultiplier = 1;
 
-  let editingItemId = null; // Global variable to store the ID of the item being edited
-  let currentActiveSection = 'game'; // Track the currently active section
+  let editingItemId = null;
+  let currentActiveSection = 'game';
 
   // Yeni fonksiyon: Bölüm değiştirme
   function showSection(sectionId) {
     // Hide all content sections first
     document.getElementById('gameContent').classList.add('hidden');
     document.getElementById('storeSection').classList.add('hidden');
-    document.getElementById('purchaseHistorySection').classList.add('hidden'); // NEW: Hide purchase history section
+    document.getElementById('purchaseHistorySection').classList.add('hidden');
 
     // Reset all tab buttons to inactive style
     document.getElementById('gameTabBtn').classList.remove('bg-red-700', 'hover:bg-red-600');
     document.getElementById('gameTabBtn').classList.add('bg-gray-700', 'hover:bg-gray-600');
     document.getElementById('storeTabBtn').classList.remove('bg-red-700', 'hover:bg-red-600');
     document.getElementById('storeTabBtn').classList.add('bg-gray-700', 'hover:bg-gray-600');
-    document.getElementById('purchaseHistoryTabBtn').classList.remove('bg-red-700', 'hover:bg-red-600'); // NEW
-    document.getElementById('purchaseHistoryTabBtn').classList.add('bg-gray-700', 'hover:bg-gray-600'); // NEW
+    document.getElementById('purchaseHistoryTabBtn').classList.remove('bg-red-700', 'hover:bg-red-600');
+    document.getElementById('purchaseHistoryTabBtn').classList.add('bg-gray-700', 'hover:bg-gray-600');
 
     // Admin store controls visibility (only visible if store section is active AND user is admin)
     if (isAdmin) {
@@ -578,7 +624,7 @@
           document.getElementById('adminStoreControls').classList.remove('hidden');
           loadAdminStoreItems(); // Load admin view of store items
       }
-    } else if (sectionId === 'purchaseHistory') { // NEW: Purchase History Section
+    } else if (sectionId === 'purchaseHistory') {
       document.getElementById('purchaseHistorySection').classList.remove('hidden');
       document.getElementById('purchaseHistoryTabBtn').classList.remove('bg-gray-700', 'hover:bg-gray-600');
       document.getElementById('purchaseHistoryTabBtn').classList.add('bg-red-700', 'hover:bg-red-600');
@@ -664,7 +710,7 @@
     }
 
     // Normal kullanıcı girişi (Realtime Database üzerinden)
-    db.ref('users/' + user).once('value').then(snap => { // Eski Firebase Realtime DB once('value') kullanımı
+    db.ref('users/' + user).once('value').then(snap => {
       if (snap.exists()) {
         let data = snap.val();
         console.log("Kullanıcı verisi bulundu:", data);
@@ -677,14 +723,14 @@
           checkUserBlockStatusAndLogin(user, data);
         } else {
           currentUser = user;
-          isAdmin = false; // Normal kullanıcı
+          isAdmin = false;
           console.log("Kullanıcı olarak giriş yapıldı:", currentUser);
           afterLogin();
         }
       } else {
         // Yeni kullanıcı kaydı
         console.log("Yeni kullanıcı kaydı yapılıyor:", user);
-        db.ref('users/' + user).set({ // Eski Firebase Realtime DB set() kullanımı
+        db.ref('users/' + user).set({
           password: pass,
           balance: 0,
           highestBalanceEver: 0,
@@ -696,10 +742,10 @@
           boxesOpenedCount: 0,
           currentSessionBoxesOpened: 0,
           surpriseBoxesOpened: 0,
-          activeMultiplier: 1, // Default multiplier value
-          multiplierSource: 'none', // 'none', 'box', 'store'
-          multiplierRemainingUses: 0, // For store multipliers
-          iflasShieldUses: 0, // NEW: IFLAS KALKANI uses
+          activeMultiplier: 1,
+          multiplierSource: 'none',
+          multiplierRemainingUses: 0,
+          iflasShieldUses: 0,
           registeredAt: new Date().toLocaleString()
         }).then(() => {
           displayMessage("Hesabınız başarıyla oluşturuldu! Kick kullanıcı adı doğrulaması bekleniyor.");
@@ -722,7 +768,7 @@
       if (blockedUntil && Date.now() < blockedUntil) {
         displayBlockedMessage(blockedUntil);
       } else if (blockedUntil && Date.now() >= blockedUntil) {
-        db.ref('users/' + userToCheck).update({ blocked: false, blockedUntil: null }) // Eski Firebase Realtime DB update() kullanımı
+        db.ref('users/' + userToCheck).update({ blocked: false, blockedUntil: null })
           .then(() => {
             displayMessage("Engelleme süreniz doldu. Giriş yapılıyor...");
             currentUser = userToCheck;
@@ -751,7 +797,7 @@
     let userIconsHtml = '';
 
     if (!isAdmin) {
-      const allUsersSnap = await db.ref('users').once('value'); // Eski Firebase Realtime DB once('value') kullanımı
+      const allUsersSnap = await db.ref('users').once('value');
       const allUsersData = allUsersSnap.val();
       
       let highestCurrentBalance = -1;
@@ -767,8 +813,9 @@
             highestCurrentBalance = allUsersData[u].balance || 0;
             highestCurrentBalanceUser = u;
           }
+          // Correctly identify the user with the highest highestBalanceEver
           if ((allUsersData[u].highestBalanceEver || 0) > highestEverBalance) {
-            highestEverBalance = allUsersData[u].highestEverBalance || 0;
+            highestEverBalance = allUsersData[u].highestBalanceEver || 0;
             highestEverBalanceUser = u;
           }
           if ((allUsersData[u].surpriseBoxesOpened || 0) > maxSurpriseBoxes) {
@@ -779,6 +826,7 @@
       }
 
       const isCurrentLeader = (currentUser === highestCurrentBalanceUser && highestCurrentBalance > 0);
+      // Ensure isHighLeader is set based on highestEverBalanceUser
       const isHighLeader = (currentUser === highestEverBalanceUser && highestEverBalance > 0);
       const isSurpriseLeader = (currentUser === maxSurpriseBoxesUser && maxSurpriseBoxes > 0);
       const hasOpenedAnySurpriseBox = (allUsersData[currentUser]?.surpriseBoxesOpened || 0) > 0;
@@ -792,7 +840,7 @@
             userIconsHtml += `<span class="inline-block cursor-pointer text-xl mr-1" onclick="showMessage('Mevcut Puan Lideri', '${currentUser} güncel puanıyla lider!')">🥇</span>`;
         }
         if (isHighLeader) {
-            userIconsHtml += `<span class="inline-block cursor-pointer text-xl mr-1" onclick="showMessage('Ulaşılan Yüksek Puan Lideri', '${currentUser} tüm zamanların en yüksek puanına ulaştı!')">🏆</span>`;
+            userIconsHtml += `<span class="inline-block cursor-pointer text-xl mr-1" onclick="showMessage('Ulaşılan En Yüksek Puan Lideri', '${currentUser} tüm zamanların en yüksek puanına ulaştı!')">🏆</span>`;
         }
         // Check for surprise leader first
         if (isSurpriseLeader) {
@@ -810,22 +858,22 @@
 
     // Admin paneli butonu ve görünürlüğü yönetimi
     if (isAdmin) {
-      adminPanelToggleButton.classList.remove('hidden'); // Butonu göster
-      adminPanelModal.classList.add('hidden'); // Paneli başlangıçta gizle
+      adminPanelToggleButton.classList.remove('hidden');
+      adminPanelModal.classList.add('hidden');
     } else {
-      adminPanelToggleButton.classList.add('hidden'); // Butonu gizle
-      adminPanelModal.classList.add('hidden'); // Paneli gizle
+      adminPanelToggleButton.classList.add('hidden');
+      adminPanelModal.classList.add('hidden');
     }
 
     // İlk girişte oyun bölümünü göster
-    showSection('game'); // Set initial active section
+    showSection('game');
 
     loadBalanceAndBoxRights();
     loadLeaderboardRanking();
     loadUserRankingsAndBoxCounts();
     loadBoxes();
     loadTotalOpenedBoxesCount();
-    loadPurchaseHistory(); // NEW: Load purchase history on login
+    loadPurchaseHistory();
   }
 
   // Admin panel modalını açma fonksiyonu
@@ -844,10 +892,10 @@
   // Çıkış yapma fonksiyonu
   async function logout() {
     try {
-      await auth.signOut(); // Eski Firebase Auth signOut() kullanımı
+      await auth.signOut();
       currentUser = null;
       isAdmin = false;
-      location.reload(); // Sayfayı yenileyerek giriş ekranına dön
+      location.reload();
     } catch (error) {
       console.error("Çıkış yaparken hata oluştu: ", error);
       displayMessage("Çıkış yaparken bir hata oluştu.");
@@ -860,7 +908,7 @@
       document.getElementById("balance").textContent = "Mevcut Puan: ∞ (Admin) | Kutu Hakkı: ∞ (Admin) | Toplam Harcanan Puan: ∞ (Admin)";
       return;
     }
-    db.ref('users/' + currentUser).on('value', snap => { // Eski Firebase Realtime DB on('value') kullanımı
+    db.ref('users/' + currentUser).on('value', snap => {
       const userData = snap.val() || { balance: 0, kutuHakki: 0, totalSpentPoints: 0 };
       document.getElementById("balance").textContent = `Mevcut Puan: ${userData.balance} | Kutu Hakkı: ${userData.kutuHakki} | Toplam Harcanan Puan: ${userData.totalSpentPoints}`;
     });
@@ -868,7 +916,7 @@
 
   // Kullanıcı sıralamalarını ve kutu sayılarını yükle
   async function loadUserRankingsAndBoxCounts() {
-    db.ref('users').on('value', userSnap => { // Eski Firebase Realtime DB on('value') kullanımı
+    db.ref('users').on('value', userSnap => {
       let usersData = userSnap.val();
 
       if (!usersData) {
@@ -915,10 +963,10 @@
         const highestBalanceEver = userData.highestBalanceEver || 0;
         const kutuHakki = userData.kutuHakki || 0;
         const surpriseBoxesOpened = userData.surpriseBoxesOpened || 0;
-        const iflasShieldUses = userData.iflasShieldUses || 0; // NEW: Get iflas shield uses
-        const activeMultiplier = userData.activeMultiplier || 1; // NEW: Get active multiplier
-        const multiplierSource = userData.multiplierSource || 'none'; // NEW: Get multiplier source
-        const multiplierRemainingUses = userData.multiplierRemainingUses || 0; // NEW: Get remaining uses
+        const iflasShieldUses = userData.iflasShieldUses || 0;
+        const activeMultiplier = userData.activeMultiplier || 1;
+        const multiplierSource = userData.multiplierSource || 'none';
+        const multiplierRemainingUses = userData.multiplierRemainingUses || 0;
 
         if (userData.approved && !userData.blocked) {
           rankedUsers.push({
@@ -929,10 +977,10 @@
             boxesOpenedCount: boxesOpenedCount,
             currentSessionBoxesOpened: currentSessionBoxesOpened,
             surpriseBoxesOpened: surpriseBoxesOpened,
-            iflasShieldUses: iflasShieldUses, // NEW
-            activeMultiplier: activeMultiplier, // NEW
-            multiplierSource: multiplierSource, // NEW
-            multiplierRemainingUses: multiplierRemainingUses // NEW
+            iflasShieldUses: iflasShieldUses,
+            activeMultiplier: activeMultiplier,
+            multiplierSource: multiplierSource,
+            multiplierRemainingUses: multiplierRemainingUses
           });
         }
       });
@@ -953,7 +1001,7 @@
         if (u.multiplierSource === 'store' && u.multiplierRemainingUses > 0) {
             multiplierInfo = ` | Çarpan: ${u.activeMultiplier}x (${u.multiplierRemainingUses} kullanım)`;
         } else if (u.multiplierSource === 'box') {
-            multiplierInfo = ` | Çarpan: ${u.activeMultiplier}x (1 kullanım)`; // Box multipliers are single use
+            multiplierInfo = ` | Çarpan: ${u.activeMultiplier}x (1 kullanım)`;
         }
 
         if (hasKingCrownDisplay) {
@@ -963,12 +1011,11 @@
               userIcons += `<span class="inline-block cursor-pointer text-xl mr-1" onclick="showMessage('Mevcut Puan Lideri', '${u.username} güncel puanıyla lider!')">🥇</span>`;
           }
           if (isHighLeader) {
-              userIcons += `<span class="inline-block cursor-pointer text-xl mr-1" onclick="showMessage('Ulaşılan Yüksek Puan Lideri', '${u.username} tüm zamanların en yüksek puanına ulaştı!')">🏆</span>`;
+              userIcons += `<span class="inline-block cursor-pointer text-xl mr-1" onclick="showMessage('Ulaşılan En Yüksek Puan Lideri', '${u.username} tüm zamanların en yüksek puanına ulaştı!')">🏆</span>`;
           }
-          // Check for surprise leader first
           if (isSurpriseLeader) {
               userIcons += `<span class="inline-block cursor-pointer text-xl mr-1" onclick="showMessage('Sürpriz Kutu Lideri', '${u.username} en çok sürpriz kutu bulan kullanıcı!')">🎉</span>`;
-          } else if (hasOpenedAnySurpriseBox) { // If not leader but opened a surprise box
+          } else if (hasOpenedAnySurpriseBox) {
               userIcons += `<span class="inline-block cursor-pointer text-xl mr-1" onclick="showMessage('SÜRPRİZ KUTU ROZETİ', '${u.username} daha önce sürpriz kutu buldu!')">🎁</span>`;
           }
         }
@@ -991,7 +1038,7 @@
 
   // LİDERLER SIRALAMASI
   function loadLeaderboardRanking() {
-    db.ref('users').on('value', async snap => { // Eski Firebase Realtime DB on('value') kullanımı
+    db.ref('users').on('value', async snap => {
       let usersData = snap.val();
       if (!usersData) { document.getElementById("badgedUsersRanking").innerHTML = "<div class='text-center text-gray-400'>Henüz lider kullanıcı yok.</div>"; return; }
 
@@ -999,7 +1046,7 @@
       
       let highestCurrentBalance = -1;
       let highestCurrentBalanceUser = null;
-      let highestEverBalance = -1;
+      let highestEverBalance = -1; // Initialize to -1 to ensure any positive balance is higher
       let highestEverBalanceUser = null;
       let maxSurpriseBoxes = -1;
       let maxSurpriseBoxesUser = null;
@@ -1010,8 +1057,9 @@
             highestCurrentBalance = usersData[u].balance || 0;
             highestCurrentBalanceUser = u;
           }
+          // Correctly identify the user with the highest highestBalanceEver
           if ((usersData[u].highestBalanceEver || 0) > highestEverBalance) {
-            highestEverBalance = usersData[u].highestEverBalance || 0;
+            highestEverBalance = usersData[u].highestBalanceEver || 0;
             highestEverBalanceUser = u;
           }
           if ((usersData[u].surpriseBoxesOpened || 0) > maxSurpriseBoxes) {
@@ -1025,13 +1073,13 @@
         if (username === "weizendtv" && isAdmin) return;
 
         const isCurrentLeader = (username === highestCurrentBalanceUser && highestCurrentBalance > 0);
-        const isHighLeader = (username === highestEverBalanceUser && highestEverBalance > 0);
+        const isHighLeader = (username === highestEverBalanceUser && highestEverBalance > 0); // Check if this user is the highest ever leader
         const isSurpriseLeader = (username === maxSurpriseBoxesUser && maxSurpriseBoxes > 0);
         const hasOpenedAnySurpriseBox = (userData.surpriseBoxesOpened || 0) > 0;
         
         const hasAnyLeaderBadge = isCurrentLeader || isHighLeader || isSurpriseLeader || hasOpenedAnySurpriseBox;
 
-        if (hasAnyLeaderBadge && userData.approved && !userData.blocked) { // Ensure only approved and unblocked users are added
+        if (hasAnyLeaderBadge && userData.approved && !userData.blocked) {
           leaderUsers.push({
             username: username,
             balance: userData.balance || 0,
@@ -1040,33 +1088,37 @@
             isCurrentLeader: isCurrentLeader,
             isHighLeader: isHighLeader,
             isSurpriseLeader: isSurpriseLeader,
-            hasOpenedAnySurpriseBox: hasOpenedAnySurpriseBox // New flag
+            hasOpenedAnySurpriseBox: hasOpenedAnySurpriseBox
           });
         }
       });
 
       leaderUsers.sort((a, b) => {
+        // Prioritize King Crown (all three badges)
         const aHasKingCrown = a.isCurrentLeader && a.isHighLeader && a.isSurpriseLeader;
         const bHasKingCrown = b.isCurrentLeader && b.isHighLeader && b.isSurpriseLeader;
         if (aHasKingCrown && !bHasKingCrown) return -1;
         if (!aHasKingCrown && bHasKingCrown) return 1;
 
-        // Prioritize Surprise Leader
-        if (b.isSurpriseLeader && !a.isSurpriseLeader) return -1;
-        if (!b.isSurpriseLeader && a.isSurpriseLeader) return 1;
+        // Then prioritize Highest Ever Balance Leader (🏆)
+        // If 'b' is high leader and 'a' is not, 'b' comes first
+        if (b.isHighLeader && !a.isHighLeader) return 1; // 'b' comes before 'a'
+        // If 'a' is high leader and 'b' is not, 'a' comes first
+        if (!b.isHighLeader && a.isHighLeader) return -1; // 'a' comes before 'b'
+        // If both are high leaders or neither, sort by highest balance ever (descending)
+        if (b.highestBalanceEver !== a.highestBalanceEver) return b.highestBalanceEver - a.highestBalanceEver;
         
-        // Then sort by surprise boxes opened count (descending)
+        // Then prioritize Surprise Leader (🎉)
+        if (b.isSurpriseLeader && !a.isSurpriseLeader) return 1;
+        if (!b.isSurpriseLeader && a.isSurpriseLeader) return -1;
+        // If both are surprise leaders or neither, sort by surprise boxes opened (descending)
         if (b.surpriseBoxesOpened !== a.surpriseBoxesOpened) return b.surpriseBoxesOpened - a.surpriseBoxesOpened;
 
-        // Then by current balance leader
-        if (b.isCurrentLeader && !a.isCurrentLeader) return -1;
-        if (!b.isCurrentLeader && a.isCurrentLeader) return 1;
-        if (b.balance !== a.balance) return b.balance - a.balance;
-
-        // Then by highest ever balance leader
-        if (b.isHighLeader && !a.isHighLeader) return -1;
-        if (!b.isHighLeader && a.isHighLeader) return 1;
-        return b.highestBalanceEver - a.highestBalanceEver;
+        // Then by current balance leader (🥇)
+        if (b.isCurrentLeader && !a.isCurrentLeader) return 1;
+        if (!b.isCurrentLeader && a.isCurrentLeader) return -1;
+        // Finally, by current balance (descending)
+        return b.balance - a.balance;
       });
 
       let html = leaderUsers.map((u, i) => {
@@ -1077,16 +1129,15 @@
         if (hasKingCrownDisplay) {
           badgesHtml += `<span class="inline-block cursor-pointer text-xl mr-1" onclick="showKingCrownBadges('${u.username}')">👑</span>`;
         } else {
+          if (u.isHighLeader) { // Prioritize Highest Ever Balance Trophy
+              badgesHtml += `<span class="inline-block cursor-pointer text-xl mr-1" onclick="showMessage('Ulaşılan En Yüksek Puan Lideri', '${u.username} tüm zamanların en yüksek puanına ulaştı!')">🏆</span>`;
+          }
           if (u.isCurrentLeader) {
               badgesHtml += `<span class="inline-block cursor-pointer text-xl mr-1" onclick="showMessage('Mevcut Puan Lideri', '${u.username} güncel puanıyla lider!')">🥇</span>`;
           }
-          if (u.isHighLeader) {
-              badgesHtml += `<span class="inline-block cursor-pointer text-xl mr-1" onclick="showMessage('Ulaşılan Yüksek Puan Lideri', '${u.username} tüm zamanların en yüksek puanına ulaştı!')">🏆</span>`;
-          }
-          // Check for surprise leader first
           if (u.isSurpriseLeader) {
               badgesHtml += `<span class="inline-block cursor-pointer text-xl mr-1" onclick="showMessage('Sürpriz Kutu Lideri', '${u.username} en çok sürpriz kutu bulan kullanıcı!')">🎉</span>`;
-          } else if (u.hasOpenedAnySurpriseBox) { // If not leader but opened a surprise box
+          } else if (u.hasOpenedAnySurpriseBox) {
               badgesHtml += `<span class="inline-block cursor-pointer text-xl mr-1" onclick="showMessage('SÜRPRİZ KUTU ROZETİ', '${u.username} daha önce sürpriz kutu buldu!')">🎁</span>`;
           }
         }
@@ -1103,7 +1154,7 @@
 
   // Onay bekleyen kullanıcıları yükle
   function loadPendingUsers() {
-    db.ref('users').on('value', snap => { // Eski Firebase Realtime DB on('value') kullanımı
+    db.ref('users').on('value', snap => {
       const data = snap.val();
       let html = "";
       for (const u in data) {
@@ -1121,7 +1172,7 @@
 
   // Tüm kullanıcıları yükle (Admin Paneli için)
   function loadAllUsers() {
-    db.ref('users').on('value', snap => { // Eski Firebase Realtime DB on('value') kullanımı
+    db.ref('users').on('value', snap => {
       const data = snap.val();
       let html = "";
       for (const u in data) {
@@ -1182,7 +1233,7 @@
   function openPointAdjustmentModal(username) {
     targetUserForAdjustment = username;
     document.getElementById('adjUserName').textContent = username;
-    db.ref('users/' + username + '/balance').once('value').then(snap => { // Eski Firebase Realtime DB once('value') kullanımı
+    db.ref('users/' + username + '/balance').once('value').then(snap => {
       document.getElementById('adjUserBalance').textContent = snap.val() || 0;
     }).catch(error => console.error("Bakiye okuma hatası:", error));
     pointAdjustmentModal.style.display = 'flex';
@@ -1193,8 +1244,8 @@
     pointAdjustmentModal.style.display = 'none';
     document.getElementById('adjAmount').value = '';
     targetUserForAdjustment = null;
-    loadAllUsers(); // Refresh the user list in admin panel
-    if (selectedUserForManagement) openUserManagementModal(selectedUserForManagement); // Refresh user detail modal
+    loadAllUsers();
+    if (selectedUserForManagement) openUserManagementModal(selectedUserForManagement);
   }
 
   // Kullanıcı puanlarını ayarla
@@ -1205,7 +1256,7 @@
       return;
     }
 
-    db.ref('users/' + targetUserForAdjustment).once('value').then(snap => { // Eski Firebase Realtime DB once('value') kullanımı
+    db.ref('users/' + targetUserForAdjustment).once('value').then(snap => {
       let userData = snap.val();
       let userBalance = userData.balance || 0;
       let highestBalanceEver = userData.highestBalanceEver || 0;
@@ -1216,7 +1267,7 @@
           highestBalanceEver = userBalance;
       }
 
-      db.ref('users/' + targetUserForAdjustment).update({ // Eski Firebase Realtime DB update() kullanımı
+      db.ref('users/' + targetUserForAdjustment).update({
         balance: userBalance,
         highestBalanceEver: highestBalanceEver
       })
@@ -1236,7 +1287,7 @@
   function openBoxRightAdjustmentModal(username) {
     targetUserForBoxRightAdjustment = username;
     document.getElementById('adjBoxRightUserName').textContent = username;
-    db.ref('users/' + username + '/kutuHakki').once('value').then(snap => { // Eski Firebase Realtime DB once('value') kullanımı
+    db.ref('users/' + username + '/kutuHakki').once('value').then(snap => {
       document.getElementById('adjUserBoxRight').textContent = snap.val() || 0;
     }).catch(error => console.error("Kutu hakkı okuma hatası:", error));
     boxRightAdjustmentModal.style.display = 'flex';
@@ -1247,8 +1298,8 @@
     boxRightAdjustmentModal.style.display = 'none';
     document.getElementById('adjBoxRightAmount').value = '';
     targetUserForBoxRightAdjustment = null;
-    loadAllUsers(); // Refresh the user list in admin panel
-    if (selectedUserForManagement) openUserManagementModal(selectedUserForManagement); // Refresh user detail modal
+    loadAllUsers();
+    if (selectedUserForManagement) openUserManagementModal(selectedUserForManagement);
   }
 
   // Kullanıcı kutu haklarını ayarla
@@ -1259,10 +1310,10 @@
       return;
     }
 
-    db.ref('users/' + targetUserForBoxRightAdjustment).once('value').then(snap => { // Eski Firebase Realtime DB once('value') kullanımı
+    db.ref('users/' + targetUserForBoxRightAdjustment).once('value').then(snap => {
       let userBoxRights = snap.val().kutuHakki || 0;
       userBoxRights = add ? userBoxRights + amount : Math.max(userBoxRights - amount, 0);
-      db.ref('users/' + targetUserForBoxRightAdjustment).update({kutuHakki: userBoxRights}) // Eski Firebase Realtime DB update() kullanımı
+      db.ref('users/' + targetUserForBoxRightAdjustment).update({kutuHakki: userBoxRights})
         .then(() => {
           displayMessage(`${targetUserForBoxRightAdjustment} kullanıcısının yeni kutu hakkı: ${userBoxRights}`);
           closeBoxRightAdjustmentModal();
@@ -1275,7 +1326,7 @@
     }).catch(error => console.error("Kullanıcı verisi okuma hatası: ", error));
   }
 
-  // NEW: Iflas Shield Adjustment Modal functions
+  // Iflas Shield Adjustment Modal functions
   function openIflasShieldAdjustmentModal(username) {
     targetUserForIflasShieldAdjustment = username;
     document.getElementById('adjIflasShieldUserName').textContent = username;
@@ -1289,8 +1340,8 @@
     iflasShieldAdjustmentModal.style.display = 'none';
     document.getElementById('adjIflasShieldAmount').value = '';
     targetUserForIflasShieldAdjustment = null;
-    loadAllUsers(); // Refresh the user list in admin panel
-    if (selectedUserForManagement) openUserManagementModal(selectedUserForManagement); // Refresh user detail modal
+    loadAllUsers();
+    if (selectedUserForManagement) openUserManagementModal(selectedUserForManagement);
   }
 
   function adjustUserIflasShields(add) {
@@ -1316,6 +1367,104 @@
     }).catch(error => console.error("Kullanıcı verisi okuma hatası: ", error));
   }
 
+  // NEW: Multiplier Adjustment Modal functions
+  async function openMultiplierAdjustmentModal(username) {
+    targetUserForMultiplierAdjustment = username;
+    document.getElementById('adjMultiplierUserName').textContent = username;
+
+    const userRef = db.ref('users/' + username);
+    const userSnap = await userRef.once('value');
+    const userData = userSnap.val();
+
+    if (userData) {
+      document.getElementById('adjUserMultiplier').textContent = `${userData.activeMultiplier || 1}x`;
+      document.getElementById('adjUserMultiplierUses').textContent = userData.multiplierRemainingUses || 0;
+      document.getElementById('setMultiplierValue').value = userData.activeMultiplier || 1;
+      document.getElementById('setMultiplierSource').value = userData.multiplierSource || 'none';
+      document.getElementById('setMultiplierUses').value = userData.multiplierRemainingUses || 0;
+    } else {
+      document.getElementById('adjUserMultiplier').textContent = 'Yok';
+      document.getElementById('adjUserMultiplierUses').textContent = '0';
+      document.getElementById('setMultiplierValue').value = '';
+      document.getElementById('setMultiplierSource').value = 'none';
+      document.getElementById('setMultiplierUses').value = '';
+    }
+    multiplierAdjustmentModal.style.display = 'flex';
+  }
+
+  function closeMultiplierAdjustmentModal() {
+    multiplierAdjustmentModal.style.display = 'none';
+    document.getElementById('setMultiplierValue').value = '';
+    document.getElementById('setMultiplierSource').value = 'none';
+    document.getElementById('setMultiplierUses').value = '';
+    targetUserForMultiplierAdjustment = null;
+    loadAllUsers();
+    if (selectedUserForManagement) openUserManagementModal(selectedUserForManagement);
+  }
+
+  async function setMultiplier() {
+    const multiplierValue = parseInt(document.getElementById('setMultiplierValue').value);
+    const multiplierSource = document.getElementById('setMultiplierSource').value;
+    const multiplierUses = parseInt(document.getElementById('setMultiplierUses').value);
+
+    if (isNaN(multiplierValue) || multiplierValue <= 0) {
+      displayMessage("Geçerli bir pozitif çarpan değeri girin!");
+      return;
+    }
+    if (multiplierSource === 'store' && (isNaN(multiplierUses) || multiplierUses < 0)) {
+      displayMessage("Mağaza çarpanı için geçerli bir kalan kullanım miktarı girin (0 veya daha büyük).");
+      return;
+    }
+    if (multiplierSource === 'box' && multiplierUses !== 0 && multiplierUses !== 1) {
+        displayMessage("Kutu çarpanı için kalan kullanım 0 veya 1 olmalıdır.");
+        return;
+    }
+
+    const userRef = db.ref('users/' + targetUserForMultiplierAdjustment);
+    const updates = {
+      activeMultiplier: multiplierValue,
+      multiplierSource: multiplierSource,
+      multiplierRemainingUses: multiplierSource === 'store' ? multiplierUses : (multiplierSource === 'box' ? 1 : 0) // Box multiplier is always 1 use
+    };
+
+    if (multiplierSource === 'none') {
+        updates.activeMultiplier = 1;
+        updates.multiplierRemainingUses = 0;
+    }
+
+    try {
+      await userRef.update(updates);
+      displayMessage(`${targetUserForMultiplierAdjustment} kullanıcısının çarpanı başarıyla ayarlandı.`);
+      closeMultiplierAdjustmentModal();
+      loadUserRankingsAndBoxCounts();
+      loadLeaderboardRanking();
+      if (targetUserForMultiplierAdjustment === currentUser) loadBalanceAndBoxRights();
+    } catch (error) {
+      console.error("Çarpan ayarlama hatası:", error);
+      displayMessage("Çarpan ayarlanırken bir hata oluştu.");
+    }
+  }
+
+  async function resetMultiplier() {
+    const userRef = db.ref('users/' + targetUserForMultiplierAdjustment);
+    const updates = {
+      activeMultiplier: 1,
+      multiplierSource: 'none',
+      multiplierRemainingUses: 0
+    };
+
+    try {
+      await userRef.update(updates);
+      displayMessage(`${targetUserForMultiplierAdjustment} kullanıcısının çarpanı sıfırlandı.`);
+      closeMultiplierAdjustmentModal();
+      loadUserRankingsAndBoxCounts();
+      loadLeaderboardRanking();
+      if (targetUserForMultiplierAdjustment === currentUser) loadBalanceAndBoxRights();
+    } catch (error) {
+      console.error("Çarpan sıfırlama hatası:", error);
+      displayMessage("Çarpan sıfırlanırken bir hata oluştu.");
+    }
+  }
 
   // Engelleme süresi modalını aç
   function openBlockDurationModal(username) {
@@ -1329,8 +1478,8 @@
     blockDurationModal.style.display = 'none';
     document.getElementById('blockDuration').value = '';
     targetUserForBlock = null;
-    loadAllUsers(); // Refresh the user list in admin panel
-    if (selectedUserForManagement) openUserManagementModal(selectedUserForManagement); // Refresh user detail modal
+    loadAllUsers();
+    if (selectedUserForManagement) openUserManagementModal(selectedUserForManagement);
   }
 
   // Kullanıcıyı engellemeyi onayla
@@ -1342,7 +1491,7 @@
     }
 
     const blockedUntil = Date.now() + duration * 60 * 1000;
-    db.ref('users/' + targetUserForBlock).update({ // Eski Firebase Realtime DB update() kullanımı
+    db.ref('users/' + targetUserForBlock).update({
       blocked: true,
       blockedUntil: blockedUntil
     }).then(() => {
@@ -1359,13 +1508,13 @@
     if (currentStatus) {
       customConfirm(user + " kullanıcısının engelini kaldırmak istediğinize emin misiniz?", (result) => {
         if (result) {
-          db.ref('users/' + user).update({ blocked: false, blockedUntil: null }) // Eski Firebase Realtime DB update() kullanımı
+          db.ref('users/' + user).update({ blocked: false, blockedUntil: null })
             .then(() => {
               displayMessage(user + " kullanıcısının engeli kaldırıldı.");
               loadAllUsers();
               loadUserRankingsAndBoxCounts();
               loadLeaderboardRanking();
-              if (selectedUserForManagement) openUserManagementModal(selectedUserForManagement); // Refresh user detail modal
+              if (selectedUserForManagement) openUserManagementModal(selectedUserForManagement);
             })
             .catch(error => console.error("Engeli kaldırma hatası: ", error));
         }
@@ -1379,7 +1528,7 @@
   function approveUser(user) {
     customConfirm(user + " kullanıcısını onaylamak istediğinize emin misiniz?", (result) => {
       if (result) {
-        db.ref('users/' + user).update({ approved: true, blocked: false, blockedUntil: null }) // Eski Firebase Realtime DB update() kullanımı
+        db.ref('users/' + user).update({ approved: true, blocked: false, blockedUntil: null })
           .then(() => {
             displayMessage(user + " kullanıcısı onaylandı.");
             loadPendingUsers();
@@ -1395,7 +1544,7 @@
   function denyUser(user, fromPending = false, fromManagementModal = false) {
     customConfirm(user + " kullanıcısını tamamen silmek istediğinize emin misiniz? Bu işlem geri alınamaz ve kullanıcı adı tekrar kullanılabilir hale gelir!", (result) => {
       if (result) {
-        db.ref('users/' + user).remove() // Eski Firebase Realtime DB remove() kullanımı
+        db.ref('users/' + user).remove()
           .then(() => {
             displayMessage(user + " kullanıcısı silindi ve adı tekrar kullanılabilir.");
             if (fromPending) {
@@ -1422,7 +1571,7 @@
 
     customConfirm(`Tüm onaylı ve engellenmemiş kullanıcılara ${add ? 'eklemek' : 'silmek'} istediğinizden emin misiniz?`, (result) => {
       if (result) {
-        db.ref('users').once('value').then(snap => { // Eski Firebase Realtime DB once('value') kullanımı
+        db.ref('users').once('value').then(snap => {
           const updates = {};
           snap.forEach(child => {
             if (child.val().approved && !child.val().blocked && child.key !== "weizendtv") {
@@ -1439,7 +1588,7 @@
               updates['users/' + child.key + '/highestBalanceEver'] = highestBalanceEver;
             }
           });
-          db.ref().update(updates) // Eski Firebase Realtime DB update() kullanımı
+          db.ref().update(updates)
             .then(() => {
                 displayMessage("Tüm onaylı kullanıcıların bakiyeleri güncellendi.");
                 loadUserRankingsAndBoxCounts();
@@ -1462,7 +1611,7 @@
 
     customConfirm(`Tüm onaylı ve engellenmemiş kullanıcılara ${add ? 'eklemek' : 'silmek'} istediğinizden emin misiniz?`, (result) => {
       if (result) {
-        db.ref('users').once('value').then(snap => { // Eski Firebase Realtime DB once('value') kullanımı
+        db.ref('users').once('value').then(snap => {
           const updates = {};
           snap.forEach(child => {
             if (child.val().approved && !child.val().blocked && child.key !== "weizendtv") {
@@ -1471,7 +1620,7 @@
               updates['users/' + child.key + '/kutuHakki'] = kutuHakki;
             }
           });
-          db.ref().update(updates) // Eski Firebase Realtime DB update() kullanımı
+          db.ref().update(updates)
             .then(() => {
                 displayMessage("Tüm onaylı kullanıcıların kutu hakları güncellendi.");
                 loadUserRankingsAndBoxCounts();
@@ -1510,14 +1659,14 @@
       });
     }
 
-    db.ref('boxes').set(boxes) // Eski Firebase Realtime DB set() kullanımı
+    db.ref('boxes').set(boxes)
       .then(() => console.log("Kutular oluşturuldu/sıfırlandı."))
       .catch(error => console.error("Kutu oluşturma hatası: ", error));
   }
 
   // Kutuları yükle
   function loadBoxes() {
-    db.ref('boxes').on('value', snap => { // Eski Firebase Realtime DB on('value') kullanımı
+    db.ref('boxes').on('value', snap => {
       if (!snap.exists()) {
         createBoxes();
       } else {
@@ -1537,7 +1686,7 @@
       // Updated box class for fluid width and aspect ratio
       div.className = `box bg-gray-700 border-2 border-red-700 aspect-square flex flex-col items-center justify-center cursor-pointer font-bold text-lg rounded-lg relative transition-all duration-200 shadow-md hover:shadow-lg ${box.opened ? 'opened bg-gray-600 cursor-default border-gray-500 shadow-inner' : ''}`;
       
-      let displayContent = `<span class="text-gray-300">${box.id}</span>`; // Default: box number
+      let displayContent = `<span class="text-gray-300">${box.id}</span>`;
 
       if (box.opened) {
         if (box.content === 'points') {
@@ -1581,14 +1730,14 @@
     if (isAdmin) {
       boxes[index].opened = true;
       boxes[index].opener = 'Admin';
-      db.ref('boxes').set(boxes) // Eski Firebase Realtime DB set() kullanımı
+      db.ref('boxes').set(boxes)
         .then(() => renderBoxes())
         .catch(error => console.error("Admin kutu açma hatası: ", error));
       return;
     }
 
     const userRef = db.ref('users/' + currentUser);
-    const userSnap = await userRef.once('value'); // Eski Firebase Realtime DB once('value') kullanımı
+    const userSnap = await userRef.once('value');
     let user = userSnap.val();
 
     if (!user) {
@@ -1635,9 +1784,9 @@
     const box = boxes[index];
 
     if (box.content === 'iflas') {
-      // NEW: Check for iflas shield
+      // Check for iflas shield
       if ((user.iflasShieldUses || 0) > 0) {
-        user.iflasShieldUses--; // Consume one shield use
+        user.iflasShieldUses--;
         message = `İflas! Ancak iflas kalkanınız sizi korudu. Kalan iflas kalkanı: ${user.iflasShieldUses}.`;
       } else if (finalMultiplier > 1) { // If any multiplier is active, it protects from iflas
         message = `${finalMultiplier}x çarpanı koruma sağladı! İflas etkisiz kaldı. Bir kutu hakkı hediye edildi.`;
@@ -1657,12 +1806,12 @@
 
     } else if (box.content === 'surpriz') {
         user.surpriseBoxesOpened = (user.surpriseBoxesOpened || 0) + 1;
-        surpriseBoxMultiplier = finalMultiplier; // Store multiplier for card selection
-        openCardSelectionModal(currentUser); // No longer pass cardsToOpenCount directly
+        surpriseBoxMultiplier = finalMultiplier;
+        openCardSelectionModal(currentUser);
         message = `Sürpriz Kutu buldunuz! Şimdi bir kart seçin.`;
     }
     else if (box.content === 'multiplier') {
-      user.kutuHakki = (user.kutuHakki || 0) + 1; // Always give a box right for finding a multiplier box
+      user.kutuHakki = (user.kutuHakki || 0) + 1;
 
       if (user.multiplierSource === 'store' && user.multiplierRemainingUses > 0) {
           // If a store multiplier is active, a box multiplier just gives a bonus box right.
@@ -1676,7 +1825,7 @@
               user.activeMultiplier = box.value;
               message = `${box.value}x çarpan buldunuz! Bir kutu hakkı kazandınız. Sonraki kutu ${user.activeMultiplier} ile çarpılacak.`;
           }
-          user.multiplierSource = 'box'; // Set source to box
+          user.multiplierSource = 'box';
       }
     }
 
@@ -1690,9 +1839,9 @@
     updates['activeMultiplier'] = user.activeMultiplier;
     updates['multiplierSource'] = user.multiplierSource;
     updates['multiplierRemainingUses'] = user.multiplierRemainingUses;
-    updates['iflasShieldUses'] = user.iflasShieldUses; // NEW: Update iflas shield uses
+    updates['iflasShieldUses'] = user.iflasShieldUses;
 
-    await userRef.update(updates) // Eski Firebase Realtime DB update() kullanımı
+    await userRef.update(updates)
       .then(() => {
         console.log("Box opened, message:", message);
         if (box.content !== 'surpriz') {
@@ -1700,7 +1849,7 @@
         } else {
             displayMessage(message);
         }
-        db.ref('boxes').set(boxes); // Eski Firebase Realtime DB set() kullanımı
+        db.ref('boxes').set(boxes);
         renderBoxes();
         loadBalanceAndBoxRights();
         loadUserRankingsAndBoxCounts();
@@ -1746,27 +1895,27 @@
             b.opener = 'Admin (Hepsi Açıldı)';
           }
         });
-        db.ref('boxes').set(boxes) // Eski Firebase Realtime DB set() kullanımı
+        db.ref('boxes').set(boxes)
           .then(() => renderBoxes())
           .catch(error => console.error("Tüm kutuları açma hatası: ", error));
       }
     });
   }
 
-  // Oyunu baştan başlat (Kutuları sıfırlar, kullanıcı istatistiklerini sıfırlamaz)
+  // Oyunu baştan başlat (Kutuları sıfırlalar, kullanıcı istatistiklerini sıfırlamaz)
   function resetGame() {
     customConfirm("Oyunu sıfırlamak istediğinize emin misiniz? Tüm kutular kapanacak ve yeni bir kazanan kutusu belirlenecek. Kullanıcı bakiyeleri ve kutu hakları etkilenmez.", (result) => {
       if (result) {
         createBoxes();
 
-        db.ref('users').once('value').then(snap => { // Eski Firebase Realtime DB once('value') kullanımı
+        db.ref('users').once('value').then(snap => {
           const updates = {};
           snap.forEach(child => {
             if (child.key !== "weizendtv") {
               updates['users/' + child.key + '/currentSessionBoxesOpened'] = 0;
             }
           });
-          db.ref().update(updates) // Eski Firebase Realtime DB update() kullanımı
+          db.ref().update(updates)
             .then(() => displayMessage("Oyun başarıyla sıfırlandı. Tüm kullanıcıların günlük kutu açma sayıları sıfırlandı."))
             .catch(error => console.error("Günlük kutu açma sıfırlama hatası: ", error));
         }).catch(error => console.error("Kullanıcıları sıfırlama hatası:", error));
@@ -1780,7 +1929,7 @@
       if (result) {
         try {
           displayMessage("Sistem yeniden başlatılıyor: Kullanıcı verileri sıfırlanıyor...");
-          const userSnap = await db.ref('users').once('value'); // Eski Firebase Realtime DB once('value') kullanımı
+          const userSnap = await db.ref('users').once('value');
           const usersData = userSnap.val();
           const updates = {};
 
@@ -1797,17 +1946,17 @@
                 updates['users/' + u + '/activeMultiplier'] = 1;
                 updates['users/' + u + '/multiplierSource'] = 'none';
                 updates['users/' + u + '/multiplierRemainingUses'] = 0;
-                updates['users/' + u + '/iflasShieldUses'] = 0; // NEW: Reset iflas shield uses
+                updates['users/' + u + '/iflasShieldUses'] = 0;
               }
             }
-            await db.ref().update(updates); // Eski Firebase Realtime DB update() kullanımı
+            await db.ref().update(updates);
             console.log("Kullanıcı verileri başarıyla sıfırlandı.");
           } else {
             console.log("Sıfırlanacak kullanıcı verisi bulunamadı.");
           }
 
           try {
-            await db.ref('winners').remove(); // Eski Firebase Realtime DB remove() kullanımı
+            await db.ref('winners').remove();
             console.log("Winners tablosu başarıyla kaldırıldı (varsa).");
           } catch (removeError) {
             console.warn("Winners tablosu kaldırılırken hata oluştu veya tablo mevcut değil:", removeError);
@@ -1817,7 +1966,7 @@
           await createBoxes();
           console.log("Oyun kutuları başarıyla yeniden oluşturuldu.");
 
-          // NEW: Clear purchase history on full system restart
+          // Clear purchase history on full system restart
           try {
             await db.ref('purchaseHistory').remove();
             console.log("Satın alma geçmişi başarıyla temizlendi.");
@@ -1830,7 +1979,7 @@
           loadUserRankingsAndBoxCounts();
           loadLeaderboardRanking();
           loadBalanceAndBoxRights();
-          loadPurchaseHistory(); // Refresh purchase history
+          loadPurchaseHistory();
         } catch (error) {
           console.error("Sistemi baştan başlatma hatası: ", error);
           displayMessage(`Sistemi baştan başlatılırken bir hata oluştu: ${error.message || error}. Lütfen konsolu kontrol edin.`);
@@ -1841,7 +1990,7 @@
 
   // Toplam açılan kutu sayısını yükle
   function loadTotalOpenedBoxesCount() {
-    db.ref('boxes').on('value', snap => { // Eski Firebase Realtime DB on('value') kullanımı
+    db.ref('boxes').on('value', snap => {
       const allBoxes = snap.val();
       let openedCount = 0;
       if (allBoxes) {
@@ -1854,7 +2003,7 @@
   // Kullanıcı ara
   function searchUsers() {
     const term = document.getElementById("searchUser").value.trim().toLowerCase();
-    db.ref('users').once('value').then(snap => { // Eski Firebase Realtime DB once('value') kullanımı
+    db.ref('users').once('value').then(snap => {
       const data = snap.val();
       let html = "";
       for (const u in data) {
@@ -1892,7 +2041,7 @@
       if (timeLeft <= 0) {
         document.getElementById('blockedCountdown').textContent = "Engel süreniz doldu. Lütfen tekrar giriş yapın.";
         clearInterval(countdownInterval);
-        db.ref('users/' + currentUser).update({ blocked: false, blockedUntil: null }) // Eski Firebase Realtime DB update() kullanımı
+        db.ref('users/' + currentUser).update({ blocked: false, blockedUntil: null })
           .then(() => {
             displayMessage("Engeliniz kaldırıldı, lütfen tekrar giriş yapın.");
             closeBlockedMessageModal();
@@ -1938,7 +2087,7 @@
 
   // Kral Tacı Tıklandığında Mesaj Göster (👑)
   async function showKingCrownBadges(username) {
-    const allUsersSnap = await db.ref('users').once('value'); // Eski Firebase Realtime DB once('value') kullanımı
+    const allUsersSnap = await db.ref('users').once('value');
     const allUsersData = allUsersSnap.val();
     
     let highestCurrentBalance = -1;
@@ -1955,7 +2104,7 @@
           highestCurrentBalanceUser = u;
         }
         if ((allUsersData[u].highestBalanceEver || 0) > highestEverBalance) {
-          highestEverBalance = allUsersData[u].highestEverBalance || 0;
+          highestEverBalance = allUsersData[u].highestBalanceEver || 0;
           highestEverBalanceUser = u;
         }
         if ((allUsersData[u].surpriseBoxesOpened || 0) > maxSurpriseBoxes) {
@@ -1970,7 +2119,7 @@
         badgesInfo += `<span class="text-green-400">🥇 Mevcut Puan Lideri</span><br>`;
     }
     if (username === highestEverBalanceUser && highestEverBalance > 0) {
-        badgesInfo += `<span class="text-green-400">🏆 Ulaşılan Yüksek Puan Lideri</span><br>`;
+        badgesInfo += `<span class="text-green-400">🏆 Ulaşılan En Yüksek Puan Lideri</span><br>`;
     }
     if (username === maxSurpriseBoxesUser && maxSurpriseBoxes > 0) {
         badgesInfo += `<span class="text-green-400">🎉 Sürpriz Kutu Lideri</span><br>`;
@@ -1997,7 +2146,7 @@
   function openCardSelectionModal(userId) {
     cardContainer.innerHTML = '';
     // Always open 1 card for now, multiplier applies to points
-    currentCardsToOpen = 1; 
+    currentCardsToOpen = 1;
     cardsOpenedInCurrentSurpriseSession = 0;
     totalPointsGainedInSurpriseSession = 0;
 
@@ -2036,7 +2185,7 @@
     selectedCardDiv.classList.add('opened');
     
     let points = parseInt(selectedCardDiv.dataset.value);
-    points = points * surpriseBoxMultiplier; // Apply the multiplier from openBox
+    points = points * surpriseBoxMultiplier;
     
     selectedCardDiv.querySelector('.card-front').textContent = `+${points}`;
 
@@ -2044,7 +2193,7 @@
     cardsOpenedInCurrentSurpriseSession++;
 
     const userRef = db.ref('users/' + userId);
-    const userSnap = await userRef.once('value'); // Eski Firebase Realtime DB once('value') kullanımı
+    const userSnap = await userRef.once('value');
     let user = userSnap.val();
 
     if (user) {
@@ -2053,7 +2202,7 @@
         user.highestBalanceEver = user.balance;
       }
 
-      await userRef.update({ // Eski Firebase Realtime DB update() kullanımı
+      await userRef.update({
         balance: user.balance,
         highestBalanceEver: user.highestBalanceEver,
       }).then(() => {
@@ -2098,7 +2247,7 @@
       const items = snap.val();
       renderStoreItems(items);
       if (isAdmin) {
-          loadAdminStoreItems(items); // Admin görünümünü de güncelle
+          loadAdminStoreItems(items);
       }
     });
   }
@@ -2134,13 +2283,13 @@
           statusText = '<span class="text-red-500 font-bold">Süresi Doldu!</span>';
           buttonDisabled = 'disabled';
           buttonClass = 'bg-gray-600 cursor-not-allowed';
-      } else if (item.countdownEndTime === null) { // Timeless item
+      } else if (item.countdownEndTime === null) {
           statusText = `<span class="text-green-500 font-bold">Stok: ${item.stock !== undefined ? item.stock : 'Sınırsız'}</span><br><span class="text-yellow-400">Süresiz</span>`;
-      } else { // Timed item
+      } else {
           statusText = `<span class="text-green-500 font-bold">Stok: ${item.stock !== undefined ? item.stock : 'Sınırsız'}</span><br><span class="text-sm text-gray-400">Kalan: ${formatTimeLeft(endTime - now)}</span>`;
       }
       
-      if (!isAvailable) { // Disable button if not available due to stock or time
+      if (!isAvailable) {
           buttonDisabled = 'disabled';
           buttonClass = 'bg-gray-600 cursor-not-allowed';
       }
@@ -2165,10 +2314,10 @@
     clearInterval(window.countdownInterval);
     window.countdownInterval = setInterval(() => {
         if (document.getElementById('storeSection').classList.contains('hidden')) {
-            clearInterval(window.countdownInterval); // Stop if store is not visible
+            clearInterval(window.countdownInterval);
             return;
         }
-        renderStoreItems(items); // Re-render to update countdowns
+        renderStoreItems(items);
     }, 1000);
   }
 
@@ -2221,7 +2370,7 @@
         return;
     }
     if (item.stock !== undefined && item.stock <= 0) {
-        displayMessage("Bu ürün stokta kalmamıştır.");
+        displayMessage("Bu ürün stokta kalmıştır.");
         return;
     }
     if ((user.balance || 0) < item.cost) {
@@ -2249,43 +2398,39 @@
             // Check if a store multiplier is already active
             if (user.multiplierSource === 'store' && user.multiplierRemainingUses > 0) {
               displayMessage("Zaten aktif bir mağaza çarpanınız var. Yeni bir çarpan satın alamazsiniz.");
-              return; // Stop purchase if store multiplier is already active
+              return;
             }
             updates.activeMultiplier = item.value;
             updates.multiplierSource = 'store';
-            updates.multiplierRemainingUses = item.duration; // e.g., 3 uses
+            updates.multiplierRemainingUses = item.duration;
             message += ` ${item.value}x çarpanı ${item.duration} kutu açımı boyunca aktif olacak!`;
-          } else if (item.type === 'iflasShield') { // NEW: IFLAS KALKANI logic
+          } else if (item.type === 'iflasShield') {
             updates.iflasShieldUses = (user.iflasShieldUses || 0) + item.value;
             message += ` ${item.value} adet iflas kalkanı kazandınız! Toplam kalkan: ${updates.iflasShieldUses}.`;
           } else if (item.type === 'special') {
-            // Placeholder for special item logic
             message += ` Özel ürün "${item.name}" etkinleştirildi!`;
-            // Add specific logic for your special item here
-            // Example: updates.specialItemFlag = true;
-            // If the special item has a value, you can use item.value
             if (item.value) {
                 updates.balance = (updates.balance || 0) + item.value;
                 message += ` (+${item.value} puan)`;
             }
           }
-          // Add more item types here (e.g., cosmetic, special abilities)
 
           // Decrement stock if applicable
           if (item.stock !== undefined && item.stock > 0) {
               itemUpdates.stock = item.stock - 1;
-              await db.ref('storeItems/' + itemId).update(itemUpdates); // Update item stock
+              await db.ref('storeItems/' + itemId).update(itemUpdates);
           }
 
           await userRef.update(updates);
           displayMessage(message);
-          loadBalanceAndBoxRights(); // Update balance display
-          loadUserRankingsAndBoxCounts(); // Update leaderboards
-          loadStoreItems(); // Refresh store to show updated stock/status
+          loadBalanceAndBoxRights();
+          loadUserRankingsAndBoxCounts();
+          loadLeaderboardRanking();
+          loadStoreItems();
 
-          // NEW: Record purchase in history
+          // Record purchase in history
           await db.ref('purchaseHistory').push({
-              timestamp: firebase.database.ServerValue.TIMESTAMP, // Use server timestamp
+              timestamp: firebase.database.ServerValue.TIMESTAMP,
               username: currentUser,
               itemName: item.name,
               itemCost: item.cost,
@@ -2293,7 +2438,7 @@
               itemValue: item.value,
               imageUrl: item.imageUrl || 'https://placehold.co/50x50/333333/FFFFFF?text=Item'
           });
-          loadPurchaseHistory(); // Refresh purchase history
+          loadPurchaseHistory();
         } catch (error) {
           console.error("Ürün satın alma hatası: ", error);
           displayMessage("Ürün satın alınırken bir hata oluştu. Lütfen tekrar deneyin.");
@@ -2303,7 +2448,6 @@
   }
 
   // Admin panel için mağaza yönetimi fonksiyonları
-  // Bu fonksiyon artık mağaza sekmesinde admin için ürünleri listeler
   function loadAdminStoreItems(items) {
     const container = document.getElementById('currentStoreItems');
     container.innerHTML = '';
@@ -2318,11 +2462,11 @@
           itemDetails += ` (${item.value} hak)`;
       } else if (item.type === 'tempMultiplier') {
           itemDetails += ` (${item.value}x, ${item.duration} kullanım)`;
-      } else if (item.type === 'iflasShield') { // NEW: IFLAS KALKANI details
+      } else if (item.type === 'iflasShield') {
           itemDetails += ` (${item.value} kullanım)`;
       } else if (item.type === 'special') {
           itemDetails += ` (Özel)`;
-          if (item.value !== null) itemDetails += ` (Değer: ${item.value})`; // If special item has a value
+          if (item.value !== null) itemDetails += ` (Değer: ${item.value})`;
       }
       if (item.stock !== undefined) {
           itemDetails += ` - Stok: ${item.stock}`;
@@ -2355,7 +2499,7 @@
   document.addEventListener('DOMContentLoaded', () => {
     const newItemTypeSelect = document.getElementById('newItemType');
     const newItemValueInput = document.getElementById('newItemValue');
-    const newItemMultiplierDurationInput = document.getElementById('newItemMultiplierDuration'); // Get the new input
+    const newItemMultiplierDurationInput = document.getElementById('newItemMultiplierDuration');
     const addUpdateStoreItemBtn = document.getElementById('addUpdateStoreItemBtn');
 
     if (newItemTypeSelect && newItemValueInput && newItemMultiplierDurationInput && addUpdateStoreItemBtn) {
@@ -2366,10 +2510,10 @@
           newItemMultiplierDurationInput.classList.remove('hidden');
           newItemValueInput.placeholder = "Çarpan Değeri (örn: 2, 3)";
         } else {
-          newItemMultiplierDurationInput.classList.add('hidden'); // Hide for other types
+          newItemMultiplierDurationInput.classList.add('hidden');
           if (selectedType === 'boxRights') {
             newItemValueInput.placeholder = "Kutu Hakkı Adedi (örn: 5, 10)";
-          } else if (selectedType === 'iflasShield') { // NEW: Placeholder for iflas shield
+          } else if (selectedType === 'iflasShield') {
             newItemValueInput.placeholder = "Kalkan Kullanım Sayısı (örn: 1, 3)";
           } else if (selectedType === 'special') {
             newItemValueInput.placeholder = "Özel Değer (Opsiyonel)";
@@ -2391,9 +2535,9 @@
             "cost": 500,
             "type": "boxRights",
             "value": 5,
-            "stock": 100, // Initial stock
+            "stock": 100,
             "imageUrl": "https://placehold.co/100x100/00FF00/FFFFFF?text=5+Box",
-            "countdownEndTime": null // Süresiz
+            "countdownEndTime": null
           },
           "item2": {
             "name": "Geçici 2X Çarpan (3 Kutu)",
@@ -2401,10 +2545,10 @@
             "cost": 1000,
             "type": "tempMultiplier",
             "value": 2,
-            "duration": 3, // For 3 boxes
-            "stock": 50, // Initial stock
+            "duration": 3,
+            "stock": 50,
             "imageUrl": "https://placehold.co/100x100/0000FF/FFFFFF?text=2X",
-            "countdownEndTime": null // Süresiz
+            "countdownEndTime": null
           },
           "item3": {
             "name": "Geçici 3X Çarpan (2 Kutu)",
@@ -2412,10 +2556,10 @@
             "cost": 2000,
             "type": "tempMultiplier",
             "value": 3,
-            "duration": 2, // For 2 boxes
-            "stock": 20, // Initial stock
+            "duration": 2,
+            "stock": 20,
             "imageUrl": "https://placehold.co/100x100/FF0000/FFFFFF?text=3X",
-            "countdownEndTime": null // Süresiz
+            "countdownEndTime": null
           },
           "item4": {
             "name": "10 Kutu Hakkı Paketi",
@@ -2423,29 +2567,29 @@
             "cost": 800,
             "type": "boxRights",
             "value": 10,
-            "stock": 80, // Initial stock
+            "stock": 80,
             "imageUrl": "https://placehold.co/100x100/00FF00/FFFFFF?text=10+Box",
-            "countdownEndTime": null // Süresiz
+            "countdownEndTime": null
           },
           "item5": {
             "name": "Özel Hediye Kutusu",
             "description": "Sadece özel etkinliklerde verilen gizemli bir hediye.",
             "cost": 5000,
             "type": "special",
-            "value": 10000, // Example: gives 10000 points
-            "stock": 5, // Limited stock
-            "countdownEndTime": Date.now() + 7 * 24 * 60 * 60 * 1000, // Ends in 7 days from now (timestamp)
+            "value": 10000,
+            "stock": 5,
+            "countdownEndTime": Date.now() + 7 * 24 * 60 * 60 * 1000,
             "imageUrl": "https://placehold.co/100x100/800080/FFFFFF?text=Special"
           },
-          "item6": { // NEW: IFLAS KALKANI default item
+          "item6": {
             "name": "İflas Kalkanı (1 Kullanım)",
             "description": "Bir sonraki 'İflas' kutusundan sizi korur.",
             "cost": 1500,
             "type": "iflasShield",
-            "value": 1, // Protects for 1 use
+            "value": 1,
             "stock": 30,
             "imageUrl": "https://placehold.co/100x100/00FFFF/000000?text=Shield",
-            "countdownEndTime": null // Süresiz
+            "countdownEndTime": null
           }
         }).catch(error => console.error("Default store items setup error:", error));
       }
@@ -2457,18 +2601,18 @@
     document.getElementById('newItemName').value = '';
     document.getElementById('newItemDescription').value = '';
     document.getElementById('newItemCost').value = '';
-    document.getElementById('newItemStock').value = ''; // Clear stock
+    document.getElementById('newItemStock').value = '';
     document.getElementById('newItemType').value = '';
     document.getElementById('newItemValue').value = '';
-    document.getElementById('newItemMultiplierDuration').value = ''; // Clear new multiplier duration
-    document.getElementById('newItemMultiplierDuration').classList.add('hidden'); // Hide it
-    document.getElementById('newItemCountdownDuration').value = ''; // Clear new countdown duration
+    document.getElementById('newItemMultiplierDuration').value = '';
+    document.getElementById('newItemMultiplierDuration').classList.add('hidden');
+    document.getElementById('newItemCountdownDuration').value = '';
     document.getElementById('newItemImageUrl').value = '';
-    document.getElementById('newItemValue').placeholder = "Değer (Kutu Hakkı Adedi / Çarpan Değeri / Kalkan Kullanım Sayısı)"; // Reset placeholder
+    document.getElementById('newItemValue').placeholder = "Değer (Kutu Hakkı Adedi / Çarpan Değeri / Kalkan Kullanım Sayısı)";
     
     const addButton = document.getElementById('addUpdateStoreItemBtn');
     addButton.textContent = "ÜRÜN EKLE";
-    addButton.onclick = saveStoreItem; // Ensure it calls saveStoreItem
+    addButton.onclick = saveStoreItem;
     editingItemId = null;
   }
 
@@ -2477,11 +2621,11 @@
     const name = document.getElementById('newItemName').value.trim();
     const description = document.getElementById('newItemDescription').value.trim();
     const cost = parseInt(document.getElementById('newItemCost').value);
-    const stockInput = document.getElementById('newItemStock').value.trim(); // Get raw stock input
+    const stockInput = document.getElementById('newItemStock').value.trim();
     const type = document.getElementById('newItemType').value;
     const valueInput = document.getElementById('newItemValue').value.trim();
-    const multiplierDurationInput = document.getElementById('newItemMultiplierDuration').value.trim(); // Get new multiplier duration input
-    const countdownDurationInput = document.getElementById('newItemCountdownDuration').value.trim(); // NEW: Get countdown duration
+    const multiplierDurationInput = document.getElementById('newItemMultiplierDuration').value.trim();
+    const countdownDurationInput = document.getElementById('newItemCountdownDuration').value.trim();
     const imageUrl = document.getElementById('newItemImageUrl').value.trim();
 
     // Basic validation
@@ -2508,7 +2652,7 @@
 
     // Stock validation
     let finalStock = null;
-    if (stockInput !== '') { // Use stockInput, not stock
+    if (stockInput !== '') {
         finalStock = parseInt(stockInput);
         if (isNaN(finalStock) || finalStock < 0) {
             displayMessage("Geçerli bir Stok Durumu girin (0 veya daha büyük).");
@@ -2526,7 +2670,7 @@
         }
     }
 
-    // NEW: Countdown Duration logic
+    // Countdown Duration logic
     let finalCountdownEndTime = null;
     if (countdownDurationInput !== '') {
         const durationMinutes = parseInt(countdownDurationInput);
@@ -2542,16 +2686,16 @@
       name,
       description,
       cost,
-      stock: finalStock, // Use finalStock (null for unlimited, number for specific)
+      stock: finalStock,
       type,
       value: value,
       imageUrl: imageUrl || 'https://placehold.co/100x100/333333/FFFFFF?text=Item',
-      countdownEndTime: finalCountdownEndTime // NEW: Store countdown end time
+      countdownEndTime: finalCountdownEndTime
     };
     if (type === 'tempMultiplier') {
-      itemData.duration = finalMultiplierDuration; // Use the new duration field
+      itemData.duration = finalMultiplierDuration;
     } else {
-      delete itemData.duration; // Ensure duration is not stored for other types
+      delete itemData.duration;
     }
 
     try {
@@ -2564,11 +2708,11 @@
         await db.ref('storeItems').push(itemData);
         displayMessage("Yeni ürün başarıyla eklendi!");
       }
-      resetStoreItemForm(); // Clear form and reset button
-      loadStoreItems(); // Refresh store for users and admin view
+      resetStoreItemForm();
+      loadStoreItems();
     } catch (error) {
       console.error("Ürün kaydetme hatası:", error);
-      displayMessage("Ürün kaydedilirken bir hata oluştu. Lütfen konsolu kontrol edin."); // More specific error message
+      displayMessage("Ürün kaydedilirken bir hata oluştu. Lütfen konsolu kontrol edin.");
     }
   }
 
@@ -2581,9 +2725,9 @@
         document.getElementById('newItemName').value = item.name;
         document.getElementById('newItemDescription').value = item.description;
         document.getElementById('newItemCost').value = item.cost;
-        document.getElementById('newItemStock').value = item.stock !== undefined ? item.stock : ''; // Populate stock
+        document.getElementById('newItemStock').value = item.stock !== undefined ? item.stock : '';
         document.getElementById('newItemType').value = item.type;
-        document.getElementById('newItemValue').value = item.value !== null ? item.value : ''; // Handle null for special items
+        document.getElementById('newItemValue').value = item.value !== null ? item.value : '';
         document.getElementById('newItemImageUrl').value = item.imageUrl || '';
         
         // Populate new multiplier duration field
@@ -2595,19 +2739,16 @@
             document.getElementById('newItemMultiplierDuration').value = '';
         }
 
-        // NEW: Clear countdown duration, admin sets a new one on save
-        // If an item has an existing countdown, we don't pre-fill it.
-        // The admin will set a NEW countdown duration if they want it to be timed.
+        // Clear countdown duration, admin sets a new one on save
         document.getElementById('newItemCountdownDuration').value = '';
         
         const newItemTypeSelect = document.getElementById('newItemType');
         newItemTypeSelect.value = item.type;
-        newItemTypeSelect.dispatchEvent(new Event('change')); // Manually trigger change event
+        newItemTypeSelect.dispatchEvent(new Event('change'));
 
         // Change button to "Update Item"
         const addButton = document.getElementById('addUpdateStoreItemBtn');
         addButton.textContent = "ÜRÜNÜ GÜNCELLE";
-        // onclick is already set to saveStoreItem by default in DOMContentLoaded
       }
     }).catch(error => console.error("Ürün düzenleme hatası:", error));
   }
@@ -2618,8 +2759,8 @@
         try {
           await db.ref('storeItems/' + itemId).remove();
           displayMessage("Ürün başarıyla silindi!");
-          loadStoreItems(); // Refresh store for users and admin view
-          resetStoreItemForm(); // Clear form if the deleted item was being edited
+          loadStoreItems();
+          resetStoreItemForm();
         } catch (error) {
           console.error("Ürün silme hatası:", error);
           displayMessage("Ürün silinirken bir hata oluştu.");
@@ -2628,10 +2769,10 @@
     });
   }
 
-  // NEW: Load Purchase History
+  // Load Purchase History
   function loadPurchaseHistory() {
     const purchaseHistoryList = document.getElementById('purchaseHistoryList');
-    purchaseHistoryList.innerHTML = '<div class="text-center text-gray-400">Satın alma geçmişi yükleniyor...</div>'; // Loading message
+    purchaseHistoryList.innerHTML = '<div class="text-center text-gray-400">Satın alma geçmişi yükleniyor...</div>';
 
     db.ref('purchaseHistory').orderByChild('timestamp').limitToLast(50).on('value', snap => {
       const history = snap.val();
@@ -2660,14 +2801,14 @@
     });
   }
 
-  // NEW: Clear Purchase History (Admin Function)
+  // Clear Purchase History (Admin Function)
   function clearPurchaseHistory() {
     customConfirm("Satın alma geçmişini tamamen temizlemek istediğinize emin misiniz? Bu işlem geri alınamaz!", async (result) => {
       if (result) {
         try {
           await db.ref('purchaseHistory').remove();
           displayMessage("Satın alma geçmişi başarıyla temizlendi!");
-          loadPurchaseHistory(); // Refresh display
+          loadPurchaseHistory();
         } catch (error) {
           console.error("Satın alma geçmişi temizleme hatası:", error);
           displayMessage("Satın alma geçmişi temizlenirken bir hata oluştu.");
@@ -2676,7 +2817,7 @@
     });
   }
 
-  // NEW: Clear All Total Spent Points (Admin Function)
+  // Clear All Total Spent Points (Admin Function)
   async function clearAllTotalSpentPoints() {
     customConfirm("Tüm kullanıcıların 'Toplam Harcanan Puan' değerlerini sıfırlamak istediğinize emin misiniz? Bu işlem geri alınamaz!", async (result) => {
       if (result) {
@@ -2688,14 +2829,14 @@
 
           if (usersData) {
             for (const u in usersData) {
-              if (u !== "weizendtv") { // Exclude admin user
+              if (u !== "weizendtv") {
                 updates['users/' + u + '/totalSpentPoints'] = 0;
               }
             }
             await db.ref().update(updates);
             displayMessage("Tüm kullanıcıların 'Toplam Harcanan Puan' değerleri başarıyla sıfırlandı!");
-            loadBalanceAndBoxRights(); // Refresh current user's display
-            loadUserRankingsAndBoxCounts(); // Refresh leaderboards
+            loadBalanceAndBoxRights();
+            loadUserRankingsAndBoxCounts();
           } else {
             displayMessage("Sıfırlanacak kullanıcı verisi bulunamadı.");
           }
@@ -2707,7 +2848,7 @@
     });
   }
 
-  // NEW: User Management Detail Modal functions
+  // User Management Detail Modal functions
   async function openUserManagementModal(username) {
     selectedUserForManagement = username;
     document.getElementById('managedUserName').textContent = username;
@@ -2766,7 +2907,7 @@
   function closeUserManagementModal() {
     userManagementModal.style.display = 'none';
     selectedUserForManagement = null;
-    loadAllUsers(); // Refresh the main user list in admin panel
+    loadAllUsers();
   }
 
 </script>
