@@ -117,7 +117,7 @@
       </button>
       <!-- NEW: Purchase History Tab Button -->
       <button id="purchaseHistoryTabBtn" onclick="showSection('purchaseHistory')"
-              class="py-3 px-8 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg shadow-md hover:-translate-y-1 transition duration-300">
+              class="py-3 px-8 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
         Satın Alma Geçmişi
       </button>
     </div>
@@ -162,7 +162,7 @@
             <option value="iflasShield">İflas Kalkanı</option> <!-- NEW: IFLAS KALKANI -->
             <option value="special">Özel Ürün</option>
           </select>
-          <input type="number" id="newItemValue" placeholder="Değer (Kutu Hakkı Adedi / Çarpan Değeri / Kalkan Kullanım Sayısı)" class="w-full p-2 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-500 transition duration-300">
+          <input type="number" id="newItemValue" placeholder="Değer (Kutu Hakkı Adedi / Çarpan Değeri / Kalkan Kullanım Sayısı)" class="w-full p-2 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
           <!-- Multiplier Duration Input - Re-added -->
           <input type="number" id="newItemMultiplierDuration" placeholder="Çarpan Süresi (Kutu Sayısı)" min="1" class="w-full p-2 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white hidden focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
           
@@ -208,14 +208,8 @@
           <div id="pendingUsers" class="scrollable-list max-h-60 overflow-y-auto p-3 bg-gray-800 rounded-md">Yükleniyor...</div>
         </div>
 
-        <!-- NEW: Özel Ürün Onayları -->
-        <div class="bg-gray-900 p-6 rounded-lg border border-gray-700">
-            <h4 class="text-yellow-300 text-xl font-semibold mb-4">Özel Ürün Onayları</h4>
-            <div id="pendingSpecialPurchases" class="scrollable-list max-h-60 overflow-y-auto p-3 bg-gray-800 rounded-md">Yükleniyor...</div>
-        </div>
-
         <!-- Tüm Kullanıcı İşlemleri (Global Actions) -->
-        <div class="bg-gray-900 p-6 rounded-lg border border-gray-700 col-span-full">
+        <div class="bg-gray-900 p-6 rounded-lg border border-gray-700">
           <h4 class="text-yellow-300 text-xl font-semibold mb-4">Tüm Kullanıcı İşlemleri</h4>
           <div class="mb-4">
             <input type="number" id="globalPoint" placeholder="Puan Miktarı" min="1"
@@ -888,7 +882,7 @@
     loadUserRankingsAndBoxCounts();
     loadBoxes();
     loadTotalOpenedBoxesCount();
-    loadPurchaseHistory(); // Ensure this is called on login
+    loadPurchaseHistory();
   }
 
   // Admin panel modalını açma fonksiyonu
@@ -897,7 +891,6 @@
     // Modalı açtığımızda paneli yükle (eğer zaten yüklenmemişse veya güncel değilse)
     loadPendingUsers();
     loadAllUsers();
-    loadPendingSpecialPurchases(); // Load pending special purchases for admin
   }
 
   // Admin panel modalını kapatma fonksiyonu
@@ -958,7 +951,6 @@
             highestCurrentBalance = usersData[u].balance || 0;
             highestCurrentBalanceUser = u;
           }
-          // Correctly identify the user with the highest highestBalanceEver
           if ((usersData[u].highestBalanceEver || 0) > highestEverBalance) {
             highestEverBalance = usersData[u].highestBalanceEver || 0;
             highestEverBalanceUser = u;
@@ -1716,7 +1708,7 @@
           displayContent = `<span class="text-red-400 text-2xl">💣</span>`;
           div.classList.add('bg-red-700', 'border-red-500');
         } else if (box.content === 'multiplier') {
-          displayContent = `<span class="text-blue-400 text-2xl">${box.value}X</span>`;
+          displayContent = `<span class="text-blue-400 text-xl">${box.value}X</span>`;
           div.classList.add('bg-blue-700', 'border-blue-500', 'animate-pulse');
         }
         
@@ -2421,7 +2413,6 @@
     customConfirm(`${item.name} ürününü ${item.cost} puan karşılığında satın almak istediğinize emin misiniz?`, async (result) => {
       if (result) {
         try {
-          console.log("Satın alma işlemi başlatılıyor...");
           let newBalance = (user.balance || 0) - item.cost;
           let newTotalSpentPoints = (user.totalSpentPoints || 0) + item.cost;
           let updates = {
@@ -2431,7 +2422,6 @@
           let itemUpdates = {};
 
           let message = `${item.name} başarıyla satın alındı! Yeni bakiyeniz: ${newBalance}.`;
-          let purchaseStatus = 'completed'; // Default status
 
           if (item.type === 'boxRights') {
             updates.kutuHakki = (user.kutuHakki || 0) + item.value;
@@ -2440,7 +2430,7 @@
             // Check if a store multiplier is already active
             if (user.multiplierSource === 'store' && user.multiplierRemainingUses > 0) {
               displayMessage("Zaten aktif bir mağaza çarpanınız var. Yeni bir çarpan satın alamazsiniz.");
-              return; // Exit here if already has a store multiplier
+              return;
             }
             updates.activeMultiplier = item.value;
             updates.multiplierSource = 'store';
@@ -2450,57 +2440,40 @@
             updates.iflasShieldUses = (user.iflasShieldUses || 0) + item.value;
             message += ` ${item.value} adet iflas kalkanı kazandınız! Toplam kalkan: ${updates.iflasShieldUses}.`;
           } else if (item.type === 'special') {
-            // For special items, deduct points but mark as pending for admin approval
-            // The item.value (e.g., bonus points) is NOT applied here.
-            purchaseStatus = 'pending';
-            message = `Özel ürün "${item.name}" satın alındı! Admin onayı bekleniyor.`;
+            message += ` Özel ürün "${item.name}" etkinleştirildi!`;
+            if (item.value) {
+                updates.balance = (updates.balance || 0) + item.value;
+                message += ` (+${item.value} puan)`;
+            }
           }
 
           // Decrement stock if applicable
           if (item.stock !== undefined && item.stock > 0) {
               itemUpdates.stock = item.stock - 1;
-              console.log("Stok güncelleniyor:", itemUpdates);
               await db.ref('storeItems/' + itemId).update(itemUpdates);
-              console.log("Stok güncellendi.");
-          } else if (item.stock === 0) { // Explicitly handle if stock is already 0, though checked earlier
-              displayMessage("Bu ürün stokta kalmıştır.");
-              return;
           }
-          // If item.stock is undefined (unlimited), no update is needed for stock.
 
-          console.log("Kullanıcı verisi güncelleniyor:", updates);
-          await userRef.update(updates); // Update user data first
-          console.log("Kullanıcı verisi güncellendi.");
+          await userRef.update(updates);
+          displayMessage(message);
+          loadBalanceAndBoxRights();
+          loadUserRankingsAndBoxCounts();
+          loadLeaderboardRanking();
+          loadStoreItems();
 
           // Record purchase in history
-          const newPurchaseRef = db.ref('purchaseHistory').push(); // Get a new push ref first
-          const purchaseId = newPurchaseRef.key; // Get the key immediately
-
-          const purchaseRecord = {
-              timestamp: firebase.database.ServerValue.TIMESTAMP, // Ensure timestamp is set by server
+          await db.ref('purchaseHistory').push({
+              timestamp: firebase.database.ServerValue.TIMESTAMP,
               username: currentUser,
               itemName: item.name,
               itemCost: item.cost,
               itemType: item.type,
               itemValue: item.value,
-              imageUrl: item.imageUrl || 'https://placehold.co/50x50/333333/FFFFFF?text=Item',
-              status: purchaseStatus,
-              purchaseId: purchaseId
-          };
-          console.log("Satın alma kaydı yazılıyor:", purchaseRecord);
-          await newPurchaseRef.set(purchaseRecord); // Use set to write the full record
-          console.log("Satın alma kaydı yazıldı.");
-
-          displayMessage(message); // Display success message only after all operations
-          loadBalanceAndBoxRights();
-          loadUserRankingsAndBoxCounts();
-          loadLeaderboardRanking();
-          loadStoreItems();
+              imageUrl: item.imageUrl || 'https://placehold.co/50x50/333333/FFFFFF?text=Item'
+          });
           loadPurchaseHistory();
-          if (isAdmin) loadPendingSpecialPurchases(); // Refresh admin view
         } catch (error) {
-          console.error("Ürün satın alma işlemi sırasında detaylı hata: ", error); // More specific error log
-          displayMessage("Ürün satın alınırken bir hata oluştu. Lütfen konsolu kontrol edin veya admin ile iletişime geçin.");
+          console.error("Ürün satın alma hatası: ", error);
+          
         }
       }
     });
@@ -2836,7 +2809,7 @@
     // Clear previous content and show loading message
     purchaseHistoryList.innerHTML = '<div class="text-center text-gray-400">Satın alma geçmişi yükleniyor...</div>';
 
-    db.ref('purchaseHistory').orderByChild('timestamp').on('value', snap => { // Removed limitToLast(50)
+    db.ref('purchaseHistory').orderByChild('timestamp').limitToLast(50).on('value', snap => {
       const history = snap.val();
       let html = '';
       if (!history) {
@@ -2846,28 +2819,12 @@
         const sortedHistory = Object.values(history).sort((a, b) => b.timestamp - a.timestamp);
         
         sortedHistory.forEach(record => {
-          // Only show records for the current user if not admin
-          if (!isAdmin && record.username !== currentUser) {
-            return;
-          }
-
           const date = new Date(record.timestamp).toLocaleString('tr-TR');
-          let statusBadge = '';
-          if (record.itemType === 'special') {
-              if (record.status === 'pending') {
-                  statusBadge = `<span class="text-yellow-400 text-sm ml-2">(Onay Bekliyor)</span>`;
-              } else if (record.status === 'approved') {
-                  statusBadge = `<span class="text-green-400 text-sm ml-2">(Onaylandı)</span>`;
-              } else if (record.status === 'rejected') {
-                  statusBadge = `<span class="text-red-400 text-sm ml-2">(Reddedildi)</span>`;
-              }
-          }
-
           html += `
             <div class="flex items-center p-3 mb-2 bg-gray-700 rounded-md border-l-4 border-blue-500">
               <img src="${record.imageUrl || 'https://placehold.co/50x50/333333/FFFFFF?text=Item'}" alt="${record.itemName}" class="w-12 h-12 rounded-full mr-4 object-cover">
               <div>
-                <p class="text-gray-200 font-semibold">${record.username} <span class="text-yellow-300">${record.itemName}</span> satın aldı!${statusBadge}</p>
+                <p class="text-gray-200 font-semibold">${record.username} <span class="text-yellow-300">${record.itemName}</span> satın aldı!</p>
                 <p class="text-sm text-gray-400">Maliyet: ${record.itemCost} Puan | Tip: ${record.itemType} | Değer: ${record.itemValue !== null ? record.itemValue : 'N/A'}</p>
                 <p class="text-xs text-gray-500">${date}</p>
               </div>
@@ -2875,7 +2832,7 @@
           `;
         });
       }
-      purchaseHistoryList.innerHTML = html || '<div class="text-center text-gray-400">Henüz satın alma geçmişi yok.</div>';
+      purchaseHistoryList.innerHTML = html;
     });
   }
 
@@ -2887,7 +2844,6 @@
           await db.ref('purchaseHistory').remove();
           displayMessage("Satın alma geçmişi başarıyla temizlendi!");
           loadPurchaseHistory();
-          loadPendingSpecialPurchases(); // Refresh admin view
         } catch (error) {
           console.error("Satın alma geçmişi temizleme hatası:", error);
           displayMessage("Satın alma geçmişi temizlenirken bir hata oluştu.");
@@ -2992,21 +2948,11 @@
           if (filteredHistory.length > 0) {
             filteredHistory.forEach(record => {
               const date = new Date(record.timestamp).toLocaleString('tr-TR');
-              let statusBadge = '';
-              if (record.itemType === 'special') {
-                  if (record.status === 'pending') {
-                      statusBadge = `<span class="text-yellow-400 text-sm ml-2">(Onay Bekliyor)</span>`;
-                  } else if (record.status === 'approved') {
-                      statusBadge = `<span class="text-green-400 text-sm ml-2">(Onaylandı)</span>`;
-                  } else if (record.status === 'rejected') {
-                      statusBadge = `<span class="text-red-400 text-sm ml-2">(Reddedildi)</span>`;
-                  }
-              }
               userHistoryHtml += `
                 <div class="flex items-center p-3 mb-2 bg-gray-700 rounded-md border-l-4 border-blue-500">
                   <img src="${record.imageUrl || 'https://placehold.co/50x50/333333/FFFFFF?text=Item'}" alt="${record.itemName}" class="w-10 h-10 rounded-full mr-3 object-cover">
                   <div>
-                    <p class="text-gray-200 font-semibold">${record.itemName}${statusBadge}</p>
+                    <p class="text-gray-200 font-semibold">${record.itemName}</p>
                     <p class="text-sm text-gray-400">Maliyet: ${record.itemCost} Puan | Tip: ${record.itemType} | Değer: ${record.itemValue !== null ? record.itemValue : 'N/A'}</p>
                     <p class="text-xs text-gray-500">${date}</p>
                   </div>
@@ -3032,129 +2978,6 @@
     userManagementModal.style.display = 'none';
     selectedUserForManagement = null;
     loadAllUsers();
-  }
-
-  // Admin: Load Pending Special Purchases
-  function loadPendingSpecialPurchases() {
-    const container = document.getElementById('pendingSpecialPurchases');
-    container.innerHTML = '<div class="text-center text-gray-400">Özel ürün onayları yükleniyor...</div>';
-
-    db.ref('purchaseHistory').orderByChild('timestamp').on('value', snap => {
-      const allHistory = snap.val();
-      let html = '';
-      if (allHistory) {
-        const pendingItems = Object.entries(allHistory)
-          .filter(([key, record]) => record.itemType === 'special' && record.status === 'pending')
-          .sort(([, a], [, b]) => a.timestamp - b.timestamp); // Sort ascending by timestamp for oldest first
-
-        if (pendingItems.length > 0) {
-          pendingItems.forEach(([purchaseId, record]) => {
-            const date = new Date(record.timestamp).toLocaleString('tr-TR');
-            html += `
-              <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 mb-2 bg-gray-700 rounded-md border-l-4 border-yellow-500">
-                <div class="mb-2 sm:mb-0">
-                    <p class="text-gray-200 font-semibold">${record.username} - <span class="text-yellow-300">${record.itemName}</span> (${record.itemCost} Puan)</p>
-                    <p class="text-sm text-gray-400">Değer: ${record.itemValue !== null ? record.itemValue : 'N/A'} | Tarih: ${date}</p>
-                </div>
-                <div class="flex flex-wrap gap-2">
-                  <button onclick="approveSpecialPurchase('${purchaseId}', '${record.username}', '${record.itemName}', ${record.itemValue || 0}, ${record.itemCost})"
-                          class="py-1 px-3 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded-md transition duration-200">Onayla</button>
-                  <button onclick="rejectSpecialPurchase('${purchaseId}', '${record.username}', '${record.itemName}', ${record.itemCost})"
-                          class="py-1 px-3 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-md transition duration-200">Reddet</button>
-                </div>
-              </div>
-            `;
-          });
-        } else {
-          html = '<div class="text-center text-gray-400">Onay bekleyen özel ürün alımı yok.</div>';
-        }
-      } else {
-        html = '<div class="text-center text-gray-400">Henüz satın alma geçmişi yok.</div>';
-      }
-      container.innerHTML = html;
-    });
-  }
-
-  // Admin: Approve Special Purchase
-  async function approveSpecialPurchase(purchaseId, username, itemName, itemValue, itemCost) {
-    customConfirm(`${username} kullanıcısının "${itemName}" özel ürün alımını onaylamak istediğinize emin misiniz? Kullanıcıya ${itemValue} puan eklenecektir.`, async (result) => {
-      if (result) {
-        try {
-          const userRef = db.ref('users/' + username);
-          const userSnap = await userRef.once('value');
-          let userData = userSnap.val();
-
-          if (userData) {
-            let newBalance = (userData.balance || 0) + itemValue;
-            await userRef.update({ balance: newBalance });
-
-            await db.ref('purchaseHistory/' + purchaseId).update({
-              status: 'approved',
-              adminActionTimestamp: firebase.database.ServerValue.TIMESTAMP
-            });
-
-            displayMessage(`${username} kullanıcısının "${itemName}" alımı onaylandı. ${itemValue} puan eklendi.`);
-            loadPendingSpecialPurchases();
-            loadPurchaseHistory(); // Refresh user's history
-            loadUserRankingsAndBoxCounts(); // Update leaderboard if balance changed
-            loadLeaderboardRanking();
-          } else {
-            displayMessage("Kullanıcı bulunamadı, onaylama işlemi iptal edildi.");
-            await db.ref('purchaseHistory/' + purchaseId).update({
-              status: 'rejected', // Mark as rejected if user not found
-              adminActionTimestamp: firebase.database.ServerValue.TIMESTAMP,
-              adminComment: "Kullanıcı bulunamadığı için sistem tarafından reddedildi."
-            });
-            loadPendingSpecialPurchases();
-            loadPurchaseHistory();
-          }
-        } catch (error) {
-          console.error("Özel ürün onaylama hatası:", error);
-          displayMessage("Özel ürün onaylanırken bir hata oluştu.");
-        }
-      }
-    });
-  }
-
-  // Admin: Reject Special Purchase
-  async function rejectSpecialPurchase(purchaseId, username, itemName, itemCost) {
-    customConfirm(`${username} kullanıcısının "${itemName}" özel ürün alımını reddetmek istediğinize emin misiniz? Kullanıcıya ${itemCost} puan iade edilecektir.`, async (result) => {
-      if (result) {
-        try {
-          const userRef = db.ref('users/' + username);
-          const userSnap = await userRef.ref.once('value'); // Corrected from userRef.once('value') to userRef.ref.once('value')
-          let userData = userSnap.val();
-
-          if (userData) {
-            let newBalance = (userData.balance || 0) + itemCost;
-            await userRef.update({ balance: newBalance });
-
-            await db.ref('purchaseHistory/' + purchaseId).update({
-              status: 'rejected',
-              adminActionTimestamp: firebase.database.ServerValue.TIMESTAMP
-            });
-
-            displayMessage(`${username} kullanıcısının "${itemName}" alımı reddedildi. ${itemCost} puan iade edildi.`);
-            loadPendingSpecialPurchases();
-            loadPurchaseHistory(); // Refresh user's history
-            loadUserRankingsAndBoxCounts(); // Update leaderboard if balance changed
-            loadLeaderboardRanking();
-          } else {
-            displayMessage("Kullanıcı bulunamadı, reddetme işlemi iptal edildi.");
-            await db.ref('purchaseHistory/' + purchaseId).update({
-              status: 'rejected', // Still mark as rejected if user not found
-              adminActionTimestamp: firebase.database.ServerValue.TIMESTAMP,
-              adminComment: "Kullanıcı bulunamadığı için sistem tarafından reddedildi."
-            });
-            loadPendingSpecialPurchases();
-            loadPurchaseHistory();
-          }
-        } catch (error) {
-          console.error("Özel ürün reddetme hatası:", error);
-          displayMessage("Özel ürün reddedilirken bir hata oluştu.");
-        }
-      }
-    });
   }
 
 </script>
