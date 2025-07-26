@@ -159,10 +159,11 @@
           <input type="number" id="newItemValue" placeholder="Değer (Kutu Hakkı Adedi / Çarpan Değeri)" class="w-full p-2 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
           <!-- Multiplier Duration Input - Re-added -->
           <input type="number" id="newItemMultiplierDuration" placeholder="Çarpan Süresi (Kutu Sayısı)" min="1" class="w-full p-2 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white hidden focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
-          <label for="newItemCountdownStart" class="text-gray-300 text-sm block mt-2 mb-1 text-left">Geri Sayım Başlangıç Tarihi/Saati (Opsiyonel):</label>
-          <input type="datetime-local" id="newItemCountdownStart" class="w-full p-2 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
-          <label for="newItemCountdownEnd" class="text-gray-300 text-sm block mt-2 mb-1 text-left">Geri Sayım Bitiş Tarihi/Saati (Opsiyonel):</label>
-          <input type="datetime-local" id="newItemCountdownEnd" class="w-full p-2 mb-4 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
+          
+          <!-- NEW: Single Countdown Duration Input -->
+          <label for="newItemCountdownDuration" class="text-gray-300 text-sm block mt-2 mb-1 text-left">Geri Sayım Süresi (Dakika, Boş Bırakılırsa Süresiz):</label>
+          <input type="number" id="newItemCountdownDuration" placeholder="Dakika" min="1" class="w-full p-2 mb-4 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
+          
           <input type="text" id="newItemImageUrl" placeholder="Resim URL (Opsiyonel)" class="w-full p-2 mb-4 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
           <button onclick="saveStoreItem()" id="addUpdateStoreItemBtn" class="w-full py-2 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">ÜRÜN EKLE</button>
           <button onclick="resetStoreItemForm()" class="w-full py-2 mt-2 bg-gray-600 hover:bg-gray-500 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">Formu Temizle</button>
@@ -229,7 +230,7 @@
               Tüm Kutuları Aç
             </button>
             <button onclick="resetGame()"
-                    class="py-2 px-4 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
+                    class="py-2 px-4 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg shadow-md hover:-translate-y-1 transition duration-300">
               Oyunu Baştan Başlat
             </button>
             <button onclick="restartSystem()"
@@ -1925,12 +1926,11 @@
     Object.keys(items).forEach(itemId => {
       const item = items[itemId];
       const now = Date.now();
-      const startTime = item.countdownStartTime ? new Date(item.countdownStartTime).getTime() : 0;
-      const endTime = item.countdownEndTime ? new Date(item.countdownEndTime).getTime() : Infinity;
+      // Use item.countdownEndTime directly, null for timeless
+      const endTime = item.countdownEndTime === null ? Infinity : item.countdownEndTime; 
 
-      const isAvailable = (item.stock === undefined || item.stock > 0) && (now >= startTime && now <= endTime);
-      const isComingSoon = now < startTime && startTime !== 0;
-      const isExpired = now > endTime && endTime !== Infinity;
+      const isAvailable = (item.stock === undefined || item.stock > 0) && (now < endTime); // Available if stock > 0 and not expired
+      const isExpired = now >= endTime && endTime !== Infinity;
       const outOfStock = item.stock !== undefined && item.stock <= 0;
 
       let statusText = '';
@@ -1941,19 +1941,19 @@
           statusText = '<span class="text-red-500 font-bold">Stokta Yok!</span>';
           buttonDisabled = 'disabled';
           buttonClass = 'bg-gray-600 cursor-not-allowed';
-      } else if (isComingSoon) {
-          statusText = `<span class="text-yellow-500 font-bold">Yakında!</span><br><span class="text-sm text-gray-400">${formatTimeLeft(startTime - now)}</span>`;
-          buttonDisabled = 'disabled';
-          buttonClass = 'bg-gray-600 cursor-not-allowed';
       } else if (isExpired) {
           statusText = '<span class="text-red-500 font-bold">Süresi Doldu!</span>';
           buttonDisabled = 'disabled';
           buttonClass = 'bg-gray-600 cursor-not-allowed';
-      } else {
-          statusText = `<span class="text-green-500 font-bold">Stok: ${item.stock !== undefined ? item.stock : 'Sınırsız'}</span>`;
-          if (item.countdownEndTime) {
-              statusText += `<br><span class="text-sm text-gray-400">Kalan: ${formatTimeLeft(endTime - now)}</span>`;
-          }
+      } else if (item.countdownEndTime === null) { // Timeless item
+          statusText = `<span class="text-green-500 font-bold">Stok: ${item.stock !== undefined ? item.stock : 'Sınırsız'}</span><br><span class="text-yellow-400">Süresiz</span>`;
+      } else { // Timed item
+          statusText = `<span class="text-green-500 font-bold">Stok: ${item.stock !== undefined ? item.stock : 'Sınırsız'}</span><br><span class="text-sm text-gray-400">Kalan: ${formatTimeLeft(endTime - now)}</span>`;
+      }
+      
+      if (!isAvailable) { // Disable button if not available due to stock or time
+          buttonDisabled = 'disabled';
+          buttonClass = 'bg-gray-600 cursor-not-allowed';
       }
 
       const itemHtml = `
@@ -2025,14 +2025,9 @@
     }
 
     const now = Date.now();
-    const startTime = item.countdownStartTime ? new Date(item.countdownStartTime).getTime() : 0;
-    const endTime = item.countdownEndTime ? new Date(item.countdownEndTime).getTime() : Infinity;
+    const endTime = item.countdownEndTime === null ? Infinity : item.countdownEndTime;
 
-    if (now < startTime) {
-        displayMessage("Bu ürün henüz satışa sunulmadı.");
-        return;
-    }
-    if (now > endTime) {
+    if (now >= endTime && endTime !== Infinity) {
         displayMessage("Bu ürünün satış süresi doldu.");
         return;
     }
@@ -2078,7 +2073,6 @@
             // Example: updates.specialItemFlag = true;
             // If the special item has a value, you can use item.value
             if (item.value) {
-                // Example: give points for a special item
                 updates.balance = (updates.balance || 0) + item.value;
                 message += ` (+${item.value} puan)`;
             }
@@ -2127,9 +2121,16 @@
       if (item.stock !== undefined) {
           itemDetails += ` - Stok: ${item.stock}`;
       }
-      if (item.countdownStartTime && item.countdownEndTime) {
-          itemDetails += ` - Geri Sayım: ${new Date(item.countdownStartTime).toLocaleString()} - ${new Date(item.countdownEndTime).toLocaleString()}`;
+      
+      let countdownInfo = '';
+      if (item.countdownEndTime === null) {
+          countdownInfo = 'Süresiz';
+      } else {
+          const timeLeft = item.countdownEndTime - Date.now();
+          countdownInfo = `Kalan: ${formatTimeLeft(timeLeft)}`;
+          if (timeLeft <= 0) countdownInfo = 'Süresi Doldu';
       }
+      itemDetails += ` - Geri Sayım: ${countdownInfo}`;
 
 
       container.innerHTML += `
@@ -2183,7 +2184,8 @@
             "type": "boxRights",
             "value": 5,
             "stock": 100, // Initial stock
-            "imageUrl": "https://placehold.co/100x100/00FF00/FFFFFF?text=5+Box"
+            "imageUrl": "https://placehold.co/100x100/00FF00/FFFFFF?text=5+Box",
+            "countdownEndTime": null // Süresiz
           },
           "item2": {
             "name": "Geçici 2X Çarpan (3 Kutu)",
@@ -2193,7 +2195,8 @@
             "value": 2,
             "duration": 3, // For 3 boxes
             "stock": 50, // Initial stock
-            "imageUrl": "https://placehold.co/100x100/0000FF/FFFFFF?text=2X"
+            "imageUrl": "https://placehold.co/100x100/0000FF/FFFFFF?text=2X",
+            "countdownEndTime": null // Süresiz
           },
           "item3": {
             "name": "Geçici 3X Çarpan (2 Kutu)",
@@ -2203,7 +2206,8 @@
             "value": 3,
             "duration": 2, // For 2 boxes
             "stock": 20, // Initial stock
-            "imageUrl": "https://placehold.co/100x100/FF0000/FFFFFF?text=3X"
+            "imageUrl": "https://placehold.co/100x100/FF0000/FFFFFF?text=3X",
+            "countdownEndTime": null // Süresiz
           },
           "item4": {
             "name": "10 Kutu Hakkı Paketi",
@@ -2212,7 +2216,8 @@
             "type": "boxRights",
             "value": 10,
             "stock": 80, // Initial stock
-            "imageUrl": "https://placehold.co/100x100/00FF00/FFFFFF?text=10+Box"
+            "imageUrl": "https://placehold.co/100x100/00FF00/FFFFFF?text=10+Box",
+            "countdownEndTime": null // Süresiz
           },
           "item5": {
             "name": "Özel Hediye Kutusu",
@@ -2221,8 +2226,7 @@
             "type": "special",
             "value": 10000, // Example: gives 10000 points
             "stock": 5, // Limited stock
-            "countdownStartTime": new Date(Date.now() - 3600 * 1000).toISOString().slice(0,16), // Starts 1 hour ago
-            "countdownEndTime": new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString().slice(0,16), // Ends in 7 days
+            "countdownEndTime": Date.now() + 7 * 24 * 60 * 60 * 1000, // Ends in 7 days from now (timestamp)
             "imageUrl": "https://placehold.co/100x100/800080/FFFFFF?text=Special"
           }
         }).catch(error => console.error("Default store items setup error:", error));
@@ -2240,8 +2244,7 @@
     document.getElementById('newItemValue').value = '';
     document.getElementById('newItemMultiplierDuration').value = ''; // Clear new multiplier duration
     document.getElementById('newItemMultiplierDuration').classList.add('hidden'); // Hide it
-    document.getElementById('newItemCountdownStart').value = ''; // Clear countdown start
-    document.getElementById('newItemCountdownEnd').value = ''; // Clear countdown end
+    document.getElementById('newItemCountdownDuration').value = ''; // Clear new countdown duration
     document.getElementById('newItemImageUrl').value = '';
     document.getElementById('newItemValue').placeholder = "Değer (Kutu Hakkı Adedi / Çarpan Değeri)"; // Reset placeholder
     
@@ -2260,8 +2263,7 @@
     const type = document.getElementById('newItemType').value;
     const valueInput = document.getElementById('newItemValue').value.trim();
     const multiplierDurationInput = document.getElementById('newItemMultiplierDuration').value.trim(); // Get new multiplier duration input
-    const countdownStartTime = document.getElementById('newItemCountdownStart').value;
-    const countdownEndTime = document.getElementById('newItemCountdownEnd').value;
+    const countdownDurationInput = document.getElementById('newItemCountdownDuration').value.trim(); // NEW: Get countdown duration
     const imageUrl = document.getElementById('newItemImageUrl').value.trim();
 
     // Basic validation
@@ -2306,26 +2308,15 @@
         }
     }
 
-    // Countdown validation
-    let finalCountdownStartTime = null;
+    // NEW: Countdown Duration logic
     let finalCountdownEndTime = null;
-    if (countdownStartTime) {
-        finalCountdownStartTime = new Date(countdownStartTime).toISOString().slice(0,16);
-        if (isNaN(new Date(finalCountdownStartTime).getTime())) {
-            displayMessage("Geçerli bir Geri Sayım Başlangıç Tarihi/Saati girin.");
+    if (countdownDurationInput !== '') {
+        const durationMinutes = parseInt(countdownDurationInput);
+        if (isNaN(durationMinutes) || durationMinutes <= 0) {
+            displayMessage("Geri Sayım Süresi için geçerli bir pozitif dakika değeri girin.");
             return;
         }
-    }
-    if (countdownEndTime) {
-        finalCountdownEndTime = new Date(countdownEndTime).toISOString().slice(0,16);
-        if (isNaN(new Date(finalCountdownEndTime).getTime())) {
-            displayMessage("Geçerli bir Geri Sayım Bitiş Tarihi/Saati girin.");
-            return;
-        }
-    }
-    if (finalCountdownStartTime && finalCountdownEndTime && new Date(finalCountdownStartTime).getTime() >= new Date(finalCountdownEndTime).getTime()) {
-        displayMessage("Geri Sayım Başlangıç Tarihi/Saati, Bitiş Tarihi/Saati'nden önce olmalıdır.");
-        return;
+        finalCountdownEndTime = Date.now() + durationMinutes * 60 * 1000;
     }
 
 
@@ -2337,15 +2328,13 @@
       type,
       value: value,
       imageUrl: imageUrl || 'https://placehold.co/100x100/333333/FFFFFF?text=Item',
+      countdownEndTime: finalCountdownEndTime // NEW: Store countdown end time
     };
     if (type === 'tempMultiplier') {
       itemData.duration = finalMultiplierDuration; // Use the new duration field
     } else {
       delete itemData.duration; // Ensure duration is not stored for other types
     }
-
-    if (finalCountdownStartTime) itemData.countdownStartTime = finalCountdownStartTime;
-    if (finalCountdownEndTime) itemData.countdownEndTime = finalCountdownEndTime;
 
     try {
       if (editingItemId) {
@@ -2378,8 +2367,6 @@
         document.getElementById('newItemType').value = item.type;
         document.getElementById('newItemValue').value = item.value !== null ? item.value : ''; // Handle null for special items
         document.getElementById('newItemImageUrl').value = item.imageUrl || '';
-        document.getElementById('newItemCountdownStart').value = item.countdownStartTime || ''; // Populate countdown start
-        document.getElementById('newItemCountdownEnd').value = item.countdownEndTime || ''; // Populate countdown end
         
         // Populate new multiplier duration field
         if (item.type === 'tempMultiplier') {
@@ -2390,6 +2377,9 @@
             document.getElementById('newItemMultiplierDuration').value = '';
         }
 
+        // NEW: Clear countdown duration, admin sets a new one on save
+        document.getElementById('newItemCountdownDuration').value = '';
+        
         const newItemTypeSelect = document.getElementById('newItemType');
         newItemTypeSelect.value = item.type;
         newItemTypeSelect.dispatchEvent(new Event('change')); // Manually trigger change event
