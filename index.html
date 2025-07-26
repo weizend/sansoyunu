@@ -8,7 +8,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <!-- Google Fonts - Inter -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<!-- Firebase JS SDK v8.10.1 (Kullanıcının isteği üzerine eski sürüm geri yüklendi) -->
+<!-- Firebase JS SDK v8.10.1 -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -115,6 +115,11 @@
               class="py-3 px-8 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
         Mağaza
       </button>
+      <!-- NEW: Purchase History Tab Button -->
+      <button id="purchaseHistoryTabBtn" onclick="showSection('purchaseHistory')"
+              class="py-3 px-8 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
+        Satın Alma Geçmişi
+      </button>
     </div>
 
     <!-- Game Content (Existing) -->
@@ -154,9 +159,10 @@
             <option value="">Ürün Tipi Seçin</option>
             <option value="boxRights">Kutu Hakkı</option>
             <option value="tempMultiplier">Geçici Çarpan</option>
+            <option value="iflasShield">İflas Kalkanı</option> <!-- NEW: IFLAS KALKANI -->
             <option value="special">Özel Ürün</option>
           </select>
-          <input type="number" id="newItemValue" placeholder="Değer (Kutu Hakkı Adedi / Çarpan Değeri)" class="w-full p-2 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
+          <input type="number" id="newItemValue" placeholder="Değer (Kutu Hakkı Adedi / Çarpan Değeri / Kalkan Kullanım Sayısı)" class="w-full p-2 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
           <!-- Multiplier Duration Input - Re-added -->
           <input type="number" id="newItemMultiplierDuration" placeholder="Çarpan Süresi (Kutu Sayısı)" min="1" class="w-full p-2 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white hidden focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
           
@@ -175,6 +181,15 @@
       <div id="storeItemsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-4">
         <!-- Store items will be rendered here -->
       </div>
+    </div>
+
+    <!-- NEW: Purchase History Section -->
+    <div id="purchaseHistorySection" class="w-full hidden">
+        <h3 class="text-yellow-400 text-3xl font-bold mb-6 text-center">Satın Alma Geçmişi</h3>
+        <div id="purchaseHistoryList" class="bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700 w-full max-w-2xl mx-auto scrollable-list max-h-[70vh] overflow-y-auto">
+            <!-- Purchase history items will be rendered here -->
+            <div class='text-center text-gray-400'>Satın alma geçmişi yükleniyor...</div>
+        </div>
     </div>
   </div>
 
@@ -226,7 +241,7 @@
           </div>
           <div class="flex flex-wrap gap-2 justify-center mt-4">
             <button onclick="revealAll()"
-                    class="py-2 px-4 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
+                    class="py-2 px-4 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg shadow-md hover:-translate-y-1 transition duration-300">
               Tüm Kutuları Aç
             </button>
             <button onclick="resetGame()"
@@ -236,6 +251,16 @@
             <button onclick="restartSystem()"
                     class="py-2 px-4 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg shadow-md hover:-translate-y-1 transition duration-300">
               Sistemi Baştan Başlat
+            </button>
+            <!-- NEW: Clear Total Spent Points Button -->
+            <button onclick="clearAllTotalSpentPoints()"
+                    class="py-2 px-4 bg-orange-700 hover:bg-orange-600 text-white font-bold rounded-lg shadow-md hover:-translate-y-1 transition duration-300">
+              Harcanan Puanları Sıfırla
+            </button>
+            <!-- NEW: Clear Purchase History Button -->
+            <button onclick="clearPurchaseHistory()"
+                    class="py-2 px-4 bg-orange-700 hover:bg-orange-600 text-white font-bold rounded-lg shadow-md hover:-translate-y-1 transition duration-300">
+              Satın Alma Geçmişini Temizle
             </button>
           </div>
         </div>
@@ -447,22 +472,29 @@
   let surpriseBoxMultiplier = 1; // Sürpriz kutudan kazanılan puanlara uygulanacak çarpan
 
   let editingItemId = null; // Global variable to store the ID of the item being edited
+  let currentActiveSection = 'game'; // Track the currently active section
 
   // Yeni fonksiyon: Bölüm değiştirme
   function showSection(sectionId) {
+    // Hide all content sections first
     document.getElementById('gameContent').classList.add('hidden');
     document.getElementById('storeSection').classList.add('hidden');
+    document.getElementById('purchaseHistorySection').classList.add('hidden'); // NEW: Hide purchase history section
 
-    // Admin store controls visibility
-    if (isAdmin) {
-        document.getElementById('adminStoreControls').classList.add('hidden');
-    }
-
+    // Reset all tab buttons to inactive style
     document.getElementById('gameTabBtn').classList.remove('bg-red-700', 'hover:bg-red-600');
     document.getElementById('gameTabBtn').classList.add('bg-gray-700', 'hover:bg-gray-600');
     document.getElementById('storeTabBtn').classList.remove('bg-red-700', 'hover:bg-red-600');
     document.getElementById('storeTabBtn').classList.add('bg-gray-700', 'hover:bg-gray-600');
+    document.getElementById('purchaseHistoryTabBtn').classList.remove('bg-red-700', 'hover:bg-red-600'); // NEW
+    document.getElementById('purchaseHistoryTabBtn').classList.add('bg-gray-700', 'hover:bg-gray-600'); // NEW
 
+    // Admin store controls visibility (only visible if store section is active AND user is admin)
+    if (isAdmin) {
+        document.getElementById('adminStoreControls').classList.add('hidden');
+    }
+
+    // Show the selected section and apply active style to its button
     if (sectionId === 'game') {
       document.getElementById('gameContent').classList.remove('hidden');
       document.getElementById('gameTabBtn').classList.remove('bg-gray-700', 'hover:bg-gray-600');
@@ -478,6 +510,12 @@
           document.getElementById('adminStoreControls').classList.remove('hidden');
           loadAdminStoreItems(); // Load admin view of store items
       }
+    } else if (sectionId === 'purchaseHistory') { // NEW: Purchase History Section
+      document.getElementById('purchaseHistorySection').classList.remove('hidden');
+      document.getElementById('purchaseHistoryTabBtn').classList.remove('bg-gray-700', 'hover:bg-gray-600');
+      document.getElementById('purchaseHistoryTabBtn').classList.add('bg-red-700', 'hover:bg-red-600');
+      currentActiveSection = 'purchaseHistory';
+      loadPurchaseHistory(); // Load purchase history when section is shown
     }
   }
 
@@ -593,6 +631,7 @@
           activeMultiplier: 1, // Default multiplier value
           multiplierSource: 'none', // 'none', 'box', 'store'
           multiplierRemainingUses: 0, // For store multipliers
+          iflasShieldUses: 0, // NEW: IFLAS KALKANI uses
           registeredAt: new Date().toLocaleString()
         }).then(() => {
           displayMessage("Hesabınız başarıyla oluşturuldu! Kick kullanıcı adı doğrulaması bekleniyor.");
@@ -718,6 +757,7 @@
     loadUserRankingsAndBoxCounts();
     loadBoxes();
     loadTotalOpenedBoxesCount();
+    loadPurchaseHistory(); // NEW: Load purchase history on login
   }
 
   // Admin panel modalını açma fonksiyonu
@@ -726,7 +766,6 @@
     // Modalı açtığımızda paneli yükle (eğer zaten yüklenmemişse veya güncel değilse)
     loadPendingUsers();
     loadAllUsers();
-    // loadAdminStoreItems(); // Mağaza ürünlerini admin panelinde yükle - ARTIK MAĞAZA SEKMESİNDE
   }
 
   // Admin panel modalını kapatma fonksiyonu
@@ -1461,7 +1500,11 @@
     const box = boxes[index];
 
     if (box.content === 'iflas') {
-      if (finalMultiplier > 1) { // If any multiplier is active, it protects from iflas
+      // NEW: Check for iflas shield
+      if ((user.iflasShieldUses || 0) > 0) {
+        user.iflasShieldUses--; // Consume one shield use
+        message = `İflas! Ancak iflas kalkanınız sizi korudu. Kalan iflas kalkanı: ${user.iflasShieldUses}.`;
+      } else if (finalMultiplier > 1) { // If any multiplier is active, it protects from iflas
         message = `${finalMultiplier}x çarpanı koruma sağladı! İflas etkisiz kaldı. Bir kutu hakkı hediye edildi.`;
         user.kutuHakki = (user.kutuHakki || 0) + 1;
       } else {
@@ -1486,7 +1529,7 @@
     else if (box.content === 'multiplier') {
       user.kutuHakki = (user.kutuHakki || 0) + 1; // Always give a box right for finding a multiplier box
 
-      if (user.multiplierSource === 'store') {
+      if (user.multiplierSource === 'store' && user.multiplierRemainingUses > 0) {
           // If a store multiplier is active, a box multiplier just gives a bonus box right.
           message = `Zaten aktif bir mağaza çarpanınız aktif. Bir kutu hakkı kazandınız.`;
       } else {
@@ -1512,6 +1555,7 @@
     updates['activeMultiplier'] = user.activeMultiplier;
     updates['multiplierSource'] = user.multiplierSource;
     updates['multiplierRemainingUses'] = user.multiplierRemainingUses;
+    updates['iflasShieldUses'] = user.iflasShieldUses; // NEW: Update iflas shield uses
 
     await userRef.update(updates) // Eski Firebase Realtime DB update() kullanımı
       .then(() => {
@@ -1618,6 +1662,7 @@
                 updates['users/' + u + '/activeMultiplier'] = 1;
                 updates['users/' + u + '/multiplierSource'] = 'none';
                 updates['users/' + u + '/multiplierRemainingUses'] = 0;
+                updates['users/' + u + '/iflasShieldUses'] = 0; // NEW: Reset iflas shield uses
               }
             }
             await db.ref().update(updates); // Eski Firebase Realtime DB update() kullanımı
@@ -1637,10 +1682,20 @@
           await createBoxes();
           console.log("Oyun kutuları başarıyla yeniden oluşturuldu.");
 
+          // NEW: Clear purchase history on full system restart
+          try {
+            await db.ref('purchaseHistory').remove();
+            console.log("Satın alma geçmişi başarıyla temizlendi.");
+          } catch (removeError) {
+            console.warn("Satın alma geçmişi temizlenirken hata oluştu veya mevcut değil:", removeError);
+          }
+
+
           displayMessage("Sistem başarıyla baştan başlatıldı! Tüm kullanıcı verileri ve oyun geçmişi temizlendi.");
           loadUserRankingsAndBoxCounts();
           loadLeaderboardRanking();
           loadBalanceAndBoxRights();
+          loadPurchaseHistory(); // Refresh purchase history
         } catch (error) {
           console.error("Sistemi baştan başlatma hatası: ", error);
           displayMessage(`Sistemi baştan başlatılırken bir hata oluştu: ${error.message || error}. Lütfen konsolu kontrol edin.`);
@@ -1682,7 +1737,7 @@
             <button onclick="event.stopPropagation(); denyUser('${u}')" class="py-1 px-3 bg-gray-600 hover:bg-gray-500 text-white text-xs font-bold rounded-md transition duration-200">Sil</button>
             </div>
             </div>`;
-      }
+        }
       }
       document.getElementById("allUsers").innerHTML = html || "<div class='text-center text-gray-400'>Kullanıcı bulunamadı.</div>";
     });
@@ -1926,12 +1981,12 @@
     Object.keys(items).forEach(itemId => {
       const item = items[itemId];
       const now = Date.now();
-      // Use item.countdownEndTime directly, null for timeless
+      // Correctly handle countdownEndTime being null (timeless)
       const endTime = item.countdownEndTime === null ? Infinity : item.countdownEndTime; 
 
-      const isAvailable = (item.stock === undefined || item.stock > 0) && (now < endTime); // Available if stock > 0 and not expired
       const isExpired = now >= endTime && endTime !== Infinity;
       const outOfStock = item.stock !== undefined && item.stock <= 0;
+      const isAvailable = (item.stock === undefined || item.stock > 0) && (item.countdownEndTime === null || now < endTime);
 
       let statusText = '';
       let buttonDisabled = '';
@@ -2059,13 +2114,16 @@
           } else if (item.type === 'tempMultiplier') {
             // Check if a store multiplier is already active
             if (user.multiplierSource === 'store' && user.multiplierRemainingUses > 0) {
-              displayMessage("Zaten aktif bir mağaza çarpanınız var. Yeni bir çarpan satın alamazsınız.");
+              displayMessage("Zaten aktif bir mağaza çarpanınız var. Yeni bir çarpan satın alamazsiniz.");
               return; // Stop purchase if store multiplier is already active
             }
             updates.activeMultiplier = item.value;
             updates.multiplierSource = 'store';
             updates.multiplierRemainingUses = item.duration; // e.g., 3 uses
             message += ` ${item.value}x çarpanı ${item.duration} kutu açımı boyunca aktif olacak!`;
+          } else if (item.type === 'iflasShield') { // NEW: IFLAS KALKANI logic
+            updates.iflasShieldUses = (user.iflasShieldUses || 0) + item.value;
+            message += ` ${item.value} adet iflas kalkanı kazandınız! Toplam kalkan: ${updates.iflasShieldUses}.`;
           } else if (item.type === 'special') {
             // Placeholder for special item logic
             message += ` Özel ürün "${item.name}" etkinleştirildi!`;
@@ -2090,6 +2148,18 @@
           loadBalanceAndBoxRights(); // Update balance display
           loadUserRankingsAndBoxCounts(); // Update leaderboards
           loadStoreItems(); // Refresh store to show updated stock/status
+
+          // NEW: Record purchase in history
+          await db.ref('purchaseHistory').push({
+              timestamp: firebase.database.ServerValue.TIMESTAMP, // Use server timestamp
+              username: currentUser,
+              itemName: item.name,
+              itemCost: item.cost,
+              itemType: item.type,
+              itemValue: item.value,
+              imageUrl: item.imageUrl || 'https://placehold.co/50x50/333333/FFFFFF?text=Item'
+          });
+          loadPurchaseHistory(); // Refresh purchase history
         } catch (error) {
           console.error("Ürün satın alma hatası: ", error);
           displayMessage("Ürün satın alınırken bir hata oluştu. Lütfen tekrar deneyin.");
@@ -2114,6 +2184,8 @@
           itemDetails += ` (${item.value} hak)`;
       } else if (item.type === 'tempMultiplier') {
           itemDetails += ` (${item.value}x, ${item.duration} kullanım)`;
+      } else if (item.type === 'iflasShield') { // NEW: IFLAS KALKANI details
+          itemDetails += ` (${item.value} kullanım)`;
       } else if (item.type === 'special') {
           itemDetails += ` (Özel)`;
           if (item.value !== null) itemDetails += ` (Değer: ${item.value})`; // If special item has a value
@@ -2163,10 +2235,12 @@
           newItemMultiplierDurationInput.classList.add('hidden'); // Hide for other types
           if (selectedType === 'boxRights') {
             newItemValueInput.placeholder = "Kutu Hakkı Adedi (örn: 5, 10)";
+          } else if (selectedType === 'iflasShield') { // NEW: Placeholder for iflas shield
+            newItemValueInput.placeholder = "Kalkan Kullanım Sayısı (örn: 1, 3)";
           } else if (selectedType === 'special') {
             newItemValueInput.placeholder = "Özel Değer (Opsiyonel)";
           } else {
-            newItemValueInput.placeholder = "Değer (Kutu Hakkı Adedi / Çarpan Değeri)";
+            newItemValueInput.placeholder = "Değer (Kutu Hakkı Adedi / Çarpan Değeri / Kalkan Kullanım Sayısı)";
           }
         }
       });
@@ -2228,6 +2302,16 @@
             "stock": 5, // Limited stock
             "countdownEndTime": Date.now() + 7 * 24 * 60 * 60 * 1000, // Ends in 7 days from now (timestamp)
             "imageUrl": "https://placehold.co/100x100/800080/FFFFFF?text=Special"
+          },
+          "item6": { // NEW: IFLAS KALKANI default item
+            "name": "İflas Kalkanı (1 Kullanım)",
+            "description": "Bir sonraki 'İflas' kutusundan sizi korur.",
+            "cost": 1500,
+            "type": "iflasShield",
+            "value": 1, // Protects for 1 use
+            "stock": 30,
+            "imageUrl": "https://placehold.co/100x100/00FFFF/000000?text=Shield",
+            "countdownEndTime": null // Süresiz
           }
         }).catch(error => console.error("Default store items setup error:", error));
       }
@@ -2246,7 +2330,7 @@
     document.getElementById('newItemMultiplierDuration').classList.add('hidden'); // Hide it
     document.getElementById('newItemCountdownDuration').value = ''; // Clear new countdown duration
     document.getElementById('newItemImageUrl').value = '';
-    document.getElementById('newItemValue').placeholder = "Değer (Kutu Hakkı Adedi / Çarpan Değeri)"; // Reset placeholder
+    document.getElementById('newItemValue').placeholder = "Değer (Kutu Hakkı Adedi / Çarpan Değeri / Kalkan Kullanım Sayısı)"; // Reset placeholder
     
     const addButton = document.getElementById('addUpdateStoreItemBtn');
     addButton.textContent = "ÜRÜN EKLE";
@@ -2378,6 +2462,8 @@
         }
 
         // NEW: Clear countdown duration, admin sets a new one on save
+        // If an item has an existing countdown, we don't pre-fill it.
+        // The admin will set a NEW countdown duration if they want it to be timed.
         document.getElementById('newItemCountdownDuration').value = '';
         
         const newItemTypeSelect = document.getElementById('newItemType');
@@ -2407,6 +2493,86 @@
       }
     });
   }
+
+  // NEW: Load Purchase History
+  function loadPurchaseHistory() {
+    const purchaseHistoryList = document.getElementById('purchaseHistoryList');
+    purchaseHistoryList.innerHTML = '<div class="text-center text-gray-400">Satın alma geçmişi yükleniyor...</div>'; // Loading message
+
+    db.ref('purchaseHistory').orderByChild('timestamp').limitToLast(50).on('value', snap => {
+      const history = snap.val();
+      let html = '';
+      if (!history) {
+        html = '<div class="text-center text-gray-400">Henüz satın alma geçmişi yok.</div>';
+      } else {
+        // Convert object to array, sort by timestamp descending
+        const sortedHistory = Object.values(history).sort((a, b) => b.timestamp - a.timestamp);
+        
+        sortedHistory.forEach(record => {
+          const date = new Date(record.timestamp).toLocaleString('tr-TR');
+          html += `
+            <div class="flex items-center p-3 mb-2 bg-gray-700 rounded-md border-l-4 border-blue-500">
+              <img src="${record.imageUrl || 'https://placehold.co/50x50/333333/FFFFFF?text=Item'}" alt="${record.itemName}" class="w-12 h-12 rounded-full mr-4 object-cover">
+              <div>
+                <p class="text-gray-200 font-semibold">${record.username} <span class="text-yellow-300">${record.itemName}</span> satın aldı!</p>
+                <p class="text-sm text-gray-400">Maliyet: ${record.itemCost} Puan | Tip: ${record.itemType} | Değer: ${record.itemValue !== null ? record.itemValue : 'N/A'}</p>
+                <p class="text-xs text-gray-500">${date}</p>
+              </div>
+            </div>
+          `;
+        });
+      }
+      purchaseHistoryList.innerHTML = html;
+    });
+  }
+
+  // NEW: Clear Purchase History (Admin Function)
+  function clearPurchaseHistory() {
+    customConfirm("Satın alma geçmişini tamamen temizlemek istediğinize emin misiniz? Bu işlem geri alınamaz!", async (result) => {
+      if (result) {
+        try {
+          await db.ref('purchaseHistory').remove();
+          displayMessage("Satın alma geçmişi başarıyla temizlendi!");
+          loadPurchaseHistory(); // Refresh display
+        } catch (error) {
+          console.error("Satın alma geçmişi temizleme hatası:", error);
+          displayMessage("Satın alma geçmişi temizlenirken bir hata oluştu.");
+        }
+      }
+    });
+  }
+
+  // NEW: Clear All Total Spent Points (Admin Function)
+  async function clearAllTotalSpentPoints() {
+    customConfirm("Tüm kullanıcıların 'Toplam Harcanan Puan' değerlerini sıfırlamak istediğinize emin misiniz? Bu işlem geri alınamaz!", async (result) => {
+      if (result) {
+        try {
+          displayMessage("Tüm kullanıcıların harcanan puanları sıfırlanıyor...");
+          const userSnap = await db.ref('users').once('value');
+          const usersData = userSnap.val();
+          const updates = {};
+
+          if (usersData) {
+            for (const u in usersData) {
+              if (u !== "weizendtv") { // Exclude admin user
+                updates['users/' + u + '/totalSpentPoints'] = 0;
+              }
+            }
+            await db.ref().update(updates);
+            displayMessage("Tüm kullanıcıların 'Toplam Harcanan Puan' değerleri başarıyla sıfırlandı!");
+            loadBalanceAndBoxRights(); // Refresh current user's display
+            loadUserRankingsAndBoxCounts(); // Refresh leaderboards
+          } else {
+            displayMessage("Sıfırlanacak kullanıcı verisi bulunamadı.");
+          }
+        } catch (error) {
+          console.error("Toplam harcanan puanları sıfırlama hatası:", error);
+          displayMessage(`Toplam harcanan puanlar sıfırlanırken bir hata oluştu: ${error.message || error}.`);
+        }
+      }
+    });
+  }
+
 </script>
 </body>
 </html>
