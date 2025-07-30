@@ -45,113 +45,6 @@
   .card-front {
     transform: rotateY(-180deg);
   }
-  
-  #chatContainer {
-    border: 2px solid #b71c1c;
-    border-radius: 10px;
-    background-color: #1a1a1d; /* Koyu tema */
-  }
-  #chatMessages {
-    height: 300px;
-    overflow-y: auto;
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
-  }
-  .chat-message {
-    margin-bottom: 0.75rem;
-    padding: 0.5rem 1rem;
-    border-radius: 15px;
-    max-width: 80%;
-    word-wrap: break-word;
-    display: flex;
-    flex-direction: column;
-  }
-  .chat-message.self {
-    background-color: #b71c1c;
-    color: white;
-    align-self: flex-end;
-    border-bottom-right-radius: 5px;
-  }
-  .chat-message.other {
-    background-color: #4b5563; /* Gri */
-    color: white;
-    align-self: flex-start;
-    border-bottom-left-radius: 5px;
-  }
-   .message-header {
-    display: flex;
-    align-items: center;
-    margin-bottom: 0.35rem;
-  }
-  .message-sender {
-    font-weight: 700;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: color 0.2s;
-  }
-  .message-sender:hover {
-    text-decoration: underline;
-  }
-  .message-badges {
-    margin-left: 0.5rem;
-    display: flex;
-    gap: 0.2rem;
-  }
-   .message-timestamp {
-    font-size: 0.7rem;
-    color: #a0aec0; /* Açık gri */
-    margin-top: 0.25rem;
-    align-self: flex-end;
-  }
-   .mute-btn {
-      margin-left: auto;
-      font-size: 0.7rem;
-      color: #cbd5e0;
-      cursor: pointer;
-      background: #4a5568;
-      padding: 2px 6px;
-      border-radius: 5px;
-  }
-  
-  /* YENİ: Profesyonel sohbet gönderme kutusu stilleri */
-  #chatForm {
-    display: flex;
-    align-items: center;
-    padding: 1rem;
-    border-top: 1px solid #333;
-  }
-  #chatInput {
-    flex-grow: 1;
-    background-color: #2d3748; /* Biraz daha açık gri */
-    border: 1px solid #4a5568;
-    color: white;
-    padding: 0.75rem 1rem;
-    border-radius: 20px; /* Daha yuvarlak */
-    margin-right: 0.75rem;
-    outline: none;
-    transition: border-color 0.3s;
-  }
-  #chatInput:focus {
-    border-color: #e53e3e; /* Kırmızı */
-  }
-  #chatSendBtn {
-    background-color: #b71c1c;
-    color: white;
-    border: none;
-    width: 44px; /* Sabit genişlik */
-    height: 44px; /* Sabit yükseklik */
-    border-radius: 50%; /* Tam daire */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: background-color 0.3s;
-    flex-shrink: 0; /* Küçülmesini engelle */
-  }
-  #chatSendBtn:hover {
-    background-color: #ff4444;
-  }
 </style>
 </head>
 <body class="bg-gray-900 text-white min-h-screen flex flex-col items-center py-8 px-4">
@@ -186,34 +79,24 @@
         <div id="kickWarning" class="bg-yellow-900/50 border border-yellow-400 text-yellow-300 px-4 py-3 rounded-lg relative mb-4 text-center">
             <strong class="font-bold">Kick Kullanıcı Adı Zorunludur!</strong>
             <span class="block sm:inline">Lütfen Kick platformundaki kullanıcı adınız ile kayıt olunuz.</span>
+            <br>
+            <span class="block sm:inline font-bold text-red-400 mt-2">ÖNEMLİ: Lütfen Kick şifrenizi değil, bu siteye özel yeni bir şifre oluşturun!</span>
         </div>
         <input type="text" id="registerUsername" placeholder="Kick Kullanıcı Adı" autocomplete="username"
                class="w-full p-3 mb-4 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300" />
-        <input type="email" id="registerEmail" placeholder="E-posta Adresi" autocomplete="email"
-               class="w-full p-3 mb-4 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300" />
-        <input type="password" id="registerPassword" placeholder="Şifre" autocomplete="new-password"
+        <input type="password" id="registerPassword" placeholder="Şifre (Yeni Bir Şifre Oluşturun)" autocomplete="new-password"
                class="w-full p-3 mb-4 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300" />
         <input type="password" id="registerPasswordConfirm" placeholder="Şifre Tekrar" autocomplete="new-password"
+               class="w-full p-3 mb-4 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300" />
+        <input type="text" id="registerPin" placeholder="6 Haneli Unutulmaz Rakam (PIN)" maxlength="6"
                class="w-full p-3 mb-6 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300" />
-        
-        <h3 class="text-yellow-400 font-semibold mb-3 text-center">Güvenlik Sorusu (Şifre Sıfırlama İçin)</h3>
-        <select id="securityQuestion1" class="w-full p-3 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500">
-            <option value="">Güvenlik Sorusu Seçin</option>
-            <option value="pet">İlk evcil hayvanınızın adı nedir?</option>
-            <option value="city">Doğduğunuz şehir hangisidir?</option>
-            <option value="mother">Annenizin kızlık soyadı nedir?</option>
-            <option value="school">İlk okulunuzun adı nedir?</option>
-            <option value="food">En sevdiğiniz yemek nedir?</option>
-            <option value="dream">Çocukluk hayalinizdeki meslek neydi?</option>
-        </select>
-        <input type="text" id="securityAnswer1" placeholder="Cevap" class="w-full p-3 mb-6 bg-gray-700 border border-gray-600 rounded-lg text-white">
 
         <button onclick="register()"
                 class="w-full py-3 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
           Kayıt Ol
         </button>
     </div>
-  </div>
+</div>
 
 
   <div id="gameDiv" class="w-full max-w-4xl hidden pb-16">
@@ -245,10 +128,6 @@
               class="py-3 px-8 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
         Mağaza
       </button>
-      <button id="streamTabBtn" onclick="showSection('stream')"
-              class="py-3 px-8 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
-        Yayın
-      </button>
     </div>
 
     <div id="gameContent" class="w-full">
@@ -257,7 +136,7 @@
         <button onclick="openBoxStatsModal()" class="py-1 px-3 text-sm bg-blue-600 hover:bg-blue-500 rounded-lg">Detay</button>
       </p>
       <div id="boxContainer" class="grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-2 w-full mx-auto mb-8 p-2">
-      </div>
+        </div>
 
       <div id="tablesWrapper" class="flex flex-wrap justify-center gap-6 mb-8">
         <div class="tableBox bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700 w-full md:flex-1 min-w-[280px] md:max-w-md">
@@ -278,7 +157,7 @@
     </div>
 
     <div id="storeSection" class="w-full hidden">
-       <h3 class="text-yellow-400 text-3xl font-bold mb-2 text-center">Mağaza</h3>
+      <h3 class="text-yellow-400 text-3xl font-bold mb-2 text-center">Mağaza</h3>
       <div id="storeUserPointInfo" class="text-center mb-6 bg-gray-800 p-3 rounded-lg border border-gray-700 max-w-lg mx-auto flex justify-center items-center gap-4">
         <div>
             <span class="text-green-400">Mevcut Puan: <b id="storeCurrentUserBalance">0</b></span> |
@@ -318,40 +197,9 @@
       
       <h3 class="text-yellow-300 text-2xl font-semibold mb-4 text-center">Popüler Ürünler</h3>
       <div id="storeItemsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-4">
-      </div>
+        </div>
     </div>
     
-    <div id="streamSection" class="w-full hidden">
-        <h3 class="text-yellow-400 text-3xl font-bold mb-6 text-center">CANLI YAYIN</h3>
-
-        <div class="mb-6">
-            <iframe id="kick-stream-iframe" class="w-full aspect-video rounded-lg border-2 border-red-700" src="https://player.kick.com/weizendtv?autoplay=true&muted=false" allowfullscreen></iframe>
-        </div>
-
-        <div class="flex justify-center gap-4 mb-8">
-            <a href="https://donate.bynogame.com/weizend" target="_blank" class="py-3 px-8 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
-                💰 Bağış Yap
-            </a>
-            <a href="https://kick.com/weizendtv" target="_blank" class="py-3 px-8 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
-                📺 Kanala Git
-            </a>
-        </div>
-        
-        <h3 class="text-yellow-400 text-2xl font-bold mb-4 text-center">Genel Sohbet</h3>
-        <div id="chatContainer" class="w-full max-w-3xl mx-auto">
-            <div id="chatMessages" class="scrollable-list">
-                </div>
-            <form id="chatForm" onsubmit="sendMessage(event)">
-                <input type="text" id="chatInput" placeholder="Mesajını yaz..." autocomplete="off" required>
-                <button type="submit" id="chatSendBtn" aria-label="Gönder">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
-                        <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z" />
-                    </svg>
-                </button>
-            </form>
-        </div>
-    </div>
-
   </div>
 
   <div id="purchaseHistoryModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 hidden">
@@ -606,19 +454,13 @@
     <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-red-700 w-11/12 max-w-md text-center relative">
         <button class="modal-close-button absolute top-2 right-4 text-white text-4xl" onclick="closePasswordResetModal()">&times;</button>
         <div id="resetStep1">
-            <h4 class="text-yellow-400 text-2xl font-bold mb-6">Şifre Sıfırlama (Adım 1/3)</h4>
+            <h4 class="text-yellow-400 text-2xl font-bold mb-6">Şifre Sıfırlama (Adım 1/2)</h4>
             <input type="text" id="resetUsername" placeholder="Kick Kullanıcı Adı" class="w-full p-3 mb-4 bg-gray-700 rounded-lg">
-            <input type="email" id="resetEmail" placeholder="E-posta Adresi" class="w-full p-3 mb-4 bg-gray-700 rounded-lg">
+            <input type="text" id="resetPin" placeholder="6 Haneli PIN" maxlength="6" class="w-full p-3 mb-4 bg-gray-700 rounded-lg">
             <button onclick="verifyResetInfo()" class="w-full py-3 mt-4 bg-red-700 hover:bg-red-600 rounded-lg font-bold">Bilgileri Doğrula</button>
         </div>
-        <div id="resetStep2" class="hidden">
-            <h4 class="text-yellow-400 text-2xl font-bold mb-6">Şifre Sıfırlama (Adım 2/3)</h4>
-            <div id="resetQuestionsContainer" class="text-left">
-            </div>
-            <button onclick="verifySecurityAnswer()" class="w-full py-3 mt-4 bg-red-700 hover:bg-red-600 rounded-lg font-bold">Cevabı Kontrol Et</button>
-        </div>
         <div id="resetStep3" class="hidden">
-            <h4 class="text-yellow-400 text-2xl font-bold mb-6">Yeni Şifre Belirle (Adım 3/3)</h4>
+            <h4 class="text-yellow-400 text-2xl font-bold mb-6">Yeni Şifre Belirle (Adım 2/2)</h4>
             <input type="password" id="newPassword" placeholder="Yeni Şifre" class="w-full p-3 mb-4 bg-gray-700 rounded-lg">
             <input type="password" id="newPasswordConfirm" placeholder="Yeni Şifre Tekrar" class="w-full p-3 mb-4 bg-gray-700 rounded-lg">
             <button onclick="updatePassword()" class="w-full py-3 mt-4 bg-red-700 hover:bg-red-600 rounded-lg font-bold">Şifreyi Güncelle</button>
@@ -904,14 +746,6 @@
 
   const db = firebase.database();
   const auth = firebase.auth();
-  
-  // ----- DİĞER TÜM JAVASCRIPT KODLARI BURAYA GELECEK -----
-  // ----- SİTENİN MEVCUT JAVASCRIPT KODUNU BURAYA EKLEYİN -----
-  // (Yukarıdaki değişiklikler hariç, geri kalan tüm script içeriği aynı kalacak)
-
-  // Örnek olarak, eski kodunuzdan bir parçayı buraya ekliyorum.
-  // Geri kalanını da aynı şekilde bu alana yapıştırın.
-  // ...
 
   // Global değişkenler
   let currentUser = null;
@@ -920,7 +754,6 @@
   const BOX_RIGHTS_COST_PER_BOX = 1;
   let isGameLocked = false; 
   let sessionStartTime = Date.now();
-  let mutedUsers = new Set();
   
   const BOX_CONTENTS = [
     { type: 'surpriz', value: 0, count: 1 },
@@ -985,201 +818,6 @@
 
   let storeCountdownInterval = null;
   let activeStoreCountdowns = {};
-  
-  // YENİ: showSection fonksiyonu güncellendi
-  function showSection(sectionId) {
-    // Tüm içerik bölümlerini gizle
-    document.getElementById('gameContent').classList.add('hidden');
-    document.getElementById('storeSection').classList.add('hidden');
-    document.getElementById('streamSection').classList.add('hidden'); // Yeni yayın bölümünü gizle
-
-    // Tüm sekme butonlarının aktif stilini kaldır
-    document.getElementById('gameTabBtn').classList.remove('bg-red-700', 'hover:bg-red-600');
-    document.getElementById('gameTabBtn').classList.add('bg-gray-700', 'hover:bg-gray-600');
-    document.getElementById('storeTabBtn').classList.remove('bg-red-700', 'hover:bg-red-600');
-    document.getElementById('storeTabBtn').classList.add('bg-gray-700', 'hover:bg-gray-600');
-    document.getElementById('streamTabBtn').classList.remove('bg-red-700', 'hover:bg-red-600'); // Yeni butonun stilini kaldır
-    document.getElementById('streamTabBtn').classList.add('bg-gray-700', 'hover:bg-gray-600'); // Yeni butonun stilini kaldır
-
-    if (isAdmin) {
-        document.getElementById('adminStoreControls').classList.add('hidden');
-    }
-
-    if (sectionId !== 'store' && storeCountdownInterval) {
-        clearInterval(storeCountdownInterval);
-        storeCountdownInterval = null;
-        activeStoreCountdowns = {};
-    }
-
-    // İstenen bölümü ve butonu aktif et
-    if (sectionId === 'game') {
-      document.getElementById('gameContent').classList.remove('hidden');
-      document.getElementById('gameTabBtn').classList.add('bg-red-700', 'hover:bg-red-600');
-    } else if (sectionId === 'store') {
-      document.getElementById('storeSection').classList.remove('hidden');
-      document.getElementById('storeTabBtn').classList.add('bg-red-700', 'hover:bg-red-600');
-      loadStoreItems();
-      if (isAdmin) {
-          document.getElementById('adminStoreControls').classList.remove('hidden');
-      }
-    } else if (sectionId === 'stream') { // Yeni yayın sekmesi için koşul
-      document.getElementById('streamSection').classList.remove('hidden');
-      document.getElementById('streamTabBtn').classList.add('bg-red-700', 'hover:bg-red-600');
-    }
-    currentActiveSection = sectionId;
-  }
-  
-    // YENİ: Sohbet Fonksiyonları
-  async function sendMessage(event) {
-    event.preventDefault(); 
-    const chatInput = document.getElementById('chatInput');
-    const messageText = chatInput.value.trim();
-
-    if (!messageText || !currentUser) {
-        return;
-    }
-
-    const messageData = {
-        username: currentUser,
-        text: messageText,
-        timestamp: firebase.database.ServerValue.TIMESTAMP,
-        isAdmin: isAdmin
-    };
-
-    try {
-        await db.ref('chatMessages').push(messageData);
-        chatInput.value = ''; 
-    } catch (error) {
-        console.error("Mesaj gönderme hatası:", error);
-        displayMessage("Mesaj gönderilirken bir hata oluştu.");
-    }
-  }
-
-  async function getUserChatColor(username) {
-    const userRef = db.ref('users/' + username);
-    const snap = await userRef.once('value');
-    const userData = snap.val();
-    
-    if (userData && userData.chatColor) {
-        return userData.chatColor;
-    }
-    
-    // Basit bir hash fonksiyonu ile kullanıcı adına göre renk üret
-    let hash = 0;
-    for (let i = 0; i < username.length; i++) {
-        hash = username.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    // Daha canlı renkler için HSL kullan
-    const h = hash % 360;
-    const color = `hsl(${h}, 70%, 70%)`;
-
-    // Rengi veritabanına kaydet
-    await userRef.update({ chatColor: color });
-    return color;
-  }
-
-  function toggleMuteUser(username) {
-      if (mutedUsers.has(username)) {
-          mutedUsers.delete(username);
-      } else {
-          mutedUsers.add(username);
-      }
-      // Re-render chat messages to reflect the change
-      const chatMessagesDiv = document.getElementById('chatMessages');
-      const messages = chatMessagesDiv.querySelectorAll('.chat-message');
-      messages.forEach(msg => {
-          if (msg.dataset.username === username) {
-              const textDiv = msg.querySelector('.message-text');
-              const muteBtn = msg.querySelector('.mute-btn');
-              if (mutedUsers.has(username)) {
-                  textDiv.innerHTML = `<i class="text-gray-400">Bu kullanıcıdan gelen mesajlar gizlendi.</i>`;
-                  muteBtn.textContent = 'Susturmayı Kaldır';
-              } else {
-                  textDiv.textContent = msg.dataset.originalText;
-                  muteBtn.textContent = 'Sustur';
-              }
-          }
-      });
-  }
-
-  async function loadChatMessages() {
-    const chatMessagesDiv = document.getElementById('chatMessages');
-    const messagesRef = db.ref('chatMessages').limitToLast(100); 
-
-    const usersDataSnap = await db.ref('users').once('value');
-    const allUsersData = usersDataSnap.val() || {};
-    
-    // Liderlik verilerini önceden hesapla
-    let leaders = { highestCurrentBalance: -1, currentBalanceUser: null, highestEverBalance: -1, highEverBalanceUser: null, maxSurpriseBoxes: -1, surpriseBoxUser: null, maxBombCount: -1, bombUser: null, maxSpentPoints: -1, spentPointsUser: null, maxMultiplierFound: -1, multiplierUser: null, maxBoxesOpened: -1, boxUser: null, maxShieldUsed: -1, shieldUser: null };
-    for (const u in allUsersData) {
-        const userData = allUsersData[u];
-        if (userData.approved) {
-            if ((userData.balance || 0) > leaders.highestCurrentBalance) { leaders.highestCurrentBalance = userData.balance; leaders.currentBalanceUser = u; }
-            if ((userData.highestBalanceEver || 0) > leaders.highestEverBalance) { leaders.highestEverBalance = userData.highestBalanceEver; leaders.highEverBalanceUser = u; }
-            if ((userData.surpriseBoxesOpened || 0) > leaders.maxSurpriseBoxes) { leaders.maxSurpriseBoxes = userData.surpriseBoxesOpened; leaders.surpriseBoxUser = u; }
-            if ((userData.iflasCount || 0) > leaders.maxBombCount) { leaders.maxBombCount = userData.iflasCount; leaders.bombUser = u; }
-            if ((userData.totalSpentPoints || 0) > leaders.maxSpentPoints) { leaders.maxSpentPoints = userData.totalSpentPoints; leaders.spentPointsUser = u; }
-            if ((userData.multiplierFoundCount || 0) > leaders.maxMultiplierFound) { leaders.maxMultiplierFound = userData.multiplierFoundCount; leaders.multiplierUser = u; }
-            if ((userData.boxesOpenedCount || 0) > leaders.maxBoxesOpened) { leaders.maxBoxesOpened = userData.boxesOpenedCount; leaders.boxUser = u; }
-            if ((userData.iflasShieldUsedCount || 0) > leaders.maxShieldUsed) { leaders.maxShieldUsed = userData.iflasShieldUsedCount; leaders.shieldUser = u; }
-        }
-    }
-
-    messagesRef.on('child_added', async (snapshot) => {
-        const message = snapshot.val();
-        const msgUsername = message.username;
-        const senderUserData = allUsersData[msgUsername] || {};
-
-        const messageElement = document.createElement('div');
-        
-        const isSelf = msgUsername === currentUser;
-        const senderClass = isSelf ? 'self' : 'other';
-        messageElement.className = `chat-message ${senderClass}`;
-        messageElement.dataset.username = msgUsername;
-        messageElement.dataset.originalText = message.text;
-
-        const userLeaderStatus = {
-            isCurrentLeader: msgUsername === leaders.currentBalanceUser && leaders.highestCurrentBalance > 0,
-            isHighLeader: msgUsername === leaders.highEverBalanceUser && leaders.highestEverBalance > 0,
-            isSurpriseLeader: msgUsername === leaders.surpriseBoxUser && leaders.maxSurpriseBoxes > 0,
-            isBombLeader: msgUsername === leaders.bombUser && leaders.maxBombCount > 0,
-            isStoreLeader: msgUsername === leaders.spentPointsUser && leaders.maxSpentPoints > 0, 
-            isMultiplierLeader: msgUsername === leaders.multiplierUser && leaders.maxMultiplierFound > 0,
-            isBoxLeader: msgUsername === leaders.boxUser && leaders.maxBoxesOpened > 0,
-            isShieldLeader: msgUsername === leaders.shieldUser && leaders.maxShieldUsed > 0,
-        };
-        const badgesHtml = getUserBadgesHtml(senderUserData, userLeaderStatus);
-        
-        const senderName = isSelf ? 'Siz' : (message.isAdmin ? `${msgUsername} (Admin)` : msgUsername);
-        const userChatColor = message.isAdmin ? '#ff4444' : (await getUserChatColor(msgUsername));
-        
-        const isMuted = mutedUsers.has(msgUsername);
-        const messageTextContent = isMuted ? `<i class="text-gray-400">Bu kullanıcıdan gelen mesajlar gizlendi.</i>` : message.text;
-        
-        const muteButtonText = isMuted ? 'Susturmayı Kaldır' : 'Sustur';
-        const muteButtonHtml = isSelf ? '' : `<button class="mute-btn" onclick="toggleMuteUser('${msgUsername}')">${muteButtonText}</button>`;
-
-        const formattedTime = new Date(message.timestamp).toLocaleString();
-        
-        messageElement.innerHTML = `
-            <div class="message-header">
-                <span class="message-sender" style="color: ${userChatColor};" onclick="openPublicUserDetailModal('${msgUsername}')">${senderName}</span>
-                <div class="message-badges">${badgesHtml}</div>
-                ${muteButtonHtml}
-            </div>
-            <div class="message-text">${messageTextContent}</div>
-            <div class="message-timestamp">${formattedTime}</div>
-        `;
-        
-        if (!isSelf) {
-            messageElement.style.backgroundColor = 'rgba(75, 85, 99, 0.5)';
-        }
-
-        chatMessagesDiv.appendChild(messageElement);
-        chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight; 
-    });
-  }
-
 
   // GİRİŞ/KAYIT SİSTEMİ
   function switchAuthTab(tab) {
@@ -1202,53 +840,6 @@
         registerTabBtn.classList.remove('border-transparent', 'text-gray-400');
         loginTabBtn.classList.add('border-transparent', 'text-gray-400');
         loginTabBtn.classList.remove('border-red-500', 'text-white');
-    }
-  }
-  
-    // afterLogin fonksiyonuna chat'i yükleyen fonksiyonu ekliyoruz.
-  async function afterLogin() {
-    document.getElementById("loginContainer").style.display = "none";
-    document.getElementById("gameDiv").style.display = "block";
-    
-    document.getElementById("currentUser").textContent = currentUser;
-    document.getElementById("role").textContent = isAdmin ? "(Admin)" : "";
-    document.getElementById("inventoryButton").style.display = isAdmin ? 'none' : 'inline-block';
-
-    if (isAdmin) {
-      adminPanelToggleButton.classList.remove('hidden');
-    } else {
-      adminPanelToggleButton.classList.add('hidden');
-    }
-
-    showSection('game'); // Varsayılan olarak oyun sekmesini aç
-
-    loadBalanceAndBoxRights();
-    loadUserRankingsAndBoxCounts();
-    loadLeaderboardRanking();
-    loadBoxes();
-    loadTotalOpenedBoxesCount();
-    listenForGameChanges();
-    loadChatMessages(); // YENİ: Sohbet mesajlarını yükle
-    if (!isAdmin) {
-        listenForAdminNotifications();
-    }
-    listenForSurpriseBox();
-
-
-    if (!isAdmin) {
-        const userRef = db.ref('users/' + currentUser);
-        userRef.once('value').then(snap => {
-            const userData = snap.val();
-            if (userData) {
-                if (userData.hasReceivedWelcomeGift === false) {
-                    welcomeGiftModal.style.display = 'flex';
-                    userRef.update({
-                        kutuHakki: (userData.kutuHakki || 0) + 3,
-                        hasReceivedWelcomeGift: true
-                    });
-                }
-            }
-        });
     }
   }
   
@@ -1306,13 +897,11 @@
   // Kayıt
   async function register() {
     const username = document.getElementById("registerUsername").value.trim().toLowerCase();
-    const email = document.getElementById("registerEmail").value.trim().toLowerCase();
     const password = document.getElementById("registerPassword").value.trim();
     const passwordConfirm = document.getElementById("registerPasswordConfirm").value.trim();
-    const q1 = document.getElementById("securityQuestion1").value;
-    const a1 = document.getElementById("securityAnswer1").value.trim().toLowerCase();
+    const pin = document.getElementById("registerPin").value.trim();
 
-    if (!username || !email || !password || !passwordConfirm || !q1 || !a1) {
+    if (!username || !password || !passwordConfirm || !pin) {
         displayMessage("Lütfen tüm alanları eksiksiz doldurun.");
         return;
     }
@@ -1328,12 +917,11 @@
         displayMessage("Şifreler uyuşmuyor!");
         return;
     }
-
-    const existingUserSnap = await db.ref('users').orderByChild('email').equalTo(email).once('value');
-    if (existingUserSnap.exists()) {
-        displayMessage("Bu e-posta adresi zaten kayıtlı.");
+    if (!/^\d{6}$/.test(pin)) {
+        displayMessage("PIN, 6 haneli bir rakam olmalıdır!");
         return;
     }
+
     const existingUsernameSnap = await db.ref('users/' + username).once('value');
     if (existingUsernameSnap.exists()) {
         displayMessage("Bu Kick kullanıcı adı zaten alınmış.");
@@ -1344,9 +932,7 @@
     if (confirmed) {
         const newUser = {
             password: password,
-            email: email,
-            securityQuestion1: q1,
-            securityAnswer1: a1,
+            pin: pin,
             balance: 0,
             highestBalanceEver: 0,
             totalSpentPoints: 0,
@@ -1368,7 +954,6 @@
             storePurchasesCount: 0,
             hasReceivedWelcomeGift: false,
             notifications: {},
-            chatColor: null, // YENİ
         };
 
         db.ref('users/' + username).set(newUser).then(() => {
@@ -1381,74 +966,38 @@
   }
 
   // Şifre Sıfırlama
-  function getSecurityQuestionText(key) {
-      const questions = {
-          'pet': 'İlk evcil hayvanınızın adı nedir?',
-          'city': 'Doğduğunuz şehir hangisidir?',
-          'mother': 'Annenizin kızlık soyadı nedir?',
-          'school': 'İlk okulunuzun adı nedir?',
-          'food': 'En sevdiğiniz yemek nedir?',
-          'dream': 'Çocukluk hayalinizdeki meslek neydi?'
-      };
-      return questions[key] || "Bilinmeyen Soru";
-  }
-
   function openPasswordResetModal() {
     document.getElementById('resetStep1').classList.remove('hidden');
-    document.getElementById('resetStep2').classList.add('hidden');
     document.getElementById('resetStep3').classList.add('hidden');
     document.getElementById('resetUsername').value = '';
-    document.getElementById('resetEmail').value = '';
-    document.getElementById('resetQuestionsContainer').innerHTML = '';
+    document.getElementById('resetPin').value = '';
     passwordResetModal.style.display = 'flex';
   }
 
   async function verifyResetInfo() {
       const username = document.getElementById('resetUsername').value.trim().toLowerCase();
-      const email = document.getElementById('resetEmail').value.trim().toLowerCase();
-      if (!username || !email) {
-          displayMessage("Kullanıcı adı ve e-posta gereklidir.");
+      const pin = document.getElementById('resetPin').value.trim();
+      
+      if (!username || !pin) {
+          displayMessage("Kullanıcı adı ve PIN gereklidir.");
           return;
       }
+
       const userSnap = await db.ref('users/' + username).once('value');
       if (!userSnap.exists()) {
           displayMessage("Kullanıcı bulunamadı.");
           return;
       }
+
       const userData = userSnap.val();
-      if (userData.email !== email) {
-          displayMessage("Girilen e-posta adresi kullanıcı ile eşleşmiyor.");
+      if (userData.pin !== pin) {
+          displayMessage("Girilen PIN, kullanıcı ile eşleşmiyor.");
           return;
       }
       
       userForPasswordReset = username;
-      const qContainer = document.getElementById('resetQuestionsContainer');
-      qContainer.innerHTML = `
-          <p class="text-left mb-2 text-gray-300 font-semibold">${getSecurityQuestionText(userData.securityQuestion1)}</p>
-          <input type="text" id="resetAnswer1" placeholder="Güvenlik Sorusunun Cevabı" class="w-full p-3 bg-gray-700 rounded-lg">
-      `;
-      
       document.getElementById('resetStep1').classList.add('hidden');
-      document.getElementById('resetStep2').classList.remove('hidden');
-  }
-
-  async function verifySecurityAnswer() {
-      if (!userForPasswordReset) return;
-      const answer = document.getElementById('resetAnswer1').value.trim().toLowerCase();
-      if (!answer) {
-          displayMessage("Lütfen güvenlik sorusunu cevaplayın.");
-          return;
-      }
-      
-      const userSnap = await db.ref('users/' + userForPasswordReset).once('value');
-      const userData = userSnap.val();
-      
-      if (userData && userData.securityAnswer1 === answer) {
-          document.getElementById('resetStep2').classList.add('hidden');
-          document.getElementById('resetStep3').classList.remove('hidden');
-      } else {
-          displayMessage("Güvenlik sorusunun cevabı yanlış.");
-      }
+      document.getElementById('resetStep3').classList.remove('hidden');
   }
 
   async function updatePassword() {
@@ -1511,7 +1060,89 @@
     }
   });
 
+  // Giriş sonrası
+  async function afterLogin() {
+    document.getElementById("loginContainer").style.display = "none";
+    document.getElementById("gameDiv").style.display = "block";
+    
+    document.getElementById("currentUser").textContent = currentUser;
+    document.getElementById("role").textContent = isAdmin ? "(Admin)" : "";
+    document.getElementById("inventoryButton").style.display = isAdmin ? 'none' : 'inline-block';
 
+    if (isAdmin) {
+      adminPanelToggleButton.classList.remove('hidden');
+    } else {
+      adminPanelToggleButton.classList.add('hidden');
+    }
+
+    showSection('game');
+
+    loadBalanceAndBoxRights();
+    loadUserRankingsAndBoxCounts();
+    loadLeaderboardRanking();
+    loadBoxes();
+    loadTotalOpenedBoxesCount();
+    listenForGameChanges();
+    if (!isAdmin) {
+        listenForAdminNotifications();
+    }
+    listenForSurpriseBox();
+
+
+    if (!isAdmin) {
+        const userRef = db.ref('users/' + currentUser);
+        userRef.once('value').then(snap => {
+            const userData = snap.val();
+            if (userData) {
+                if (userData.hasReceivedWelcomeGift === false) {
+                    welcomeGiftModal.style.display = 'flex';
+                    userRef.update({
+                        kutuHakki: (userData.kutuHakki || 0) + 3,
+                        hasReceivedWelcomeGift: true
+                    });
+                }
+            }
+        });
+    }
+  }
+
+  // Bölüm değiştirme
+  function showSection(sectionId) {
+    document.getElementById('gameContent').classList.add('hidden');
+    document.getElementById('storeSection').classList.add('hidden');
+
+    document.getElementById('gameTabBtn').classList.remove('bg-red-700', 'hover:bg-red-600');
+    document.getElementById('gameTabBtn').classList.add('bg-gray-700', 'hover:bg-gray-600');
+    document.getElementById('storeTabBtn').classList.remove('bg-red-700', 'hover:bg-red-600');
+    document.getElementById('storeTabBtn').classList.add('bg-gray-700', 'hover:bg-gray-600');
+
+    if (isAdmin) {
+        document.getElementById('adminStoreControls').classList.add('hidden');
+    }
+
+    if (sectionId !== 'store' && storeCountdownInterval) {
+        clearInterval(storeCountdownInterval);
+        storeCountdownInterval = null;
+        activeStoreCountdowns = {};
+    }
+
+    if (sectionId === 'game') {
+      document.getElementById('gameContent').classList.remove('hidden');
+      document.getElementById('gameTabBtn').classList.remove('bg-gray-700', 'hover:bg-gray-600');
+      document.getElementById('gameTabBtn').classList.add('bg-red-700', 'hover:bg-red-600');
+      currentActiveSection = 'game';
+    } else if (sectionId === 'store') {
+      document.getElementById('storeSection').classList.remove('hidden');
+      document.getElementById('storeTabBtn').classList.remove('bg-gray-700', 'hover:bg-gray-600');
+      document.getElementById('storeTabBtn').classList.add('bg-red-700', 'hover:bg-red-600');
+      currentActiveSection = 'store';
+      loadStoreItems();
+      if (isAdmin) {
+          document.getElementById('adminStoreControls').classList.remove('hidden');
+      }
+    }
+  }
+  
   // Admin panel
   function openAdminPanelModal() { adminPanelModal.style.display = 'flex'; loadPendingUsers(); loadAllUsers(); loadPendingSpecialPurchases(); }
   function closeAdminPanelModal() { adminPanelModal.style.display = 'none'; }
@@ -1544,12 +1175,11 @@
     });
   }
 
+  // DÜZELTME 4: Yeni rozet fonksiyonu
   function getUserBadgesHtml(u, leaders) {
       let crownHtml = '';
       let otherBadgesHtml = '';
       let otherBadges = [];
-
-      if (!u || !leaders) return '';
 
       const allLeaderBadges = [
           leaders.isCurrentLeader, leaders.isHighLeader, leaders.isSurpriseLeader,
@@ -1616,6 +1246,7 @@
         }
       }
       
+      // DÜZELTME 1: Engelli kullanıcılar sıralamadan kaldırılmıyor.
       let allUsersArray = Object.entries(usersData)
         .filter(([username, userData]) => username !== 'weizendtv' && userData.approved)
         .map(([username, userData]) => ({ username, ...userData }));
@@ -1665,6 +1296,7 @@
             }
         }
 
+        // DÜZELTME 4: Yeni sıralama listesi tasarımı
         return `<div class="mb-3 p-3 bg-gray-800 rounded-md border border-gray-700 cursor-pointer hover:bg-gray-700 text-center" onclick="openPublicUserDetailModal('${u.username}')">
                   ${userIcons}
                   <div class="flex items-center justify-between mt-1">
@@ -1681,6 +1313,7 @@
     });
   }
 
+  // Liderler Sıralaması
   function loadLeaderboardRanking() {
     db.ref('users').on('value', async snap => {
       let usersData = snap.val();
@@ -1720,6 +1353,7 @@
           };
           const hasAnyBadge = Object.values(userLeaderStatus).some(Boolean) || (userData.surpriseBoxesOpened || 0) > 0;
           
+          // DÜZELTME 1: Engelli liderler de listede görünecek
           if (hasAnyBadge && userData.approved) {
               leaderUsers.push({ username, ...userData, ...userLeaderStatus });
           }
@@ -1746,6 +1380,7 @@
     });
   }
 
+  // Onay bekleyenleri yükle
   function loadPendingUsers() {
     db.ref('users').on('value', snap => {
       const data = snap.val();
@@ -1763,6 +1398,7 @@
     });
   }
 
+  // Tüm kullanıcıları yükle (Admin)
   function loadAllUsers() {
     db.ref('users').on('value', snap => {
       const data = snap.val();
@@ -1802,6 +1438,7 @@
     });
   }
   
+  // Genel mesaj ve onay modal
   function displayMessage(message) { document.getElementById('generalMessageContent').innerHTML = message; generalMessageModal.style.display = 'flex'; }
   function closeGeneralMessageModal() { generalMessageModal.style.display = 'none'; }
   function customConfirm(message, callback) {
@@ -2658,6 +2295,7 @@
   function closeBadgeInfoModal() { badgeInfoModal.style.display = 'none'; }
 
 
+  // KULLANICI PROFİLİ
   async function openPublicUserDetailModal(username) {
       if (activeBlockedUserTimers[username]) {
           clearInterval(activeBlockedUserTimers[username]);
@@ -2715,6 +2353,7 @@
       document.getElementById('publicUserTotalSpent').textContent = userData.totalSpentPoints || 0;
       document.getElementById('publicUserShieldUsedCount').textContent = userData.iflasShieldUsedCount || 0;
       
+      // DÜZELTME 2: Engelli kullanıcılar için sayaç gösterimi
       const blockedInfoDiv = document.getElementById('publicUserBlockedInfo');
       const countdownEl = document.getElementById('publicUserBlockedCountdown');
       const isCurrentlyBlocked = userData.blocked && userData.blockedUntil && Date.now() < userData.blockedUntil;
@@ -2802,6 +2441,7 @@
     document.getElementById('managedUserMultiplier').textContent = multiplierText;
     document.getElementById('managedUserMultiplierUses').textContent = userData.multiplierRemainingUses || 0;
     
+    // DÜZELTME 3: Admin paneli profil sayfasında sayaç gösterimi
     const isCurrentlyBlocked = userData.blocked && userData.blockedUntil && Date.now() < userData.blockedUntil;
     const countdownContainer = document.getElementById('managedUserBlockedCountdownContainer');
     const countdownEl = document.getElementById('managedUserBlockedCountdown');
@@ -2869,6 +2509,7 @@
     selectedUserForManagement = null; 
   }
 
+  // Özel Ürün Onay Sistemi
   function loadPendingSpecialPurchases() {
     const list = document.getElementById('pendingSpecialPurchasesList');
     db.ref('pendingSpecialPurchases').on('value', snap => {
@@ -3006,6 +2647,8 @@
           }
       }, 1000);
   }
+
+  // ---- YENİ VE GÜNCELLENMİŞ FONKSİYONLAR ----
 
   function listenForAdminNotifications() {
       const notificationsRef = db.ref(`users/${currentUser}/notifications`);
