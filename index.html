@@ -1235,18 +1235,18 @@
       for (const u in usersData) {
         const userData = usersData[u];
         if (userData.approved) {
-          if ((userData.balance || 0) > leaders.highestCurrentBalance) { leaders.highestCurrentBalance = userData.balance; leaders.currentBalanceUser = u; }
-          if ((userData.highestBalanceEver || 0) > leaders.highestEverBalance) { leaders.highestEverBalance = userData.highestBalanceEver; leaders.highEverBalanceUser = u; }
-          if ((userData.surpriseBoxesOpened || 0) > leaders.maxSurpriseBoxes) { leaders.maxSurpriseBoxes = userData.surpriseBoxesOpened; leaders.surpriseBoxUser = u; }
-          if ((userData.iflasCount || 0) > leaders.maxBombCount) { leaders.maxBombCount = userData.iflasCount; leaders.bombUser = u; }
-          if ((userData.totalSpentPoints || 0) > leaders.maxSpentPoints) { leaders.maxSpentPoints = userData.totalSpentPoints; leaders.spentPointsUser = u; }
-          if ((userData.multiplierFoundCount || 0) > leaders.maxMultiplierFound) { leaders.maxMultiplierFound = userData.multiplierFoundCount; leaders.multiplierUser = u; }
-          if ((userData.boxesOpenedCount || 0) > leaders.maxBoxesOpened) { leaders.maxBoxesOpened = userData.boxesOpenedCount; leaders.boxUser = u; }
-          if ((userData.iflasShieldUsedCount || 0) > leaders.maxShieldUsed) { leaders.maxShieldUsed = userData.iflasShieldUsedCount; leaders.shieldUser = u; }
+          // GÜNCELLEME: Liderlik için sıfırdan büyük olma şartı eklendi
+          if ((userData.balance || 0) > leaders.highestCurrentBalance && userData.balance > 0) { leaders.highestCurrentBalance = userData.balance; leaders.currentBalanceUser = u; }
+          if ((userData.highestBalanceEver || 0) > leaders.highestEverBalance && userData.highestBalanceEver > 0) { leaders.highestEverBalance = userData.highestBalanceEver; leaders.highEverBalanceUser = u; }
+          if ((userData.surpriseBoxesOpened || 0) > leaders.maxSurpriseBoxes && userData.surpriseBoxesOpened > 0) { leaders.maxSurpriseBoxes = userData.surpriseBoxesOpened; leaders.surpriseBoxUser = u; }
+          if ((userData.iflasCount || 0) > leaders.maxBombCount && userData.iflasCount > 0) { leaders.maxBombCount = userData.iflasCount; leaders.bombUser = u; }
+          if ((userData.totalSpentPoints || 0) > leaders.maxSpentPoints && userData.totalSpentPoints > 0) { leaders.maxSpentPoints = userData.totalSpentPoints; leaders.spentPointsUser = u; }
+          if ((userData.multiplierFoundCount || 0) > leaders.maxMultiplierFound && userData.multiplierFoundCount > 0) { leaders.maxMultiplierFound = userData.multiplierFoundCount; leaders.multiplierUser = u; }
+          if ((userData.boxesOpenedCount || 0) > leaders.maxBoxesOpened && userData.boxesOpenedCount > 0) { leaders.maxBoxesOpened = userData.boxesOpenedCount; leaders.boxUser = u; }
+          if ((userData.iflasShieldUsedCount || 0) > leaders.maxShieldUsed && userData.iflasShieldUsedCount > 0) { leaders.maxShieldUsed = userData.iflasShieldUsedCount; leaders.shieldUser = u; }
         }
       }
       
-      // DÜZELTME 1: Engelli kullanıcılar sıralamadan kaldırılmıyor.
       let allUsersArray = Object.entries(usersData)
         .filter(([username, userData]) => username !== 'weizendtv' && userData.approved)
         .map(([username, userData]) => ({ username, ...userData }));
@@ -1296,7 +1296,6 @@
             }
         }
 
-        // DÜZELTME 4: Yeni sıralama listesi tasarımı
         return `<div class="mb-3 p-3 bg-gray-800 rounded-md border border-gray-700 cursor-pointer hover:bg-gray-700 text-center" onclick="openPublicUserDetailModal('${u.username}')">
                   ${userIcons}
                   <div class="flex items-center justify-between mt-1">
@@ -1327,14 +1326,15 @@
       for (const u in usersData) {
         const userData = usersData[u];
         if (userData.approved) {
-          if ((userData.balance || 0) > leaders.highestCurrentBalance) { leaders.highestCurrentBalance = userData.balance; leaders.currentBalanceUser = u; }
-          if ((userData.highestBalanceEver || 0) > leaders.highestEverBalance) { leaders.highestEverBalance = userData.highestBalanceEver; leaders.highEverBalanceUser = u; }
-          if ((userData.surpriseBoxesOpened || 0) > leaders.maxSurpriseBoxes) { leaders.maxSurpriseBoxes = userData.surpriseBoxesOpened; leaders.surpriseBoxUser = u; }
-          if ((userData.iflasCount || 0) > leaders.maxBombCount) { leaders.maxBombCount = userData.iflasCount; leaders.bombUser = u; }
-          if ((userData.totalSpentPoints || 0) > leaders.maxSpentPoints) { leaders.maxSpentPoints = userData.totalSpentPoints; leaders.spentPointsUser = u; }
-          if ((userData.multiplierFoundCount || 0) > leaders.maxMultiplierFound) { leaders.maxMultiplierFound = userData.multiplierFoundCount; leaders.multiplierUser = u; }
-          if ((userData.boxesOpenedCount || 0) > leaders.maxBoxesOpened) { leaders.maxBoxesOpened = userData.boxesOpenedCount; leaders.boxUser = u; }
-          if ((userData.iflasShieldUsedCount || 0) > leaders.maxShieldUsed) { leaders.maxShieldUsed = userData.iflasShieldUsedCount; leaders.shieldUser = u; }
+          // GÜNCELLEME: Liderlik için sıfırdan büyük olma şartı eklendi
+          if ((userData.balance || 0) > leaders.highestCurrentBalance && userData.balance > 0) { leaders.highestCurrentBalance = userData.balance; leaders.currentBalanceUser = u; }
+          if ((userData.highestBalanceEver || 0) > leaders.highestEverBalance && userData.highestBalanceEver > 0) { leaders.highestEverBalance = userData.highestBalanceEver; leaders.highEverBalanceUser = u; }
+          if ((userData.surpriseBoxesOpened || 0) > leaders.maxSurpriseBoxes && userData.surpriseBoxesOpened > 0) { leaders.maxSurpriseBoxes = userData.surpriseBoxesOpened; leaders.surpriseBoxUser = u; }
+          if ((userData.iflasCount || 0) > leaders.maxBombCount && userData.iflasCount > 0) { leaders.maxBombCount = userData.iflasCount; leaders.bombUser = u; }
+          if ((userData.totalSpentPoints || 0) > leaders.maxSpentPoints && userData.totalSpentPoints > 0) { leaders.maxSpentPoints = userData.totalSpentPoints; leaders.spentPointsUser = u; }
+          if ((userData.multiplierFoundCount || 0) > leaders.maxMultiplierFound && userData.multiplierFoundCount > 0) { leaders.maxMultiplierFound = userData.multiplierFoundCount; leaders.multiplierUser = u; }
+          if ((userData.boxesOpenedCount || 0) > leaders.maxBoxesOpened && userData.boxesOpenedCount > 0) { leaders.maxBoxesOpened = userData.boxesOpenedCount; leaders.boxUser = u; }
+          if ((userData.iflasShieldUsedCount || 0) > leaders.maxShieldUsed && userData.iflasShieldUsedCount > 0) { leaders.maxShieldUsed = userData.iflasShieldUsedCount; leaders.shieldUser = u; }
         }
       }
 
@@ -1353,7 +1353,6 @@
           };
           const hasAnyBadge = Object.values(userLeaderStatus).some(Boolean) || (userData.surpriseBoxesOpened || 0) > 0;
           
-          // DÜZELTME 1: Engelli liderler de listede görünecek
           if (hasAnyBadge && userData.approved) {
               leaderUsers.push({ username, ...userData, ...userLeaderStatus });
           }
@@ -1685,17 +1684,10 @@
     };
     await boxRef.update(boxUpdate);
     
-    const allUsersSnap = await db.ref('users').once('value');
-    const allUsersData = allUsersSnap.val();
-    let leaders = { highestCurrentBalance: -1, currentBalanceUser: null, highestEverBalance: -1, highEverBalanceUser: null, maxSurpriseBoxes: -1, surpriseBoxUser: null, maxBombCount: -1, bombUser: null, maxSpentPoints: -1, spentPointsUser: null, maxMultiplierFound: -1, multiplierUser: null, maxBoxesOpened: -1, boxUser: null, maxShieldUsed: -1, shieldUser: null };
-    for (const u in allUsersData) { const data = allUsersData[u]; if (data.approved) { if ((data.balance || 0) > leaders.highestCurrentBalance) { leaders.highestCurrentBalance = data.balance; leaders.currentBalanceUser = u; } if ((data.highestBalanceEver || 0) > leaders.highestEverBalance) { leaders.highestEverBalance = data.highestBalanceEver; leaders.highEverBalanceUser = u; } if ((data.surpriseBoxesOpened || 0) > leaders.maxSurpriseBoxes) { leaders.maxSurpriseBoxes = data.surpriseBoxesOpened; leaders.surpriseBoxUser = u; } if ((data.iflasCount || 0) > leaders.maxBombCount) { leaders.maxBombCount = data.iflasCount; leaders.bombUser = u; } if ((data.totalSpentPoints || 0) > leaders.maxSpentPoints) { leaders.maxSpentPoints = data.totalSpentPoints; leaders.spentPointsUser = u; } if ((data.multiplierFoundCount || 0) > leaders.maxMultiplierFound) { leaders.maxMultiplierFound = data.multiplierFoundCount; leaders.multiplierUser = u; } if ((data.boxesOpenedCount || 0) > leaders.maxBoxesOpened) { leaders.maxBoxesOpened = data.boxesOpenedCount; leaders.boxUser = u; } if ((data.iflasShieldUsedCount || 0) > leaders.maxShieldUsed) { leaders.maxShieldUsed = data.iflasShieldUsedCount; leaders.shieldUser = u; } } }
-    const userLeaderStatus = { isCurrentLeader: currentUser === leaders.currentBalanceUser, isHighLeader: currentUser === leaders.highEverBalanceUser, isSurpriseLeader: currentUser === leaders.surpriseBoxUser, isBombLeader: currentUser === leaders.bombUser, isStoreLeader: currentUser === leaders.spentPointsUser, isMultiplierLeader: currentUser === leaders.multiplierUser, isBoxLeader: currentUser === leaders.boxUser, isShieldLeader: currentUser === leaders.shieldUser, };
-    const openerBadgesHTML = getUserBadgesHtml({username: currentUser, ...user}, userLeaderStatus);
-
+    // GÜNCELLEME: Kral Tacı Rozeti kaldırıldı.
     const boxOpenInfo = {
         boxId: box.id,
         opener: currentUser,
-        openerBadgesHTML: openerBadgesHTML,
         content: box.content,
         value: finalMultiplier > 1 && box.content === 'points' ? box.value * finalMultiplier : box.value,
         multiplierUsed: finalMultiplier,
@@ -2353,7 +2345,6 @@
       document.getElementById('publicUserTotalSpent').textContent = userData.totalSpentPoints || 0;
       document.getElementById('publicUserShieldUsedCount').textContent = userData.iflasShieldUsedCount || 0;
       
-      // DÜZELTME 2: Engelli kullanıcılar için sayaç gösterimi
       const blockedInfoDiv = document.getElementById('publicUserBlockedInfo');
       const countdownEl = document.getElementById('publicUserBlockedCountdown');
       const isCurrentlyBlocked = userData.blocked && userData.blockedUntil && Date.now() < userData.blockedUntil;
@@ -2441,7 +2432,6 @@
     document.getElementById('managedUserMultiplier').textContent = multiplierText;
     document.getElementById('managedUserMultiplierUses').textContent = userData.multiplierRemainingUses || 0;
     
-    // DÜZELTME 3: Admin paneli profil sayfasında sayaç gösterimi
     const isCurrentlyBlocked = userData.blocked && userData.blockedUntil && Date.now() < userData.blockedUntil;
     const countdownContainer = document.getElementById('managedUserBlockedCountdownContainer');
     const countdownEl = document.getElementById('managedUserBlockedCountdown');
@@ -2623,8 +2613,9 @@
           contentDisplay = `${info.value}X Çarpan buldu!`;
       }
 
+      // GÜNCELLEME: Kral Tacı gösterimi kaldırıldı.
       const contentHtml = `
-          <div class="text-3xl font-bold mb-3 flex flex-col justify-center items-center gap-2">${info.openerBadgesHTML || ''} <span class="text-green-400">${info.opener}</span></div>
+          <div class="text-3xl font-bold mb-3 flex flex-col justify-center items-center gap-2"><span class="text-green-400">${info.opener}</span></div>
           <p class="text-lg text-gray-300"><b>${info.boxId}</b> numaralı kutuyu açtı ve...</p>
           <p class="text-2xl font-semibold mt-2 text-yellow-300">${contentDisplay}</p>
       `;
