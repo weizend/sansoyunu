@@ -149,13 +149,13 @@
 
           <div id="tablesWrapper" class="flex flex-wrap justify-center gap-6 mb-8">
             <div class="tableBox bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700 w-full md:flex-1 min-w-[280px] md:max-w-md">
-              <h3 class="text-yellow-400 text-xl font-bold border-b border-gray-600 pb-3 mb-4">KULLANICI SIRALAMASI</h3>
+              <h3 class="text-yellow-400 text-xl font-bold border-b border-gray-600 pb-3 mb-4">KULLANICI PUAN SIRALAMASI 🥇</h3>
               <p class="text-gray-300 mb-3">Toplam Kullanıcı: <span id="totalUsers" class="font-bold text-yellow-400">0</span></p>
               <div id="allUserRankings" class="scrollable-list max-h-80 overflow-y-auto border border-gray-600 rounded-lg p-3 bg-gray-900 text-sm leading-relaxed">Yükleniyor...</div>
             </div>
             <div class="tableBox bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700 w-full md:flex-1 min-w-[280px] md:max-w-md">
                <h3 class="text-yellow-400 text-xl font-bold border-b border-gray-600 pb-3 mb-4 flex justify-between items-center">
-                    <span>LİDERLER SIRALAMASI</span>
+                    <span>LİDERLER SIRALAMASI 👑</span>
                     <button onclick="openBadgeInfoModal()" class="text-xl text-blue-400 hover:text-blue-300 transition-colors" title="Rozet Bilgileri">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     </button>
@@ -1711,7 +1711,12 @@
             const refundItemSnap = await db.ref('storeItems/' + refundItemId).once('value');
             const refundItem = refundItemSnap.val();
             if (refundItem) {
-                updates['balance'] = (user.balance || 0) + refundItem.cost;
+                // DÜZELTME: Puan iadesi yapılırken en yüksek puan kontrolü eklendi.
+                const newBalance = (user.balance || 0) + refundItem.cost;
+                updates['balance'] = newBalance;
+                if (newBalance > (user.highestBalanceEver || 0)) {
+                    updates['highestBalanceEver'] = newBalance;
+                }
                 updates['totalSpentPoints'] = Math.max(0, (user.totalSpentPoints || 0) - refundItem.cost);
                 message = `Kutudan çarpan buldunuz! Mağazadan aldığınız çarpanın ücreti (${refundItem.cost} Puan) iade edildi. Yeni çarpanınız: ${box.value}x. Ayrıca bonus kutu hakkı kazandınız!`;
             }
@@ -2620,36 +2625,41 @@
   }
 
   async function denySpecialPurchase(purchaseId, username, itemCost) {
-      const purchaseItemSnap = await db.ref(`/pendingSpecialPurchases/${purchaseId}`).once('value');
-      const purchaseItem = purchaseItemSnap.val();
-       if (!purchaseItem) {
-        displayMessage("Reddedilecek öğe bulunamadı.");
-        return;
-      }
+    const purchaseItemSnap = await db.ref(`/pendingSpecialPurchases/${purchaseId}`).once('value');
+    const purchaseItem = purchaseItemSnap.val();
+     if (!purchaseItem) {
+      displayMessage("Reddedilecek öğe bulunamadı.");
+      return;
+    }
 
-      if (!await customConfirm(`${username} kullanıcısının '${purchaseItem.itemName}' alımını reddetmek istediğinize emin misiniz? Puan iadesi yapılacaktır.`)) return;
-      
-      const userRef = db.ref(`users/${username}`);
-      const updates = {};
+    if (!await customConfirm(`${username} kullanıcısının '${purchaseItem.itemName}' alımını reddetmek istediğinize emin misiniz? Puan iadesi yapılacaktır.`)) return;
 
-      const userSnap = await userRef.once('value');
-      const userData = userSnap.val();
-      if (userData) {
-          updates[`users/${username}/balance`] = (userData.balance || 0) + itemCost;
-          updates[`users/${username}/totalSpentPoints`] = Math.max(0, (userData.totalSpentPoints || 0) - itemCost);
-      }
+    const userRef = db.ref(`users/${username}`);
+    const updates = {};
 
-      updates[`/pendingSpecialPurchases/${purchaseId}`] = null;
-      updates[`/purchaseHistory/${purchaseId}/status`] = 'denied';
+    const userSnap = await userRef.once('value');
+    const userData = userSnap.val();
+    if (userData) {
+        const newBalance = (userData.balance || 0) + itemCost;
+        updates[`users/${username}/balance`] = newBalance;
+        updates[`users/${username}/totalSpentPoints`] = Math.max(0, (userData.totalSpentPoints || 0) - itemCost);
+        // DÜZELTME: Ulaşılan en yüksek puan kontrolü eklendi.
+        if (newBalance > (userData.highestBalanceEver || 0)) {
+          updates[`users/${username}/highestBalanceEver`] = newBalance;
+        }
+    }
 
-      db.ref().update(updates).then(() => {
-          notifyUser(username, `'${purchaseItem.itemName}' adlı özel ürün alımınız reddedildi. ${itemCost} puan hesabınıza iade edildi.`);
-          displayMessage("Özel ürün alımı reddedildi ve puan iadesi yapıldı.");
-      }).catch(err => {
-          console.error("Reddetme hatası: ", err);
-          displayMessage("Reddetme sırasında bir hata oluştu.");
-      });
-  }
+    updates[`/pendingSpecialPurchases/${purchaseId}`] = null;
+    updates[`/purchaseHistory/${purchaseId}/status`] = 'denied';
+
+    db.ref().update(updates).then(() => {
+        notifyUser(username, `'${purchaseItem.itemName}' adlı özel ürün alımınız reddedildi. ${itemCost} puan hesabınıza iade edildi.`);
+        displayMessage("Özel ürün alımı reddedildi ve puan iadesi yapıldı.");
+    }).catch(err => {
+        console.error("Reddetme hatası: ", err);
+        displayMessage("Reddetme sırasında bir hata oluştu.");
+    });
+}
 
   let globalCountdownInterval = null;
 
@@ -2836,43 +2846,47 @@
     }
 
     async function claimDailyReward(itemId) {
-        if (isAdmin) return;
-        const userRef = db.ref('users/' + currentUser);
-        const userSnap = await userRef.once('value');
-        const user = userSnap.val();
-        
-        const lastClaim = user.lastDailyRewardClaim || 0;
-        const twentyFourHours = 24 * 60 * 60 * 1000;
-        if ((Date.now() - lastClaim) <= twentyFourHours) {
-            displayMessage("Günlük ödülünü zaten aldın. Lütfen yarın tekrar dene.");
-            return;
-        }
+    if (isAdmin) return;
+    const userRef = db.ref('users/' + currentUser);
+    const userSnap = await userRef.once('value');
+    const user = userSnap.val();
 
-        const itemSnap = await db.ref('storeItems/' + itemId).once('value');
-        const item = itemSnap.val();
-        if (!item) {
-            displayMessage("Ödül alınırken bir hata oluştu.");
-            return;
-        }
-        
-        let updates = {};
-        let message = `Tebrikler! Günlük ödül olarak <b>${item.name}</b> kazandın.`;
-        
-        if (item.type === 'boxRights') {
-            updates.kutuHakki = (user.kutuHakki || 0) + item.value;
-        } else if (item.type === 'iflasShield') {
-            updates.iflasShieldUses = (user.iflasShieldUses || 0) + item.value;
-        } else { // Puan gibi maliyeti olan ürünler için
-            updates.balance = (user.balance || 0) + item.cost;
-        }
-        
-        updates.lastDailyRewardClaim = firebase.database.ServerValue.TIMESTAMP;
-        
-        await userRef.update(updates);
-        displayMessage(message);
-        closeDailyRewardModal();
+    const lastClaim = user.lastDailyRewardClaim || 0;
+    const twentyFourHours = 24 * 60 * 60 * 1000;
+    if ((Date.now() - lastClaim) <= twentyFourHours) {
+        displayMessage("Günlük ödülünü zaten aldın. Lütfen yarın tekrar dene.");
+        return;
     }
-    
+
+    const itemSnap = await db.ref('storeItems/' + itemId).once('value');
+    const item = itemSnap.val();
+    if (!item) {
+        displayMessage("Ödül alınırken bir hata oluştu.");
+        return;
+    }
+
+    let updates = {};
+    let message = `Tebrikler! Günlük ödül olarak <b>${item.name}</b> kazandın.`;
+
+    if (item.type === 'boxRights') {
+        updates.kutuHakki = (user.kutuHakki || 0) + item.value;
+    } else if (item.type === 'iflasShield') {
+        updates.iflasShieldUses = (user.iflasShieldUses || 0) + item.value;
+    } else { // Puan gibi maliyeti olan ürünler için
+        const newBalance = (user.balance || 0) + item.cost;
+        updates.balance = newBalance;
+        // DÜZELTME: Ulaşılan en yüksek puan kontrolü eklendi.
+        if (newBalance > (user.highestBalanceEver || 0)) {
+            updates.highestBalanceEver = newBalance;
+        }
+    }
+
+    updates.lastDailyRewardClaim = firebase.database.ServerValue.TIMESTAMP;
+
+    await userRef.update(updates);
+    displayMessage(message);
+    closeDailyRewardModal();
+}    
     // Admin Günlük Ödül Yönetimi
     async function loadStoreItemsForAdminSelect() {
         const selectEl = document.getElementById('selectStoreItemForReward');
