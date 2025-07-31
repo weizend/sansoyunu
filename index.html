@@ -125,16 +125,17 @@
 
     <div class="flex justify-center gap-4 mb-8">
       <button id="gameTabBtn" onclick="showSection('game')"
-              class="py-3 px-8 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
+              class="relative py-3 px-8 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
         Kutu Oyunu
       </button>
       <button id="storeTabBtn" onclick="showSection('store')"
-              class="py-3 px-8 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
+              class="relative py-3 px-8 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
         Puan Alışverişi
       </button>
       <button id="announcementsTabBtn" onclick="showSection('announcements')"
-              class="py-3 px-8 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
+              class="relative py-3 px-8 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
         Duyurular
+        <span id="announcementIndicator" class="hidden absolute -top-1 -right-1 h-3 w-3 rounded-full bg-red-500 animate-pulse"></span>
       </button>
     </div>
     
@@ -149,13 +150,13 @@
 
           <div id="tablesWrapper" class="flex flex-wrap justify-center gap-6 mb-8">
             <div class="tableBox bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700 w-full md:flex-1 min-w-[280px] md:max-w-md">
-              <h3 class="text-yellow-400 text-xl font-bold border-b border-gray-600 pb-3 mb-4">KULLANICI PUAN SIRALAMASI 🥇</h3>
+              <h3 class="text-yellow-400 text-xl font-bold border-b border-gray-600 pb-3 mb-4">KULLANICI SIRALAMASI</h3>
               <p class="text-gray-300 mb-3">Toplam Kullanıcı: <span id="totalUsers" class="font-bold text-yellow-400">0</span></p>
               <div id="allUserRankings" class="scrollable-list max-h-80 overflow-y-auto border border-gray-600 rounded-lg p-3 bg-gray-900 text-sm leading-relaxed">Yükleniyor...</div>
             </div>
             <div class="tableBox bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700 w-full md:flex-1 min-w-[280px] md:max-w-md">
                <h3 class="text-yellow-400 text-xl font-bold border-b border-gray-600 pb-3 mb-4 flex justify-between items-center">
-                    <span>LİDERLER SIRALAMASI 👑</span>
+                    <span>LİDERLER SIRALAMASI</span>
                     <button onclick="openBadgeInfoModal()" class="text-xl text-blue-400 hover:text-blue-300 transition-colors" title="Rozet Bilgileri">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     </button>
@@ -189,7 +190,7 @@
                 <option value="boxRights">Kutu Hakkı</option>
                 <option value="tempMultiplier">Geçici Çarpan</option>
                 <option value="iflasShield">İflas Kalkanı</option>
-                <option value="special">Özel Ürün</option>
+                <option value="special">Özel Ürün (Onay Gerektirir)</option>
               </select>
               <input type="number" id="newItemValue" placeholder="Değer (Kutu Hakkı Adedi / Çarpan Değeri / Kalkan Kullanım Sayısı)" class="w-full p-2 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
               <input type="number" id="newItemMultiplierDuration" placeholder="Çarpan Süresi (Kutu Sayısı)" min="1" class="w-full p-2 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white hidden focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
@@ -210,7 +211,7 @@
         
         <div id="announcementsContent" class="w-full hidden">
             <h3 class="text-yellow-400 text-3xl font-bold mb-6 text-center">Duyurular</h3>
-            <div id="announcementsList" class="space-y-4 max-w-2xl mx-auto">
+            <div id="announcementsList" class="space-y-6 max-w-2xl mx-auto">
                 <p class="text-center text-gray-400">Duyurular yükleniyor...</p>
             </div>
         </div>
@@ -278,14 +279,32 @@
         </div>
         
         <div class="bg-gray-900 p-6 rounded-lg border border-gray-700">
-          <h4 class="text-yellow-300 text-xl font-semibold mb-4">Günlük Ödül Yönetimi</h4>
-          <label for="selectStoreItemForReward" class="text-left block text-gray-300 mb-2">Ödül olarak eklenecek mağaza ürününü seçin:</label>
-          <select id="selectStoreItemForReward" class="w-full p-2 mb-3 bg-gray-700 border border-gray-600 rounded-lg text-white">
-            <option>Mağaza Ürünleri Yükleniyor...</option>
-          </select>
-          <button onclick="addDailyReward()" class="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg">GÜNLÜK ÖDÜLE EKLE</button>
-          <h5 class="text-gray-200 text-lg font-semibold mb-2 mt-4">Mevcut Günlük Ödüller</h5>
-          <div id="adminDailyRewardsList" class="scrollable-list max-h-40 overflow-y-auto p-3 bg-gray-800 rounded-md">Yükleniyor...</div>
+            <h4 class="text-yellow-300 text-xl font-semibold mb-4">Günlük Ödül Yönetimi</h4>
+            <div class="mb-4 space-y-2">
+                <input type="text" id="dailyRewardName" placeholder="Ödül Adı (Örn: 100 Puan)" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
+                <textarea id="dailyRewardDescription" placeholder="Ödül Açıklaması" rows="2" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white"></textarea>
+                <select id="dailyRewardType" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
+                    <option value="">Ödül Tipi Seçin</option>
+                    <option value="points">Puan</option>
+                    <option value="boxRights">Kutu Hakkı</option>
+                    <option value="iflasShield">İflas Kalkanı</option>
+                    <option value="tempMultiplier">Çarpan</option>
+                </select>
+                <input type="number" id="dailyRewardValue" placeholder="Değer (Puan/Hak Adedi/Çarpan X'i)" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
+                <input type="number" id="dailyRewardMultiplierUses" placeholder="Çarpan Kullanım Hakkı" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white hidden">
+                
+                <label class="text-gray-300 text-sm block text-left">Ödül Bekleme Süresi:</label>
+                <div class="flex gap-2">
+                    <input type="number" id="dailyRewardCooldownHours" placeholder="Saat" min="0" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
+                    <input type="number" id="dailyRewardCooldownMinutes" placeholder="Dakika" min="0" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
+                    <input type="number" id="dailyRewardCooldownSeconds" placeholder="Saniye" min="0" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
+                </div>
+                
+                <input type="text" id="dailyRewardImageUrl" placeholder="Resim URL (Opsiyonel)" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
+            </div>
+            <button onclick="createCustomDailyReward()" class="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg">GÜNLÜK ÖDÜL OLUŞTUR</button>
+            <h5 class="text-gray-200 text-lg font-semibold mb-2 mt-4">Mevcut Günlük Ödüller</h5>
+            <div id="adminDailyRewardsList" class="scrollable-list max-h-40 overflow-y-auto p-3 bg-gray-800 rounded-md">Yükleniyor...</div>
         </div>
       </div>
 
@@ -763,11 +782,34 @@
 </div>
 
 <div id="dailyRewardModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 hidden">
-    <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-yellow-500 w-11/12 max-w-3xl text-center relative max-h-[90vh]">
+    <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-yellow-500 w-11/12 max-w-4xl text-center relative max-h-[90vh] overflow-y-auto scrollable-list">
         <button class="modal-close-button absolute top-2 right-4 text-white text-4xl" onclick="closeDailyRewardModal()">&times;</button>
-        <h4 class="text-yellow-400 text-3xl font-bold mb-2">Günlük Ödül Zamanı!</h4>
-        <p id="dailyRewardMessage" class="text-lg text-gray-300 mb-6">Aşağıdaki ödüllerden birini seçerek güne başla. Bol şans!</p>
+        <h4 class="text-yellow-400 text-3xl font-bold mb-2">Günlük Ödüller</h4>
+        <p id="dailyRewardMessage" class="text-lg text-gray-300 mb-6">Aşağıdaki ödüllerden alabileceklerini topla. Bol şans!</p>
         <div id="dailyRewardItemsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-4">
+        </div>
+    </div>
+</div>
+
+<div id="newAnnouncementModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-[99999] hidden">
+    <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-yellow-500 w-11/12 max-w-md text-center relative">
+        <h4 class="text-yellow-400 text-3xl font-bold mb-4 flex justify-center items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-2.236 9.168-5.584C18.354 1.832 18.666 2 19 2h2v2a1 1 0 01-1 1h-1.168a2.992 2.992 0 00-2.312.962l-3.35 4.188-2.312.962a4.001 4.001 0 01-2.829 2.829l-2.147 6.15a1.76 1.76 0 01-3.417-.592l.533-1.524a1 1 0 00-.28-1.124l-2.148-2.148A1 1 0 012 13.243V11a1 1 0 011-1h2.168a2.992 2.992 0 002.312-.962l.533-1.524z" /></svg>
+            Yeni Duyuru!
+        </h4>
+        <p id="newAnnouncementText" class="text-lg text-gray-300 my-6 break-words"></p>
+        <div class="flex flex-col gap-3">
+            <button onclick="goToAnnouncements()" class="w-full py-3 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">Duyurulara Git</button>
+            <button onclick="closeNewAnnouncementModal()" class="w-full py-2 bg-gray-600 hover:bg-gray-500 text-white font-bold rounded-lg transition duration-200">Kapat</button>
+        </div>
+    </div>
+</div>
+
+<div id="announcementLikesModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[9999] hidden">
+    <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-red-700 w-11/12 max-w-md text-center relative">
+        <button class="modal-close-button absolute top-2 right-4 text-white text-4xl" onclick="closeAnnouncementLikesModal()">&times;</button>
+        <h4 class="text-yellow-400 text-2xl font-bold mb-6">Duyuruyu Beğenenler</h4>
+        <div id="announcementLikesList" class="scrollable-list max-h-80 overflow-y-auto bg-gray-900 rounded-lg p-3">
             </div>
     </div>
 </div>
@@ -803,6 +845,7 @@
   const BOX_RIGHTS_COST_PER_BOX = 1;
   let isGameLocked = false; 
   let sessionStartTime = Date.now();
+  let latestAnnouncementTimestamp = 0;
   
   const BOX_CONTENTS = [
     { type: 'surpriz', value: 0, count: 1 },
@@ -845,7 +888,8 @@
   const boxStatsModal = document.getElementById('boxStatsModal');
   const spectatorModal = document.getElementById('spectatorModal');
   const dailyRewardModal = document.getElementById('dailyRewardModal');
-
+  const newAnnouncementModal = document.getElementById('newAnnouncementModal');
+  const announcementLikesModal = document.getElementById('announcementLikesModal');
 
   let targetUserForAdjustment = null;
   let targetUserForBoxRightAdjustment = null;
@@ -857,6 +901,7 @@
   let countdownInterval = null;
   let cardValues = [1000, 2000, 3000, 4000, 5000];
   let activeBlockedUserTimers = {};
+  let activeDailyRewardTimers = {};
   
   let currentCardsToOpen = 0;
   let cardsOpenedInCurrentSurpriseSession = 0;
@@ -1004,7 +1049,8 @@
             storePurchasesCount: 0,
             hasReceivedWelcomeGift: false,
             notifications: {},
-            lastDailyRewardClaim: null,
+            dailyRewardsClaimed: {},
+            lastSeenAnnouncementTimestamp: 0,
         };
 
         db.ref('users/' + username).set(newUser).then(() => {
@@ -1127,20 +1173,20 @@
       adminPanelToggleButton.classList.add('hidden');
     }
 
-    showSection('game'); // Varsayılan olarak oyun sekmesini aç
+    showSection('game');
 
     loadBalanceAndBoxRights();
     loadUserRankingsAndBoxCounts();
     loadLeaderboardRanking();
     loadBoxes();
     loadTotalOpenedBoxesCount();
-    loadAnnouncements(); // Duyuruları yükle
+    loadAnnouncements();
     listenForGameChanges();
     if (!isAdmin) {
         listenForAdminNotifications();
+        listenForNewAnnouncements();
     }
     listenForSurpriseBox();
-
 
     if (!isAdmin) {
         const userRef = db.ref('users/' + currentUser);
@@ -1159,9 +1205,7 @@
     }
   }
 
-    // Bölüm değiştirme (Sekmeleme)
     function showSection(sectionId) {
-        // Tüm içerik alanlarını ve admin kontrollerini gizle
         document.getElementById('gameContent').classList.add('hidden');
         document.getElementById('storeSection').classList.add('hidden');
         document.getElementById('announcementsContent').classList.add('hidden');
@@ -1169,7 +1213,6 @@
             document.getElementById('adminStoreControls').classList.add('hidden');
         }
 
-        // Tüm sekme butonlarının aktif stilini kaldır
         const tabButtons = ['gameTabBtn', 'storeTabBtn', 'announcementsTabBtn'];
         tabButtons.forEach(btnId => {
             const btn = document.getElementById(btnId);
@@ -1177,9 +1220,8 @@
             btn.classList.add('bg-gray-700', 'hover:bg-gray-600');
         });
         
-        // İstenen bölümü ve ilgili butonu aktif et
         const activeBtn = document.getElementById(`${sectionId}TabBtn`);
-        const activeContent = document.getElementById(`${sectionId}Content`);
+        const activeContent = document.getElementById(sectionId === 'store' ? 'storeSection' : `${sectionId}Content`);
 
         if(activeContent) activeContent.classList.remove('hidden');
         if(activeBtn) {
@@ -1187,12 +1229,15 @@
             activeBtn.classList.remove('bg-gray-700', 'hover:bg-gray-600');
         }
 
-        // Mağaza sekmesine özel işlemler
         if (sectionId === 'store') {
-            document.getElementById('storeSection').classList.remove('hidden'); // Mağaza ana div'ini göster
             loadStoreItems();
             if (isAdmin) {
                 document.getElementById('adminStoreControls').classList.remove('hidden');
+            }
+        } else if (sectionId === 'announcements') {
+            document.getElementById('announcementIndicator').classList.add('hidden');
+            if(!isAdmin) {
+                db.ref(`users/${currentUser}/lastSeenAnnouncementTimestamp`).set(latestAnnouncementTimestamp);
             }
         }
         
@@ -1206,8 +1251,7 @@
     loadAllUsers(); 
     loadPendingSpecialPurchases();
     loadAdminAnnouncements();
-    loadStoreItemsForAdminSelect();
-    loadDailyRewardManagement();
+    loadDailyRewardManagement(); 
   }
   function closeAdminPanelModal() { adminPanelModal.style.display = 'none'; }
   function logout() { auth.signOut().then(() => location.reload()); }
@@ -1231,7 +1275,7 @@
       let statusText = `Mevcut Puan: ${userData.balance} | Kutu Hakkı: ${userData.kutuHakki}`;
       if (userData.iflasShieldUses > 0) statusText += ` | 🛡️ Kalkan: ${userData.iflasShieldUses}`;
       if (userData.multiplierSource === 'store' && userData.multiplierRemainingUses > 0) statusText += ` | ✖️ Çarpan: ${userData.activeMultiplier}x (${userData.multiplierRemainingUses} kullanım)`;
-      else if (userData.multiplierSource === 'box') statusText += ` | ✖️ Çarpan: ${userData.activeMultiplier}x (1 kullanım)`;
+      else if (userData.multiplierSource === 'box') statusText += ` | ✖️ Çarpan: ${userData.activeMultiplier}x (Otomatik)`;
 
       document.getElementById("balance").textContent = statusText;
       document.getElementById('storeCurrentUserBalance').textContent = userData.balance || 0;
@@ -1239,7 +1283,6 @@
     });
   }
 
-  // DÜZELTME 4: Yeni rozet fonksiyonu
   function getUserBadgesHtml(u, leaders) {
       let crownHtml = '';
       let otherBadgesHtml = '';
@@ -1266,7 +1309,7 @@
           if (leaders.isMultiplierLeader) otherBadges.push(`<span class="text-xl" title="Çarpan Lideri">✖️</span>`);
           if (leaders.isBoxLeader) otherBadges.push(`<span class="text-xl" title="Kutu Lideri">📦</span>`);
           if (leaders.isShieldLeader) otherBadges.push(`<span class="text-xl" title="Kalkan Lideri">🛡️</span>`);
-          otherBadgesHtml = `<div class="flex items-center gap-2 h-6">${otherBadges.join('')}</div>`;
+          otherBadgesHtml = `<div class="flex items-center justify-center gap-2 h-6">${otherBadges.join('')}</div>`;
       }
       return crownHtml + otherBadgesHtml;
   }
@@ -1297,9 +1340,10 @@
       };
 
       for (const u in usersData) {
+        if (u === 'weizendtv') continue;
+        
         const userData = usersData[u];
         if (userData.approved) {
-          // GÜNCELLEME: Liderlik için sıfırdan büyük olma şartı eklendi
           if ((userData.balance || 0) > leaders.highestCurrentBalance && userData.balance > 0) { leaders.highestCurrentBalance = userData.balance; leaders.currentBalanceUser = u; }
           if ((userData.highestBalanceEver || 0) > leaders.highestEverBalance && userData.highestBalanceEver > 0) { leaders.highestEverBalance = userData.highestBalanceEver; leaders.highEverBalanceUser = u; }
           if ((userData.surpriseBoxesOpened || 0) > leaders.maxSurpriseBoxes && userData.surpriseBoxesOpened > 0) { leaders.maxSurpriseBoxes = userData.surpriseBoxesOpened; leaders.surpriseBoxUser = u; }
@@ -1334,7 +1378,7 @@
         if (u.multiplierSource === 'store' && u.multiplierRemainingUses > 0) {
             multiplierInfo = ` | Çarpan: ${u.activeMultiplier}x (${u.multiplierRemainingUses} kullanım)`;
         } else if (u.multiplierSource === 'box') {
-            multiplierInfo = ` | Çarpan: ${u.activeMultiplier}x (1 kullanım)`;
+            multiplierInfo = ` | Çarpan: ${u.activeMultiplier}x (Otomatik)`;
         }
         
         let blockedInfo = '';
@@ -1376,7 +1420,6 @@
     });
   }
 
-  // Liderler Sıralaması
   function loadLeaderboardRanking() {
     db.ref('users').on('value', async snap => {
       let usersData = snap.val();
@@ -1388,9 +1431,10 @@
           maxBoxesOpened: -1, boxUser: null, maxShieldUsed: -1, shieldUser: null,
       };
       for (const u in usersData) {
+        if (u === 'weizendtv') continue;
+
         const userData = usersData[u];
         if (userData.approved) {
-          // GÜNCELLEME: Liderlik için sıfırdan büyük olma şartı eklendi
           if ((userData.balance || 0) > leaders.highestCurrentBalance && userData.balance > 0) { leaders.highestCurrentBalance = userData.balance; leaders.currentBalanceUser = u; }
           if ((userData.highestBalanceEver || 0) > leaders.highestEverBalance && userData.highestBalanceEver > 0) { leaders.highestEverBalance = userData.highestBalanceEver; leaders.highEverBalanceUser = u; }
           if ((userData.surpriseBoxesOpened || 0) > leaders.maxSurpriseBoxes && userData.surpriseBoxesOpened > 0) { leaders.maxSurpriseBoxes = userData.surpriseBoxesOpened; leaders.surpriseBoxUser = u; }
@@ -1433,7 +1477,7 @@
         const badgesHtml = getUserBadgesHtml(u, u);
         return `<div class="mb-3 p-3 bg-gray-800 rounded-md border border-gray-700 cursor-pointer hover:bg-gray-700 text-center" onclick="openPublicUserDetailModal('${u.username}')">
                     ${badgesHtml}
-                    <div class="flex items-center justify-between mt-1">
+                    <div class="flex items-center justify-center mt-1">
                         <span class="font-semibold text-lg"><b class="text-yellow-300">${i + 1}.</b> ${u.username}</span>
                     </div>
                 </div>`;
@@ -1443,7 +1487,7 @@
     });
   }
 
-  // Onay bekleyenleri yükle
+
   function loadPendingUsers() {
     db.ref('users').on('value', snap => {
       const data = snap.val();
@@ -1461,7 +1505,6 @@
     });
   }
 
-  // Tüm kullanıcıları yükle (Admin)
   function loadAllUsers() {
     db.ref('users').on('value', snap => {
       const data = snap.val();
@@ -1501,7 +1544,6 @@
     });
   }
   
-  // Genel mesaj ve onay modal
   function displayMessage(message) { document.getElementById('generalMessageContent').innerHTML = message; generalMessageModal.style.display = 'flex'; }
   function closeGeneralMessageModal() { generalMessageModal.style.display = 'none'; }
   function customConfirm(message, callback) {
@@ -1586,7 +1628,9 @@
     updates[`${userRef}/storePurchasesCount`] = 0;
     updates[`${userRef}/activeStoreMultiplierItemId`] = null;
     updates[`${userRef}/notifications`] = null;
-    updates[`${userRef}/lastDailyRewardClaim`] = null;
+    updates[`${userRef}/dailyRewardsClaimed`] = null;
+    updates[`${userRef}/lastSeenAnnouncementTimestamp`] = null;
+
 
     const purchaseHistorySnap = await db.ref('purchaseHistory').orderByChild('username').equalTo(username).once('value');
     if (purchaseHistorySnap.exists()) {
@@ -1651,12 +1695,20 @@
 
     let useMultiplier = false;
     let finalMultiplier = 1;
+    let multiplierUsedThisTurn = false;
+    let refundOccurred = false;
 
-    if ((user.multiplierSource === 'store' && user.multiplierRemainingUses > 0) || user.multiplierSource === 'box') {
+    if (user.multiplierSource === 'box') {
+        useMultiplier = true;
+        finalMultiplier = user.activeMultiplier;
+        multiplierUsedThisTurn = true;
+    } 
+    else if (user.multiplierSource === 'store' && user.multiplierRemainingUses > 0) {
         const confirmedMultiplier = await customConfirm(`Mevcut <b>${user.activeMultiplier}x</b> çarpanınızı kullanmak ister misiniz?`);
         if (confirmedMultiplier) {
             useMultiplier = true;
             finalMultiplier = user.activeMultiplier;
+            multiplierUsedThisTurn = true;
         }
     }
 
@@ -1666,7 +1718,6 @@
     const gameStatsRef = db.ref(`gameStats/boxesOpenedByUsers/${currentUser}`);
     gameStatsRef.transaction(currentCount => (currentCount || 0) + 1);
 
-
     let message = '';
     const box = boxes[index];
     
@@ -1675,7 +1726,7 @@
         if ((user.iflasShieldUses || 0) > 0) {
             updates['iflasShieldUses'] = user.iflasShieldUses - 1;
             updates['iflasShieldUsedCount'] = (user.iflasShieldUsedCount || 0) + 1;
-            message = `İflas! Kalkanınız sizi korudu. Kalan kalkan: ${updates['iflasShieldUses']}.`;
+            message = `İflas! 🛡️ Kalkanın zırh gibi durdu ve seni korudu! Kalan kalkan: ${updates['iflasShieldUses']}.`;
         } else {
             updates['balance'] = 0;
             message = `İflas! Tüm puanlarınız silindi.`;
@@ -1705,31 +1756,22 @@
         message = `Sürpriz Kutu buldunuz!`;
     } else if (box.content === 'multiplier') {
         updates['multiplierFoundCount'] = (user.multiplierFoundCount || 0) + 1;
-        updates.kutuHakki += 1;
-        if (user.multiplierSource === 'store' && user.activeStoreMultiplierItemId) {
-            const refundItemId = user.activeStoreMultiplierItemId;
-            const refundItemSnap = await db.ref('storeItems/' + refundItemId).once('value');
-            const refundItem = refundItemSnap.val();
-            if (refundItem) {
-                // DÜZELTME: Puan iadesi yapılırken en yüksek puan kontrolü eklendi.
-                const newBalance = (user.balance || 0) + refundItem.cost;
-                updates['balance'] = newBalance;
-                if (newBalance > (user.highestBalanceEver || 0)) {
-                    updates['highestBalanceEver'] = newBalance;
-                }
-                updates['totalSpentPoints'] = Math.max(0, (user.totalSpentPoints || 0) - refundItem.cost);
-                message = `Kutudan çarpan buldunuz! Mağazadan aldığınız çarpanın ücreti (${refundItem.cost} Puan) iade edildi. Yeni çarpanınız: ${box.value}x. Ayrıca bonus kutu hakkı kazandınız!`;
-            }
+        updates.kutuHakki = (user.kutuHakki || 0); // Kutu hakkını iade et
+
+        if (multiplierUsedThisTurn && user.multiplierSource === 'store') {
+            refundOccurred = true;
+            message = `Vay canına! Çarpanla açtığın kutudan yeni bir çarpan buldun! Mağazadan aldığın çarpan hakkın iade edildi. Sonraki kutu açılışında yeni <b>${box.value}x</b> çarpanın otomatik olarak kullanılacak. Ayrıca bonus bir kutu hakkı kazandın!`;
         } else {
-            message = `${box.value}x çarpan buldunuz! Bir kutu hakkı kazandınız. Sonraki kutu çarpılacak.`;
+            message = `<b>${box.value}x</b> çarpan buldunuz! Bu çarpan bir sonraki kutu açılışında otomatik olarak kullanılacak. Ayrıca bonus bir kutu hakkı kazandınız.`;
         }
+
         updates['activeMultiplier'] = box.value;
         updates['multiplierSource'] = 'box';
         updates['multiplierRemainingUses'] = 0;
         updates['activeStoreMultiplierItemId'] = null;
     }
     
-    if (useMultiplier) {
+    if (multiplierUsedThisTurn && !refundOccurred) {
         if (user.multiplierSource === 'store') {
             updates['multiplierRemainingUses'] = user.multiplierRemainingUses - 1;
             if (updates['multiplierRemainingUses'] <= 0) {
@@ -1762,30 +1804,25 @@
         multiplierUsed: finalMultiplier,
         timestamp: firebase.database.ServerValue.TIMESTAMP
     };
-    await db.ref('lastOpenedBox').set(boxOpenInfo);
+    if (box.content !== 'surpriz') {
+        await db.ref('lastOpenedBox').set(boxOpenInfo);
+    }
 }
+
 
   async function revealAll() { const confirmed = await customConfirm("Tüm kutuları açmak istiyor musunuz?"); if(confirmed) { boxes.forEach(b => { if (!b.opened) { b.opened = true; b.opener = 'Admin'; } }); db.ref('boxes').set(boxes).then(() => displayMessage("Tüm kutular başarıyla açıldı.")) } }
   
   async function resetGameBoard() {
       await createBoxes();
-      const userSnap = await db.ref('users').once('value');
-      const usersData = userSnap.val();
-      const updates = {};
-      if (usersData) {
-          for (const u in usersData) {
-              if (u !== "weizendtv" && usersData[u].approved) {
-              }
-          }
-          if(Object.keys(updates).length > 0) await db.ref().update(updates);
-      }
+      await db.ref('gameStats/boxesOpenedByUsers').remove();
+      await db.ref('lastOpenedBox').remove();
+      await db.ref('gameLock').set(false);
   }
 
   async function resetGame() {
       const confirmed = await customConfirm("Oyunu sıfırlamak istiyor musunuz? (Tüm kutular kapatılır, karıştırılır ve kutu açma istatistikleri sıfırlanır)");
       if (confirmed) {
           await resetGameBoard();
-          await db.ref('gameStats').remove();
           displayMessage("Oyun yöneticisi tarafından sıfırlandı.");
       }
   }
@@ -1817,7 +1854,8 @@
                     updates['users/' + u + '/hasReceivedWelcomeGift'] = false;
                     updates['users/' + u + '/approvalNotified'] = null;
                     updates['users/' + u + '/notifications'] = null;
-                    updates['users/' + u + '/lastDailyRewardClaim'] = null;
+                    updates['users/' + u + '/dailyRewardsClaimed'] = null;
+                    updates['users/' + u + '/lastSeenAnnouncementTimestamp'] = null;
                 }
             }
             await db.ref().update(updates);
@@ -1827,7 +1865,7 @@
         await db.ref('pendingSpecialPurchases').remove();
         await db.ref('gameStats').remove();
         await db.ref('announcements').remove();
-        await db.ref('dailyRewards').remove();
+        await db.ref('dailyRewardOptions').remove();
         displayMessage("Sistem başarıyla baştan başlatıldı!");
     }
   }
@@ -1959,7 +1997,7 @@
 
           if (timeLeft > 0) {
               const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
-              const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+              const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000* 60 * 60));
               const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
               const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
               
@@ -2177,7 +2215,6 @@
         itemData.purchaseCount = 0;
     }
 
-
     if (type === 'tempMultiplier') {
       if (isNaN(multiplierDuration) || multiplierDuration <= 0) {
         displayMessage("Geçici Çarpan için geçerli bir 'Çarpan Süresi' girin.");
@@ -2348,7 +2385,7 @@
               if (user.multiplierSource === 'store' && user.multiplierRemainingUses > 0) {
                   multiplierHtml = `<p><b>Tür:</b> Mağaza Çarpanı</p><p><b>Değer:</b> ${user.activeMultiplier}x</p><p><b>Kalan Kullanım:</b> ${user.multiplierRemainingUses} kutu</p>`;
               } else if (user.multiplierSource === 'box') {
-                  multiplierHtml = `<p><b>Tür:</b> Kutu Çarpanı</p><p><b>Değer:</b> ${user.activeMultiplier}x</p><p><b>Kalan Kullanım:</b> 1 kutu</p>`;
+                  multiplierHtml = `<p><b>Tür:</b> Kutu Çarpanı</p><p><b>Değer:</b> ${user.activeMultiplier}x</p><p><b>Kalan Kullanım:</b> 1 kutu (Otomatik)</p>`;
               }
               document.getElementById('inventoryMultiplierDetails').innerHTML = multiplierHtml;
           }
@@ -2360,14 +2397,13 @@
   function closeBadgeInfoModal() { badgeInfoModal.style.display = 'none'; }
 
 
-  // KULLANICI PROFİLİ
   async function openPublicUserDetailModal(username) {
       if (activeBlockedUserTimers[username]) {
           clearInterval(activeBlockedUserTimers[username]);
           delete activeBlockedUserTimers[username];
       }
       const userSnap = await db.ref('users/' + username).once('value');
-      const userData = userSnap.val();
+      const userData = userSnap.val(); 
       if (!userData) return;
 
       const allUsersSnap = await db.ref('users').once('value');
@@ -2378,6 +2414,7 @@
           maxBoxesOpened: -1, boxUser: null, maxShieldUsed: -1, shieldUser: null,
       };
       for (const u in allUsersData) { 
+          if (u === 'weizendtv') continue;
           const data = allUsersData[u]; 
           if (data.approved) { 
               if ((data.balance || 0) > leaders.highestCurrentBalance) { leaders.highestCurrentBalance = data.balance; leaders.currentBalanceUser = u; }
@@ -2407,10 +2444,15 @@
       document.getElementById('publicUserHighestBalance').textContent = userData.highestBalanceEver || 0;
       document.getElementById('publicUserBoxRight').textContent = userData.kutuHakki || 0;
       document.getElementById('publicUserIflasShield').textContent = userData.iflasShieldUses || 0;
+      
       let multiplierText = 'Yok';
-      if (userData.multiplierSource === 'store' && userData.multiplierRemainingUses > 0) multiplierText = `${userData.activeMultiplier}x (Mağaza - ${userData.multiplierRemainingUses} kullanım)`;
-      else if (userData.multiplierSource === 'box') multiplierText = `${userData.activeMultiplier}x (Kutu - 1 kullanım)`;
+      if (userData.multiplierSource === 'store' && userData.multiplierRemainingUses > 0) {
+        multiplierText = `${userData.activeMultiplier}x (Mağaza - ${userData.multiplierRemainingUses} kullanım)`;
+      } else if (userData.multiplierSource === 'box') {
+        multiplierText = `${userData.activeMultiplier}x (Kutu - Otomatik)`;
+      }
       document.getElementById('publicUserMultiplier').textContent = multiplierText;
+      
       document.getElementById('publicUserBoxesOpened').textContent = userData.boxesOpenedCount || 0;
       document.getElementById('publicUserSurpriseBoxes').textContent = userData.surpriseBoxesOpened || 0;
       document.getElementById('publicUserBombCount').textContent = userData.iflasCount || 0;
@@ -2501,7 +2543,7 @@
     document.getElementById('managedUserIflasShield').textContent = userData.iflasShieldUses || 0;
     let multiplierText = 'Yok';
     if (userData.multiplierSource === 'store') multiplierText = `${userData.activeMultiplier}x (Mağaza - ${userData.multiplierRemainingUses} kullanım)`;
-    else if (userData.multiplierSource === 'box') multiplierText = `${userData.activeMultiplier}x (Kutu - 1 kullanım)`;
+    else if (userData.multiplierSource === 'box') multiplierText = `${userData.activeMultiplier}x (Kutu - Otomatik)`;
     document.getElementById('managedUserMultiplier').textContent = multiplierText;
     document.getElementById('managedUserMultiplierUses').textContent = userData.multiplierRemainingUses || 0;
     
@@ -2625,41 +2667,36 @@
   }
 
   async function denySpecialPurchase(purchaseId, username, itemCost) {
-    const purchaseItemSnap = await db.ref(`/pendingSpecialPurchases/${purchaseId}`).once('value');
-    const purchaseItem = purchaseItemSnap.val();
-     if (!purchaseItem) {
-      displayMessage("Reddedilecek öğe bulunamadı.");
-      return;
-    }
+      const purchaseItemSnap = await db.ref(`/pendingSpecialPurchases/${purchaseId}`).once('value');
+      const purchaseItem = purchaseItemSnap.val();
+       if (!purchaseItem) {
+        displayMessage("Reddedilecek öğe bulunamadı.");
+        return;
+      }
 
-    if (!await customConfirm(`${username} kullanıcısının '${purchaseItem.itemName}' alımını reddetmek istediğinize emin misiniz? Puan iadesi yapılacaktır.`)) return;
+      if (!await customConfirm(`${username} kullanıcısının '${purchaseItem.itemName}' alımını reddetmek istediğinize emin misiniz? Puan iadesi yapılacaktır.`)) return;
+      
+      const userRef = db.ref(`users/${username}`);
+      const updates = {};
 
-    const userRef = db.ref(`users/${username}`);
-    const updates = {};
+      const userSnap = await userRef.once('value');
+      const userData = userSnap.val();
+      if (userData) {
+          updates[`users/${username}/balance`] = (userData.balance || 0) + itemCost;
+          updates[`users/${username}/totalSpentPoints`] = Math.max(0, (userData.totalSpentPoints || 0) - itemCost);
+      }
 
-    const userSnap = await userRef.once('value');
-    const userData = userSnap.val();
-    if (userData) {
-        const newBalance = (userData.balance || 0) + itemCost;
-        updates[`users/${username}/balance`] = newBalance;
-        updates[`users/${username}/totalSpentPoints`] = Math.max(0, (userData.totalSpentPoints || 0) - itemCost);
-        // DÜZELTME: Ulaşılan en yüksek puan kontrolü eklendi.
-        if (newBalance > (userData.highestBalanceEver || 0)) {
-          updates[`users/${username}/highestBalanceEver`] = newBalance;
-        }
-    }
+      updates[`/pendingSpecialPurchases/${purchaseId}`] = null;
+      updates[`/purchaseHistory/${purchaseId}/status`] = 'denied';
 
-    updates[`/pendingSpecialPurchases/${purchaseId}`] = null;
-    updates[`/purchaseHistory/${purchaseId}/status`] = 'denied';
-
-    db.ref().update(updates).then(() => {
-        notifyUser(username, `'${purchaseItem.itemName}' adlı özel ürün alımınız reddedildi. ${itemCost} puan hesabınıza iade edildi.`);
-        displayMessage("Özel ürün alımı reddedildi ve puan iadesi yapıldı.");
-    }).catch(err => {
-        console.error("Reddetme hatası: ", err);
-        displayMessage("Reddetme sırasında bir hata oluştu.");
-    });
-}
+      db.ref().update(updates).then(() => {
+          notifyUser(username, `'${purchaseItem.itemName}' adlı özel ürün alımınız reddedildi. ${itemCost} puan hesabınıza iade edildi.`);
+          displayMessage("Özel ürün alımı reddedildi ve puan iadesi yapıldı.");
+      }).catch(err => {
+          console.error("Reddetme hatası: ", err);
+          displayMessage("Reddetme sırasında bir hata oluştu.");
+      });
+  }
 
   let globalCountdownInterval = null;
 
@@ -2670,7 +2707,7 @@
 
     db.ref('lastOpenedBox').on('value', snap => {
         const info = snap.val();
-        if (info && (Date.now() - info.timestamp < 10000)) {
+        if (info && (Date.now() - info.timestamp < 10000)) { 
             if (info.content !== 'surpriz') {
                 showGlobalOpenedBoxInfo(info);
             }
@@ -2685,8 +2722,6 @@
           if (info.multiplierUsed > 1) {
             contentDisplay += ` (${info.multiplierUsed}x Çarpan ile)`;
           }
-      } else if (info.content === 'surpriz') {
-          contentDisplay = 'Sürpriz Kutu buldu!';
       } else if (info.content === 'iflas') {
           contentDisplay = 'İflas etti! 💣';
       } else if (info.content === 'multiplier') {
@@ -2718,9 +2753,7 @@
       }, 1000);
   }
 
-  // ---- YENİ VE GÜNCELLENMİŞ FONKSİYONLAR ----
-
-    // DUYURU SİSTEMİ
+    // YENİ DUYURU SİSTEMİ
     async function postAnnouncement() {
         if (!isAdmin) return;
         const text = document.getElementById('announcementText').value.trim();
@@ -2730,7 +2763,8 @@
         }
         await db.ref('announcements').push({
             text: text,
-            timestamp: firebase.database.ServerValue.TIMESTAMP
+            timestamp: firebase.database.ServerValue.TIMESTAMP,
+            likes: 0
         });
         document.getElementById('announcementText').value = '';
         displayMessage("Duyuru başarıyla yayınlandı.");
@@ -2746,21 +2780,44 @@
     
     function loadAnnouncements() {
         const listEl = document.getElementById('announcementsList');
-        db.ref('announcements').orderByChild('timestamp').on('value', snap => {
+        const userRef = db.ref(`users/${currentUser}`);
+
+        db.ref('announcements').orderByChild('timestamp').on('value', async (snap) => {
             listEl.innerHTML = '';
             const announcements = snap.val();
+
+            const userSnap = await userRef.once('value');
+            const userData = userSnap.val();
+            const likedAnnouncements = userData.likedAnnouncements || {};
+
             if (!announcements) {
                 listEl.innerHTML = '<p class="text-center text-gray-400">Henüz yayınlanmış bir duyuru yok.</p>';
                 return;
             }
             const sortedAnnouncements = Object.entries(announcements).sort((a, b) => b[1].timestamp - a[1].timestamp);
+            
             sortedAnnouncements.forEach(([id, ann]) => {
                 const date = new Date(ann.timestamp).toLocaleString('tr-TR');
+                const isLiked = likedAnnouncements[id];
+                const likeButtonClass = isLiked 
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-gray-600 hover:bg-gray-500 text-gray-300';
+                const likeButtonText = isLiked ? 'Beğenildi' : 'Beğen';
+
                 const div = document.createElement('div');
-                div.className = 'bg-gray-800 p-4 rounded-lg border-l-4 border-red-500 shadow-md';
+                div.className = 'bg-gray-800 p-6 rounded-lg border-l-4 border-yellow-500 shadow-lg';
                 div.innerHTML = `
-                    <p class="text-gray-300">${ann.text}</p>
-                    <p class="text-xs text-gray-500 text-right mt-2">${date}</p>
+                    <p class="text-lg text-gray-200 mb-4 whitespace-pre-wrap">${ann.text}</p>
+                    <div class="flex justify-between items-center mt-4 pt-4 border-t border-gray-700">
+                        <p class="text-xs text-gray-500">${date}</p>
+                        <div class="flex items-center gap-4">
+                             <span class="font-bold text-yellow-400">${ann.likes || 0} Beğeni</span>
+                             <button id="likeBtn-${id}" onclick="likeAnnouncement('${id}')" class="${likeButtonClass} px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.562 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.82 2.316l-1.09 1.817c-.381.636-.632 1.356-.632 2.146z" /></svg>
+                                ${likeButtonText}
+                            </button>
+                        </div>
+                    </div>
                 `;
                 listEl.appendChild(div);
             });
@@ -2779,171 +2836,317 @@
             const sortedAnnouncements = Object.entries(announcements).sort((a, b) => b[1].timestamp - a[1].timestamp);
             sortedAnnouncements.forEach(([id, ann]) => {
                 const div = document.createElement('div');
-                div.className = 'flex justify-between items-center p-2 mb-2 bg-gray-700 rounded-md';
+                div.className = 'p-2 mb-2 bg-gray-700 rounded-md';
                 div.innerHTML = `
-                    <span class="text-gray-300 text-sm truncate pr-2">${ann.text}</span>
-                    <button onclick="deleteAnnouncement('${id}')" class="py-1 px-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-md flex-shrink-0">Sil</button>
+                    <p class="text-gray-300 text-sm truncate pr-2">${ann.text}</p>
+                    <div class="flex justify-end items-center gap-2 mt-2">
+                        <span class="text-xs text-yellow-300">👍 ${ann.likes || 0}</span>
+                        <button onclick="showAnnouncementLikes('${id}')" class="py-1 px-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-md">Beğenenler</button>
+                        <button onclick="deleteAnnouncement('${id}')" class="py-1 px-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-md">Sil</button>
+                    </div>
                 `;
                 listEl.appendChild(div);
             });
         });
     }
+    
+    async function likeAnnouncement(announcementId) {
+        if (isAdmin) {
+            displayMessage("Adminler beğeni yapamaz.");
+            return;
+        }
 
-    // GÜNLÜK ÖDÜL SİSTEMİ
-    function closeDailyRewardModal() { dailyRewardModal.style.display = 'none'; }
+        const userLikeRef = db.ref(`users/${currentUser}/likedAnnouncements/${announcementId}`);
+        const userLikeSnap = await userLikeRef.once('value');
+
+        const announcementRef = db.ref(`announcements/${announcementId}`);
+
+        if (userLikeSnap.exists()) {
+            // Beğeniyi geri al
+            await userLikeRef.remove();
+            await db.ref(`announcements/${announcementId}/likedBy/${currentUser}`).remove();
+            await announcementRef.child('likes').transaction(currentLikes => (currentLikes || 0) - 1);
+        } else {
+            // Beğen
+            await userLikeRef.set(true);
+            await db.ref(`announcements/${announcementId}/likedBy/${currentUser}`).set(true);
+            await announcementRef.child('likes').transaction(currentLikes => (currentLikes || 0) + 1);
+        }
+    }
+    
+    function listenForNewAnnouncements() {
+        const announcementsRef = db.ref('announcements');
+        const userRef = db.ref(`users/${currentUser}`);
+
+        announcementsRef.orderByChild('timestamp').limitToLast(1).on('child_added', async (snap) => {
+            const latestAnn = snap.val();
+            if (!latestAnn) return;
+            
+            latestAnnouncementTimestamp = latestAnn.timestamp;
+            
+            const userSnap = await userRef.once('value');
+            const userData = userSnap.val();
+            
+            if (userData && latestAnn.timestamp > (userData.lastSeenAnnouncementTimestamp || 0)) {
+                document.getElementById('newAnnouncementText').textContent = latestAnn.text.substring(0, 150) + (latestAnn.text.length > 150 ? '...' : '');
+                newAnnouncementModal.style.display = 'flex';
+                document.getElementById('announcementIndicator').classList.remove('hidden');
+            }
+        });
+    }
+
+    function closeNewAnnouncementModal() {
+        newAnnouncementModal.style.display = 'none';
+        db.ref(`users/${currentUser}/lastSeenAnnouncementTimestamp`).set(latestAnnouncementTimestamp);
+    }
+    
+    function goToAnnouncements() {
+        closeNewAnnouncementModal();
+        showSection('announcements');
+    }
+
+    async function showAnnouncementLikes(announcementId) {
+        const likesRef = db.ref(`announcements/${announcementId}/likedBy`);
+        const likesSnap = await likesRef.once('value');
+        const likers = likesSnap.val();
+        
+        const listEl = document.getElementById('announcementLikesList');
+        listEl.innerHTML = '';
+
+        if (!likers) {
+            listEl.innerHTML = '<p class="text-gray-400">Bu duyuruyu henüz kimse beğenmedi.</p>';
+        } else {
+            const usernames = Object.keys(likers);
+            usernames.forEach(username => {
+                listEl.innerHTML += `<div class="p-2 bg-gray-800 rounded mb-2 text-white">${username}</div>`;
+            });
+        }
+        
+        announcementLikesModal.style.display = 'flex';
+    }
+
+    function closeAnnouncementLikesModal() {
+        announcementLikesModal.style.display = 'none';
+    }
+
+
+    // YENİ GÜNLÜK ÖDÜL SİSTEMİ (ZAMAN AYARLI)
+    function closeDailyRewardModal() { 
+        Object.values(activeDailyRewardTimers).forEach(clearInterval);
+        activeDailyRewardTimers = {};
+        dailyRewardModal.style.display = 'none'; 
+    }
     
     async function openDailyRewardModal() {
         if (isAdmin) return;
-        
+
         const userSnap = await db.ref('users/' + currentUser).once('value');
         const user = userSnap.val();
-        const lastClaim = user.lastDailyRewardClaim || 0;
-        const twentyFourHours = 24 * 60 * 60 * 1000;
-        const now = Date.now();
-        const canClaim = (now - lastClaim) > twentyFourHours;
-
-        const container = document.getElementById('dailyRewardItemsContainer');
-        const messageEl = document.getElementById('dailyRewardMessage');
-        container.innerHTML = '<p class="text-center col-span-full">Ödüller yükleniyor...</p>';
-        
-        if (!canClaim) {
-            const nextClaimTime = lastClaim + twentyFourHours;
-            const timeLeft = nextClaimTime - now;
-            const hours = Math.floor(timeLeft / (1000 * 60 * 60));
-            const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-            messageEl.innerHTML = `Bugünkü ödülünü zaten aldın. Sonraki ödül için kalan süre: <b class="text-yellow-300">${hours} saat ${minutes} dakika</b>.`;
-        } else {
-             messageEl.textContent = 'Aşağıdaki ödüllerden birini seçerek güne başla. Bol şans!';
-        }
-
-        const rewardsSnap = await db.ref('dailyRewards').once('value');
+        const rewardsSnap = await db.ref('dailyRewardOptions').once('value');
         const rewards = rewardsSnap.val();
+        
+        const container = document.getElementById('dailyRewardItemsContainer');
+        container.innerHTML = '';
+        document.getElementById('dailyRewardMessage').textContent = 'Aşağıdaki ödüllerden alabileceklerini topla. Bol şans!';
+
         if (!rewards) {
             container.innerHTML = '<p class="text-center col-span-full">Şu anda mevcut bir günlük ödül bulunmamaktadır.</p>';
+            dailyRewardModal.style.display = 'flex';
             return;
         }
 
-        container.innerHTML = '';
-        for (const itemId in rewards) {
-            const itemSnap = await db.ref('storeItems/' + itemId).once('value');
-            const item = itemSnap.val();
-            if (item) {
-                 const itemHtml = `
-                    <div class="bg-gray-900 p-4 rounded-xl shadow-lg border border-yellow-600 text-center flex flex-col justify-between">
-                      <div>
-                        <img src="${item.imageUrl || 'https://via.placeholder.com/150'}" alt="${item.name}" class="w-20 h-20 mx-auto mb-3 rounded-lg object-cover">
-                        <h4 class="text-yellow-300 text-lg font-bold">${item.name}</h4>
-                        <p class="text-gray-400 text-sm mb-3">${item.description}</p>
-                      </div>
-                      <button onclick="claimDailyReward('${itemId}')" ${!canClaim ? 'disabled' : ''} class="w-full py-2 mt-auto ${!canClaim ? 'bg-gray-600 cursor-not-allowed' : 'bg-green-600 hover:bg-green-500'} text-white font-bold rounded-lg transition duration-300">
-                        ${canClaim ? 'Ödülü Al' : 'Alındı'}
-                      </button>
-                    </div>`; 
-                container.innerHTML += itemHtml;
+        const userClaims = user.dailyRewardsClaimed || {};
+        
+        for (const rewardId in rewards) {
+            const reward = rewards[rewardId];
+            const lastClaim = userClaims[rewardId] || 0;
+            const cooldown = reward.cooldownMs || 0;
+            const nextAvailableTime = lastClaim + cooldown;
+            const canClaim = Date.now() > nextAvailableTime;
+
+            const card = document.createElement('div');
+            card.className = 'bg-gray-900 p-4 rounded-xl shadow-lg border border-yellow-600 text-center flex flex-col justify-between';
+            
+            let buttonHTML = `<button onclick="claimDailyReward('${rewardId}')" class="w-full py-2 mt-auto bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg transition duration-300">Ödülü Al</button>`;
+            let cooldownHTML = `<div class="text-sm text-gray-500 font-bold mb-3 h-5">Süre: ${reward.cooldownText || 'Tek Seferlik'}</div>`;
+
+            if (!canClaim) {
+                buttonHTML = `<button disabled class="w-full py-2 mt-auto bg-gray-600 cursor-not-allowed text-white font-bold rounded-lg transition duration-300">Alındı</button>`;
+                cooldownHTML = `<div id="reward-cooldown-${rewardId}" class="text-sm text-yellow-300 font-bold mb-3 h-5"></div>`;
+                
+                if (activeDailyRewardTimers[rewardId]) clearInterval(activeDailyRewardTimers[rewardId]);
+
+                activeDailyRewardTimers[rewardId] = setInterval(() => {
+                    const now = Date.now();
+                    const timeLeft = nextAvailableTime - now;
+                    const el = document.getElementById(`reward-cooldown-${rewardId}`);
+                    if (!el) {
+                        clearInterval(activeDailyRewardTimers[rewardId]);
+                        return;
+                    }
+
+                    if (timeLeft <= 0) {
+                        el.innerHTML = `<span class="text-green-400">Şimdi Alınabilir!</span>`;
+                        card.querySelector('button').disabled = false;
+                        card.querySelector('button').classList.replace('bg-gray-600', 'bg-green-600');
+                        card.querySelector('button').classList.replace('cursor-not-allowed', 'hover:bg-green-500');
+                        clearInterval(activeDailyRewardTimers[rewardId]);
+                    } else {
+                        const hours = Math.floor(timeLeft / 3600000).toString().padStart(2, '0');
+                        const minutes = Math.floor((timeLeft % 3600000) / 60000).toString().padStart(2, '0');
+                        const seconds = Math.floor((timeLeft % 60000) / 1000).toString().padStart(2, '0');
+                        el.textContent = `Kalan Süre: ${hours}:${minutes}:${seconds}`;
+                    }
+                }, 1000);
             }
+
+            card.innerHTML = `
+                <div>
+                    <img src="${reward.imageUrl || 'https://via.placeholder.com/150'}" alt="${reward.name}" class="w-20 h-20 mx-auto mb-3 rounded-lg object-cover">
+                    <h4 class="text-yellow-300 text-lg font-bold">${reward.name}</h4>
+                    <p class="text-gray-400 text-sm mb-3">${reward.description}</p>
+                    ${cooldownHTML}
+                </div>
+                ${buttonHTML}
+            `;
+            container.appendChild(card);
         }
+        
         dailyRewardModal.style.display = 'flex';
     }
 
-    async function claimDailyReward(itemId) {
-    if (isAdmin) return;
-    const userRef = db.ref('users/' + currentUser);
-    const userSnap = await userRef.once('value');
-    const user = userSnap.val();
 
-    const lastClaim = user.lastDailyRewardClaim || 0;
-    const twentyFourHours = 24 * 60 * 60 * 1000;
-    if ((Date.now() - lastClaim) <= twentyFourHours) {
-        displayMessage("Günlük ödülünü zaten aldın. Lütfen yarın tekrar dene.");
-        return;
-    }
+    async function claimDailyReward(rewardId) {
+        if (isAdmin) return;
 
-    const itemSnap = await db.ref('storeItems/' + itemId).once('value');
-    const item = itemSnap.val();
-    if (!item) {
-        displayMessage("Ödül alınırken bir hata oluştu.");
-        return;
-    }
+        const userRef = db.ref('users/' + currentUser);
+        const rewardRef = db.ref('dailyRewardOptions/' + rewardId);
 
-    let updates = {};
-    let message = `Tebrikler! Günlük ödül olarak <b>${item.name}</b> kazandın.`;
+        const [userSnap, rewardSnap] = await Promise.all([userRef.once('value'), rewardRef.once('value')]);
+        const user = userSnap.val();
+        const reward = rewardSnap.val();
 
-    if (item.type === 'boxRights') {
-        updates.kutuHakki = (user.kutuHakki || 0) + item.value;
-    } else if (item.type === 'iflasShield') {
-        updates.iflasShieldUses = (user.iflasShieldUses || 0) + item.value;
-    } else { // Puan gibi maliyeti olan ürünler için
-        const newBalance = (user.balance || 0) + item.cost;
-        updates.balance = newBalance;
-        // DÜZELTME: Ulaşılan en yüksek puan kontrolü eklendi.
-        if (newBalance > (user.highestBalanceEver || 0)) {
-            updates.highestBalanceEver = newBalance;
-        }
-    }
-
-    updates.lastDailyRewardClaim = firebase.database.ServerValue.TIMESTAMP;
-
-    await userRef.update(updates);
-    displayMessage(message);
-    closeDailyRewardModal();
-}    
-    // Admin Günlük Ödül Yönetimi
-    async function loadStoreItemsForAdminSelect() {
-        const selectEl = document.getElementById('selectStoreItemForReward');
-        const storeSnap = await db.ref('storeItems').once('value');
-        const items = storeSnap.val();
-        selectEl.innerHTML = '<option value="">Ürün Seçiniz...</option>';
-        if (items) {
-            for (const itemId in items) {
-                const item = items[itemId];
-                selectEl.innerHTML += `<option value="${itemId}">${item.name}</option>`;
-            }
-        }
-    }
-    
-    async function addDailyReward() {
-        if (!isAdmin) return;
-        const itemId = document.getElementById('selectStoreItemForReward').value;
-        if (!itemId) {
-            displayMessage("Lütfen bir ürün seçin.");
+        if (!reward) {
+            displayMessage("Ödül alınırken bir hata oluştu: Ödül bulunamadı.");
             return;
         }
-        const itemSnap = await db.ref('storeItems/' + itemId).once('value');
-        if (itemSnap.exists()) {
-            await db.ref('dailyRewards/' + itemId).set(true);
-            displayMessage("Ürün, günlük ödüllere eklendi.");
+
+        const lastClaim = (user.dailyRewardsClaimed && user.dailyRewardsClaimed[rewardId]) || 0;
+        const cooldown = reward.cooldownMs || 0;
+
+        if (Date.now() < lastClaim + cooldown) {
+            displayMessage("Bu ödül için bekleme süresi henüz dolmadı.");
+            return;
         }
+
+        if (reward.type === 'tempMultiplier' && user.multiplierSource !== 'none') {
+            displayMessage("Mevcut bir çarpanınız varken çarpan ödülü alamazsınız. Lütfen önce mevcut çarpanınızı kullanın.");
+            return;
+        }
+
+        let updates = {};
+        let message = `Tebrikler! Günlük ödül olarak <b>${reward.name}</b> kazandın.`;
+        
+        switch(reward.type) {
+            case 'points':
+                updates['balance'] = (user.balance || 0) + reward.value;
+                if(updates['balance'] > (user.highestBalanceEver || 0)) {
+                    updates['highestBalanceEver'] = updates['balance'];
+                }
+                break;
+            case 'boxRights':
+                updates['kutuHakki'] = (user.kutuHakki || 0) + reward.value;
+                break;
+            case 'iflasShield':
+                updates['iflasShieldUses'] = (user.iflasShieldUses || 0) + reward.value;
+                break;
+            case 'tempMultiplier':
+                updates['activeMultiplier'] = reward.value;
+                updates['multiplierRemainingUses'] = reward.uses;
+                updates['multiplierSource'] = 'store';
+                break;
+        }
+        
+        await userRef.update(updates);
+        await db.ref(`users/${currentUser}/dailyRewardsClaimed/${rewardId}`).set(firebase.database.ServerValue.TIMESTAMP);
+        
+        displayMessage(message);
+        closeDailyRewardModal();
+    }
+    
+    document.getElementById('dailyRewardType').addEventListener('change', function() {
+        const usesInput = document.getElementById('dailyRewardMultiplierUses');
+        if (this.value === 'tempMultiplier') {
+            usesInput.classList.remove('hidden');
+        } else {
+            usesInput.classList.add('hidden');
+        }
+    });
+
+    async function createCustomDailyReward() {
+        if (!isAdmin) return;
+        
+        const name = document.getElementById('dailyRewardName').value.trim();
+        const type = document.getElementById('dailyRewardType').value;
+        const value = parseInt(document.getElementById('dailyRewardValue').value);
+        const description = document.getElementById('dailyRewardDescription').value.trim();
+        const imageUrl = document.getElementById('dailyRewardImageUrl').value.trim();
+        
+        const hours = parseInt(document.getElementById('dailyRewardCooldownHours').value) || 0;
+        const minutes = parseInt(document.getElementById('dailyRewardCooldownMinutes').value) || 0;
+        const seconds = parseInt(document.getElementById('dailyRewardCooldownSeconds').value) || 0;
+
+        if (!name || !type || isNaN(value) || value <= 0 || !description) {
+            displayMessage("Lütfen ödül için tüm zorunlu alanları (Ad, Tip, Değer, Açıklama) geçerli bir şekilde doldurun.");
+            return;
+        }
+
+        const cooldownMs = (hours * 3600 + minutes * 60 + seconds) * 1000;
+        let cooldownText = `${hours}s ${minutes}d ${seconds}sn`;
+
+        const rewardData = { name, type, value, description, cooldownMs, cooldownText, imageUrl: imageUrl || 'https://via.placeholder.com/150' };
+
+        if (type === 'tempMultiplier') {
+            const uses = parseInt(document.getElementById('dailyRewardMultiplierUses').value);
+            if (isNaN(uses) || uses <= 0) {
+                displayMessage("Çarpan için geçerli bir kullanım hakkı sayısı girin.");
+                return;
+            }
+            rewardData.uses = uses;
+        }
+
+        await db.ref('dailyRewardOptions').push(rewardData);
+        displayMessage("Yeni günlük ödül başarıyla oluşturuldu.");
+        ['dailyRewardName', 'dailyRewardType', 'dailyRewardValue', 'dailyRewardDescription', 'dailyRewardImageUrl', 'dailyRewardMultiplierUses', 'dailyRewardCooldownHours', 'dailyRewardCooldownMinutes', 'dailyRewardCooldownSeconds'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('dailyRewardMultiplierUses').classList.add('hidden');
     }
 
-    async function removeDailyReward(itemId) {
+    async function removeDailyReward(rewardId) {
         if (!isAdmin) return;
-        if (await customConfirm("Bu ürünü günlük ödüllerden kaldırmak istiyor musunuz?")) {
-            await db.ref('dailyRewards/' + itemId).remove();
-            displayMessage("Ürün, günlük ödüllerden kaldırıldı.");
+        if (await customConfirm("Bu günlük ödülü silmek istediğinizden emin misiniz?")) {
+            await db.ref('dailyRewardOptions/' + rewardId).remove();
+            displayMessage("Günlük ödül kaldırıldı.");
         }
     }
     
     function loadDailyRewardManagement() {
         const listEl = document.getElementById('adminDailyRewardsList');
-        db.ref('dailyRewards').on('value', async (rewardsSnap) => {
+        db.ref('dailyRewardOptions').on('value', async (rewardsSnap) => {
             listEl.innerHTML = '';
             const rewards = rewardsSnap.val();
             if (!rewards) {
-                listEl.innerHTML = '<p class="text-center text-gray-400 text-sm">Günlük ödül yok.</p>';
+                listEl.innerHTML = '<p class="text-center text-gray-400 text-sm">Oluşturulmuş günlük ödül yok.</p>';
                 return;
             }
-            for (const itemId in rewards) {
-                const itemSnap = await db.ref('storeItems/' + itemId).once('value');
-                if (itemSnap.exists()) {
-                    const item = itemSnap.val();
-                    const div = document.createElement('div');
-                    div.className = 'flex justify-between items-center p-2 mb-2 bg-gray-700 rounded-md';
-                    div.innerHTML = `
-                        <span class="text-gray-300 text-sm truncate pr-2">${item.name}</span>
-                        <button onclick="removeDailyReward('${itemId}')" class="py-1 px-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-md flex-shrink-0">Kaldır</button>
-                    `;
-                    listEl.appendChild(div);
-                }
+            for (const rewardId in rewards) {
+                const reward = rewards[rewardId];
+                const div = document.createElement('div');
+                div.className = 'flex justify-between items-center p-2 mb-2 bg-gray-700 rounded-md';
+                div.innerHTML = `
+                    <span class="text-gray-300 text-sm truncate pr-2">${reward.name} (${reward.cooldownText})</span>
+                    <button onclick="removeDailyReward('${rewardId}')" class="py-1 px-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-md flex-shrink-0">Kaldır</button>
+                `;
+                listEl.appendChild(div);
             }
         });
     }
@@ -2993,7 +3196,7 @@
           } else if (sessionData && sessionData.active && sessionData.user === currentUser) {
               if (sessionData.result) {
                   closeCardSelectionModal();
-                  displayMessage(`Sürpriz kutudan tebrikler! Toplam ${sessionData.result.points} puan kazandınız! Oyun yakında sıfırlanacak.`);
+                  displayMessage(`Sürpriz kutudan tebrikler! Toplam ${sessionData.result.points} puan kazandınız! Oyun 4 saniye içinde sıfırlanacak.`);
                   setTimeout(() => {
                       resetGameBoard();
                       sessionRef.remove();
