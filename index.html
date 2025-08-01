@@ -204,8 +204,12 @@
             <div id="currentStoreItems" class="scrollable-list max-h-60 overflow-y-auto p-3 bg-gray-800 rounded-md">Yükleniyor...</div>
           </div>
           
-          <h3 class="text-yellow-300 text-2xl font-semibold mb-4 text-center">Popüler Ürünler</h3>
-          <div id="storeItemsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-4">
+          <h3 class="text-yellow-300 text-2xl font-semibold mb-4 text-center">Oyun Mağazası</h3>
+          <div id="gameStoreItemsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-4">
+            </div>
+
+          <h3 class="text-yellow-300 text-2xl font-semibold mb-4 text-center">Özel Ürün Mağazası</h3>
+          <div id="specialStoreItemsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-4">
             </div>
         </div>
         
@@ -290,11 +294,12 @@
                     <option value="iflasShield">İflas Kalkanı</option>
                     <option value="tempMultiplier">Çarpan</option>
                 </select>
-                <input type="number" id="dailyRewardValue" placeholder="Değer (Puan/Hak Adedi/Çarpan X'i)" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
+                <input type="number" id="dailyRewardValue" placeholder="Değer (Puan/Hak Adedi/Kalkan)" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
                 <input type="number" id="dailyRewardMultiplierUses" placeholder="Çarpan Kullanım Hakkı" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white hidden">
                 
                 <label class="text-gray-300 text-sm block text-left">Ödül Bekleme Süresi:</label>
                 <div class="flex gap-2">
+                    <input type="number" id="dailyRewardCooldownDays" placeholder="Gün" min="0" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
                     <input type="number" id="dailyRewardCooldownHours" placeholder="Saat" min="0" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
                     <input type="number" id="dailyRewardCooldownMinutes" placeholder="Dakika" min="0" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
                     <input type="number" id="dailyRewardCooldownSeconds" placeholder="Saniye" min="0" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
@@ -302,7 +307,8 @@
                 
                 <input type="text" id="dailyRewardImageUrl" placeholder="Resim URL (Opsiyonel)" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
             </div>
-            <button onclick="createCustomDailyReward()" class="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg">GÜNLÜK ÖDÜL OLUŞTUR</button>
+            <button onclick="saveDailyReward()" id="saveDailyRewardBtn" class="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg">GÜNLÜK ÖDÜL OLUŞTUR</button>
+            <button onclick="resetDailyRewardForm()" class="w-full py-2 mt-2 bg-gray-600 hover:bg-gray-500 text-white font-bold rounded-lg shadow-md hover:-translate-y-1 transition duration-300">Formu Temizle</button>
             <h5 class="text-gray-200 text-lg font-semibold mb-2 mt-4">Mevcut Günlük Ödüller</h5>
             <div id="adminDailyRewardsList" class="scrollable-list max-h-40 overflow-y-auto p-3 bg-gray-800 rounded-md">Yükleniyor...</div>
         </div>
@@ -913,6 +919,8 @@
 
   let storeCountdownInterval = null;
   let activeStoreCountdowns = {};
+  
+  let editingDailyRewardId = null;
 
   // GİRİŞ/KAYIT SİSTEMİ
   function switchAuthTab(tab) {
@@ -1626,7 +1634,8 @@
     updates[`${userRef}/iflasShieldUsedCount`] = 0;
     updates[`${userRef}/multiplierFoundCount`] = 0;
     updates[`${userRef}/storePurchasesCount`] = 0;
-    updates[`${userRef}/activeStoreMultiplierItemId`] = null;
+    updates[`${userRef}/hasReceivedWelcomeGift`] = false;
+    updates[`${userRef}/approvalNotified`] = null;
     updates[`${userRef}/notifications`] = null;
     updates[`${userRef}/dailyRewardsClaimed`] = null;
     updates[`${userRef}/lastSeenAnnouncementTimestamp`] = null;
@@ -1756,19 +1765,19 @@
         message = `Sürpriz Kutu buldunuz!`;
     } else if (box.content === 'multiplier') {
         updates['multiplierFoundCount'] = (user.multiplierFoundCount || 0) + 1;
-        updates.kutuHakki = (user.kutuHakki || 0); // Kutu hakkını iade et
 
+        // Mağaza çarpanı iadesi
         if (multiplierUsedThisTurn && user.multiplierSource === 'store') {
             refundOccurred = true;
+            updates['multiplierRemainingUses'] = (user.multiplierRemainingUses || 0) + 1;
             message = `Vay canına! Çarpanla açtığın kutudan yeni bir çarpan buldun! Mağazadan aldığın çarpan hakkın iade edildi. Sonraki kutu açılışında yeni <b>${box.value}x</b> çarpanın otomatik olarak kullanılacak. Ayrıca bonus bir kutu hakkı kazandın!`;
         } else {
             message = `<b>${box.value}x</b> çarpan buldunuz! Bu çarpan bir sonraki kutu açılışında otomatik olarak kullanılacak. Ayrıca bonus bir kutu hakkı kazandınız.`;
         }
-
+        
+        updates.kutuHakki = (user.kutuHakki || 0); // Kutu hakkını iade et
         updates['activeMultiplier'] = box.value;
         updates['multiplierSource'] = 'box';
-        updates['multiplierRemainingUses'] = 0;
-        updates['activeStoreMultiplierItemId'] = null;
     }
     
     if (multiplierUsedThisTurn && !refundOccurred) {
@@ -2020,20 +2029,42 @@
   }
 
   function renderStoreItems(items) { 
-      const container = document.getElementById('storeItemsContainer'); 
-      container.innerHTML = ''; 
-      
+      const gameContainer = document.getElementById('gameStoreItemsContainer');
+      const specialContainer = document.getElementById('specialStoreItemsContainer');
+      gameContainer.innerHTML = '';
+      specialContainer.innerHTML = '';
+
       if (storeCountdownInterval) clearInterval(storeCountdownInterval);
       activeStoreCountdowns = {};
 
-      if (!items) { 
-          container.innerHTML = '<p class="text-center col-span-full">Mağazada şu an ürün bulunmamaktadır.</p>'; 
-          return; 
-      } 
+      if (!items) {
+          gameContainer.innerHTML = '<p class="text-center col-span-full">Mağazada şu an ürün bulunmamaktadır.</p>';
+          return;
+      }
       
-      const sortedItems = Object.entries(items).sort(([, a], [, b]) => (b.purchaseCount || 0) - (a.purchaseCount || 0));
+      const sortedItems = Object.entries(items).sort(([, a], [, b]) => (a.order || Infinity) - (b.order || Infinity));
 
-      sortedItems.forEach(([itemId, item]) => { 
+      let gameItems = [];
+      let specialItems = [];
+      let bestSellerGameItem = null;
+      let bestSellerSpecialItem = null;
+
+      sortedItems.forEach(([itemId, item]) => {
+          if (item.type === 'special') {
+              specialItems.push({ ...item, id: itemId });
+          } else {
+              gameItems.push({ ...item, id: itemId });
+          }
+      });
+      
+      if (gameItems.length > 0) {
+        bestSellerGameItem = gameItems.sort((a, b) => (b.purchaseCount || 0) - (a.purchaseCount || 0))[0];
+      }
+      if (specialItems.length > 0) {
+        bestSellerSpecialItem = specialItems.sort((a, b) => (b.purchaseCount || 0) - (a.purchaseCount || 0))[0];
+      }
+
+      const renderItem = (item, isBestSeller, container) => {
           const outOfStock = item.stock !== undefined && item.stock <= 0;
           let isExpired = false;
           let countdownHtml = '';
@@ -2043,8 +2074,8 @@
               if (Date.now() > endTime) {
                   isExpired = true;
               } else {
-                  activeStoreCountdowns[itemId] = { endTime: endTime };
-                  countdownHtml = `<div id="countdown-${itemId}" class="text-sm text-yellow-300 font-bold mb-2 h-5"></div>`;
+                  activeStoreCountdowns[item.id] = { endTime: endTime };
+                  countdownHtml = `<div id="countdown-${item.id}" class="text-sm text-yellow-300 font-bold mb-2 h-5"></div>`;
               }
           } else {
               countdownHtml = `<div class="h-5 mb-2"></div>`;
@@ -2053,9 +2084,12 @@
           const disabled = outOfStock || isExpired;
           
           const popularityHtml = `<p class="text-blue-300 text-sm mb-2">🔥 ${item.purchaseCount || 0} kez satın alındı</p>`;
+          const bestSellerBadge = isBestSeller ? `<span class="absolute top-2 right-2 bg-yellow-500 text-gray-900 text-xs font-bold px-2 py-1 rounded-full animate-pulse">ÇOK SATAN</span>` : '';
+          const cardClass = isBestSeller ? 'border-yellow-500 animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite]' : 'border-red-700';
 
-          const itemHtml = `
-            <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700 text-center flex flex-col justify-between">
+          container.innerHTML += `
+            <div class="relative bg-gray-800 p-6 rounded-xl shadow-lg border-2 ${cardClass} text-center flex flex-col justify-between">
+              ${bestSellerBadge}
               <div class="flex-grow">
                 <img src="${item.imageUrl || 'https://via.placeholder.com/150'}" alt="${item.name}" class="w-24 h-24 mx-auto mb-4 rounded-lg object-cover">
                 <h4 class="text-yellow-400 text-xl font-bold">${item.name}</h4>
@@ -2066,13 +2100,15 @@
                 ${popularityHtml}
                 <p class="text-gray-400 text-sm mb-2">Stok: ${item.stock !== undefined && item.stock !== null ? item.stock : 'Sınırsız'}</p>
                 <p class="text-green-400 text-2xl font-bold mb-4">${item.cost} Puan</p>
-                <button id="buy-btn-${itemId}" onclick="buyItem('${itemId}')" ${disabled ? 'disabled' : ''} class="w-full py-3 mt-auto ${disabled ? 'bg-gray-600 cursor-not-allowed' : 'bg-red-700 hover:bg-red-600'} text-white font-bold rounded-lg transition duration-300">
+                <button id="buy-btn-${item.id}" onclick="buyItem('${item.id}')" ${disabled ? 'disabled' : ''} class="w-full py-3 mt-auto ${disabled ? 'bg-gray-600 cursor-not-allowed' : 'bg-red-700 hover:bg-red-600'} text-white font-bold rounded-lg transition duration-300">
                   ${isExpired ? 'Süre Doldu' : (outOfStock ? 'Stok Tükendi' : 'Satın Al')}
                 </button>
               </div>
-            </div>`; 
-          container.innerHTML += itemHtml; 
-      });
+            </div>`;
+      };
+
+      gameItems.forEach(item => renderItem(item, item.id === (bestSellerGameItem && bestSellerGameItem.id), gameContainer));
+      specialItems.forEach(item => renderItem(item, item.id === (bestSellerSpecialItem && bestSellerSpecialItem.id), specialContainer));
 
       if (Object.keys(activeStoreCountdowns).length > 0) {
           updateStoreCountdowns();
@@ -2254,14 +2290,19 @@
           return;
       }
       
-      const sortedItems = Object.entries(items);
+      const sortedItems = Object.entries(items).sort(([, a], [, b]) => (a.order || 0) - (b.order || 0));
       
       let html = '';
-      sortedItems.forEach(([itemId, item]) => {
+      sortedItems.forEach(([itemId, item], index) => {
+          const upArrow = index > 0 ? `<button onclick="reorderStoreItem('${itemId}', ${index - 1})" class="py-1 px-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-md mr-1">↑</button>` : '';
+          const downArrow = index < sortedItems.length - 1 ? `<button onclick="reorderStoreItem('${itemId}', ${index + 1})" class="py-1 px-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-md mr-1">↓</button>` : '';
+
           html += `
               <div class="flex justify-between items-center p-3 mb-2 bg-gray-700 rounded-md">
                   <span class="text-gray-200">${item.name} (${item.cost} Puan)</span>
-                  <div>
+                  <div class="flex items-center">
+                      ${upArrow}
+                      ${downArrow}
                       <button onclick="editStoreItem('${itemId}')" class="py-1 px-3 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-md mr-2">Düzenle</button>
                       <button onclick="deleteStoreItem('${itemId}')" class="py-1 px-3 bg-red-600 hover:bg-red-500 text-white text-sm font-bold rounded-md">Sil</button>
                   </div>
@@ -2271,6 +2312,24 @@
       container.innerHTML = html;
   }
   
+  async function reorderStoreItem(itemId, newIndex) {
+      const storeItemsRef = db.ref('storeItems');
+      const itemsSnap = await storeItemsRef.once('value');
+      const items = itemsSnap.val();
+      const sortedItems = Object.entries(items).sort(([, a], [, b]) => (a.order || 0) - (b.order || 0));
+      
+      const movedItem = sortedItems.find(([id,]) => id === itemId);
+      sortedItems.splice(sortedItems.findIndex(([id,]) => id === itemId), 1);
+      sortedItems.splice(newIndex, 0, movedItem);
+
+      const updates = {};
+      sortedItems.forEach(([id, item], index) => {
+          updates[id + '/order'] = index;
+      });
+
+      await storeItemsRef.update(updates);
+  }
+
   async function editStoreItem(itemId) {
     if (!isAdmin) return;
     
@@ -2987,15 +3046,25 @@
 
                     if (timeLeft <= 0) {
                         el.innerHTML = `<span class="text-green-400">Şimdi Alınabilir!</span>`;
-                        card.querySelector('button').disabled = false;
-                        card.querySelector('button').classList.replace('bg-gray-600', 'bg-green-600');
-                        card.querySelector('button').classList.replace('cursor-not-allowed', 'hover:bg-green-500');
+                        const claimButton = card.querySelector('button');
+                        if (claimButton) {
+                            claimButton.disabled = false;
+                            claimButton.classList.replace('bg-gray-600', 'bg-green-600');
+                            claimButton.classList.add('hover:bg-green-500');
+                            claimButton.textContent = 'Ödülü Al';
+                        }
                         clearInterval(activeDailyRewardTimers[rewardId]);
                     } else {
-                        const hours = Math.floor(timeLeft / 3600000).toString().padStart(2, '0');
-                        const minutes = Math.floor((timeLeft % 3600000) / 60000).toString().padStart(2, '0');
-                        const seconds = Math.floor((timeLeft % 60000) / 1000).toString().padStart(2, '0');
-                        el.textContent = `Kalan Süre: ${hours}:${minutes}:${seconds}`;
+                        const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+                        const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                        const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+                        const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+                        let timeString = '';
+                        if (days > 0) timeString += `${days}g `;
+                        if (hours > 0) timeString += `${hours}s `;
+                        if(minutes > 0 || hours > 0 || days > 0) timeString += `${minutes}d `;
+                        timeString += `${seconds}sn`;
+                        el.textContent = `Kalan Süre: ${timeString}`;
                     }
                 }, 1000);
             }
@@ -3083,7 +3152,23 @@
         }
     });
 
-    async function createCustomDailyReward() {
+    function resetDailyRewardForm() {
+      document.getElementById('dailyRewardName').value = '';
+      document.getElementById('dailyRewardDescription').value = '';
+      document.getElementById('dailyRewardType').value = '';
+      document.getElementById('dailyRewardValue').value = '';
+      document.getElementById('dailyRewardMultiplierUses').value = '';
+      document.getElementById('dailyRewardCooldownDays').value = '';
+      document.getElementById('dailyRewardCooldownHours').value = '';
+      document.getElementById('dailyRewardCooldownMinutes').value = '';
+      document.getElementById('dailyRewardCooldownSeconds').value = '';
+      document.getElementById('dailyRewardImageUrl').value = '';
+      document.getElementById('saveDailyRewardBtn').textContent = 'GÜNLÜK ÖDÜL OLUŞTUR';
+      document.getElementById('dailyRewardMultiplierUses').classList.add('hidden');
+      editingDailyRewardId = null;
+    }
+
+    async function saveDailyReward() {
         if (!isAdmin) return;
         
         const name = document.getElementById('dailyRewardName').value.trim();
@@ -3092,6 +3177,7 @@
         const description = document.getElementById('dailyRewardDescription').value.trim();
         const imageUrl = document.getElementById('dailyRewardImageUrl').value.trim();
         
+        const days = parseInt(document.getElementById('dailyRewardCooldownDays').value) || 0;
         const hours = parseInt(document.getElementById('dailyRewardCooldownHours').value) || 0;
         const minutes = parseInt(document.getElementById('dailyRewardCooldownMinutes').value) || 0;
         const seconds = parseInt(document.getElementById('dailyRewardCooldownSeconds').value) || 0;
@@ -3101,8 +3187,14 @@
             return;
         }
 
-        const cooldownMs = (hours * 3600 + minutes * 60 + seconds) * 1000;
-        let cooldownText = `${hours}s ${minutes}d ${seconds}sn`;
+        const cooldownMs = (days * 24 * 3600 + hours * 3600 + minutes * 60 + seconds) * 1000;
+        let cooldownText = '';
+        if(days > 0) cooldownText += `${days}g `;
+        if(hours > 0) cooldownText += `${hours}s `;
+        if(minutes > 0) cooldownText += `${minutes}d `;
+        if(seconds > 0) cooldownText += `${seconds}sn`;
+        if (cooldownText === '') cooldownText = 'Tek Seferlik';
+
 
         const rewardData = { name, type, value, description, cooldownMs, cooldownText, imageUrl: imageUrl || 'https://via.placeholder.com/150' };
 
@@ -3114,11 +3206,57 @@
             }
             rewardData.uses = uses;
         }
+        
+        if (editingDailyRewardId) {
+            await db.ref('dailyRewardOptions/' + editingDailyRewardId).update(rewardData);
+            displayMessage("Günlük ödül başarıyla güncellendi.");
+        } else {
+            await db.ref('dailyRewardOptions').push(rewardData);
+            displayMessage("Yeni günlük ödül başarıyla oluşturuldu.");
+        }
+        
+        resetDailyRewardForm();
+    }
 
-        await db.ref('dailyRewardOptions').push(rewardData);
-        displayMessage("Yeni günlük ödül başarıyla oluşturuldu.");
-        ['dailyRewardName', 'dailyRewardType', 'dailyRewardValue', 'dailyRewardDescription', 'dailyRewardImageUrl', 'dailyRewardMultiplierUses', 'dailyRewardCooldownHours', 'dailyRewardCooldownMinutes', 'dailyRewardCooldownSeconds'].forEach(id => document.getElementById(id).value = '');
-        document.getElementById('dailyRewardMultiplierUses').classList.add('hidden');
+    async function editDailyReward(rewardId) {
+        if (!isAdmin) return;
+        
+        const rewardSnap = await db.ref('dailyRewardOptions/' + rewardId).once('value');
+        const reward = rewardSnap.val();
+        if (!reward) {
+            displayMessage("Düzenlenecek ödül bulunamadı.");
+            return;
+        }
+        
+        document.getElementById('dailyRewardName').value = reward.name;
+        document.getElementById('dailyRewardDescription').value = reward.description;
+        document.getElementById('dailyRewardType').value = reward.type;
+        document.getElementById('dailyRewardValue').value = reward.value;
+        document.getElementById('dailyRewardImageUrl').value = reward.imageUrl || '';
+        
+        const cooldownMs = reward.cooldownMs || 0;
+        const days = Math.floor(cooldownMs / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((cooldownMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((cooldownMs % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((cooldownMs % (1000 * 60)) / 1000);
+
+        document.getElementById('dailyRewardCooldownDays').value = days;
+        document.getElementById('dailyRewardCooldownHours').value = hours;
+        document.getElementById('dailyRewardCooldownMinutes').value = minutes;
+        document.getElementById('dailyRewardCooldownSeconds').value = seconds;
+
+        const usesInput = document.getElementById('dailyRewardMultiplierUses');
+        if (reward.type === 'tempMultiplier') {
+            usesInput.classList.remove('hidden');
+            usesInput.value = reward.uses || '';
+        } else {
+            usesInput.classList.add('hidden');
+        }
+
+        document.getElementById('saveDailyRewardBtn').textContent = 'ÖDÜLÜ GÜNCELLE';
+        editingDailyRewardId = rewardId;
+        
+        document.getElementById('adminPanelModal').scrollTop = 0;
     }
 
     async function removeDailyReward(rewardId) {
@@ -3144,7 +3282,10 @@
                 div.className = 'flex justify-between items-center p-2 mb-2 bg-gray-700 rounded-md';
                 div.innerHTML = `
                     <span class="text-gray-300 text-sm truncate pr-2">${reward.name} (${reward.cooldownText})</span>
-                    <button onclick="removeDailyReward('${rewardId}')" class="py-1 px-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-md flex-shrink-0">Kaldır</button>
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        <button onclick="editDailyReward('${rewardId}')" class="py-1 px-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-md">Düzenle</button>
+                        <button onclick="removeDailyReward('${rewardId}')" class="py-1 px-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-md">Kaldır</button>
+                    </div>
                 `;
                 listEl.appendChild(div);
             }
