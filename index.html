@@ -1252,7 +1252,8 @@
         checkAvailableDailyRewards();
     }
     listenForSurpriseBox();
-
+    listenForDailyRewardChanges();
+    
     if (!isAdmin) {
         const userRef = db.ref('users/' + currentUser);
         userRef.once('value').then(snap => {
@@ -1782,20 +1783,17 @@
     userSnap = await userRef.once('value');
     user = userSnap.val();
 
-    let useMultiplier = false;
     let finalMultiplier = 1;
     let multiplierUsedThisTurn = false;
     let refundOccurred = false;
 
     if (user.multiplierSource === 'box') {
-        useMultiplier = true;
         finalMultiplier = user.activeMultiplier;
         multiplierUsedThisTurn = true;
     } 
     else if (user.multiplierSource === 'store' && user.multiplierRemainingUses > 0) {
         const confirmedMultiplier = await customConfirm(`Mevcut <b>${user.activeMultiplier}x</b> çarpanınızı kullanmak ister misiniz?`);
         if (confirmedMultiplier) {
-            useMultiplier = true;
             finalMultiplier = user.activeMultiplier;
             multiplierUsedThisTurn = true;
         }
@@ -1810,16 +1808,26 @@
     let message = '';
     const box = boxes[index];
     
+    // DEĞİŞİKLİK BURADA BAŞLIYOR: Detayları saklamak için değişkenler ekliyoruz.
+    const boxUpdate = { opened: true, opener: currentUser, id: box.id, content: box.content, value: box.value };
+    const boxOpenInfo = { boxId: box.id, opener: currentUser, content: box.content, timestamp: firebase.database.ServerValue.TIMESTAMP };
+    
     if (box.content === 'iflas') {
         updates['iflasCount'] = (user.iflasCount || 0) + 1;
+        let shieldWasUsed = false;
         if ((user.iflasShieldUses || 0) > 0) {
             updates['iflasShieldUses'] = user.iflasShieldUses - 1;
             updates['iflasShieldUsedCount'] = (user.iflasShieldUsedCount || 0) + 1;
             message = `İflas! 🛡️ Kalkanın zırh gibi durdu ve seni korudu! Kalan kalkan: ${updates['iflasShieldUses']}.`;
+            shieldWasUsed = true;
         } else {
             updates['balance'] = 0;
             message = `İflas! Tüm puanlarınız silindi.`;
         }
+        // DEĞİŞİKLİK: Kalkan bilgisini kaydediyoruz
+        boxUpdate.shieldUsed = shieldWasUsed;
+        boxOpenInfo.shieldUsed = shieldWasUsed;
+
     } else if (box.content === 'points') {
         const pointsGained = box.value * finalMultiplier;
         updates['balance'] = (user.balance || 0) + pointsGained;
@@ -1827,6 +1835,14 @@
             updates['highestBalanceEver'] = updates['balance'];
         }
         message = `+${pointsGained} puan kazandınız!`;
+        // DEĞİŞİKLİK: Çarpan ve puan detaylarını kaydediyoruz
+        boxUpdate.basePoints = box.value;
+        boxUpdate.finalPoints = pointsGained;
+        boxUpdate.multiplierUsed = finalMultiplier;
+        boxOpenInfo.basePoints = box.value;
+        boxOpenInfo.finalPoints = pointsGained;
+        boxOpenInfo.multiplierUsed = finalMultiplier;
+
     } else if (box.content === 'surpriz') {
         updates['surpriseBoxesOpened'] = (user.surpriseBoxesOpened || 0) + 1;
         surpriseBoxMultiplier = finalMultiplier;
@@ -1857,6 +1873,7 @@
         updates.kutuHakki = (user.kutuHakki || 0);
         updates['activeMultiplier'] = box.value;
         updates['multiplierSource'] = 'box';
+        boxOpenInfo.value = box.value; // Çarpan değerini ekliyoruz
     }
     
     if (multiplierUsedThisTurn && !refundOccurred) {
@@ -1875,23 +1892,8 @@
 
     await userRef.update(updates);
     
-    const boxUpdate = {
-        opened: true,
-        opener: currentUser,
-        content: box.content,
-        value: box.value,
-        id: box.id
-    };
     await boxRef.update(boxUpdate);
     
-    const boxOpenInfo = {
-        boxId: box.id,
-        opener: currentUser,
-        content: box.content,
-        value: finalMultiplier > 1 && box.content === 'points' ? box.value * finalMultiplier : box.value,
-        multiplierUsed: finalMultiplier,
-        timestamp: firebase.database.ServerValue.TIMESTAMP
-    };
     if (box.content !== 'surpriz') {
         await db.ref('lastOpenedBox').set(boxOpenInfo);
     }
@@ -1989,23 +1991,38 @@
   }
   
   function showOpenedBoxInfo(box) {
-      let contentDisplay = '';
-      if (box.content === 'points') contentDisplay = `+${box.value} Puan`;
-      else if (box.content === 'surpriz') contentDisplay = 'Sürpriz Kutu';
-      else if (box.content === 'iflas') contentDisplay = 'İflas';
-      else if (box.content === 'multiplier') contentDisplay = `${box.value}X Çarpan`;
-      
-      const contentHtml = `
-          <div class='text-center mb-4'>
-              <p class='text-gray-400'>${box.id} Nolu Kutuyu Açan</p>
-              <p class='text-2xl font-bold text-green-400 py-2'>${box.opener}</p>
-          </div>
-          <hr class="border-gray-600 my-3">
-          <p><b>İçerik:</b> ${contentDisplay}</p>
-      `;
-      document.getElementById('openedBoxInfoContent').innerHTML = contentHtml;
-      openedBoxInfoModal.style.display = 'flex';
-  }
+    let contentDisplay = '';
+    // DEĞİŞİKLİK BURADA BAŞLIYOR
+    if (box.content === 'points') {
+        if (box.multiplierUsed && box.multiplierUsed > 1) {
+            contentDisplay = `<b>+${box.finalPoints} Puan</b> <br> <span class="text-sm text-gray-400">(${box.basePoints} Puan x ${box.multiplierUsed} Çarpan)</span>`;
+        } else {
+            contentDisplay = `+${box.value} Puan`;
+        }
+    } else if (box.content === 'iflas') {
+        if (box.shieldUsed) {
+            contentDisplay = 'İflas (Kalkanla Korundu)';
+        } else {
+            contentDisplay = 'İflas';
+        }
+    } else if (box.content === 'multiplier') {
+        contentDisplay = `${box.value}X Çarpan`;
+    } else if (box.content === 'surpriz') {
+        contentDisplay = 'Sürpriz Kutu';
+    }
+    // DEĞİŞİKLİK BURADA BİTİYOR
+    
+    const contentHtml = `
+        <div class='text-center mb-4'>
+            <p class='text-gray-400'>${box.id} Nolu Kutuyu Açan</p>
+            <p class='text-2xl font-bold text-green-400 py-2'>${box.opener}</p>
+        </div>
+        <hr class="border-gray-600 my-3">
+        <p class="text-xl"><b>İçerik:</b> ${contentDisplay}</p>
+    `;
+    document.getElementById('openedBoxInfoContent').innerHTML = contentHtml;
+    openedBoxInfoModal.style.display = 'flex';
+}
   function closeOpenedBoxInfoModal() { openedBoxInfoModal.style.display = 'none'; }
   function shuffleArray(array) { for (let i = array.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [array[i], array[j]] = [array[j], array[i]]; } return array; }
   
@@ -2930,42 +2947,49 @@
   }
 
   function showGlobalOpenedBoxInfo(info) {
-      let contentDisplay = '';
-      if (info.content === 'points') {
-          contentDisplay = `+${info.value} Puan kazandı!`;
-          if (info.multiplierUsed > 1) {
-            contentDisplay += ` (${info.multiplierUsed}x Çarpan ile)`;
-          }
-      } else if (info.content === 'iflas') {
-          contentDisplay = 'İflas etti! 💣';
-      } else if (info.content === 'multiplier') {
-          contentDisplay = `${info.value}X Çarpan buldu!`;
-      }
+    let contentDisplay = '';
+    // DEĞİŞİKLİK BURADA BAŞLIYOR
+    if (info.content === 'points') {
+        if (info.multiplierUsed && info.multiplierUsed > 1) {
+            contentDisplay = `<b>+${info.finalPoints} Puan</b> kazandı! <br> <span class="text-sm text-gray-400">(${info.basePoints} Puan x ${info.multiplierUsed} Çarpan)</span>`;
+        } else {
+            contentDisplay = `+${info.basePoints} Puan kazandı!`;
+        }
+    } else if (info.content === 'iflas') {
+        if (info.shieldUsed) {
+            contentDisplay = 'İflas etti! 💣 <br> <span class="text-blue-400">ama Kalkanı tarafından korundu!</span>';
+        } else {
+            contentDisplay = 'İflas etti! 💣';
+        }
+    } else if (info.content === 'multiplier') {
+        contentDisplay = `${info.value}X Çarpan buldu!`;
+    }
+    // DEĞİŞİKLİK BURADA BİTİYOR
 
-      const contentHtml = `
-          <div class="text-3xl font-bold mb-3 flex flex-col justify-center items-center gap-2"><span class="text-green-400">${info.opener}</span></div>
-          <p class="text-lg text-gray-300"><b>${info.boxId}</b> numaralı kutuyu açtı ve...</p>
-          <p class="text-2xl font-semibold mt-2 text-yellow-300">${contentDisplay}</p>
-      `;
+    const contentHtml = `
+        <div class="text-3xl font-bold mb-3 flex flex-col justify-center items-center gap-2"><span class="text-green-400">${info.opener}</span></div>
+        <p class="text-lg text-gray-300"><b>${info.boxId}</b> numaralı kutuyu açtı ve...</p>
+        <p class="text-2xl font-semibold mt-2 text-yellow-300">${contentDisplay}</p>
+    `;
 
-      document.getElementById('globalOpenedBoxInfoContent').innerHTML = contentHtml;
-      globalOpenedBoxInfoModal.style.display = 'flex';
+    document.getElementById('globalOpenedBoxInfoContent').innerHTML = contentHtml;
+    globalOpenedBoxInfoModal.style.display = 'flex';
 
-      let countdown = 5;
-      const countdownEl = document.getElementById('globalOpenedBoxCountdown');
-      countdownEl.textContent = `(Sıradaki kutu ${countdown} saniye içinde açılabilir)`;
+    let countdown = 5;
+    const countdownEl = document.getElementById('globalOpenedBoxCountdown');
+    countdownEl.textContent = `(Sıradaki kutu ${countdown} saniye içinde açılabilir)`;
 
-      if(globalCountdownInterval) clearInterval(globalCountdownInterval);
-      globalCountdownInterval = setInterval(() => {
-          countdown--;
-          countdownEl.textContent = `(Sıradaki kutu ${countdown} saniye içinde açılabilir)`;
-          if (countdown <= 0) {
-              clearInterval(globalCountdownInterval);
-              globalOpenedBoxInfoModal.style.display = 'none';
-              db.ref('gameLock').set(false);
-          }
-      }, 1000);
-  }
+    if(globalCountdownInterval) clearInterval(globalCountdownInterval);
+    globalCountdownInterval = setInterval(() => {
+        countdown--;
+        countdownEl.textContent = `(Sıradaki kutu ${countdown} saniye içinde açılabilir)`;
+        if (countdown <= 0) {
+            clearInterval(globalCountdownInterval);
+            globalOpenedBoxInfoModal.style.display = 'none';
+            db.ref('gameLock').set(false);
+        }
+    }, 1000);
+}
 
     // YENİ DUYURU SİSTEMİ
     function resetAnnouncementForm() {
@@ -3584,7 +3608,19 @@
             openDailyRewardModal(); // YENİ EKLENEN SATIR: Silme sonrası listeyi günceller.
         }
     }
-    
+  
+    function listenForDailyRewardChanges() {
+        const rewardsRef = db.ref('dailyRewardOptions');
+        rewardsRef.on('value', snap => {
+            // Sadece günlük ödül penceresi o anda açıksa içeriği yenile
+            if (dailyRewardModal.style.display === 'flex') {
+                openDailyRewardModal();
+            }
+            // Ayrıca, ödül varsa ana ekrandaki kırmızı noktayı da kontrol et
+            checkAvailableDailyRewards();
+        });
+    }
+  
     function listenForAdminNotifications() {
       const notificationsRef = db.ref(`users/${currentUser}/notifications`);
       notificationsRef.orderByChild('timestamp').startAt(sessionStartTime).on('child_added', snap => {
@@ -3593,6 +3629,7 @@
               displayMessage(notification.message);
               snap.ref.remove();
           }
+        
       });
     }
   
