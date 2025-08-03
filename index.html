@@ -369,101 +369,18 @@
             <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700 text-center">
                 <h3 class="text-yellow-400 text-3xl font-bold mb-4">Tıkla ve Yakala</h3>
 
-                <div id="clickCatchAdminPanel" class="hidden bg-gray-900/50 p-4 rounded-lg border border-yellow-500 mb-6">
-                  <div id="soloGameAdminPanel" class="hidden bg-gray-900/50 p-4 rounded-lg border border-purple-500 mb-6">
-                    
-            <h4 class="text-purple-300 text-xl font-semibold mb-4">Tekli Oyun Yönetim Paneli</h4>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-left mb-4">
-                <div>
-                    <label for="soloGameDuration" class="block text-sm font-medium text-gray-400">Oyun Süresi (sn)</label>
-                    <input type="number" id="soloGameDuration" value="30" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
-                </div>
-                <div>
-                    <label for="soloItemDisappearTime" class="block text-sm font-medium text-gray-400">Obje Kaybolma (ms)</label>
-                    <input type="number" id="soloItemDisappearTime" value="1200" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
-                </div>
-                <div>
-                    <label for="soloItemInterval" class="block text-sm font-medium text-gray-400">Obje Çıkma Hızı (ms)</label>
-                    <input type="number" id="soloItemInterval" value="600" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
-                </div>
-                <div>
-                    <label for="soloBombChance" class="block text-sm font-medium text-gray-400">Bomba Şansı (%)</label>
-                    <input type="number" id="soloBombChance" value="40" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
-                </div>
-                <div>
-                    <label for="soloTimeChance" class="block text-sm font-medium text-gray-400">Saat Şansı (%)</label>
-                    <input type="number" id="soloTimeChance" value="8" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
-                </div>
-              <div>
-                    <label for="soloNormalChance" class="block text-sm font-medium text-gray-400">Puan Jetonu (%)</label>
-                    <input type="number" id="soloNormalChance" value="50" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
-                </div>
-                <div>
-                    <label for="soloGoldChance" class="block text-sm font-medium text-gray-400">Puan Torbası (%)</label>
-                    <input type="number" id="soloGoldChance" value="6" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
-                </div>
-                <div>
-                    <label for="soloSpecialChance" class="block text-sm font-medium text-gray-400">Özel Eşya Şansı (%)</label>
-                    <input type="number" id="soloSpecialChance" value="4" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
-                </div>
-              <div>
-                    <label for="soloTimeValue" class="block text-sm font-medium text-gray-400">Saat Değeri (+sn)</label>
-                    <input type="number" id="soloTimeValue" value="3" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
-                </div>
-                <div>
-                  <label for="soloNormalValue" class="block text-sm font-medium text-gray-400">Puan Jetonu (+Puan)</label>
-                    <input type="number" id="soloNormalValue" value="50" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
-                </div>
-                 <div>
-                    <label for="soloGoldValue" class="block text-sm font-medium text-gray-400">Puan Torbası (+Puan)</label>
-                    <input type="number" id="soloGoldValue" value="100" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
-                </div>
-                 <div>
-                    <label for="soloBombValue" class="block text-sm font-medium text-gray-400">Bomba Değeri (-Puan)</label>
-                    <input type="number" id="soloBombValue" value="-75" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
-                </div>
-            </div>
-            <button onclick="saveSoloGameSettings()" class="w-full py-2 px-4 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg shadow-md">Tekli Oyun Ayarlarını Kaydet</button>
-                    <div class="mt-6 pt-4 border-t border-gray-600">
-            
-            <button onclick="resetClickCatchLeaderboard()" class="w-full py-2 px-4 bg-red-800 hover:bg-red-700 text-white font-bold rounded-lg shadow-md">
-              Tıkla ve Yakala Sıralamasını Sıfırla
-            </button>
-        </div>
-        </div>
-        <div id="lastWinnerContainer" class="hidden bg-green-900/50 p-4 rounded-lg border border-green-400 mb-6">
-            <h4 id="lastWinnerInfo" class="text-green-300 text-xl font-semibold"></h4>
-        </div>
-                  
-                    <h4 class="text-yellow-300 text-xl font-semibold mb-4">Lobi Yönetim Paneli</h4>
-                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-left">
-                        <div>
-                            <label for="lobbyEntryFee" class="block text-sm font-medium text-gray-400">Katılım Puanı</label>
-                            <input type="number" id="lobbyEntryFee" value="100" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
-                        </div>
-                        <div>
-                            <label for="lobbyEntryTickets" class="block text-sm font-medium text-gray-400">Katılım Bileti (0=Puan)</label>
-                            <input type="number" id="lobbyEntryTickets" value="0" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
-                        </div>
-                        <div>
-                            <label for="lobbyTarget" class="block text-sm font-medium text-gray-400">Yakalama Hedefi</label>
-                            <input type="number" id="lobbyTarget" value="10" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
-                        </div>
-                        <div>
-                            <label for="lobbyPrize" class="block text-sm font-medium text-gray-400">Kazanan Ödülü (Puan)</label>
-                            <input type="number" id="lobbyPrize" value="1000" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
-                        </div>
-                        <div>
-                            <label for="lobbyItemInterval" class="block text-sm font-medium text-gray-400">Obje Hızı (ms)</label>
-                            <input type="number" id="lobbyItemInterval" value="800" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
-                        </div>
-                    </div>
-                    <div class="mt-4 flex gap-4">
-                        <button id="lobbyCreateBtn" onclick="startLobbyGame()" class="flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-md">Lobi Kur / Güncelle</button>
-                        <button id="lobbyStartBtn" onclick="triggerLobbyGameStart()" class="flex-1 py-2 px-4 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg shadow-md disabled:bg-gray-600 disabled:cursor-not-allowed" disabled>Oyunu Başlat</button>
-                        <button onclick="endLobbyGame(true)" class="flex-1 py-2 px-4 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg shadow-md">Lobi İptal Et</button>
-                    </div>
-                </div>
+                <div id="clickCatchAdminButtonsContainer" class="hidden bg-gray-900/50 p-4 rounded-lg border border-yellow-500 mb-6 flex justify-center gap-4">
+    <button onclick="openSoloGameSettingsModal()" class="py-3 px-6 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg shadow-md">
+        Tekli Oyun Ayarları
+    </button>
+    <button onclick="openLobbySettingsModal()" class="py-3 px-6 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-md">
+        Lobi Yönetim Paneli
+    </button>
+</div>
+
+<div id="lastWinnerContainer" class="hidden bg-green-900/50 p-4 rounded-lg border border-green-400 mb-6">
+    <h4 id="lastWinnerInfo" class="text-green-300 text-xl font-semibold"></h4>
+</div>
 
                 <div id="lobbyStatusContainer" class="hidden bg-blue-900/50 p-4 rounded-lg border border-blue-400 mb-6">
                     <h4 id="lobbyStatusTitle" class="text-blue-300 text-xl font-semibold animate-pulse">Lobi Katılıma Açık!</h4>
@@ -1202,7 +1119,104 @@ nset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 hidden">
       </div>
   </div>
 </div>
+<div id="soloGameSettingsModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 hidden">
+  <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-purple-500 w-11/12 max-w-4xl text-center relative max-h-[90vh] overflow-y-auto scrollable-list">
+      <button class="modal-close-button absolute top-2 right-4 text-white text-4xl" onclick="closeSoloGameSettingsModal()">&times;</button>
+      <h3 class="text-purple-300 text-2xl font-bold mb-6">Tekli Oyun Yönetim Paneli</h3>
+      
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-left mb-4">
+          <div>
+              <label for="soloGameDuration" class="block text-sm font-medium text-gray-400">Oyun Süresi (sn)</label>
+              <input type="number" id="soloGameDuration" value="30" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
+          </div>
+          <div>
+              <label for="soloItemDisappearTime" class="block text-sm font-medium text-gray-400">Obje Kaybolma (ms)</label>
+              <input type="number" id="soloItemDisappearTime" value="1200" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
+          </div>
+          <div>
+              <label for="soloItemInterval" class="block text-sm font-medium text-gray-400">Obje Çıkma Hızı (ms)</label>
+              <input type="number" id="soloItemInterval" value="600" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
+          </div>
+          <div>
+              <label for="soloBombChance" class="block text-sm font-medium text-gray-400">Bomba Şansı (%)</label>
+              <input type="number" id="soloBombChance" value="40" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
+          </div>
+          <div>
+              <label for="soloTimeChance" class="block text-sm font-medium text-gray-400">Saat Şansı (%)</label>
+              <input type="number" id="soloTimeChance" value="8" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
+          </div>
+          <div>
+              <label for="soloGoldChance" class="block text-sm font-medium text-gray-400">Kese Şansı (%)</label>
+              <input type="number" id="soloGoldChance" value="6" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
+          </div>
+          <div>
+              <label for="soloSpecialChance" class="block text-sm font-medium text-gray-400">Özel Eşya Şansı (%)</label>
+              <input type="number" id="soloSpecialChance" value="4" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
+          </div>
+          <div>
+                <label for="soloNormalChance" class="block text-sm font-medium text-gray-400">Puan Jetonu Şansı (%)</label>
+                <input type="number" id="soloNormalChance" value="50" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
+          </div>
+          <div>
+              <label for="soloBombValue" class="block text-sm font-medium text-gray-400">Bomba Değeri (-Puan)</label>
+              <input type="number" id="soloBombValue" value="-75" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
+          </div>
+          <div>
+              <label for="soloTimeValue" class="block text-sm font-medium text-gray-400">Saat Değeri (+sn)</label>
+              <input type="number" id="soloTimeValue" value="3" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
+          </div>
+          <div>
+              <label for="soloGoldValue" class="block text-sm font-medium text-gray-400">Puan Torbası (+Puan)</label>
+              <input type="number" id="soloGoldValue" value="100" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
+          </div>
+          <div>
+              <label for="soloNormalValue" class="block text-sm font-medium text-gray-400">Puan Jetonu Değeri (+Puan)</label>
+              <input type="number" id="soloNormalValue" value="50" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
+          </div>
+      </div>
+      <button onclick="saveSoloGameSettings()" class="w-full py-2 px-4 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg shadow-md">Tekli Oyun Ayarlarını Kaydet</button>
+  </div>
+</div>
+      <div id="lobbySettingsModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 hidden">
+    <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-blue-500 w-11/12 max-w-4xl text-center relative max-h-[90vh] overflow-y-auto scrollable-list">
+        <button class="modal-close-button absolute top-2 right-4 text-white text-4xl" onclick="closeLobbySettingsModal()">&times;</button>
+        <h3 class="text-blue-300 text-2xl font-bold mb-6">Lobi Yönetim Paneli</h3>
 
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-left mb-6">
+            <div>
+                <label for="lobbyEntryFee" class="block text-sm font-medium text-gray-400">Katılım Puanı</label>
+                <input type="number" id="lobbyEntryFee" value="100" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
+            </div>
+            <div>
+                <label for="lobbyEntryTickets" class="block text-sm font-medium text-gray-400">Katılım Bileti (0=Puan)</label>
+                <input type="number" id="lobbyEntryTickets" value="0" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
+            </div>
+            <div>
+                <label for="lobbyTarget" class="block text-sm font-medium text-gray-400">Yakalama Hedefi</label>
+                <input type="number" id="lobbyTarget" value="10" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
+            </div>
+            <div>
+                <label for="lobbyPrize" class="block text-sm font-medium text-gray-400">Kazanan Ödülü (Puan)</label>
+                <input type="number" id="lobbyPrize" value="1000" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
+            </div>
+            <div>
+                <label for="lobbyItemInterval" class="block text-sm font-medium text-gray-400">Obje Hızı (ms)</label>
+                <input type="number" id="lobbyItemInterval" value="800" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm p-2 text-white">
+            </div>
+        </div>
+        <div class="mt-4 flex gap-4 mb-6">
+            <button id="lobbyCreateBtn" onclick="startLobbyGame()" class="flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-md">Lobi Kur / Güncelle</button>
+            <button id="lobbyStartBtn" onclick="triggerLobbyGameStart()" class="flex-1 py-2 px-4 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg shadow-md disabled:bg-gray-600 disabled:cursor-not-allowed" disabled>Oyunu Başlat</button>
+            <button onclick="endLobbyGame(true)" class="flex-1 py-2 px-4 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg shadow-md">Lobi İptal Et</button>
+        </div>
+        
+        <div class="mt-6 pt-4 border-t border-gray-600">
+            <button onclick="resetClickCatchLeaderboard()" class="w-full py-2 px-4 bg-red-800 hover:bg-red-700 text-white font-bold rounded-lg shadow-md">
+                Tıkla ve Yakala Sıralamasını Sıfırla
+            </button>
+        </div>
+    </div>
+</div>
 <div id="announcementLikesModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[9999] hidden">
   <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-red-700 w-11/12 max-w-md text-center relative">
       <button class="modal-close-button absolute top-2 right-4 text-white text-4xl" onclick="closeAnnouncementLikesModal()">&times;</button>
@@ -1700,12 +1714,9 @@ nset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 hidden">
     document.getElementById('adminStoreManagementButtonContainer').classList.add('hidden');
     document.getElementById('adminAnnouncementControls').classList.add('hidden');
     
-    // Admin panellerini her sekme geçişinde gizle
-    const clickCatchAdminPanel = document.getElementById('clickCatchAdminPanel');
-    if(clickCatchAdminPanel) clickCatchAdminPanel.classList.add('hidden');
-    const soloGameAdminPanel = document.getElementById('soloGameAdminPanel');
-    if(soloGameAdminPanel) soloGameAdminPanel.classList.add('hidden');
-
+    // YENİ: Her sekme geçişinde admin butonlarını gizle
+    const clickCatchAdminButtonsContainer = document.getElementById('clickCatchAdminButtonsContainer');
+    if(clickCatchAdminButtonsContainer) clickCatchAdminButtonsContainer.classList.add('hidden');
 
     const tabButtons = ['gameTabBtn', 'storeTabBtn', 'announcementsTabBtn', 'chanceWheelTabBtn', 'clickCatchTabBtn'];
     tabButtons.forEach(btnId => {
@@ -1724,7 +1735,6 @@ nset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 hidden">
         activeBtn.classList.remove('bg-gray-700', 'hover:bg-gray-600');
     }
 
-    // İLGİLİ SEKMELERDE ADMİN KONTROLLERİNİ GÖSTER
     if (sectionId === 'store') {
         loadStoreItems();
         if (isAdmin) {
@@ -1740,13 +1750,13 @@ nset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 hidden">
             db.ref(`users/${currentUser}/lastSeenAnnouncementTimestamp`).set(latestAnnouncementTimestamp);
         }
     } else if (sectionId === 'clickCatch') {
-        loadClickCatchRankings(); // Liderlik tablosunu yükle (artık anlık)
-        listenForLobbyChanges(); // Lobi durumunu dinle
-        listenForLastWinner(); // Son kazananı dinle
+        loadClickCatchRankings();
+        listenForLobbyChanges(); 
+        listenForLastWinner(); 
         if (isAdmin) {
-            document.getElementById('clickCatchAdminPanel').classList.remove('hidden');
-            document.getElementById('soloGameAdminPanel').classList.remove('hidden'); // Yeni paneli göster
-            loadSoloGameSettings(); // Paneldeki ayarları yükle
+            // YENİ: Artık panel yerine butonları gösteriyoruz
+            document.getElementById('clickCatchAdminButtonsContainer').classList.remove('hidden');
+            loadSoloGameSettings(); // Ayarları modal içine yine de yüklüyoruz
         }
     }
     
@@ -5122,6 +5132,22 @@ async function getClickCatchLeaderUsername() {
         return user;
     });
 }
+  // YENİ: Tıkla ve Yakala Yönetim Modallarını Açma/Kapatma Fonksiyonları
+  const soloGameSettingsModal = document.getElementById('soloGameSettingsModal');
+  const lobbySettingsModal = document.getElementById('lobbySettingsModal');
+
+  function openSoloGameSettingsModal() {
+      soloGameSettingsModal.style.display = 'flex';
+  }
+  function closeSoloGameSettingsModal() {
+      soloGameSettingsModal.style.display = 'none';
+  }
+  function openLobbySettingsModal() {
+      lobbySettingsModal.style.display = 'flex';
+  }
+  function closeLobbySettingsModal() {
+      lobbySettingsModal.style.display = 'none';
+  }
 
 </script>
 </body>
