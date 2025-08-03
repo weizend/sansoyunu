@@ -1736,7 +1736,6 @@
     document.getElementById('adminStoreManagementButtonContainer').classList.add('hidden');
     document.getElementById('adminAnnouncementControls').classList.add('hidden');
     
-    // YENİ: Her sekme geçişinde admin butonlarını gizle
     const clickCatchAdminButtonsContainer = document.getElementById('clickCatchAdminButtonsContainer');
     if(clickCatchAdminButtonsContainer) clickCatchAdminButtonsContainer.classList.add('hidden');
 
@@ -1775,10 +1774,22 @@
         loadClickCatchRankings();
         listenForLobbyChanges(); 
         listenForLastWinner(); 
+        
+        // DÜZELTME: Kullanıcının toplam Tıkla-Yakala puanını çekip ekrana yazdırıyoruz.
+        if (currentUser && !isAdmin) {
+            db.ref('users/' + currentUser).once('value').then(snap => {
+                const userData = snap.val();
+                if (userData) {
+                    // Oyun başlamadan önce kullanıcının en yüksek skorunu gösteriyoruz.
+                    document.getElementById('clickCatchScore').textContent = userData.clickCatchHighestScore || 0;
+                }
+            });
+        }
+        // DÜZELTME BİTİŞ
+
         if (isAdmin) {
-            // YENİ: Artık panel yerine butonları gösteriyoruz
             document.getElementById('clickCatchAdminButtonsContainer').classList.remove('hidden');
-            loadSoloGameSettings(); // Ayarları modal içine yine de yüklüyoruz
+            loadSoloGameSettings(); 
         }
     }
     
