@@ -264,6 +264,8 @@
                   <option value="">Ödül Tipi Seçin</option>
                   <option value="points">Puan</option>
                   <option value="boxRights">Kutu Hakkı</option>
+                  <option value="wheelTicket">Çark Bileti</option>
+                  <option value="clickCatchTicket">Tıkla Yakala Bileti</option>
                   <option value="iflasShield">İflas Kalkanı</option>
                   <option value="tempMultiplier">Çarpan</option>
               </select>
@@ -4009,69 +4011,71 @@ async function openDailyRewardModal() {
 }
 
     async function claimDailyReward(rewardId) {
-    if (isAdmin) return;
+        if (isAdmin) return;
 
-    const userRef = db.ref('users/' + currentUser);
-    const rewardRef = db.ref('dailyRewardOptions/' + rewardId);
+        const userRef = db.ref('users/' + currentUser);
+        const rewardRef = db.ref('dailyRewardOptions/' + rewardId);
 
-    const [userSnap, rewardSnap] = await Promise.all([userRef.once('value'), rewardRef.once('value')]);
-    const user = userSnap.val();
-    const reward = rewardSnap.val();
+        const [userSnap, rewardSnap] = await Promise.all([userRef.once('value'), rewardRef.once('value')]);
+        const user = userSnap.val();
+        const reward = rewardSnap.val();
 
-    if (!reward) {
-        displayMessage("Ödül alınırken bir hata oluştu: Ödül bulunamadı.");
-        return;
+        if (!reward) {
+            displayMessage("Ödül alınırken bir hata oluştu: Ödül bulunamadı.");
+            return;
+        }
+
+        const lastClaim = (user.dailyRewardsClaimed && user.dailyRewardsClaimed[rewardId]) || 0;
+        const cooldown = reward.cooldownMs || 0;
+
+        if (Date.now() < lastClaim + cooldown) {
+            displayMessage("Bu ödül için bekleme süresi henüz dolmadı.");
+            return;
+        }
+
+        if (reward.type === 'tempMultiplier' && user.multiplierSource !== 'none') {
+            displayMessage("Mevcut bir çarpanınız varken çarpan ödülü alamazsınız. Lütfen önce mevcut çarpanınızı kullanın.");
+            return;
+        }
+
+        let updates = {};
+        let message = `Tebrikler! Günlük ödül olarak <b>${reward.name}</b> kazandın.`;
+
+        switch (reward.type) {
+            case 'points':
+                updates['balance'] = (user.balance || 0) + reward.value;
+                if (updates['balance'] > (user.highestBalanceEver || 0)) {
+                    updates['highestBalanceEver'] = updates['balance'];
+                }
+                break;
+            case 'boxRights':
+                updates['kutuHakki'] = (user.kutuHakki || 0) + reward.value;
+                break;
+            // --- YENİ EKLENEN MANTIK ---
+            case 'wheelTicket':
+                updates['carkBileti'] = (user.carkBileti || 0) + reward.value;
+                break;
+            case 'clickCatchTicket':
+                updates['clickCatchTickets'] = (user.clickCatchTickets || 0) + reward.value;
+                break;
+            // --- YENİ EKLENEN MANTIK BİTİŞ ---
+            case 'iflasShield':
+                updates['iflasShieldUses'] = (user.iflasShieldUses || 0) + reward.value;
+                break;
+            case 'tempMultiplier':
+                updates['activeMultiplier'] = reward.value;
+                updates['multiplierRemainingUses'] = reward.uses;
+                updates['multiplierSource'] = 'store';
+                break;
+        }
+
+        await userRef.update(updates);
+        await db.ref(`users/${currentUser}/dailyRewardsClaimed/${rewardId}`).set(firebase.database.ServerValue.TIMESTAMP);
+
+        displayMessage(message);
+        closeDailyRewardModal();
+        checkAvailableDailyRewards();
     }
-
-    const lastClaim = (user.dailyRewardsClaimed && user.dailyRewardsClaimed[rewardId]) || 0;
-    const cooldown = reward.cooldownMs || 0;
-
-    if (Date.now() < lastClaim + cooldown) {
-        displayMessage("Bu ödül için bekleme süresi henüz dolmadı.");
-        return;
-    }
-
-    if (reward.type === 'tempMultiplier' && user.multiplierSource !== 'none') {
-        displayMessage("Mevcut bir çarpanınız varken çarpan ödülü alamazsınız. Lütfen önce mevcut çarpanınızı kullanın.");
-        return;
-    }
-
-    let updates = {};
-    let message = `Tebrikler! Günlük ödül olarak <b>${reward.name}</b> kazandın.`;
-    
-    switch(reward.type) {
-        case 'points':
-            updates['balance'] = (user.balance || 0) + reward.value;
-            if(updates['balance'] > (user.highestBalanceEver || 0)) {
-                updates['highestBalanceEver'] = updates['balance'];
-            }
-            break;
-        case 'boxRights':
-            updates['kutuHakki'] = (user.kutuHakki || 0) + reward.value;
-            break;
-        case 'wheelTicket':
-            updates['carkBileti'] = (user.carkBileti || 0) + reward.value;
-            break;
-        case 'clickCatchTicket': // YENİ CASE EKLENDİ
-            updates['clickCatchTickets'] = (user.clickCatchTickets || 0) + reward.value;
-            break;
-        case 'iflasShield':
-            updates['iflasShieldUses'] = (user.iflasShieldUses || 0) + reward.value;
-            break;
-        case 'tempMultiplier':
-            updates['activeMultiplier'] = reward.value;
-            updates['multiplierRemainingUses'] = reward.uses;
-            updates['multiplierSource'] = 'store';
-            break;
-    }
-    
-    await userRef.update(updates);
-    await db.ref(`users/${currentUser}/dailyRewardsClaimed/${rewardId}`).set(firebase.database.ServerValue.TIMESTAMP);
-    
-    displayMessage(message);
-    closeDailyRewardModal();
-    checkAvailableDailyRewards();
-}
     
     document.getElementById('dailyRewardType').addEventListener('change', function() {
         const usesInput = document.getElementById('dailyRewardMultiplierUses');
