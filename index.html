@@ -4822,7 +4822,11 @@ function listenForLastWinner() {
 
     switch(type) {
         case 'points':
-            clickCatchScore += value;
+            // DÜZELTME: Puanın string (metin) olarak algılanmasını önlemek için
+            // mevcut skoru Number() ile sayıya çevirerek toplama yapıyoruz.
+            // Bu sayede -75 gibi negatif bir değer geldiğinde doğru şekilde çıkarma yapılır.
+            clickCatchScore = Number(clickCatchScore) + value;
+            
             document.getElementById('clickCatchScore').textContent = clickCatchScore;
             floatingText = (value > 0 ? '+' : '') + value + ' Puan';
             break;
@@ -4860,7 +4864,7 @@ function listenForLastWinner() {
     showFloatingText(floatingText, event.clientX, event.clientY);
     item.remove();
   }
-
+  
 async function deleteUserFromLeaderboard(username) {
       if (!isAdmin) return;
       const confirmed = await customConfirm(`<b>${username}</b> adlı kullanıcıyı Yakalayıcılar listesinden silmek istediğinize emin misiniz?`);
