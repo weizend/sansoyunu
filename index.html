@@ -1874,7 +1874,7 @@
   }
 
   async function loadUserRankingsAndBoxCounts() {
-    // YENİ: Fonksiyonu async olarak işaretledik ve lideri başta çekiyoruz.
+    // Tıkla ve Yakala liderini en başta asenkron olarak çekiyoruz
     const currentClickCatchLeader = await getClickCatchLeaderUsername();
 
     db.ref('users').on('value', userSnap => {
@@ -1885,11 +1885,13 @@
             return;
         }
 
+        // Zamanlayıcıları temizle
         Object.keys(activeBlockedUserTimers).forEach(username => {
             clearInterval(activeBlockedUserTimers[username]);
             delete activeBlockedUserTimers[username];
         });
 
+        // Tüm liderleri bulmak için bir obje oluşturuyoruz
         let leaders = {
             highestCurrentBalance: -1, currentBalanceUser: null,
             highestEverBalance: -1, highEverBalanceUser: null,
@@ -1901,6 +1903,7 @@
             maxShieldUsed: -1, shieldUser: null,
         };
 
+        // Tüm kullanıcıları gezip her kategorinin liderini buluyoruz
         for (const u in usersData) {
             if (u === 'weizendtv') continue;
 
@@ -1923,7 +1926,9 @@
 
         allUsersArray.sort((a, b) => (b.balance || 0) - (a.balance || 0));
 
+        // Her kullanıcı için HTML oluşturuyoruz
         let html = allUsersArray.map((u, i) => {
+            // DÜZELTME: Her kullanıcı için tüm liderlik durumlarını burada kontrol ediyoruz
             const userLeaderStatus = {
                 isCurrentLeader: u.username === leaders.currentBalanceUser && leaders.highestCurrentBalance > 0,
                 isHighLeader: u.username === leaders.highEverBalanceUser && leaders.highestEverBalance > 0,
@@ -1933,10 +1938,10 @@
                 isMultiplierLeader: u.username === leaders.multiplierUser && leaders.maxMultiplierFound > 0,
                 isBoxLeader: u.username === leaders.boxUser && leaders.maxBoxesOpened > 0,
                 isShieldLeader: u.username === leaders.shieldUser && leaders.maxShieldUsed > 0,
-                // YENİ: Lider bilgisi artık global değişken yerine anlık çekilen veriden geliyor.
                 isClickCatchLeader: u.username === currentClickCatchLeader
             };
 
+            // Rozetleri oluşturmak için ilgili fonksiyona kullanıcının liderlik durumunu yolluyoruz
             const userIcons = getUserBadgesHtml(u, userLeaderStatus);
 
             let multiplierInfo = '';
@@ -1984,7 +1989,6 @@
         document.getElementById("totalUsers").textContent = allUsersArray.length;
     });
 }
-
   function loadLeaderboardRanking() {
     db.ref('users').on('value', async snap => {
         const currentClickCatchLeader = await getClickCatchLeaderUsername();
