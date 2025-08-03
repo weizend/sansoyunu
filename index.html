@@ -4747,6 +4747,12 @@ async function openDailyRewardModal() {
   // YENİ: Tekli Oyun Ayarlarını Firebase'e kaydeder
 async function saveSoloGameSettings() {
     if (!isAdmin) return;
+
+    // DÜZELTME: Girilen bomba değerini Math.abs() ile pozitif hale getirip
+    // ardından -1 ile çarparak her zaman negatif olmasını sağlıyoruz.
+    const bombValueInput = parseInt(document.getElementById('soloBombValue').value) || -75;
+    const finalBombValue = -Math.abs(bombValueInput);
+
     const settings = {
         duration: parseInt(document.getElementById('soloGameDuration').value) || 30,
         itemDisappearTime: parseInt(document.getElementById('soloItemDisappearTime').value) || 1200,
@@ -4755,10 +4761,10 @@ async function saveSoloGameSettings() {
         timeChance: parseInt(document.getElementById('soloTimeChance').value) || 8,
         goldChance: parseInt(document.getElementById('soloGoldChance').value) || 6,
         specialChance: parseInt(document.getElementById('soloSpecialChance').value) || 4,
-        // YENİ EKLENEN SATIR
         normalChance: parseInt(document.getElementById('soloNormalChance').value) || 50,
         timeValue: parseInt(document.getElementById('soloTimeValue').value) || 3,
-        bombValue: parseInt(document.getElementById('soloBombValue').value) || -75,
+        // Değişkeni burada kullanıyoruz
+        bombValue: finalBombValue, 
         goldValue: parseInt(document.getElementById('soloGoldValue').value) || 100,
         normalValue: parseInt(document.getElementById('soloNormalValue').value) || 50
     };
@@ -4771,7 +4777,6 @@ async function saveSoloGameSettings() {
     await db.ref('gameSettings/clickCatchSolo').set(settings);
     displayMessage("Tekli oyun ayarları başarıyla kaydedildi.");
 }
-
 // YENİ: Tekli Oyun Ayarlarını Firebase'den yükler ve paneli doldurur
 async function loadSoloGameSettings() {
     const settingsSnap = await db.ref('gameSettings/clickCatchSolo').once('value');
