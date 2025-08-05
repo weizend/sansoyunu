@@ -397,72 +397,79 @@
         </div>
 
         <div id="clickCatchContent" class="w-full hidden">
-    <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700 text-center">
-        <h3 class="text-yellow-400 text-3xl font-bold mb-4">Tıkla ve Yakala</h3>
-
-        <div id="clickCatchAdminButtonsContainer" class="hidden bg-gray-900/50 p-4 rounded-lg border border-yellow-500 mb-6 flex justify-center gap-4">
-            <button onclick="openSoloGameSettingsModal()" class="py-3 px-6 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg shadow-md">
-                Tekli Oyun Ayarları
-            </button>
-            <button onclick="openLobbySettingsModal()" class="py-3 px-6 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-md">
-                Lobi Yönetim Paneli
-            </button>
-        </div>
-
-        <div id="lastWinnerContainer" class="hidden bg-green-900/50 p-4 rounded-lg border border-green-400 mb-6">
-            <h4 id="lastWinnerInfo" class="text-green-300 text-xl font-semibold"></h4>
-        </div>
+    
+            <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700 text-center">
+                <h3 class="text-yellow-400 text-3xl font-bold mb-4">Tıkla ve Yakala</h3>
         
-        <div id="lobbyStatusContainer" class="hidden bg-blue-900/50 p-4 rounded-lg border border-blue-400 mb-6">
-            <h4 id="lobbyStatusTitle" class="text-blue-300 text-xl font-semibold animate-pulse">Lobi Katılıma Açık!</h4>
-            <p id="lobbyStatusInfo" class="mt-2 text-gray-200"></p>
-            <div id="lobbyPlayerList" class="mt-2 text-sm text-gray-400"></div>
-        </div>
+                <div id="clickCatchAdminButtonsContainer" class="hidden bg-gray-900/50 p-4 rounded-lg border border-yellow-500 mb-6 flex justify-center gap-4">
+                    <button onclick="openSoloGameSettingsModal()" class="py-3 px-6 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg shadow-md">
+                        Tekli Oyun Ayarları
+                    </button>
+                    <button onclick="openLobbySettingsModal()" class="py-3 px-6 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-md">
+                        Lobi Yönetim Paneli
+                    </button>
+                </div>
         
-        <div class="flex justify-around items-center mb-4 bg-gray-900 p-3 rounded-lg">
-            <div id="displayScore" class="hidden">
-                <p class="text-gray-400 text-sm">Toplanan Puan</p>
-                <p id="clickCatchScore" class="text-green-400 font-bold text-lg">0</p>
-            </div>
-            <div id="displaySpecials" class="hidden">
-                <p class="text-gray-400 text-sm">Alınan Ödüller</p>
-                <div id="collectedSpecials" class="h-[28px] flex items-center justify-center gap-2"></div>
-            </div>
-            <div id="displayTarget" class="hidden">
-                <p class="text-gray-400 text-sm">Hedef</p>
-                <p id="clickCatchTarget" class="text-purple-400 font-bold text-lg">0 / 10</p>
-            </div>
-            <div id="displayTimer" class="hidden">
-                <p class="text-gray-400 text-sm">Kalan Süre</p>
-                <p id="clickCatchTimer" class="text-yellow-400 font-bold text-lg">30</p>
-            </div>
-        </div>
-        <div id="clickCatchGameAreaContainer" class="flex justify-center mb-4">
-            <div id="clickCatchGameArea">
-                 <div id="clickCatchStartScreen" class="w-full h-full flex flex-col justify-center items-center bg-black bg-opacity-50">
-                    <p class="text-xl mb-6">Oyun Modunu Seç</p>
-                    <div class="flex gap-4">
-                       <button id="startSoloGameBtn" onclick="startSoloClickCatchGame()" class="py-3 px-10 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg shadow-md">Tek Oyna</button>
-                       <button id="joinLobbyBtn" onclick="joinLobby()" class="py-3 px-10 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-md disabled:bg-gray-600 disabled:cursor-not-allowed" disabled>Lobiye Katıl</button>
-                    </div>
+                <div id="lastWinnerContainer" class="hidden bg-green-900/50 p-4 rounded-lg border border-green-400 mb-6">
+                    <h4 id="lastWinnerInfo" class="text-green-300 text-xl font-semibold"></h4>
                 </div>
                 
-                <div id="lobbyGameOverScreen" class="absolute inset-0 bg-gray-900/95 rounded-lg hidden flex flex-col items-center justify-center p-8 text-center border-4 border-gray-700">
-    <h4 id="lobbyGameOverTitle" class="text-white text-3xl font-bold mb-4">Oyun Bitti!</h4>
-    <p id="lobbyGameOverInfo" class="text-xl text-gray-200 mb-6"></p>
-    <button onclick="closeLobbyGameOverScreen()" class="mt-4 py-2 px-6 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
-        Oyun Ekranına Dön
-    </button>
-</div>
-                 </div>
+                <div id="lobbyStatusContainer" class="hidden bg-blue-900/50 p-4 rounded-lg border border-blue-400 mb-6">
+                    <h4 id="lobbyStatusTitle" class="text-blue-300 text-xl font-semibold animate-pulse">Lobi Katılıma Açık!</h4>
+                    <p id="lobbyStatusInfo" class="mt-2 text-gray-200"></p>
+                    <div id="lobbyPlayerList" class="mt-2 text-sm text-gray-400"></div>
+                </div>
+                
+                <div class="flex justify-around items-center mb-4 bg-gray-900 p-3 rounded-lg">
+                    <div id="displayScore" class="hidden">
+                        <p class="text-gray-400 text-sm">Toplanan Puan</p>
+                        <p id="clickCatchScore" class="text-green-400 font-bold text-lg">0</p>
+                    </div>
+                    <div id="displaySpecials" class="hidden">
+                        <p class="text-gray-400 text-sm">Alınan Ödüller</p>
+                        <div id="collectedSpecials" class="h-[28px] flex items-center justify-center gap-2"></div>
+                    </div>
+                    <div id="displayTarget" class="hidden">
+                        <p class="text-gray-400 text-sm">Hedef</p>
+                        <p id="clickCatchTarget" class="text-purple-400 font-bold text-lg">0 / 10</p>
+                    </div>
+                    <div id="displayTimer" class="hidden">
+                        <p class="text-gray-400 text-sm">Kalan Süre</p>
+                        <p id="clickCatchTimer" class="text-yellow-400 font-bold text-lg">30</p>
+                    </div>
+                </div>
+                <div id="clickCatchGameAreaContainer" class="flex justify-center mb-4">
+                    <div id="clickCatchGameArea">
+                         <div id="clickCatchStartScreen" class="w-full h-full flex flex-col justify-center items-center bg-black bg-opacity-50">
+                            <p class="text-xl mb-6">Oyun Modunu Seç</p>
+                            <div class="flex gap-4">
+                               <button id="startSoloGameBtn" onclick="startSoloClickCatchGame()" class="py-3 px-10 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg shadow-md">Tek Oyna</button>
+                               <button id="joinLobbyBtn" onclick="joinLobby()" class="py-3 px-10 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-md disabled:bg-gray-600 disabled:cursor-not-allowed" disabled>Lobiye Katıl</button>
+                            </div>
+                        </div>
+                        
+                        <div id="gameCountdownOverlay" class="absolute inset-0 bg-gray-900/90 hidden flex-col justify-center items-center text-center z-20">
+                            <p class="text-6xl font-extrabold text-yellow-400 animate-pulse" id="countdownText"></p>
+                        </div>
+                        
+                        <div id="lobbyGameOverScreen" class="absolute inset-0 bg-gray-900/95 rounded-lg hidden flex flex-col items-center justify-center p-8 text-center border-4 border-gray-700">
+                            <h4 id="lobbyGameOverTitle" class="text-white text-3xl font-bold mb-4">Oyun Bitti!</h4>
+                            <p id="lobbyGameOverInfo" class="text-xl text-gray-200 mb-6"></p>
+                            <button onclick="closeLobbyGameOverScreen()" class="mt-4 py-2 px-6 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
+                                Oyun Ekranına Dön
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+    
+            <div class="tableBox bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700 w-full md:flex-1 min-w-[280px] mt-6 mx-auto max-w-2xl">
+              <h3 class="text-yellow-400 text-xl font-bold border-b border-gray-600 pb-3 mb-4">TIKLA VE YAKALA TOPLANAN PUAN SIRALAMASI 🎯</h3>
+              <div id="clickCatchRankings" class="scrollable-list max-h-80 overflow-y-auto border border-gray-600 rounded-lg p-3 bg-gray-900 text-sm leading-relaxed">Yükleniyor...</div>
+            </div>
+        
         </div>
-    </div>
-    <div class="tableBox bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700 w-full md:flex-1 min-w-[280px] mt-6 mx-auto max-w-2xl">
-      <h3 class="text-yellow-400 text-xl font-bold border-b border-gray-600 pb-3 mb-4">TIKLA VE YAKALA TOPLANAN PUAN SIRALAMASI 🎯</h3>
-      <div id="clickCatchRankings" class="scrollable-list max-h-80 overflow-y-auto border border-gray-600 rounded-lg p-3 bg-gray-900 text-sm leading-relaxed">Yükleniyor...</div>
-    </div>
-</div>
-
+            
         <div id="storeSection" class="w-full hidden">
           <h3 class="text-yellow-400 text-3xl font-bold mb-2 text-center">Mağaza</h3>
           <div id="storeUserPointInfo" class="text-center mb-6 bg-gray-800 p-3 rounded-lg border border-gray-700 max-w-lg mx-auto flex justify-center items-center gap-4">
@@ -4550,14 +4557,13 @@ async function openDailyRewardModal() {
   let lobbyGameSettings = {};
   let lobbyListener = null;
 
-  async function startSoloClickCatchGame() {
-    // --- YENİ EKLENEN KONTROL ---
+  // BU FONKSİYONUN YENİ HALİ
+async function startSoloClickCatchGame() {
     // Eğer kullanıcı zaten bir lobiye katılmışsa, uyarı ver ve işlemi durdur.
     if (lobbyGameSettings && lobbyGameSettings.players && lobbyGameSettings.players[currentUser]) {
         displayMessage("Zaten bir lobidesiniz. Tekli oyuna başlamak için önce lobiden ayrılmanız gerekir.");
         return;
     }
-    // --- KONTROL SONU ---
 
     if (clickCatchGameActive) return;
     
@@ -4593,14 +4599,22 @@ async function openDailyRewardModal() {
     clickCatchScore = 0;
     clickCatchTimer = soloGameSettings.duration;
     
-    document.getElementById('clickCatchStartScreen').style.display = 'none';
-
     document.getElementById('clickCatchScore').textContent = clickCatchScore;
     document.getElementById('clickCatchTimer').textContent = clickCatchTimer;
+    
+    // **** YENİ EKLENEN KOD BAŞLANGICI ****
+    // Tekli oyun için ilgili bilgi çubuklarını görünür yapıyoruz.
+    document.getElementById('displayScore').classList.remove('hidden');
+    document.getElementById('displaySpecials').classList.remove('hidden');
+    document.getElementById('displayTimer').classList.remove('hidden');
+    document.getElementById('displayTarget').classList.add('hidden'); // Lobi hedefini gizle
+    document.getElementById('collectedSpecials').innerHTML = ''; // Önceki oyundan kalanları temizle
+    // **** YENİ EKLENEN KOD SONU ****
 
-    clickCatchTimerInterval = setInterval(updateClickCatchTimer, 1000);
-    clickCatchItemInterval = setInterval(() => createCatchItem('solo'), soloGameSettings.itemInterval);
+    // Geri sayımı başlat
+    showGameCountdown(_actuallyStartSoloGame);
 }
+
   function updateClickCatchTimer() {
     clickCatchTimer--;
     document.getElementById('clickCatchTimer').textContent = clickCatchTimer;
@@ -4609,16 +4623,31 @@ async function openDailyRewardModal() {
     }
   }
 
-  function endSoloClickCatchGame() {
+  // BU FONKSİYONUN YENİ HALİ
+function endSoloClickCatchGame() {
     clickCatchGameActive = false;
     clearInterval(clickCatchTimerInterval);
     clearInterval(clickCatchItemInterval);
-    
+
+    // **** YENİ EKLENEN SATIRLAR BAŞLANGICI ****
+    // Değişkenleri bir sonraki oyun için tamamen sıfırlıyoruz.
+    clickCatchTimerInterval = null;
+    clickCatchItemInterval = null;
+    // **** YENİ EKLENEN SATIRLAR SONU ****
+
     const gameArea = document.getElementById('clickCatchGameArea');
-    const startScreen = document.getElementById('clickCatchStartScreen');
-    startScreen.style.display = 'flex';
-    gameArea.innerHTML = '';
-    gameArea.appendChild(startScreen);
+
+    // Sadece oyun sırasında oluşan ".catch-item" ve ".floating-text" elementlerini siliyoruz.
+    const itemsToRemove = gameArea.querySelectorAll('.catch-item, .floating-text');
+    itemsToRemove.forEach(item => item.remove());
+
+    // Ana menü ekranını (butonların olduğu) tekrar görünür yapıyoruz.
+    document.getElementById('clickCatchStartScreen').style.display = 'flex';
+    
+    // Oyun bitince bilgi çubuklarını tekrar gizliyoruz.
+    document.getElementById('displayScore').classList.add('hidden');
+    document.getElementById('displaySpecials').classList.add('hidden');
+    document.getElementById('displayTimer').classList.add('hidden');
 
     displayMessage(`Oyun bitti! Skorun: ${clickCatchScore}. Kazandığın puanlar hesabına eklendi!`);
     
@@ -4629,7 +4658,6 @@ async function openDailyRewardModal() {
             if (user.balance > (user.highestBalanceEver || 0)) {
                 user.highestBalanceEver = user.balance;
             }
-            // Bu kişisel rekor, haftalık tablodan ayrı.
             if (clickCatchScore > (user.clickCatchHighestScore || 0)) {
                 user.clickCatchHighestScore = clickCatchScore;
             }
@@ -4637,13 +4665,13 @@ async function openDailyRewardModal() {
         return user;
     });
 
-    // Skoru güncelle. Mevcut skora yeni skoru ekler.
-const weeklyScoreRef = db.ref(`clickCatchWeeklyScores/${currentUser}`);
-weeklyScoreRef.transaction(currentScore => {
-    return (currentScore || 0) + clickCatchScore;
-});
+    const weeklyScoreRef = db.ref(`clickCatchWeeklyScores/${currentUser}`);
+    weeklyScoreRef.transaction(currentScore => {
+        return (currentScore || 0) + clickCatchScore;
+    });
 }
-  async function resetClickCatchLeaderboard() {
+
+async function resetClickCatchLeaderboard() {
     if (!isAdmin) {
         displayMessage("Bu işlemi yapmaya yetkiniz yok.");
         return;
@@ -5100,8 +5128,7 @@ async function getClickCatchLeaderUsername() {
             
         } else if (lobbyData.state === 'active') {
             document.getElementById('lobbyStatusTitle').textContent = "Oyun Başladı! Hedefe İlk Ulaşan Kazanır!";
-            startScreen.style.display = 'none';
-
+            
             document.getElementById('displayScore').classList.add('hidden');
             document.getElementById('displaySpecials').classList.add('hidden');
             document.getElementById('displayTimer').classList.add('hidden');
@@ -5110,8 +5137,12 @@ async function getClickCatchLeaderUsername() {
             const currentUserScore = isCurrentUserInLobby ? (players[currentUser] ? players[currentUser].score : 0) : 0;
             document.getElementById('clickCatchTarget').textContent = `${currentUserScore} / ${lobbyData.target}`;
 
+            // Lobi oyunu başladığında direkt item interval'ı kurmak yerine geri sayımı başlatıyoruz.
             if (!clickCatchItemInterval) {
-               clickCatchItemInterval = setInterval(() => createCatchItem('lobby'), lobbyData.itemInterval);
+               showGameCountdown(() => {
+                   // Geri sayım bittiğinde lobi için item oluşturma döngüsünü başlat.
+                   clickCatchItemInterval = setInterval(() => createCatchItem('lobby'), lobbyData.itemInterval);
+               });
             }
         } else if (lobbyData.state === 'finished') {
             lobbyStatusContainer.classList.add('hidden');
@@ -5332,6 +5363,50 @@ function displayNotification(message, color = 'bg-yellow-500') {
 
     item.remove();
 }
+
+// **** YENİ EKLENECEK FONKSİYONLAR BAŞLANGICI ****
+
+/**
+ * Oyun başlamadan önce ekranda 3'ten geriye sayım gösterir.
+ * @param {function} onComplete - Geri sayım bittiğinde çalıştırılacak olan fonksiyon.
+ */
+function showGameCountdown(onComplete) {
+    const overlay = document.getElementById('gameCountdownOverlay');
+    const countdownText = document.getElementById('countdownText');
+    const startScreen = document.getElementById('clickCatchStartScreen');
+
+    startScreen.style.display = 'none'; // Oyun modunu seçme ekranını gizle
+    overlay.style.display = 'flex';    // Geri sayım ekranını göster
+
+    let count = 3;
+    countdownText.textContent = count;
+
+    const countdownInterval = setInterval(() => {
+        count--;
+        if (count > 0) {
+            countdownText.textContent = count;
+        } else if (count === 0) {
+            countdownText.textContent = 'BAŞLA!';
+        } else {
+            clearInterval(countdownInterval);
+            overlay.style.display = 'none'; // Geri sayım bitince ekranı gizle
+            if (onComplete) {
+                onComplete(); // Asıl oyunu başlatan fonksiyonu çağır
+            }
+        }
+    }, 1000);
+}
+
+/**
+ * Geri sayım bittikten sonra Tekli Oyun'u gerçekten başlatan yardımcı fonksiyon.
+ */
+function _actuallyStartSoloGame() {
+    // Bu fonksiyonun içeriği, startSoloClickCatchGame fonksiyonundan taşındı.
+    clickCatchTimerInterval = setInterval(updateClickCatchTimer, 1000);
+    clickCatchItemInterval = setInterval(() => createCatchItem('solo'), soloGameSettings.itemInterval);
+}
+
+// **** YENİ EKLENECEK FONKSİYONLAR SONU ****
 
 // Orijinal kodun içine bu satırı ekle
 async function setWinner(username) {
