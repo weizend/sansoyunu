@@ -4629,45 +4629,63 @@ function endSoloClickCatchGame() {
     clearInterval(clickCatchTimerInterval);
     clearInterval(clickCatchItemInterval);
 
-    // **** YENİ EKLENEN SATIRLAR BAŞLANGICI ****
-    // Değişkenleri bir sonraki oyun için tamamen sıfırlıyoruz.
     clickCatchTimerInterval = null;
     clickCatchItemInterval = null;
-    // **** YENİ EKLENEN SATIRLAR SONU ****
 
     const gameArea = document.getElementById('clickCatchGameArea');
-
-    // Sadece oyun sırasında oluşan ".catch-item" ve ".floating-text" elementlerini siliyoruz.
     const itemsToRemove = gameArea.querySelectorAll('.catch-item, .floating-text');
     itemsToRemove.forEach(item => item.remove());
 
-    // Ana menü ekranını (butonların olduğu) tekrar görünür yapıyoruz.
     document.getElementById('clickCatchStartScreen').style.display = 'flex';
     
-    // Oyun bitince bilgi çubuklarını tekrar gizliyoruz.
     document.getElementById('displayScore').classList.add('hidden');
     document.getElementById('displaySpecials').classList.add('hidden');
     document.getElementById('displayTimer').classList.add('hidden');
 
-    displayMessage(`Oyun bitti! Skorun: ${clickCatchScore}. Kazandığın puanlar hesabına eklendi!`);
-    
-    const userRef = db.ref('users/' + currentUser);
-    userRef.transaction(user => {
-        if (user) {
-            user.balance = (user.balance || 0) + clickCatchScore;
-            if (user.balance > (user.highestBalanceEver || 0)) {
-                user.highestBalanceEver = user.balance;
-            }
-            if (clickCatchScore > (user.clickCatchHighestScore || 0)) {
-                user.clickCatchHighestScore = clickCatchScore;
-            }
-        }
-        return user;
-    });
+    // --- DEĞİŞİKLİKLER BURADA BAŞLIYOR ---
 
+    // 1. DÜZELTME: Mesajı, kazanılan puana göre dinamik hale getiriyoruz.
+    let endMessage = '';
+    if (clickCatchScore >= 0) {
+        endMessage = `Oyun bitti! Skorun: ${clickCatchScore}. Kazandığın puanlar hesabına eklendi!`;
+    } else {
+        // Skor negatifse farklı bir mesaj gösteriyoruz.
+        endMessage = `Oyun bitti! Skorun: ${clickCatchScore}. Maalesef ${-clickCatchScore} puan kaybettin.`;
+    }
+    displayMessage(endMessage);
+
+    // 3. YENİ ÖZELLİK: Eğer puan eksi ise kullanıcıya özel bir bildirim gönderiyoruz.
+    if (clickCatchScore < 0) {
+        notifyUser(currentUser, `Tıkla ve Yakala oyunundan ${-clickCatchScore} puan kaybettin.`);
+    }
+
+    const userRef = db.ref('users/' + currentUser);
     const weeklyScoreRef = db.ref(`clickCatchWeeklyScores/${currentUser}`);
-    weeklyScoreRef.transaction(currentScore => {
-        return (currentScore || 0) + clickCatchScore;
+
+    // Haftalık toplam puanı güncelle ve yeni toplamı al.
+    weeklyScoreRef.transaction(currentWeeklyScore => {
+        return (currentWeeklyScore || 0) + clickCatchScore;
+    }).then(transactionResult => {
+        const newTotalWeeklyScore = transactionResult.snapshot.val();
+
+        // Kullanıcının ana profilini bu yeni toplam puana göre güncelle.
+        userRef.transaction(user => {
+            if (user) {
+                // Kullanıcının genel puan bakiyesini güncelle.
+                user.balance = (user.balance || 0) + clickCatchScore;
+                if (user.balance < 0) {
+                    user.balance = 0; // Puanı 0'ın altına düşürme
+                }
+                if (user.balance > (user.highestBalanceEver || 0)) {
+                    user.highestBalanceEver = user.balance;
+                }
+
+                // 2. DÜZELTME: Profildeki "Tıkla Yakala" puanını koşulsuz olarak güncelle.
+                // Böylece puanı düşünce de profil güncel kalır.
+                user.clickCatchHighestScore = newTotalWeeklyScore;
+            }
+            return user;
+        });
     });
 }
 
@@ -5412,7 +5430,7 @@ function _actuallyStartSoloGame() {
 async function setWinner(username) {
     const lobbySnap = await db.ref('clickCatchLobby').once('value');
     const lobbyData = lobbySnap.val();
-    if (!lobbyData) return;
+    if (!lobbyData || lobbyData.state !== 'active') return; // Sadece oyun aktifken kazanan belirlenebilir
 
     const winnerData = {
         username: username,
@@ -5439,8 +5457,13 @@ async function setWinner(username) {
         return user;
     });
 
-    // Aşağıdaki satırı kaldırdık, artık yeşil bildirim çıkmayacak
-    // displayNotification(`Tebrikler! Lobi oyununu ${username} kazandı!`, 'bg-green-500');
+    // --- YENİ EKLENEN KOD BAŞLANGICI ---
+    // Kazanan belli olduktan sonra 5 saniye bekle ve lobiyi tamamen sil.
+    // Bu 5 saniyelik gecikme, tüm oyuncuların kazanan ekranını görmesine olanak tanır.
+    setTimeout(() => {
+        db.ref('clickCatchLobby').remove();
+    }, 5000); // 5 saniye = 5000 milisaniye
+    // --- YENİ EKLENEN KOD SONU ---
 }
 
   function openSoloGameSettingsModal() {
@@ -5460,16 +5483,20 @@ async function setWinner(username) {
 function closeLobbyGameOverScreen() {
     const gameOverScreen = document.getElementById('lobbyGameOverScreen');
     const startScreen = document.getElementById('clickCatchStartScreen');
-    
-    // Sadece yerel olarak ekranı gizle
+
     if (gameOverScreen) {
         gameOverScreen.classList.add('hidden');
     }
-    
-    // Başlangıç ekranının tekrar görünür olmasını sağla
     if (startScreen) {
         startScreen.style.display = 'flex';
     }
+
+    // --- YENİ EKLENEN SATIR BAŞLANGICI ---
+    // Butona basıldığı anda, bu oyuncu için lobi durumunu yerel olarak sıfırlıyoruz.
+    // Bu, kullanıcının butona bastığı anda yeni bir oyuna başlayabilmesini sağlar.
+    // Artık 5 saniye beklemesine gerek kalmaz.
+    lobbyGameSettings = {};
+    // --- YENİ EKLENEN SATIR SONU ---
 }
 </script>
 </body>
