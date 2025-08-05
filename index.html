@@ -1410,31 +1410,31 @@
   let clickCatchTimer = 30; // Bu artık sadece bir başlangıç değeri
   let clickCatchTimerInterval = null;
   let clickCatchItemInterval = null;
-
-  // --- YENİ DEĞİŞKENLER ---
-
+  
+  // Oyun sonunda eklenecek ödülleri tutan değişkenler
+  let collectedBoxRights = 0;
+  let collectedIflasShields = 0;
+  let collectedWheelTickets = 0;
+  
   // Haftanın liderini bu değişkende tutacağız. Sıralama güncellendiğinde bu da güncellenir.
   let clickCatchLeader = null; 
   
   // Tekli oyunun tüm ayarlarını bu obje içinde toplayacağız.
-  // Bunlar sadece varsayılan değerler, admin panelinden kaydettiğin ayarlar bunların yerini alacak.
   let soloGameSettings = {
-      duration: 30,             // Oyun süresi (saniye)
-      itemDisappearTime: 1200,    // Objelerin ekrandan kaybolma hızı (milisaniye)
-      itemInterval: 600,          // Yeni obje çıkma sıklığı (milisaniye)
-      bombChance: 40,             // Bombanın çıkma ihtimali (%)
-      timeChance: 8,              // Saatin çıkma ihtimali (%)
-      goldChance: 6,              // Altının (100 puan) çıkma ihtimali (%)
-      specialChance: 4,           // Özel eşyanın (kutu hakkı, kalkan vb.) çıkma ihtimali (%)
-      timeValue: 3,               // Saatin kazandırdığı süre (saniye)
-      // YENİ EKLENEN DEĞERLER
-      bombValue: -75,             // Bombanın sileceği puan
-      goldValue: 100,             // Altının vereceği puan
-      normalValue: 50             // Normal nesnenin vereceği puan
+      duration: 30,
+      itemDisappearTime: 1200,
+      itemInterval: 600,
+      bombChance: 40,
+      timeChance: 8,
+      goldChance: 6,
+      specialChance: 4,
+      timeValue: 3,
+      bombValue: -75,
+      goldValue: 100,
+      normalValue: 50
   };
   
   // Her oyun başladığında rastgele bir özel eşya seçip bu değişkene atayacağız.
-  // Bu sayede oyun boyunca sadece 1 tane özel eşya çıkmasını garantiliyoruz.
   let specialItemForThisRound = null;
 
   // GİRİŞ/KAYIT SİSTEMİ
@@ -4558,60 +4558,51 @@ async function openDailyRewardModal() {
   let lobbyListener = null;
 
   // BU FONKSİYONUN YENİ HALİ
+// BU FONKSİYONUN TAMAMI DEĞİŞECEK
 async function startSoloClickCatchGame() {
-    // Eğer kullanıcı zaten bir lobiye katılmışsa, uyarı ver ve işlemi durdur.
     if (lobbyGameSettings && lobbyGameSettings.players && lobbyGameSettings.players[currentUser]) {
         displayMessage("Zaten bir lobidesiniz. Tekli oyuna başlamak için önce lobiden ayrılmanız gerekir.");
         return;
     }
-
     if (clickCatchGameActive) return;
-    
     if (isAdmin) {
         displayMessage("Adminler bu oyunu oynayamaz.");
         return;
     }
-
     await loadSoloGameSettings();
-    
     const userRef = db.ref('users/' + currentUser);
     const userSnap = await userRef.once('value');
     const userData = userSnap.val();
-
     if ((!userData.clickCatchTickets || userData.clickCatchTickets < 1)) {
         displayMessage("Bu oyunu oynamak için 'Tıkla Yakala Bileti'ne ihtiyacın var. Mağazadan alabilirsin.");
         return;
     }
-
     const confirmed = await customConfirm("Oyuna başlamak için 1 adet 'Tıkla Yakala Bileti' harcanacaktır. Onaylıyor musun?");
     if (!confirmed) return;
-
     await userRef.update({ clickCatchTickets: (userData.clickCatchTickets || 0) - 1 });
-
     const specialItemMapping = {
       'boxRight': { type: 'boxRight', value: 1, emoji: '📦' },
       'iflasShield': { type: 'iflasShield', value: 1, emoji: '🛡️' },
       'wheelTicket': { type: 'wheelTicket', value: 1, emoji: '🎟️' }
     };
     specialItemForThisRound = specialItemMapping[soloGameSettings.specialItemType] || specialItemMapping['boxRight'];
-
     clickCatchGameActive = true;
     clickCatchScore = 0;
     clickCatchTimer = soloGameSettings.duration;
-    
+
+    // **** YENİ EKLENEN KISIM: Ödülleri sıfırla ****
+    collectedBoxRights = 0;
+    collectedIflasShields = 0;
+    collectedWheelTickets = 0;
+    // **** KOD SONU ****
+
     document.getElementById('clickCatchScore').textContent = clickCatchScore;
     document.getElementById('clickCatchTimer').textContent = clickCatchTimer;
-    
-    // **** YENİ EKLENEN KOD BAŞLANGICI ****
-    // Tekli oyun için ilgili bilgi çubuklarını görünür yapıyoruz.
     document.getElementById('displayScore').classList.remove('hidden');
     document.getElementById('displaySpecials').classList.remove('hidden');
     document.getElementById('displayTimer').classList.remove('hidden');
-    document.getElementById('displayTarget').classList.add('hidden'); // Lobi hedefini gizle
-    document.getElementById('collectedSpecials').innerHTML = ''; // Önceki oyundan kalanları temizle
-    // **** YENİ EKLENEN KOD SONU ****
-
-    // Geri sayımı başlat
+    document.getElementById('displayTarget').classList.add('hidden');
+    document.getElementById('collectedSpecials').innerHTML = '';
     showGameCountdown(_actuallyStartSoloGame);
 }
 
@@ -4624,6 +4615,7 @@ async function startSoloClickCatchGame() {
   }
 
   // BU FONKSİYONUN YENİ HALİ
+// BU FONKSİYONUN TAMAMI DEĞİŞECEK
 function endSoloClickCatchGame() {
     clickCatchGameActive = false;
     clearInterval(clickCatchTimerInterval);
@@ -4642,19 +4634,14 @@ function endSoloClickCatchGame() {
     document.getElementById('displaySpecials').classList.add('hidden');
     document.getElementById('displayTimer').classList.add('hidden');
 
-    // --- DEĞİŞİKLİKLER BURADA BAŞLIYOR ---
-
-    // 1. DÜZELTME: Mesajı, kazanılan puana göre dinamik hale getiriyoruz.
     let endMessage = '';
     if (clickCatchScore >= 0) {
-        endMessage = `Oyun bitti! Skorun: ${clickCatchScore}. Kazandığın puanlar hesabına eklendi!`;
+        endMessage = `Oyun bitti! Skorun: ${clickCatchScore}. Kazandığın puanlar ve ödüller hesabına eklendi!`;
     } else {
-        // Skor negatifse farklı bir mesaj gösteriyoruz.
         endMessage = `Oyun bitti! Skorun: ${clickCatchScore}. Maalesef ${-clickCatchScore} puan kaybettin.`;
     }
     displayMessage(endMessage);
 
-    // 3. YENİ ÖZELLİK: Eğer puan eksi ise kullanıcıya özel bir bildirim gönderiyoruz.
     if (clickCatchScore < 0) {
         notifyUser(currentUser, `Tıkla ve Yakala oyunundan ${-clickCatchScore} puan kaybettin.`);
     }
@@ -4662,27 +4649,24 @@ function endSoloClickCatchGame() {
     const userRef = db.ref('users/' + currentUser);
     const weeklyScoreRef = db.ref(`clickCatchWeeklyScores/${currentUser}`);
 
-    // Haftalık toplam puanı güncelle ve yeni toplamı al.
     weeklyScoreRef.transaction(currentWeeklyScore => {
         return (currentWeeklyScore || 0) + clickCatchScore;
     }).then(transactionResult => {
         const newTotalWeeklyScore = transactionResult.snapshot.val();
 
-        // Kullanıcının ana profilini bu yeni toplam puana göre güncelle.
+        // KULLANICI PROFİLİNİ GÜNCELLEME KISMI
         userRef.transaction(user => {
             if (user) {
-                // Kullanıcının genel puan bakiyesini güncelle.
+                // Puanları ekle
                 user.balance = (user.balance || 0) + clickCatchScore;
-                if (user.balance < 0) {
-                    user.balance = 0; // Puanı 0'ın altına düşürme
-                }
-                if (user.balance > (user.highestBalanceEver || 0)) {
-                    user.highestBalanceEver = user.balance;
-                }
-
-                // 2. DÜZELTME: Profildeki "Tıkla Yakala" puanını koşulsuz olarak güncelle.
-                // Böylece puanı düşünce de profil güncel kalır.
+                if (user.balance < 0) user.balance = 0;
+                if (user.balance > (user.highestBalanceEver || 0)) user.highestBalanceEver = user.balance;
                 user.clickCatchHighestScore = newTotalWeeklyScore;
+
+                // **** YENİ EKLENEN KISIM: Özel ödülleri de burada ekle ****
+                user.kutuHakki = (user.kutuHakki || 0) + collectedBoxRights;
+                user.iflasShieldUses = (user.iflasShieldUses || 0) + collectedIflasShields;
+                user.carkBileti = (user.carkBileti || 0) + collectedWheelTickets;
             }
             return user;
         });
@@ -4923,7 +4907,8 @@ function listenForLastWinner() {
         }
     });
 }
-  function handleSoloItemClick(event) {
+  // BU FONKSİYONUN TAMAMI DEĞİŞECEK
+function handleSoloItemClick(event) {
     if (!clickCatchGameActive) return;
     
     const item = event.target;
@@ -4932,15 +4917,10 @@ function listenForLastWinner() {
     const emoji = item.dataset.emoji;
     
     let floatingText = '';
-    const userRef = db.ref('users/' + currentUser);
 
     switch(type) {
         case 'points':
-            // DÜZELTME: Puanın string (metin) olarak algılanmasını önlemek için
-            // mevcut skoru Number() ile sayıya çevirerek toplama yapıyoruz.
-            // Bu sayede -75 gibi negatif bir değer geldiğinde doğru şekilde çıkarma yapılır.
             clickCatchScore = Number(clickCatchScore) + value;
-            
             document.getElementById('clickCatchScore').textContent = clickCatchScore;
             floatingText = (value > 0 ? '+' : '') + value + ' Puan';
             break;
@@ -4949,27 +4929,19 @@ function listenForLastWinner() {
             document.getElementById('clickCatchTimer').textContent = clickCatchTimer;
             floatingText = `+${value} Saniye`;
             break;
+        // DEĞİŞEN KISIM BURASI
         case 'boxRight':
-            userRef.transaction(user => {
-                if(user) { user.kutuHakki = (user.kutuHakki || 0) + value; }
-                return user;
-            });
+            collectedBoxRights += value; // Veritabanı yerine geçici değişkene ekle
             floatingText = `+${value} Kutu Hakkı`;
             document.getElementById('collectedSpecials').innerHTML += `<span class="text-xl">${emoji}</span>`;
             break;
         case 'iflasShield':
-            userRef.transaction(user => {
-                if(user) { user.iflasShieldUses = (user.iflasShieldUses || 0) + value; }
-                return user;
-            });
+            collectedIflasShields += value; // Veritabanı yerine geçici değişkene ekle
             floatingText = `+${value} İflas Kalkanı`;
             document.getElementById('collectedSpecials').innerHTML += `<span class="text-xl">${emoji}</span>`;
             break;
         case 'wheelTicket':
-            userRef.transaction(user => {
-                if(user) { user.carkBileti = (user.carkBileti || 0) + value; }
-                return user;
-            });
+            collectedWheelTickets += value; // Veritabanı yerine geçici değişkene ekle
             floatingText = `+${value} Çark Bileti`;
             document.getElementById('collectedSpecials').innerHTML += `<span class="text-xl">${emoji}</span>`;
             break;
@@ -4977,7 +4949,7 @@ function listenForLastWinner() {
     
     showFloatingText(floatingText, event.clientX, event.clientY);
     item.remove();
-  }
+}
   
 async function deleteUserFromLeaderboard(username) {
       if (!isAdmin) return;
