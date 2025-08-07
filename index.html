@@ -2500,8 +2500,8 @@ function adjustUserClickCatchTickets(add) {
 
 // MEVCUT openBox FONKSİYONUNU SİL VE YERİNE BU KODU KOMPLE YAPIŞTIR
 
+// openBox FONKSİYONUNU BUNUNLA DEĞİŞTİR
 async function openBox(index) {
-    // Genel oyun kilidi ve temel kullanıcı kontrolleri
     if (isGameLocked) {
         displayMessage("Şu anda başka bir kullanıcı kutu açıyor veya oyun beklemede. Lütfen 5 saniye bekleyin.");
         return;
@@ -2526,13 +2526,11 @@ async function openBox(index) {
         return;
     }
 
-    // İlk Onay Ekranı
     const initialConfirm = await customConfirm(`<b>${boxes[index].id}</b> numaralı kutuyu açmak istediğinize emin misiniz?`);
     if (!initialConfirm) return;
 
     const boxRef = db.ref('boxes/' + index);
 
-    // 1. Güvenlik Kontrolü: İlk onaydan sonra kutu açılmış mı?
     let latestBoxSnap = await boxRef.once('value');
     let latestBox = latestBoxSnap.val();
     if (latestBox.opened) {
@@ -2540,7 +2538,6 @@ async function openBox(index) {
         return;
     }
     
-    // Çarpan kullanma mantığı
     userSnap = await userRef.once('value');
     user = userSnap.val();
     let finalMultiplier = 1;
@@ -2555,7 +2552,6 @@ async function openBox(index) {
     } else if (user.multiplierSource === 'store' && user.multiplierRemainingUses > 0) {
         const confirmedMultiplier = await customConfirm(`Mevcut <b>${user.activeMultiplier}x</b> çarpanınızı kullanmak ister misiniz?`);
         
-        // 2. Güvenlik Kontrolü: Çarpan onayı beklenirken kutu açılmış mı?
         latestBoxSnap = await boxRef.once('value');
         latestBox = latestBoxSnap.val();
         if (latestBox.opened) {
@@ -2570,7 +2566,6 @@ async function openBox(index) {
         }
     }
 
-    // Tüm kontrollerden geçtiyse, işlemlere başla
     await db.ref('gameLock').set(true);
 
     updates['kutuHakki'] = (user.kutuHakki || 0) - BOX_RIGHTS_COST_PER_BOX;
@@ -2589,7 +2584,6 @@ async function openBox(index) {
         boxUpdate.multiplierApplied = finalMultiplier;
     }
 
-    // Kutu içeriğine göre işlemleri ve aktivite kaydını yap
     if (box.content === 'iflas') {
         updates['iflasCount'] = (user.iflasCount || 0) + 1;
         let shieldWasUsed = false;
@@ -2610,7 +2604,6 @@ async function openBox(index) {
         boxOpenInfo.shieldUsed = shieldWasUsed;
         boxOpenInfo.lostPoints = shieldWasUsed ? 0 : lostPoints;
 
-        // YENİ: İflas aktivitesini kaydet
         logActivity('iflas', currentUser, { 
             shieldUsed: shieldWasUsed, 
             lostPoints: shieldWasUsed ? 0 : lostPoints 
@@ -2631,10 +2624,11 @@ async function openBox(index) {
         boxOpenInfo.finalPoints = pointsGained;
         boxOpenInfo.multiplierUsed = finalMultiplier;
 
-        // YENİ: Puan kazanma aktivitesini kaydet
+        // YENİ: Aktivite kaydına çarpan bilgisi ekleniyor
         logActivity('openBox', currentUser, { 
             boxId: box.id, 
-            points: pointsGained 
+            points: pointsGained,
+            multiplier: finalMultiplier
         });
 
     } else if (box.content === 'surpriz') {
@@ -2665,18 +2659,15 @@ async function openBox(index) {
         boxOpenInfo.value = box.value;
     }
 
-    // Çarpan kullanım hakkı bittiyse sıfırla
     if (user.multiplierSource === 'store' && updates['multiplierRemainingUses'] !== undefined && updates['multiplierRemainingUses'] <= 0) {
         updates['activeMultiplier'] = 1;
         updates['multiplierSource'] = 'none';
         updates['activeStoreMultiplierItemId'] = null;
     }
 
-    // Tüm güncellemeleri veritabanına işle
     await userRef.update(updates);
     await boxRef.update(boxUpdate);
 
-    // Genel duyuru sinyalini gönder
     if (box.content !== 'surpriz') {
         await db.ref('lastOpenedBox').set(boxOpenInfo);
     }
@@ -3051,7 +3042,9 @@ async function openBox(index) {
   }
 
 
-  async function buyItem(itemId) {
+  // buyItem FONKSİYONUNU BU GÜNCEL HALİYLE DEĞİŞTİR
+
+async function buyItem(itemId) {
     if (isAdmin) {
         displayMessage("Adminler alışveriş yapamaz.");
         return;
@@ -3079,6 +3072,10 @@ async function openBox(index) {
     }
     const confirmed = await customConfirm(`${item.name} ürününü ${item.cost} puana almak istiyor musunuz?`);
     if (confirmed) {
+        // --- BU SATIRI YENİ EKLİYORUZ ---
+        logActivity('buyItem', currentUser, { itemName: item.name });
+        // --- YENİ SATIR BİTTİ ---
+
         let updates = {
             balance: user.balance - item.cost,
             totalSpentPoints: (user.totalSpentPoints || 0) + item.cost,
@@ -3090,7 +3087,7 @@ async function openBox(index) {
             updates.kutuHakki = (user.kutuHakki || 0) + item.value;
         } else if (item.type === 'wheelTicket') {
             updates.carkBileti = (user.carkBileti || 0) + item.value;
-        } else if (item.type === 'clickCatchTicket') { // YENİ EKLENDİ
+        } else if (item.type === 'clickCatchTicket') {
             updates.clickCatchTickets = (user.clickCatchTickets || 0) + item.value;
         } else if (item.type === 'tempMultiplier') {
             updates.activeMultiplier = item.value;
@@ -3100,10 +3097,24 @@ async function openBox(index) {
         } else if (item.type === 'iflasShield') {
             updates.iflasShieldUses = (user.iflasShieldUses || 0) + item.value;
         } else if (item.type === 'special') {
-            // ... (diğer kodlar aynı kalır)
+            const purchaseId = db.ref('pendingSpecialPurchases').push().key;
+            db.ref(`pendingSpecialPurchases/${purchaseId}`).set({
+                username: currentUser,
+                itemName: item.name,
+                itemCost: item.cost,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
+            db.ref(`purchaseHistory/${purchaseId}`).set({
+                username: currentUser,
+                itemName: item.name,
+                itemCost: item.cost,
+                imageUrl: item.imageUrl,
+                status: 'pending',
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
+            message = `'${item.name}' adlı özel ürün talebiniz admine iletildi. Onaylandığında hesabınıza eklenecektir.`;
         }
         
-        // ... (fonksiyonun geri kalanı aynı)
         let itemUpdates = {};
         if (item.stock !== undefined && item.stock !== null) {
             itemUpdates.stock = item.stock - 1;
@@ -3111,10 +3122,22 @@ async function openBox(index) {
         itemUpdates.purchaseCount = (item.purchaseCount || 0) + 1;
         await itemRef.update(itemUpdates);
         await userRef.update(updates);
-        // ... (satın alma geçmişi kaydı aynı kalır)
+        
+        if(item.type !== 'special') {
+            const purchaseId = db.ref('purchaseHistory').push().key;
+            db.ref(`purchaseHistory/${purchaseId}`).set({
+                username: currentUser,
+                itemName: item.name,
+                itemCost: item.cost,
+                imageUrl: item.imageUrl,
+                status: 'completed',
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
+        }
+        
         displayMessage(message);
     }
-  }
+}
   
   function resetStoreItemForm() {
     document.getElementById('newItemName').value = '';
@@ -4234,81 +4257,75 @@ async function openDailyRewardModal() {
     }
 }
 
-    async function claimDailyReward(rewardId) {
-        if (isAdmin) return;
+    // claimDailyReward FONKSİYONUNU BUNUNLA DEĞİŞTİR
 
-        const userRef = db.ref('users/' + currentUser);
-        const rewardRef = db.ref('dailyRewardOptions/' + rewardId);
+async function claimDailyReward(rewardId) {
+    if (isAdmin) return;
 
-        const [userSnap, rewardSnap] = await Promise.all([userRef.once('value'), rewardRef.once('value')]);
-        const user = userSnap.val();
-        const reward = rewardSnap.val();
+    const userRef = db.ref('users/' + currentUser);
+    const rewardRef = db.ref('dailyRewardOptions/' + rewardId);
 
-        if (!reward) {
-            displayMessage("Ödül alınırken bir hata oluştu: Ödül bulunamadı.");
-            return;
-        }
+    const [userSnap, rewardSnap] = await Promise.all([userRef.once('value'), rewardRef.once('value')]);
+    const user = userSnap.val();
+    const reward = rewardSnap.val();
 
-        const lastClaim = (user.dailyRewardsClaimed && user.dailyRewardsClaimed[rewardId]) || 0;
-        const cooldown = reward.cooldownMs || 0;
-
-        if (Date.now() < lastClaim + cooldown) {
-            displayMessage("Bu ödül için bekleme süresi henüz dolmadı.");
-            return;
-        }
-
-        if (reward.type === 'tempMultiplier' && user.multiplierSource !== 'none') {
-            displayMessage("Mevcut bir çarpanınız varken çarpan ödülü alamazsınız. Lütfen önce mevcut çarpanınızı kullanın.");
-            return;
-        }
-
-        let updates = {};
-        let message = `Tebrikler! Günlük ödül olarak <b>${reward.name}</b> kazandın.`;
-
-        switch (reward.type) {
-            case 'points':
-                updates['balance'] = (user.balance || 0) + reward.value;
-                if (updates['balance'] > (user.highestBalanceEver || 0)) {
-                    updates['highestBalanceEver'] = updates['balance'];
-                }
-                break;
-            case 'boxRights':
-                updates['kutuHakki'] = (user.kutuHakki || 0) + reward.value;
-                break;
-            // --- YENİ EKLENEN MANTIK ---
-            case 'wheelTicket':
-                updates['carkBileti'] = (user.carkBileti || 0) + reward.value;
-                break;
-            case 'clickCatchTicket':
-                updates['clickCatchTickets'] = (user.clickCatchTickets || 0) + reward.value;
-                break;
-            // --- YENİ EKLENEN MANTIK BİTİŞ ---
-            case 'iflasShield':
-                updates['iflasShieldUses'] = (user.iflasShieldUses || 0) + reward.value;
-                break;
-            case 'tempMultiplier':
-                updates['activeMultiplier'] = reward.value;
-                updates['multiplierRemainingUses'] = reward.uses;
-                updates['multiplierSource'] = 'store';
-                break;
-        }
-
-        await userRef.update(updates);
-        await db.ref(`users/${currentUser}/dailyRewardsClaimed/${rewardId}`).set(firebase.database.ServerValue.TIMESTAMP);
-
-        displayMessage(message);
-        closeDailyRewardModal();
-        checkAvailableDailyRewards();
+    if (!reward) {
+        displayMessage("Ödül alınırken bir hata oluştu: Ödül bulunamadı.");
+        return;
     }
-    
-    document.getElementById('dailyRewardType').addEventListener('change', function() {
-        const usesInput = document.getElementById('dailyRewardMultiplierUses');
-        if (this.value === 'tempMultiplier') {
-            usesInput.classList.remove('hidden');
-        } else {
-            usesInput.classList.add('hidden');
-        }
-    });
+
+    const lastClaim = (user.dailyRewardsClaimed && user.dailyRewardsClaimed[rewardId]) || 0;
+    const cooldown = reward.cooldownMs || 0;
+
+    if (Date.now() < lastClaim + cooldown) {
+        displayMessage("Bu ödül için bekleme süresi henüz dolmadı.");
+        return;
+    }
+
+    if (reward.type === 'tempMultiplier' && user.multiplierSource !== 'none') {
+        displayMessage("Mevcut bir çarpanınız varken çarpan ödülü alamazsınız. Lütfen önce mevcut çarpanınızı kullanın.");
+        return;
+    }
+
+    let updates = {};
+    let message = `Tebrikler! Günlük ödül olarak <b>${reward.name}</b> kazandın.`;
+
+    switch (reward.type) {
+        case 'points':
+            updates['balance'] = (user.balance || 0) + reward.value;
+            if (updates['balance'] > (user.highestBalanceEver || 0)) {
+                updates['highestBalanceEver'] = updates['balance'];
+            }
+            break;
+        case 'boxRights':
+            updates['kutuHakki'] = (user.kutuHakki || 0) + reward.value;
+            break;
+        case 'wheelTicket':
+            updates['carkBileti'] = (user.carkBileti || 0) + reward.value;
+            break;
+        case 'clickCatchTicket':
+            updates['clickCatchTickets'] = (user.clickCatchTickets || 0) + reward.value;
+            break;
+        case 'iflasShield':
+            updates['iflasShieldUses'] = (user.iflasShieldUses || 0) + reward.value;
+            break;
+        case 'tempMultiplier':
+            updates['activeMultiplier'] = reward.value;
+            updates['multiplierRemainingUses'] = reward.uses;
+            updates['multiplierSource'] = 'store';
+            break;
+    }
+
+    // Eylemi Son Eylemler paneline kaydet
+    logActivity('dailyReward', currentUser, { rewardName: reward.name });
+
+    await userRef.update(updates);
+    await db.ref(`users/${currentUser}/dailyRewardsClaimed/${rewardId}`).set(firebase.database.ServerValue.TIMESTAMP);
+
+    displayMessage(message);
+    closeDailyRewardModal();
+    checkAvailableDailyRewards();
+}
 
     function resetDailyRewardForm() {
       document.getElementById('dailyRewardName').value = '';
@@ -4513,29 +4530,32 @@ async function openDailyRewardModal() {
     }
 
     let surpriseSessionListener = null;
-    function listenForSurpriseBox() {
-      const sessionRef = db.ref('surprise_box_session');
-      if (surpriseSessionListener) sessionRef.off('value', surpriseSessionListener);
+    // listenForSurpriseBox FONKSİYONUNU BU YENİ HALİYLE DEĞİŞTİR
 
-      surpriseSessionListener = sessionRef.on('value', snap => {
-          const sessionData = snap.val();
+function listenForSurpriseBox() {
+    const sessionRef = db.ref('surprise_box_session');
+    if (surpriseSessionListener) sessionRef.off('value', surpriseSessionListener);
 
-          // Sadece sonuç geldiğinde ve bu kullanıcı kutuyu açan kişi değilse bildirimi göster
-          if (sessionData && sessionData.active && sessionData.result && sessionData.user !== currentUser) {
-              showGlobalSurpriseBoxNotification(sessionData);
-          }
+    surpriseSessionListener = sessionRef.on('value', snap => {
+        const sessionData = snap.val();
 
-          // Kazanan kişi için logic (kendi ekranında göreceği)
-          if (sessionData && sessionData.active && sessionData.result && sessionData.user === currentUser) {
-              closeCardSelectionModal();
-              displayMessage(`Sürpriz kutudan tebrikler! Toplam ${sessionData.result.points} puan kazandınız! Oyun 4 saniye içinde sıfırlanacak.`);
-              setTimeout(() => {
-                  resetGameBoard();
-                  sessionRef.remove(); // Oturumu temizle ki bildirim tekrar çıkmasın
-              }, 4000);
-          }
-      });
-  }
+        if (sessionData && sessionData.active && sessionData.result && sessionData.user !== currentUser) {
+            showGlobalSurpriseBoxNotification(sessionData);
+        }
+
+        if (sessionData && sessionData.active && sessionData.result && sessionData.user === currentUser) {
+            // --- YENİ EKLENEN SATIR: Sürpriz kutu kazancını Son Eylemler'e kaydet ---
+            logActivity('surpriseBox', sessionData.user, { points: sessionData.result.points });
+
+            closeCardSelectionModal();
+            displayMessage(`Sürpriz kutudan tebrikler! Toplam ${sessionData.result.points} puan kazandınız! Oyun 4 saniye içinde sıfırlanacak.`);
+            setTimeout(() => {
+                resetGameBoard();
+                sessionRef.remove();
+            }, 4000);
+        }
+    });
+}
 
   function showGlobalSurpriseBoxNotification(data) {
       // Yeni modalın içeriğini doldur
@@ -4626,7 +4646,8 @@ async function openDailyRewardModal() {
     wheel.style.background = `conic-gradient(${gradientParts.join(', ')})`;
   }
 
-  async function spinWheel() {
+  // spinWheel FONKSİYONUNU BUNUNLA DEĞİŞTİR
+async function spinWheel() {
     if (isWheelSpinning) return;
     
     if (isAdmin) {
@@ -4672,6 +4693,9 @@ async function openDailyRewardModal() {
         const winningSegment = wheelSegments[randomIndex];
         let message = `Tebrikler, çarktan <b>${winningSegment.label}</b> kazandın!`;
         let updates = {};
+        
+        // YENİ: Aktivite kaydı için kazananın metnini logla
+        logActivity('spinWheel', currentUser, { result: winningSegment.label });
         
         const currentUserDataSnap = await userRef.once('value');
         const currentUserData = currentUserDataSnap.val();
@@ -4721,7 +4745,7 @@ async function openDailyRewardModal() {
         wheel.style.transform = `rotate(${currentRotation}deg)`;
 
     }, 5100);
-  }
+}
 
   // YENİ TIKLA-YAKALA FONKSİYONLARI (Lobi ve Admin Paneli Dahil)
   let lobbyGameSettings = {};
@@ -4786,6 +4810,7 @@ async function startSoloClickCatchGame() {
     }
   }
 
+// endSoloClickCatchGame FONKSİYONUNU BUNUNLA DEĞİŞTİR
 function endSoloClickCatchGame() {
     clickCatchGameActive = false;
     clearInterval(clickCatchTimerInterval);
@@ -4812,9 +4837,17 @@ function endSoloClickCatchGame() {
     }
     displayMessage(endMessage);
 
-    if (clickCatchScore < 0) {
-        notifyUser(currentUser, `Tıkla ve Yakala oyunundan ${-clickCatchScore} puan kaybettin.`);
-    }
+    // YENİ: Kazanılan özel ürünleri aktivite kaydı için hazırla
+    const specialItemsWon = [];
+    if (collectedBoxRights > 0) specialItemsWon.push(`${collectedBoxRights} Kutu Hakkı`);
+    if (collectedIflasShields > 0) specialItemsWon.push(`${collectedIflasShields} İflas Kalkanı`);
+    if (collectedWheelTickets > 0) specialItemsWon.push(`${collectedWheelTickets} Çark Bileti`);
+
+    // YENİ: Aktivite kaydı, özel ürün bilgisiyle birlikte yapılıyor
+    logActivity('clickCatchSolo', currentUser, {
+        score: clickCatchScore,
+        specialItems: specialItemsWon.length > 0 ? specialItemsWon.join(', ') : null
+    });
 
     const userRef = db.ref('users/' + currentUser);
     const weeklyScoreRef = db.ref(`clickCatchWeeklyScores/${currentUser}`);
@@ -4838,7 +4871,6 @@ function endSoloClickCatchGame() {
             return user;
         });
     });
-
 }
 async function resetClickCatchLeaderboard() {
     if (!isAdmin) {
@@ -5561,19 +5593,21 @@ function _actuallyStartSoloGame() {
     clickCatchItemInterval = setInterval(() => createCatchItem('solo'), soloGameSettings.itemInterval);
 }
 
-// **** YENİ EKLENECEK FONKSİYONLAR SONU ****
+// setWinner FONKSİYONUNU BU YENİ HALİYLE DEĞİŞTİR
 
-// Orijinal kodun içine bu satırı ekle
 async function setWinner(username) {
     const lobbySnap = await db.ref('clickCatchLobby').once('value');
     const lobbyData = lobbySnap.val();
-    if (!lobbyData || lobbyData.state !== 'active') return; // Sadece oyun aktifken kazanan belirlenebilir
+    if (!lobbyData || lobbyData.state !== 'active') return;
 
     const winnerData = {
         username: username,
         prize: lobbyData.prize,
         timestamp: firebase.database.ServerValue.TIMESTAMP
     };
+    
+    // --- YENİ EKLENEN SATIR: Lobi zaferini Son Eylemler'e kaydet ---
+    logActivity('clickCatchLobby', username, { prize: lobbyData.prize });
     
     await db.ref('clickCatchLobbyLastWinner').set(winnerData);
     
@@ -5594,13 +5628,9 @@ async function setWinner(username) {
         return user;
     });
 
-    // --- YENİ EKLENEN KOD BAŞLANGICI ---
-    // Kazanan belli olduktan sonra 5 saniye bekle ve lobiyi tamamen sil.
-    // Bu 5 saniyelik gecikme, tüm oyuncuların kazanan ekranını görmesine olanak tanır.
     setTimeout(() => {
         db.ref('clickCatchLobby').remove();
-    }, 5000); // 5 saniye = 5000 milisaniye
-    // --- YENİ EKLENEN KOD SONU ---
+    }, 5000);
 }
 
   function openSoloGameSettingsModal() {
@@ -5664,6 +5694,51 @@ function logActivity(type, username, details = {}) {
     });
 }
 
+// initActivityFeed FONKSİYONUNU BU YENİ HALİYLE EKLE/DEĞİŞTİR
+function initActivityFeed() {
+    activityBellContainer.classList.remove('hidden');
+
+    const userFeedStatusRef = db.ref(`users/${currentUser}/lastCheckedFeedTimestamp`);
+    const activityFeedRef = db.ref('activityFeed').orderByChild('timestamp');
+
+    activityFeedRef.on('value', async (snapshot) => {
+        const feedData = snapshot.val();
+        
+        // EĞER HİÇ AKTİVİTE YOKSA LİSTEYİ BOŞALT VE ÇIK
+        if (!feedData) {
+            renderActivityFeed([]); // Boş bir dizi göndererek listeyi temizle
+            activityCounter.classList.add('hidden'); // Sayacı gizle
+            return;
+        }
+
+        const userStatusSnap = await userFeedStatusRef.once('value');
+        const lastChecked = userStatusSnap.val() || 0;
+        
+        let unreadCount = 0;
+        
+        // DÜZELTME: ID'leri korumak için Object.entries kullanıyoruz
+        const sortedActivities = Object.entries(feedData)
+            .map(([id, activity]) => ({ id, ...activity })) // Her aktiviteye kendi ID'sini ekle
+            .sort((a, b) => b.timestamp - a.timestamp);
+
+        sortedActivities.forEach(activity => {
+            if (activity.timestamp > lastChecked) {
+                unreadCount++;
+            }
+        });
+
+        if (unreadCount > 0) {
+            activityCounter.textContent = unreadCount > 9 ? '9+' : unreadCount;
+            activityCounter.classList.remove('hidden');
+        } else {
+            activityCounter.classList.add('hidden');
+        }
+        
+        // Listeyi güncellenmiş ve ID'leri olan verilerle yeniden çiz
+        renderActivityFeed(sortedActivities);
+    });
+}
+
 // Aktivite akışını başlatan ve dinleyen fonksiyon
 function initActivityFeed() {
     // Giriş yapıldıysa çan butonunu göster
@@ -5699,65 +5774,104 @@ function initActivityFeed() {
     });
 }
 
-// Aktiviteleri HTML olarak panelin içine yazdıran fonksiyon
+// renderActivityFeed FONKSİYONUNU BU YENİ HALİYLE DEĞİŞTİR
 function renderActivityFeed(activities) {
     activityFeedList.innerHTML = '';
-    if (activities.length === 0) {
-        activityFeedList.innerHTML = '<p class="text-center text-gray-500 mt-4">Henüz bir aktivite yok.</p>';
+
+    if (isAdmin) {
+        const clearAllButton = `
+            <div class="p-2 mb-2 text-center">
+                <button onclick="clearAllActivities()" class="w-full py-2 px-4 bg-red-800 hover:bg-red-700 text-white font-bold rounded-lg shadow-md text-sm">
+                    Tüm Eylemleri Temizle
+                </button>
+            </div>`;
+        activityFeedList.innerHTML += clearAllButton;
+    }
+
+    if (!activities || activities.length === 0) {
+        activityFeedList.innerHTML += '<p class="text-center text-gray-500 mt-4">Henüz bir aktivite yok.</p>';
         return;
     }
 
     activities.forEach(activity => {
         let icon = '💬';
         let message = '';
+
+        // DÜZELTME: Silme butonu artık doğru ID'yi alacak
+        const deleteButton = isAdmin ? `
+            <button onclick="deleteActivity('${activity.id}')" class="absolute top-1 right-1 text-gray-600 hover:text-red-500 transition-colors p-1" title="Bu eylemi sil">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+            </button>
+        ` : '';
         
+        // Diğer mesaj formatları aynı kalıyor...
         switch (activity.type) {
             case 'openBox':
                 icon = '🎁';
-                message = `<b>${activity.username}</b>, ${activity.details.boxId} numaralı kutuyu açtı ve <span class="text-green-400 font-bold">${activity.details.points} Puan</span> kazandı.`;
+                let multiplierText = '';
+                if (activity.details.multiplier && activity.details.multiplier > 1) {
+                    multiplierText = ` (${activity.details.multiplier}x çarpan ile)`;
+                }
+                message = `<b>${activity.username}</b>, ${activity.details.boxId} numaralı kutuyu açtı ve <span class="text-green-400 font-bold">${activity.details.points} Puan</span> kazandı${multiplierText}.`;
                 break;
             case 'iflas':
-                icon = '💣';
                 if (activity.details.shieldUsed) {
-                    message = `<b>${activity.username}</b>, iflas etti ama <span class="text-blue-400 font-bold">Kalkanı</span> sayesinde korundu.`;
+                    icon = '🛡️';
+                    message = `<b>${activity.username}</b>, iflas etti ama Kalkanı sayesinde korundu.`;
                 } else {
+                    icon = '💣';
                     message = `<b>${activity.username}</b>, iflas etti ve <span class="text-red-500 font-bold">${activity.details.lostPoints} Puan</span> kaybetti.`;
                 }
                 break;
             case 'surpriseBox':
                  icon = '🎉';
-                 if (activity.details.multiplier > 1) {
-                     message = `<b>${activity.username}</b>, Sürpriz Kutu buldu ve çarpanla <span class="text-yellow-300 font-bold">${activity.details.points} Puan</span> kazandı!`;
-                 } else {
-                     message = `<b>${activity.username}</b>, Sürpriz Kutu buldu ve <span class="text-yellow-300 font-bold">${activity.details.points} Puan</span> kazandı!`;
-                 }
+                 message = `<b>${activity.username}</b>, Sürpriz Kutu buldu ve <span class="text-yellow-300 font-bold">${activity.details.points} Puan</span> kazandı! Tüm kutular karıştı ve oyun yeniden başladı.`;
                 break;
             case 'spinWheel':
                 icon = '🎡';
-                message = `<b>${activity.username}</b>, Şans Çarkı'nı çevirdi ve <span class="text-purple-400 font-bold">${activity.details.result}</span> kazandı.`;
+                if (activity.details.result === 'Pas') {
+                    message = `<b>${activity.username}</b>, Şans Çarkı'nı çevirdi, Pas geldi ve bir şey kazanamadı.`;
+                } else {
+                    message = `<b>${activity.username}</b>, Şans Çarkı'nı çevirdi ve <span class="text-purple-400 font-bold">${activity.details.result}</span> kazandı.`;
+                }
                 break;
             case 'buyItem':
                 icon = '🛒';
-                message = `<b>${activity.username}</b>, mağazadan <span class="text-teal-400 font-bold">${activity.details.itemName}</span> ürününü satın aldı.`;
+                message = `<b>${activity.username}</b>, mağazadan <span class="text-teal-400 font-bold">${activity.details.itemName}</span> satın aldı.`;
                 break;
             case 'dailyReward':
                 icon = '📅';
-                message = `<b>${activity.username}</b>, günlük ödüllerden <span class="text-indigo-400 font-bold">${activity.details.rewardName}</span> aldı.`;
+                message = `<b>${activity.username}</b>, günlük ödüllerden <span class="text-indigo-400 font-bold">${activity.details.rewardName}</span> hediyesini aldı.`;
                 break;
             case 'clickCatchSolo':
                 icon = '🎯';
-                message = `<b>${activity.username}</b>, Tıkla ve Yakala oynadı ve <span class="text-pink-400 font-bold">${activity.details.score} Puan</span> kazandı.`;
+                let scoreText = '';
+                if (activity.details.score >= 0) {
+                    scoreText = `ve <span class="text-pink-400 font-bold">${activity.details.score} Puan</span>`;
+                } else {
+                    scoreText = `ve <span class="text-red-500 font-bold">${-activity.details.score} Puan</span> kaybetti`;
+                }
+                let specialItemText = '';
+                if (activity.details.specialItems) {
+                    specialItemText = ` ve <span class="text-cyan-400 font-bold">${activity.details.specialItems}</span> hediyesi kazandı.`;
+                } else {
+                    specialItemText = ', ancak özel hediye kazanamadı.';
+                }
+                message = `<b>${activity.username}</b>, Tıkla ve Yakala oyunu oynadı ${scoreText}${specialItemText}`;
                 break;
             case 'clickCatchLobby':
                 icon = '🏆';
-                message = `<b>${activity.username}</b>, Tıkla ve Yakala lobisini <span class="text-orange-400 font-bold">${activity.details.prize} Puan</span> ödülle kazandı!`;
+                message = `<b>${activity.username}</b>, Tıkla ve Yakala lobi oyununda birinci oldu ve <span class="text-orange-400 font-bold">${activity.details.prize} Puan</span> ödül kazandı!`;
                 break;
         }
 
         const activityHtml = `
-            <div class="flex items-start gap-3 p-2 bg-gray-900/50 rounded-lg">
-              <div class="text-2xl">${icon}</div>
-              <div class="text-sm text-gray-300">${message}</div>
+            <div id="activity-${activity.id}" class="relative flex items-start gap-3 p-2 bg-gray-900/50 rounded-lg">
+              <div class="text-2xl pt-1">${icon}</div>
+              <div class="text-sm text-gray-300 flex-1">${message}</div>
+              ${deleteButton}
             </div>
         `;
         activityFeedList.innerHTML += activityHtml;
@@ -5785,6 +5899,37 @@ function toggleActivityFeed() {
     } else {
         // Eğer zaten açıksa, kapatma fonksiyonunu çağır
         closeActivityFeed();
+    }
+}
+
+// deleteActivity FONKSİYONUNU BUNUNLA DEĞİŞTİR
+
+async function deleteActivity(activityId) {
+    if (!isAdmin) return;
+    const confirmed = await customConfirm("Bu eylemi kalıcı olarak silmek istediğinize emin misiniz?");
+    if (confirmed) {
+        // Önce veritabanından sil
+        await db.ref('activityFeed/' + activityId).remove();
+        
+        // ŞİMDİ DE EKRANDAN ANINDA KALDIR
+        const activityElement = document.getElementById(`activity-${activityId}`);
+        if (activityElement) {
+            activityElement.remove();
+        }
+    }
+}
+
+// clearAllActivities FONKSİYONUNU BUNUNLA DEĞİŞTİR
+
+async function clearAllActivities() {
+    if (!isAdmin) return;
+    const confirmed = await customConfirm("Tüm eylem geçmişini kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz!");
+    if (confirmed) {
+        // Önce veritabanından tümünü sil
+        await db.ref('activityFeed').remove();
+
+        // ŞİMDİ DE EKRANDAKİ LİSTEYİ ANINDA BOŞALT
+        renderActivityFeed([]); // Listeyi boş bir dizi ile yeniden çizdiriyoruz
     }
 }
 </script>
