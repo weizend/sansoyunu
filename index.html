@@ -5796,8 +5796,9 @@ function renderActivityFeed(activities) {
     activities.forEach(activity => {
         let icon = '💬';
         let message = '';
+        // YENİ: Zamanı formatlamak için fonksiyon çağrılıyor
+        const timeAgo = formatRelativeTime(activity.timestamp);
 
-        // DÜZELTME: Silme butonu artık doğru ID'yi alacak
         const deleteButton = isAdmin ? `
             <button onclick="deleteActivity('${activity.id}')" class="absolute top-1 right-1 text-gray-600 hover:text-red-500 transition-colors p-1" title="Bu eylemi sil">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -5806,7 +5807,6 @@ function renderActivityFeed(activities) {
             </button>
         ` : '';
         
-        // Diğer mesaj formatları aynı kalıyor...
         switch (activity.type) {
             case 'openBox':
                 icon = '🎁';
@@ -5867,10 +5867,14 @@ function renderActivityFeed(activities) {
                 break;
         }
 
+        // DEĞİŞEN HTML YAPISI
         const activityHtml = `
-            <div id="activity-${activity.id}" class="relative flex items-start gap-3 p-2 bg-gray-900/50 rounded-lg">
+            <div id="activity-${activity.id}" class="relative flex items-start gap-3 p-3 bg-gray-900/50 rounded-lg">
               <div class="text-2xl pt-1">${icon}</div>
-              <div class="text-sm text-gray-300 flex-1">${message}</div>
+              <div class="flex-1">
+                  <div class="text-sm text-gray-300 pr-5">${message}</div>
+                  <div class="text-xs text-gray-500 text-right mt-1">${timeAgo}</div>
+              </div>
               ${deleteButton}
             </div>
         `;
@@ -5931,6 +5935,39 @@ async function clearAllActivities() {
         // ŞİMDİ DE EKRANDAKİ LİSTEYİ ANINDA BOŞALT
         renderActivityFeed([]); // Listeyi boş bir dizi ile yeniden çizdiriyoruz
     }
+}
+
+/**
+ * Verilen bir zaman damgasını (timestamp) "Bugün, 14:30", "Dün, 08:15", "2 gün önce, 17:00" gibi
+ * okunabilir bir formata çevirir.
+ * @param {number} timestamp - Milisaniye cinsinden zaman damgası.
+ * @returns {string} - Formatlanmış zaman metni.
+ */
+function formatRelativeTime(timestamp) {
+  const now = new Date();
+  const activityDate = new Date(timestamp);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const activityDay = new Date(timestamp);
+  activityDay.setHours(0, 0, 0, 0);
+  
+  const dayDifference = Math.floor((today - activityDay) / (1000 * 60 * 60 * 24));
+
+  // Saati HH:MM formatında al (Türkiye lokaline göre)
+  const timeString = activityDate.toLocaleTimeString('tr-TR', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  if (dayDifference === 0) {
+    return `Bugün, ${timeString}`;
+  } else if (dayDifference === 1) {
+    return `Dün, ${timeString}`;
+  } else {
+    return `${dayDifference} gün önce, ${timeString}`;
+  }
 }
 </script>
 </body>
