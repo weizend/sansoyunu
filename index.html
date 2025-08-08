@@ -1752,14 +1752,17 @@ async function afterLogin() {
     document.getElementById("currentUser").textContent = currentUser;
     document.getElementById("role").textContent = isAdmin ? "(Admin)" : "";
     document.getElementById("inventoryButton").style.display = isAdmin ? 'none' : 'inline-block';
-    adminPanelToggleButton.classList.remove('hidden');
-      document.getElementById('boxSettingsButton').classList.remove('hidden'); // <-- BU SATIRI EKLE
 
-    if (isAdmin) {
-      adminPanelToggleButton.classList.remove('hidden');
-    } else {
-      adminPanelToggleButton.classList.add('hidden');
-    }
+// Admin kontrolü burada yapılıyor.
+if (isAdmin) {
+  // Sadece admin ise bu butonlar görünür olacak.
+  document.getElementById('adminPanelToggleButton').classList.remove('hidden');
+  document.getElementById('boxSettingsButton').classList.remove('hidden');
+} else {
+  // Admin değilse bu butonlar her zaman gizli kalacak.
+  document.getElementById('adminPanelToggleButton').classList.add('hidden');
+  document.getElementById('boxSettingsButton').classList.add('hidden');
+}
 
     showSection('game');
     
