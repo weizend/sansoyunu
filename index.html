@@ -201,6 +201,20 @@
     background-color: #718096; /* bg-gray-600 */
   }
 
+  .box-setting-input {
+    width: 100%;
+    padding: 10px;
+    background-color: #374151; /* bg-gray-700 */
+    border: 1px solid #4b5563; /* border-gray-600 */
+    border-radius: 8px; /* rounded-lg */
+    color: white;
+  }
+  .box-setting-input:focus {
+    outline: none;
+    border-color: #8b5cf6; /* focus:border-purple-500 */
+    box-shadow: 0 0 0 2px #a78bfa; /* focus:ring-2 focus:ring-purple-400 */
+  }
+
 </style>
 </head>
 <body class="bg-gray-900 text-white min-h-screen flex flex-col items-center py-8 px-4">
@@ -357,6 +371,7 @@
     <div id="mainContentArea" class="w-full">
         <div id="gameContent" class="w-full">
           <p class="text-lg text-gray-300 mb-6 text-center flex justify-center items-center gap-4">
+            <button id="boxSettingsButton" onclick="openBoxSettingsModal()" class="hidden py-1 px-3 text-sm bg-purple-600 hover:bg-purple-500 rounded-lg">Kutu Ayarları</button>
             <span>Toplam Açılan Kutu Sayısı: <span id="totalOpenedBoxesCount" class="font-bold text-yellow-400">0</span></span>
             <button onclick="openBoxStatsModal()" class="py-1 px-3 text-sm bg-blue-600 hover:bg-blue-500 rounded-lg">Detay</button>
           </p>
@@ -365,10 +380,13 @@
 
           <div id="tablesWrapper" class="flex flex-wrap justify-center gap-6 mb-8">
             <div class="tableBox bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700 w-full md:flex-1 min-w-[280px] md:max-w-md">
-              <h3 class="text-yellow-400 text-xl font-bold border-b border-gray-600 pb-3 mb-4">KULLANICI PUAN SIRALAMASI 🥇</h3>
-              <p class="text-gray-300 mb-3">Toplam Kullanıcı: <span id="totalUsers" class="font-bold text-yellow-400">0</span></p>
-              <div id="allUserRankings" class="scrollable-list max-h-80 overflow-y-auto border border-gray-600 rounded-lg p-3 bg-gray-900 text-sm leading-relaxed">Yükleniyor...</div>
-            </div>
+  <h3 class="text-yellow-400 text-xl font-bold border-b border-gray-600 pb-3 mb-4">KULLANICI PUAN SIRALAMASI 🥇</h3>
+  <p class="text-gray-300 mb-3">Toplam Kullanıcı: <span id="totalUsers" class="font-bold text-yellow-400">0</span></p>
+  
+  <input type="text" id="searchUserRanking" oninput="renderUserRankings()" placeholder="Sıralamada Kullanıcı Ara..." class="w-full p-3 mb-4 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
+  
+  <div id="allUserRankings" class="scrollable-list max-h-80 overflow-y-auto border border-gray-600 rounded-lg p-3 bg-gray-900 text-sm leading-relaxed">Yükleniyor...</div>
+</div>
             <div class="tableBox bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700 w-full md:flex-1 min-w-[280px] md:max-w-md">
                <h3 class="text-yellow-400 text-xl font-bold border-b border-gray-600 pb-3 mb-4 flex justify-between items-center">
                     <span>LİDERLER SIRALAMASI 👑</span>
@@ -1297,6 +1315,26 @@
     <p class="text-center text-gray-500 mt-4">Aktiviteler yükleniyor...</p>
   </div>
 </div>
+  <div id="boxSettingsModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[9999] hidden">
+  <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-purple-500 w-11/12 max-w-4xl text-center relative max-h-[90vh] flex flex-col">
+      <button class="modal-close-button absolute top-2 right-4 text-white text-4xl" onclick="closeBoxSettingsModal()">&times;</button>
+      <h3 class="text-purple-300 text-2xl font-bold mb-2">Kutu İçerik Ayarları</h3>
+      <p class="text-gray-400 mb-4 text-sm">Aşağıdaki listeyi düzenleyerek kutu içeriklerini ve sayılarını belirleyebilirsiniz.</p>
+      
+      <div class="bg-gray-900 p-3 rounded-lg mb-4 sticky top-0 z-10">
+        <span class="text-lg font-bold text-white">Toplam Kutu Sayısı: </span>
+        <span id="totalBoxCountDisplay" class="text-xl font-extrabold text-yellow-400">0</span>
+      </div>
+
+      <div id="boxSettingsRowsContainer" class="space-y-3 flex-grow overflow-y-auto scrollable-list pr-4">
+        </div>
+      
+      <div class="mt-6 pt-4 border-t border-gray-600 flex flex-col sm:flex-row gap-4">
+        <button onclick="addBoxSettingRow()" class="w-full sm:w-auto py-3 px-6 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-md">Yeni İçerik Ekle</button>
+        <button onclick="saveBoxSettings()" class="w-full sm:flex-grow py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg shadow-md">Ayarları Kaydet ve Oyunu Sıfırla</button>
+      </div>
+  </div>
+</div>
 <script>
   // Firebase yapılandırması
   const firebaseConfig = {
@@ -1322,6 +1360,7 @@
 
   // Global değişkenler
   let currentUser = null;
+  let allUsersCache = [];
   let isAdmin = false;
   let boxes = [];
   const BOX_RIGHTS_COST_PER_BOX = 1;
@@ -1376,6 +1415,7 @@
   const adminDailyRewardModal = document.getElementById('adminDailyRewardModal');
   const wheelTicketAdjustmentModal = document.getElementById('wheelTicketAdjustmentModal');
   const clickCatchTicketAdjustmentModal = document.getElementById('clickCatchTicketAdjustmentModal');
+  const boxSettingsModal = document.getElementById('boxSettingsModal');
 
 
   let targetUserForAdjustment = null;
@@ -1712,6 +1752,8 @@ async function afterLogin() {
     document.getElementById("currentUser").textContent = currentUser;
     document.getElementById("role").textContent = isAdmin ? "(Admin)" : "";
     document.getElementById("inventoryButton").style.display = isAdmin ? 'none' : 'inline-block';
+    adminPanelToggleButton.classList.remove('hidden');
+      document.getElementById('boxSettingsButton').classList.remove('hidden'); // <-- BU SATIRI EKLE
 
     if (isAdmin) {
       adminPanelToggleButton.classList.remove('hidden');
@@ -1982,121 +2024,95 @@ async function logout() {
       return crownHtml + otherBadgesHtml;
   }
 
-  async function loadUserRankingsAndBoxCounts() {
-    // Tıkla ve Yakala liderini en başta asenkron olarak çekiyoruz
+  function loadUserRankingsAndBoxCounts() {
+    db.ref('users').on('value', userSnap => {
+        const usersData = userSnap.val();
+        if (!usersData) {
+            allUsersCache = []; // Veri yoksa önbelleği temizle
+        } else {
+            // Tüm kullanıcı verilerini işle ve önbelleğe al
+            allUsersCache = Object.entries(usersData)
+                .filter(([username, userData]) => username !== 'weizendtv' && userData.approved)
+                .map(([username, userData]) => ({ username, ...userData }));
+        }
+        // Veri güncellendiğinde, listeyi yeniden çiz
+        renderUserRankings(); 
+    });
+}
+
+  // YENİ FONKSİYON: Kullanıcıları arama filtresine göre ekrana çizer
+async function renderUserRankings() {
+    const searchTerm = document.getElementById('searchUserRanking').value.trim().toLowerCase();
+    
+    // Filtreleme işlemini önbellekteki veri üzerinden yap
+    let filteredUsers = allUsersCache;
+    if (searchTerm) {
+        filteredUsers = allUsersCache.filter(u => u.username.toLowerCase().includes(searchTerm));
+    }
+
+    // Liderlik rozetleri için tüm kullanıcı verisi hala gerekli
     const currentClickCatchLeader = await getClickCatchLeaderUsername();
 
-    db.ref('users').on('value', userSnap => {
-        let usersData = userSnap.val();
-        if (!usersData) {
-            document.getElementById("allUserRankings").innerHTML = "<div class='text-center text-gray-400'>Henüz veri yok.</div>";
-            document.getElementById("totalUsers").textContent = "0";
-            return;
-        }
+    // Liderleri bul
+    let leaders = {
+        highestCurrentBalance: -1, currentBalanceUser: null,
+        highestEverBalance: -1, highEverBalanceUser: null,
+        maxSurpriseBoxes: -1, surpriseBoxUser: null,
+        maxBombCount: -1, bombUser: null,
+        maxSpentPoints: -1, spentPointsUser: null,
+        maxMultiplierFound: -1, multiplierUser: null,
+        maxBoxesOpened: -1, boxUser: null,
+        maxShieldUsed: -1, shieldUser: null,
+    };
+    allUsersCache.forEach(userData => {
+        if ((userData.balance || 0) > leaders.highestCurrentBalance && userData.balance > 0) { leaders.highestCurrentBalance = userData.balance; leaders.currentBalanceUser = userData.username; }
+        if ((userData.highestBalanceEver || 0) > leaders.highestEverBalance && userData.highestBalanceEver > 0) { leaders.highestEverBalance = userData.highestBalanceEver; leaders.highEverBalanceUser = userData.username; }
+        if ((userData.surpriseBoxesOpened || 0) > leaders.maxSurpriseBoxes && userData.surpriseBoxesOpened > 0) { leaders.maxSurpriseBoxes = userData.surpriseBoxesOpened; leaders.surpriseBoxUser = userData.username; }
+        if ((userData.iflasCount || 0) > leaders.maxBombCount && userData.iflasCount > 0) { leaders.maxBombCount = userData.iflasCount; leaders.bombUser = userData.username; }
+        if ((userData.totalSpentPoints || 0) > leaders.maxSpentPoints && userData.totalSpentPoints > 0) { leaders.maxSpentPoints = userData.totalSpentPoints; leaders.spentPointsUser = userData.username; }
+        if ((userData.multiplierFoundCount || 0) > leaders.maxMultiplierFound && userData.multiplierFoundCount > 0) { leaders.maxMultiplierFound = userData.multiplierFoundCount; leaders.multiplierUser = userData.username; }
+        if ((userData.boxesOpenedCount || 0) > leaders.maxBoxesOpened && userData.boxesOpenedCount > 0) { leaders.maxBoxesOpened = userData.boxesOpenedCount; leaders.boxUser = userData.username; }
+        if ((userData.iflasShieldUsedCount || 0) > leaders.maxShieldUsed && userData.iflasShieldUsedCount > 0) { leaders.maxShieldUsed = userData.iflasShieldUsedCount; leaders.shieldUser = userData.username; }
+    });
 
-        // Zamanlayıcıları temizle
-        Object.keys(activeBlockedUserTimers).forEach(username => {
-            clearInterval(activeBlockedUserTimers[username]);
-            delete activeBlockedUserTimers[username];
-        });
+    // Filtrelenmiş kullanıcıları puana göre sırala
+    filteredUsers.sort((a, b) => (b.balance || 0) - (a.balance || 0));
 
-        // Tüm liderleri bulmak için bir obje oluşturuyoruz
-        let leaders = {
-            highestCurrentBalance: -1, currentBalanceUser: null,
-            highestEverBalance: -1, highEverBalanceUser: null,
-            maxSurpriseBoxes: -1, surpriseBoxUser: null,
-            maxBombCount: -1, bombUser: null,
-            maxSpentPoints: -1, spentPointsUser: null,
-            maxMultiplierFound: -1, multiplierUser: null,
-            maxBoxesOpened: -1, boxUser: null,
-            maxShieldUsed: -1, shieldUser: null,
+    let html = filteredUsers.map((u, i) => {
+        const userLeaderStatus = {
+            isCurrentLeader: u.username === leaders.currentBalanceUser && leaders.highestCurrentBalance > 0,
+            isHighLeader: u.username === leaders.highEverBalanceUser && leaders.highestEverBalance > 0,
+            isSurpriseLeader: u.username === leaders.surpriseBoxUser && leaders.maxSurpriseBoxes > 0,
+            isBombLeader: u.username === leaders.bombUser && leaders.maxBombCount > 0,
+            isStoreLeader: u.username === leaders.spentPointsUser && leaders.maxSpentPoints > 0,
+            isMultiplierLeader: u.username === leaders.multiplierUser && leaders.maxMultiplierFound > 0,
+            isBoxLeader: u.username === leaders.boxUser && leaders.maxBoxesOpened > 0,
+            isShieldLeader: u.username === leaders.shieldUser && leaders.maxShieldUsed > 0,
+            isClickCatchLeader: u.username === currentClickCatchLeader
         };
 
-        // Tüm kullanıcıları gezip her kategorinin liderini buluyoruz
-        for (const u in usersData) {
-            if (u === 'weizendtv') continue;
-
-            const userData = usersData[u];
-            if (userData.approved) {
-                if ((userData.balance || 0) > leaders.highestCurrentBalance && userData.balance > 0) { leaders.highestCurrentBalance = userData.balance; leaders.currentBalanceUser = u; }
-                if ((userData.highestBalanceEver || 0) > leaders.highestEverBalance && userData.highestBalanceEver > 0) { leaders.highestEverBalance = userData.highestBalanceEver; leaders.highEverBalanceUser = u; }
-                if ((userData.surpriseBoxesOpened || 0) > leaders.maxSurpriseBoxes && userData.surpriseBoxesOpened > 0) { leaders.maxSurpriseBoxes = userData.surpriseBoxesOpened; leaders.surpriseBoxUser = u; }
-                if ((userData.iflasCount || 0) > leaders.maxBombCount && userData.iflasCount > 0) { leaders.maxBombCount = userData.iflasCount; leaders.bombUser = u; }
-                if ((userData.totalSpentPoints || 0) > leaders.maxSpentPoints && userData.totalSpentPoints > 0) { leaders.maxSpentPoints = userData.totalSpentPoints; leaders.spentPointsUser = u; }
-                if ((userData.multiplierFoundCount || 0) > leaders.maxMultiplierFound && userData.multiplierFoundCount > 0) { leaders.maxMultiplierFound = userData.multiplierFoundCount; leaders.multiplierUser = u; }
-                if ((userData.boxesOpenedCount || 0) > leaders.maxBoxesOpened && userData.boxesOpenedCount > 0) { leaders.maxBoxesOpened = userData.boxesOpenedCount; leaders.boxUser = u; }
-                if ((userData.iflasShieldUsedCount || 0) > leaders.maxShieldUsed && userData.iflasShieldUsedCount > 0) { leaders.maxShieldUsed = userData.iflasShieldUsedCount; leaders.shieldUser = u; }
-            }
+        const userIcons = getUserBadgesHtml(u, userLeaderStatus);
+        
+        // Engelli kullanıcılar için geri sayım logiği
+        let blockedInfo = '';
+        const isBlocked = u.blocked && u.blockedUntil && Date.now() < u.blockedUntil;
+        if (isBlocked) {
+            blockedInfo = `<div class="text-red-400 font-bold mt-2">Engelli - Kalan Süre: <span id="countdown-${u.username}">--:--</span></div>`;
+            // Geri sayım sayacını burada tekrar başlatmak gerekir, bu kısım mevcut kodunuzda zaten vardı
         }
 
-        let allUsersArray = Object.entries(usersData)
-            .filter(([username, userData]) => username !== 'weizendtv' && userData.approved)
-            .map(([username, userData]) => ({ username, ...userData }));
+        return `<div class="mb-3 p-3 bg-gray-800 rounded-md border border-gray-700 cursor-pointer hover:bg-gray-700 text-center" onclick="openPublicUserDetailModal('${u.username}')">
+              ${userIcons}
+              <div class="flex items-center justify-between mt-1">
+                <span class="font-semibold text-lg"><b class="text-yellow-300">${i + 1}.</b> ${u.username}</span>
+                <span class="text-yellow-400 font-bold">${u.balance || 0} Puan</span>
+              </div>
+              ${blockedInfo}
+            </div>`;
+    }).join("");
 
-        allUsersArray.sort((a, b) => (b.balance || 0) - (a.balance || 0));
-
-        // Her kullanıcı için HTML oluşturuyoruz
-        let html = allUsersArray.map((u, i) => {
-            // DÜZELTME: Her kullanıcı için tüm liderlik durumlarını burada kontrol ediyoruz
-            const userLeaderStatus = {
-                isCurrentLeader: u.username === leaders.currentBalanceUser && leaders.highestCurrentBalance > 0,
-                isHighLeader: u.username === leaders.highEverBalanceUser && leaders.highestEverBalance > 0,
-                isSurpriseLeader: u.username === leaders.surpriseBoxUser && leaders.maxSurpriseBoxes > 0,
-                isBombLeader: u.username === leaders.bombUser && leaders.maxBombCount > 0,
-                isStoreLeader: u.username === leaders.spentPointsUser && leaders.maxSpentPoints > 0,
-                isMultiplierLeader: u.username === leaders.multiplierUser && leaders.maxMultiplierFound > 0,
-                isBoxLeader: u.username === leaders.boxUser && leaders.maxBoxesOpened > 0,
-                isShieldLeader: u.username === leaders.shieldUser && leaders.maxShieldUsed > 0,
-                isClickCatchLeader: u.username === currentClickCatchLeader
-            };
-
-            // Rozetleri oluşturmak için ilgili fonksiyona kullanıcının liderlik durumunu yolluyoruz
-            const userIcons = getUserBadgesHtml(u, userLeaderStatus);
-
-            let multiplierInfo = '';
-            if (u.multiplierSource === 'store' && u.multiplierRemainingUses > 0) {
-                multiplierInfo = ` | Çarpan: ${u.activeMultiplier}x (${u.multiplierRemainingUses} kullanım)`;
-            } else if (u.multiplierSource === 'box') {
-                multiplierInfo = ` | Çarpan: ${u.activeMultiplier}x (Otomatik)`;
-            }
-
-            let blockedInfo = '';
-            const isBlocked = u.blocked && u.blockedUntil && Date.now() < u.blockedUntil;
-            if (isBlocked) {
-                blockedInfo = `<div class="text-red-400 font-bold mt-2">Engelli - Kalan Süre: <span id="countdown-${u.username}">--:--</span></div>`;
-                const countdownEl = document.getElementById(`countdown-${u.username}`);
-                if (countdownEl || !activeBlockedUserTimers[u.username]) {
-                    const timerId = setInterval(() => {
-                        const timeLeft = u.blockedUntil - Date.now();
-                        const el = document.getElementById(`countdown-${u.username}`);
-                        if (timeLeft <= 0) {
-                            clearInterval(timerId);
-                            if (el) el.parentElement.innerHTML = '<span class="text-green-400">Engel Kalktı</span>';
-                            db.ref('users/' + u.username).update({ blocked: false, blockedUntil: null });
-                        } else {
-                            const minutes = Math.floor(timeLeft / 60000);
-                            const seconds = Math.floor((timeLeft % 60000) / 1000).toString().padStart(2, '0');
-                            if (el) el.textContent = `${minutes}:${seconds}`;
-                        }
-                    }, 1000);
-                    activeBlockedUserTimers[u.username] = timerId;
-                }
-            }
-
-            return `<div class="mb-3 p-3 bg-gray-800 rounded-md border border-gray-700 cursor-pointer hover:bg-gray-700 text-center" onclick="openPublicUserDetailModal('${u.username}')">
-                  ${userIcons}
-                  <div class="flex items-center justify-between mt-1">
-                    <span class="font-semibold text-lg"><b class="text-yellow-300">${i + 1}.</b> ${u.username}</span>
-                    <span class="text-yellow-400 font-bold">${u.balance || 0} Puan</span>
-                  </div>
-                  <div class="text-xs text-gray-400 mt-1 text-left">Kutu Hakkı: ${u.kutuHakki || 0} | Kalkan: ${u.iflasShieldUses || 0}${multiplierInfo}</div>
-                  ${blockedInfo}
-                </div>`;
-        }).join("");
-
-        document.getElementById("allUserRankings").innerHTML = html || "<div class='text-center text-gray-400'>Henüz sıralanacak kullanıcı yok.</div>";
-        document.getElementById("totalUsers").textContent = allUsersArray.length;
-    });
+    document.getElementById("allUserRankings").innerHTML = html || "<div class='text-center text-gray-400'>Aramayla eşleşen kullanıcı bulunamadı.</div>";
+    document.getElementById("totalUsers").textContent = allUsersCache.length; // Toplam kullanıcı sayısı değişmez
 }
   function loadLeaderboardRanking() {
     db.ref('users').on('value', async snap => {
@@ -2444,7 +2460,57 @@ function adjustUserClickCatchTickets(add) {
 }
 
   // Kutu işlemleri
-  function createBoxes() { boxes = []; let allContents = []; BOX_CONTENTS.forEach(item => { for (let i = 0; i < item.count; i++) { allContents.push({ type: item.type, value: item.value || 0 }); } }); for (let i = allContents.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [allContents[i], allContents[j]] = [allContents[j], allContents[i]]; } for (let i = 0; i < TOTAL_BOXES; i++) { boxes.push({ id: i + 1, content: allContents[i].type, value: allContents[i].value, opened: false, opener: '' }); } db.ref('boxes').set(boxes); db.ref('gameStats/boxesOpenedByUsers').remove(); }
+  async function createBoxes() {
+    // 1. Veritabanından özel kutu ayarlarını çek
+    const settingsRef = db.ref('gameConfig/boxContents');
+    const snapshot = await settingsRef.once('value');
+    
+    // 2. Eğer veritabanında ayar yoksa, varsayılan bir ayar kullan
+    const defaultSettings = [
+        { type: 'surpriz', value: 0, count: 1 }, { type: 'points', value: 1000, count: 2 },
+        { type: 'iflas', value: 0, count: 2 }, { type: 'points', value: 750, count: 4 },
+        { type: 'points', value: 500, count: 6 }, { type: 'points', value: 250, count: 8 },
+        { type: 'points', value: 100, count: 10 }, { type: 'points', value: 50, count: 15 },
+        { type: 'points', value: 10, count: 20 }, { type: 'points', value: 1, count: 30 },
+        { type: 'multiplier', value: 2, count: 1 }, { type: 'multiplier', value: 3, count: 1 },
+        { type: 'wheelTicket', value: 1, count: 1 }, { type: 'clickCatchTicket', value: 1, count: 1 },
+      { type: 'wheelTicket', value: 1, count: 1 }, { type: 'clickCatchTicket', value: 1, count: 1 }, { type: 'iflasShield', value: 1, count: 2 }
+    ];
+
+    const currentBoxConfig = snapshot.exists() ? snapshot.val() : defaultSettings;
+
+    // 3. Ayarlara göre kutu içeriğini oluştur
+    boxes = []; 
+    let allContents = []; 
+    currentBoxConfig.forEach(item => { 
+        for (let i = 0; i < item.count; i++) { 
+            allContents.push({ type: item.type, value: item.value || 0 }); 
+        } 
+    }); 
+    
+    // 4. Kutu içeriğini karıştır
+    for (let i = allContents.length - 1; i > 0; i--) { 
+        const j = Math.floor(Math.random() * (i + 1)); 
+        [allContents[i], allContents[j]] = [allContents[j], allContents[i]]; 
+    } 
+    
+    // 5. Karıştırılmış içerikle yeni kutu listesini oluştur
+    const TOTAL_BOXES = allContents.length;
+    for (let i = 0; i < TOTAL_BOXES; i++) { 
+        boxes.push({ 
+            id: i + 1, 
+            content: allContents[i].type, 
+            value: allContents[i].value, 
+            opened: false, 
+            opener: '' 
+        }); 
+    } 
+    
+    // 6. Yeni kutu listesini veritabanına yaz
+    db.ref('boxes').set(boxes); 
+    db.ref('gameStats/boxesOpenedByUsers').remove(); 
+  }
+  
   function loadBoxes() { db.ref('boxes').on('value', snap => { if (!snap.exists()) { createBoxes(); } else { boxes = snap.val(); renderBoxes(); loadTotalOpenedBoxesCount(); } }); }
   function renderBoxes() { 
       const container = document.getElementById("boxContainer"); 
@@ -2468,7 +2534,21 @@ function adjustUserClickCatchTickets(add) {
                   displayContent = `<span class="text-blue-400 text-xl">${box.value}X</span>`; 
                   div.classList.add('bg-blue-700', 'border-blue-500', 'animate-pulse'); 
               } 
-              if (box.opener) { 
+              // YENİ EKLENECEK KOD BAŞLANGICI
+              else if (box.content === 'wheelTicket') {
+                  displayContent = `<span class="text-pink-400 text-2xl">🎟️</span>`; 
+                  div.classList.add('bg-pink-700', 'border-pink-500', 'animate-pulse'); 
+              } else if (box.content === 'clickCatchTicket') {
+                  displayContent = `<span class="text-orange-400 text-2xl">🎫</span>`; 
+                  div.classList.add('bg-orange-700', 'border-orange-500', 'animate-pulse');
+              }
+              else if (box.content === 'iflasShield') {
+                  displayContent = `<span class="text-cyan-400 text-2xl">🛡️</span>`; 
+                  div.classList.add('bg-cyan-700', 'border-cyan-500', 'animate-pulse');
+              }
+            
+              // YENİ EKLENEN KOD SONU
+              if (box.opener) {
                   let openerDiv = document.createElement('div'); 
                   openerDiv.className = 'opener absolute bottom-1 left-0 right-0 text-center text-xs text-gray-400 truncate px-1'; 
                   openerDiv.textContent = box.opener; 
@@ -2496,11 +2576,7 @@ function adjustUserClickCatchTickets(add) {
           container.appendChild(div); 
       }); 
   }
-  // MEVCUT openBox FONKSİYONUNU SİLİP YERİNE BUNU YAPIŞTIR
 
-// MEVCUT openBox FONKSİYONUNU SİL VE YERİNE BU KODU KOMPLE YAPIŞTIR
-
-// openBox FONKSİYONUNU BUNUNLA DEĞİŞTİR
 async function openBox(index) {
     if (isGameLocked) {
         displayMessage("Şu anda başka bir kullanıcı kutu açıyor veya oyun beklemede. Lütfen 5 saniye bekleyin.");
@@ -2658,9 +2734,55 @@ async function openBox(index) {
         updates['multiplierSource'] = 'box';
         boxOpenInfo.value = box.value;
     }
+    // YENİ EKLENECEK KOD BAŞLANGICI
+    else if (box.content === 'wheelTicket') {
+        const itemsGained = box.value * finalMultiplier;
+        updates['carkBileti'] = (user.carkBileti || 0) + itemsGained;
+        message = finalMultiplier > 1 
+            ? `Çarpan Etkisi! Kutudan <b>+${itemsGained} Şans Çarkı Bileti</b> kazandın! <br><span class='text-sm text-gray-400'>(${box.value} Bilet x ${finalMultiplier} Çarpan)</span>`
+            : `Tebrikler! Kutudan <b>+${itemsGained} Şans Çarkı Bileti</b> kazandın!`;
+        
+        boxUpdate.baseValue = box.value;
+        boxUpdate.finalValue = itemsGained;
+        boxOpenInfo.finalValue = itemsGained;
+        boxOpenInfo.baseValue = box.value;
+        boxOpenInfo.multiplierUsed = finalMultiplier;
+        logActivity('newItemFound', currentUser, { itemName: `${itemsGained} Şans Çarkı Bileti`, boxId: box.id, multiplier: finalMultiplier });
+    } else if (box.content === 'clickCatchTicket') {
+        const itemsGained = box.value * finalMultiplier;
+        updates['clickCatchTickets'] = (user.clickCatchTickets || 0) + itemsGained;
+        message = finalMultiplier > 1 
+            ? `Çarpan Etkisi! Kutudan <b>+${itemsGained} Tıkla Yakala Bileti</b> kazandın! <br><span class='text-sm text-gray-400'>(${box.value} Bilet x ${finalMultiplier} Çarpan)</span>`
+            : `Tebrikler! Kutudan <b>+${itemsGained} Tıkla Yakala Bileti</b> kazandın!`;
+        
+        boxUpdate.baseValue = box.value;
+        boxUpdate.finalValue = itemsGained;
+        boxOpenInfo.finalValue = itemsGained;
+        boxOpenInfo.baseValue = box.value;
+        boxOpenInfo.multiplierUsed = finalMultiplier;
+        logActivity('newItemFound', currentUser, { itemName: `${itemsGained} Tıkla Yakala Bileti`, boxId: box.id, multiplier: finalMultiplier });
+    } else if (box.content === 'iflasShield') {
+        const itemsGained = box.value * finalMultiplier;
+        updates['iflasShieldUses'] = (user.iflasShieldUses || 0) + itemsGained;
+        message = finalMultiplier > 1 
+            ? `Çarpan Etkisi! Kutudan <b>+${itemsGained} İflas Kalkanı</b> kazandın! <br><span class='text-sm text-gray-400'>(${box.value} Kalkan x ${finalMultiplier} Çarpan)</span>`
+            : `Tebrikler! Kutudan <b>+${itemsGained} İflas Kalkanı</b> kazandın!`;
+        
+        boxUpdate.baseValue = box.value;
+        boxUpdate.finalValue = itemsGained;
+        boxOpenInfo.finalValue = itemsGained;
+        boxOpenInfo.baseValue = box.value;
+        boxOpenInfo.multiplierUsed = finalMultiplier;
+        logActivity('newItemFound', currentUser, { itemName: `${itemsGained} İflas Kalkanı`, boxId: box.id, multiplier: finalMultiplier });
+    }
+    else if (box.content === 'iflasShield') {
+        updates['iflasShieldUses'] = (user.iflasShieldUses || 0) + box.value;
+        message = `Tebrikler! Kutudan <b>+${box.value} İflas Kalkanı</b> kazandın!`;
+        boxOpenInfo.value = box.value;
+    }
+    // YENİ EKLENEN KOD SONU
 
     if (user.multiplierSource === 'store' && updates['multiplierRemainingUses'] !== undefined && updates['multiplierRemainingUses'] <= 0) {
-        updates['activeMultiplier'] = 1;
         updates['multiplierSource'] = 'none';
         updates['activeStoreMultiplierItemId'] = null;
     }
@@ -2731,6 +2853,7 @@ async function openBox(index) {
         await db.ref('gameStats').remove();
         await db.ref('announcements').remove();
         await db.ref('dailyRewardOptions').remove();
+        await db.ref('gameConfig').remove(); // <-- BU SATIRI EKLE
         displayMessage("Sistem başarıyla baştan başlatıldı!");
     }
   }
@@ -2777,11 +2900,26 @@ async function openBox(index) {
         if (box.shieldUsed) {
             contentDisplay = 'İflas (Kalkanla Korundu)';
         } else if (box.lostPoints) {
-            contentDisplay = `İflas (-${box.lostPoints} Puan)`; // GÜNCELLENDİ
+            contentDisplay = `İflas (-${box.lostPoints} Puan)`;
         } else {
             contentDisplay = 'İflas';
         }
-    } else if (box.content === 'multiplier') {
+    } 
+    // YAPIYI DÜZELTTİK VE KODU DIŞARI TAŞIDIK
+    else if (box.content === 'wheelTicket' || box.content === 'clickCatchTicket' || box.content === 'iflasShield') {
+        const itemNames = {
+            wheelTicket: 'Şans Çarkı Bileti',
+            clickCatchTicket: 'Tıkla Yakala Bileti',
+            iflasShield: 'İflas Kalkanı'
+        };
+        if (box.multiplierApplied && box.multiplierApplied > 1) {
+            contentDisplay = `<b>+${box.finalValue} ${itemNames[box.content]}</b> <br> <span class="text-sm text-gray-400">(${box.baseValue} Adet x ${box.multiplierApplied} Çarpan)</span>`;
+        } else {
+            // Çarpan olmasa bile doğru değeri (finalValue) göstermesi için iyileştirildi.
+            contentDisplay = `+${box.finalValue || box.value} ${itemNames[box.content]}`;
+        }
+    }
+    else if (box.content === 'multiplier') {
         contentDisplay = `${box.value}X Çarpan`;
     } else if (box.content === 'surpriz') {
         contentDisplay = 'Sürpriz Kutu';
@@ -3072,9 +3210,9 @@ async function buyItem(itemId) {
     }
     const confirmed = await customConfirm(`${item.name} ürününü ${item.cost} puana almak istiyor musunuz?`);
     if (confirmed) {
-        // --- BU SATIRI YENİ EKLİYORUZ ---
-        logActivity('buyItem', currentUser, { itemName: item.name });
-        // --- YENİ SATIR BİTTİ ---
+      
+        logActivity('buyItem', currentUser, { itemName: item.name, itemCost: item.cost });
+        
 
         let updates = {
             balance: user.balance - item.cost,
@@ -3835,12 +3973,26 @@ for (const u in allUsersData) {
     } else if (info.content === 'iflas') {
         if (info.shieldUsed) {
             contentDisplay = 'İflas etti! 💣 <br> <span class="text-blue-400">ama Kalkanı tarafından korundu!</span>';
-        } else if (info.lostPoints > 0) { // GÜNCELLENDİ
+        } else if (info.lostPoints > 0) { 
             contentDisplay = `İflas etti! 💣 <br> <span class="text-red-400">ve ${info.lostPoints} puan kaybetti!</span>`;
         } else {
             contentDisplay = 'İflas etti! 💣';
         }
-    } else if (info.content === 'multiplier') {
+    } 
+    // HATALI YER BURADAYDI, YENİ BLOK DIŞARIYA TAŞINDI
+    else if (info.content === 'wheelTicket' || info.content === 'clickCatchTicket' || info.content === 'iflasShield') {
+        const itemNames = {
+            wheelTicket: 'Şans Çarkı Bileti',
+            clickCatchTicket: 'Tıkla Yakala Bileti',
+            iflasShield: 'İflas Kalkanı'
+        };
+        if (info.multiplierUsed && info.multiplierUsed > 1) {
+            contentDisplay = `<b>+${info.finalValue} ${itemNames[info.content]}</b> buldu! <br> <span class="text-sm text-gray-400">(${info.baseValue} Adet x ${info.multiplierUsed} Çarpan)</span>`;
+        } else {
+            contentDisplay = `+${info.finalValue} ${itemNames[info.content]} buldu!`;
+        }
+    }
+    else if (info.content === 'multiplier') {
         contentDisplay = `${info.value}X Çarpan buldu!`;
     }
 
@@ -5318,6 +5470,9 @@ async function getClickCatchLeaderUsername() {
         } else if (lobbyData.state === 'active') {
             document.getElementById('lobbyStatusTitle').textContent = "Oyun Başladı! Hedefe İlk Ulaşan Kazanır!";
             
+            // HATA BURADA DÜZELTİLİYOR! BU SATIRI EKLEDİK.
+            startScreen.style.display = 'none';
+
             document.getElementById('displayScore').classList.add('hidden');
             document.getElementById('displaySpecials').classList.add('hidden');
             document.getElementById('displayTimer').classList.add('hidden');
@@ -5695,6 +5850,8 @@ function logActivity(type, username, details = {}) {
 }
 
 // initActivityFeed FONKSİYONUNU BU YENİ HALİYLE EKLE/DEĞİŞTİR
+// ESKİ initActivityFeed FONKSİYONUNU SİLİP, YERİNE BUNU YAPIŞTIRIN
+
 function initActivityFeed() {
     activityBellContainer.classList.remove('hidden');
 
@@ -5704,10 +5861,10 @@ function initActivityFeed() {
     activityFeedRef.on('value', async (snapshot) => {
         const feedData = snapshot.val();
         
-        // EĞER HİÇ AKTİVİTE YOKSA LİSTEYİ BOŞALT VE ÇIK
+        // Eğer hiç aktivite yoksa listeyi boşalt ve çık
         if (!feedData) {
-            renderActivityFeed([]); // Boş bir dizi göndererek listeyi temizle
-            activityCounter.classList.add('hidden'); // Sayacı gizle
+            renderActivityFeed([]); 
+            activityCounter.classList.add('hidden'); 
             return;
         }
 
@@ -5716,10 +5873,14 @@ function initActivityFeed() {
         
         let unreadCount = 0;
         
-        // DÜZELTME: ID'leri korumak için Object.entries kullanıyoruz
-        const sortedActivities = Object.entries(feedData)
-            .map(([id, activity]) => ({ id, ...activity })) // Her aktiviteye kendi ID'sini ekle
-            .sort((a, b) => b.timestamp - a.timestamp);
+        // **** SORUNU ÇÖZEN DÜZELTME BURADA ****
+        // Veritabanından gelen objenin anahtarını (key), her bir eylemin içine 'id' olarak ekliyoruz.
+        const sortedActivities = Object.keys(feedData).map(key => {
+            return {
+                id: key, // -> Örn: -NfAbc_123xyz
+                ...feedData[key]
+            };
+        }).sort((a, b) => b.timestamp - a.timestamp); // Artık ID'li objelerden oluşan diziyi sıralıyoruz.
 
         sortedActivities.forEach(activity => {
             if (activity.timestamp > lastChecked) {
@@ -5734,47 +5895,12 @@ function initActivityFeed() {
             activityCounter.classList.add('hidden');
         }
         
-        // Listeyi güncellenmiş ve ID'leri olan verilerle yeniden çiz
+        // ID'leri doğru şekilde içeren yeni diziyi render fonksiyonuna gönderiyoruz.
         renderActivityFeed(sortedActivities);
     });
 }
+// DOSYADAKİ ESKİ renderActivityFeed FONKSİYONUNU SİLİP BUNU YAPIŞTIR
 
-// Aktivite akışını başlatan ve dinleyen fonksiyon
-function initActivityFeed() {
-    // Giriş yapıldıysa çan butonunu göster
-    activityBellContainer.classList.remove('hidden');
-
-    const userFeedStatusRef = db.ref(`users/${currentUser}/lastCheckedFeedTimestamp`);
-
-    db.ref('activityFeed').orderByChild('timestamp').on('value', async (snapshot) => {
-        const feedData = snapshot.val();
-        if (!feedData) return;
-
-        const userStatusSnap = await userFeedStatusRef.once('value');
-        const lastChecked = userStatusSnap.val() || 0;
-        
-        let unreadCount = 0;
-        const sortedActivities = Object.values(feedData).sort((a, b) => b.timestamp - a.timestamp);
-
-        sortedActivities.forEach(activity => {
-            if (activity.timestamp > lastChecked) {
-                unreadCount++;
-            }
-        });
-
-        // Okunmamış eylem varsa sayacı göster
-        if (unreadCount > 0) {
-            activityCounter.textContent = unreadCount > 9 ? '9+' : unreadCount;
-            activityCounter.classList.remove('hidden');
-        } else {
-            activityCounter.classList.add('hidden');
-        }
-
-        renderActivityFeed(sortedActivities);
-    });
-}
-
-// renderActivityFeed FONKSİYONUNU BU YENİ HALİYLE DEĞİŞTİR
 function renderActivityFeed(activities) {
     activityFeedList.innerHTML = '';
 
@@ -5796,25 +5922,27 @@ function renderActivityFeed(activities) {
     activities.forEach(activity => {
         let icon = '💬';
         let message = '';
-        // YENİ: Zamanı formatlamak için fonksiyon çağrılıyor
         const timeAgo = formatRelativeTime(activity.timestamp);
 
-        const deleteButton = isAdmin ? `
-            <button onclick="deleteActivity('${activity.id}')" class="absolute top-1 right-1 text-gray-600 hover:text-red-500 transition-colors p-1" title="Bu eylemi sil">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
-                </svg>
-            </button>
+        // --- İKONU DÜZELTEN KOD BURADA ---
+        const deleteButtonHtml = isAdmin ? `
+            <div class="flex-shrink-0 ml-2 flex items-center justify-center">
+                <button id="delete-activity-${activity.id}" data-activity-id="${activity.id}" class="text-gray-600 hover:text-red-500 transition-colors p-1 rounded-full" title="Bu eylemi sil">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1-1z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            </div>
         ` : '';
-        
+
         switch (activity.type) {
             case 'openBox':
                 icon = '🎁';
-                let multiplierText = '';
+                let openBoxMultiplierText = '';
                 if (activity.details.multiplier && activity.details.multiplier > 1) {
-                    multiplierText = ` (${activity.details.multiplier}x çarpan ile)`;
+                    openBoxMultiplierText = ` (${activity.details.multiplier}x çarpan ile)`;
                 }
-                message = `<b>${activity.username}</b>, ${activity.details.boxId} numaralı kutuyu açtı ve <span class="text-green-400 font-bold">${activity.details.points} Puan</span> kazandı${multiplierText}.`;
+                message = `<b>${activity.username}</b>, ${activity.details.boxId} numaralı kutuyu açtı ve <span class="text-green-400 font-bold">${activity.details.points} Puan</span> kazandı${openBoxMultiplierText}.`;
                 break;
             case 'iflas':
                 if (activity.details.shieldUsed) {
@@ -5824,6 +5952,14 @@ function renderActivityFeed(activities) {
                     icon = '💣';
                     message = `<b>${activity.username}</b>, iflas etti ve <span class="text-red-500 font-bold">${activity.details.lostPoints} Puan</span> kaybetti.`;
                 }
+                break;
+            case 'newItemFound':
+                icon = '✨';
+                let newItemMultiplierText = '';
+                if (activity.details.multiplier && activity.details.multiplier > 1) {
+                    newItemMultiplierText = ` (${activity.details.multiplier}x çarpan ile)`;
+                }
+                message = `<b>${activity.username}</b>, ${activity.details.boxId} numaralı kutuyu açtı ve <span class="text-cyan-400 font-bold">${activity.details.itemName}</span> buldu${newItemMultiplierText}.`;
                 break;
             case 'surpriseBox':
                  icon = '🎉';
@@ -5839,7 +5975,7 @@ function renderActivityFeed(activities) {
                 break;
             case 'buyItem':
                 icon = '🛒';
-                message = `<b>${activity.username}</b>, mağazadan <span class="text-teal-400 font-bold">${activity.details.itemName}</span> satın aldı.`;
+                message = `<b>${activity.username}</b>, mağazadan <span class="text-teal-400 font-bold">${activity.details.itemName}</span> ürününü <span class="text-green-400 font-bold">${activity.details.itemCost} Puana</span> satın aldı.`;
                 break;
             case 'dailyReward':
                 icon = '📅';
@@ -5867,19 +6003,32 @@ function renderActivityFeed(activities) {
                 break;
         }
 
-        // DEĞİŞEN HTML YAPISI
         const activityHtml = `
-            <div id="activity-${activity.id}" class="relative flex items-start gap-3 p-3 bg-gray-900/50 rounded-lg">
-              <div class="text-2xl pt-1">${icon}</div>
-              <div class="flex-1">
-                  <div class="text-sm text-gray-300 pr-5">${message}</div>
-                  <div class="text-xs text-gray-500 text-right mt-1">${timeAgo}</div>
-              </div>
-              ${deleteButton}
+            <div id="activity-${activity.id}" class="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg mb-2">
+                <div class="flex items-start gap-3 flex-grow">
+                    <div class="text-2xl pt-1">${icon}</div>
+                    <div class="flex-1">
+                        <div class="text-sm text-gray-300">${message}</div>
+                        <div class="text-xs text-gray-500 text-right mt-1">${timeAgo}</div>
+                    </div>
+                </div>
+                ${deleteButtonHtml}
             </div>
         `;
         activityFeedList.innerHTML += activityHtml;
     });
+
+    if (isAdmin) {
+        activities.forEach(activity => {
+            const deleteBtn = document.getElementById(`delete-activity-${activity.id}`);
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', function() {
+                    const activityIdToDelete = this.getAttribute('data-activity-id');
+                    deleteActivity(activityIdToDelete);
+                });
+            }
+        });
+    }
 }
 
 // Panel açma/kapama fonksiyonları
@@ -5906,23 +6055,15 @@ function toggleActivityFeed() {
     }
 }
 
-// deleteActivity FONKSİYONUNU BUNUNLA DEĞİŞTİR
-
 async function deleteActivity(activityId) {
-    if (!isAdmin) return;
+    if (!activityId) return;
+
+    // Silerken onay soran uyarıyı tekrar ekliyoruz
     const confirmed = await customConfirm("Bu eylemi kalıcı olarak silmek istediğinize emin misiniz?");
     if (confirmed) {
-        // Önce veritabanından sil
         await db.ref('activityFeed/' + activityId).remove();
-        
-        // ŞİMDİ DE EKRANDAN ANINDA KALDIR
-        const activityElement = document.getElementById(`activity-${activityId}`);
-        if (activityElement) {
-            activityElement.remove();
-        }
     }
 }
-
 // clearAllActivities FONKSİYONUNU BUNUNLA DEĞİŞTİR
 
 async function clearAllActivities() {
@@ -5969,6 +6110,218 @@ function formatRelativeTime(timestamp) {
     return `${dayDifference} gün önce, ${timeString}`;
   }
 }
+
+  // YENİ: Kutu Ayarları Modalı Fonksiyonları
+
+// Modalı açar ve mevcut ayarları veritabanından çekip inputlara doldurur.
+async function openBoxSettingsModal() {
+    if (!isAdmin) return;
+
+    const settingsRef = db.ref('gameConfig/boxContents');
+    const snapshot = await settingsRef.once('value');
+
+    // Varsayılan ayarlar, eğer veritabanında hiç ayar kaydedilmemişse kullanılır.
+    const defaultSettings = [
+        { type: 'points', value: 1000, count: 2 }, { type: 'points', value: 750, count: 4 },
+        { type: 'points', value: 500, count: 6 }, { type: 'points', value: 250, count: 8 },
+        { type: 'points', value: 100, count: 10 }, { type: 'points', value: 50, count: 15 },
+        { type: 'points', value: 10, count: 20 }, { type: 'points', value: 1, count: 30 },
+        { type: 'multiplier', value: 2, count: 1 }, { type: 'multiplier', value: 3, count: 1 },
+        { type: 'iflas', value: 0, count: 2 }, { type: 'surpriz', value: 0, count: 1 },
+        { type: 'wheelTicket', value: 1, count: 1 }, { type: 'clickCatchTicket', value: 1, count: 1 }
+    ];
+    
+    const currentConfig = snapshot.exists() ? snapshot.val() : defaultSettings;
+
+    // Önce tüm inputları temizle
+    document.querySelectorAll('.box-setting-input').forEach(input => input.value = '');
+
+    // Mevcut ayarları inputlara doldur
+    currentConfig.forEach(item => {
+        const input = document.getElementById(`${item.type}-${item.value}`);
+        if (input) {
+            input.value = item.count;
+        }
+    });
+
+    boxSettingsModal.style.display = 'flex';
+}
+
+function closeBoxSettingsModal() {
+    boxSettingsModal.style.display = 'none';
+}
+
+// Inputlardaki değerleri okur, yeni ayar listesini oluşturur, veritabanına kaydeder ve oyunu sıfırlar.
+async function saveBoxSettings() {
+    if (!isAdmin) return;
+
+    const newConfig = [];
+    let totalBoxes = 0;
+    
+    document.querySelectorAll('.box-setting-input').forEach(input => {
+        const count = parseInt(input.value);
+        if (!isNaN(count) && count > 0) {
+            newConfig.push({
+                type: input.dataset.type,
+                value: parseInt(input.dataset.value),
+                count: count
+            });
+            totalBoxes += count;
+        }
+    });
+
+    if (totalBoxes === 0) {
+        displayMessage("En az bir kutu türü için adet girmelisiniz!");
+        return;
+    }
+
+    const confirmed = await customConfirm(`Toplam ${totalBoxes} kutu ile yeni bir oyun başlatılacak. Mevcut oyun sıfırlanacak. Onaylıyor musunuz?`);
+    if (confirmed) {
+        await db.ref('gameConfig/boxContents').set(newConfig);
+        await resetGameBoard(); // Bu fonksiyon zaten createBoxes() fonksiyonunu çağırıyor.
+        displayMessage("Kutu ayarları başarıyla kaydedildi ve oyun yeni ayarlarla yeniden başlatıldı!");
+        closeBoxSettingsModal();
+    }
+}
+
+// Yeni bir ayar satırı (Puan, Bilet vb.) oluşturup ekrana ekler.
+function addBoxSettingRow(item = {}) {
+    const container = document.getElementById('boxSettingsRowsContainer');
+    const row = document.createElement('div');
+    row.className = 'box-setting-row flex items-center gap-3 p-3 bg-gray-900 rounded-lg';
+
+    // Değerleri önceden doldurmak için (kayıtlı ayarları yüklerken kullanılır)
+    const type = item.type || 'points';
+    const value = item.value || '';
+    const count = item.count || '';
+
+    row.innerHTML = `
+        <select class="setting-type flex-grow bg-gray-700 p-2 rounded-md text-white border border-gray-600" onchange="handleRowTypeChange(this)">
+            <option value="points" ${type === 'points' ? 'selected' : ''}>Puan</option>
+            <option value="iflas" ${type === 'iflas' ? 'selected' : ''}>İflas (Bomba)</option>
+            <option value="surpriz" ${type === 'surpriz' ? 'selected' : ''}>Sürpriz Kutu</option>
+            <option value="multiplier" ${type === 'multiplier' ? 'selected' : ''}>Çarpan</option>
+            <option value="wheelTicket" ${type === 'wheelTicket' ? 'selected' : ''}>Çark Bileti</option>
+            <option value="clickCatchTicket" ${type === 'clickCatchTicket' ? 'selected' : ''}>Tıkla Yakala Bileti</option>
+            <option value="iflasShield" ${type === 'iflasShield' ? 'selected' : ''}>İflas Kalkanı</option>
+        </select>
+        <input type="number" value="${value}" class="setting-value w-28 bg-gray-700 p-2 rounded-md text-white border border-gray-600" placeholder="Değer">
+        <input type="number" value="${count}" class="setting-count w-28 bg-gray-700 p-2 rounded-md text-white border border-gray-600" placeholder="Adet" oninput="updateTotalBoxCount()">
+        <button class="bg-red-700 hover:bg-red-600 text-white p-2 rounded-md" onclick="this.parentElement.remove(); updateTotalBoxCount();">Sil</button>
+    `;
+    
+    container.appendChild(row);
+    handleRowTypeChange(row.querySelector('.setting-type')); // Satırın ilk durumunu ayarla
+    updateTotalBoxCount(); // Eklendikten sonra toplam sayıyı güncelle
+}
+
+// Bir satırda tür seçimi değiştiğinde "Değer" input'unu aktif/pasif yapar.
+function handleRowTypeChange(selectElement) {
+    const row = selectElement.parentElement;
+    const valueInput = row.querySelector('.setting-value');
+    const selectedType = selectElement.value;
+
+    // Puan ve Çarpan dışındaki her şey için "Değer" alanı gereksizdir.
+    if (selectedType === 'points' || selectedType === 'multiplier') {
+        valueInput.disabled = false;
+        valueInput.placeholder = 'Değer';
+        if(selectedType === 'multiplier') valueInput.placeholder = 'Değer (2, 3 vb.)';
+
+    } else {
+        valueInput.disabled = true;
+        valueInput.placeholder = 'N/A';
+        // Biletler için değeri otomatik 1 yapalım, diğerleri 0 kalabilir.
+        if(selectedType === 'wheelTicket' || selectedType === 'clickCatchTicket' || selectedType === 'iflasShield'){
+             valueInput.value = 1;
+        } else {
+             valueInput.value = 0;
+        }
+    }
+}
+
+// "Adet" inputlarından biri her değiştiğinde toplam kutu sayısını hesaplar ve gösterir.
+function updateTotalBoxCount() {
+    let total = 0;
+    document.querySelectorAll('.box-setting-row .setting-count').forEach(input => {
+        const count = parseInt(input.value);
+        if (!isNaN(count) && count > 0) {
+            total += count;
+        }
+    });
+    document.getElementById('totalBoxCountDisplay').textContent = total;
+}
+
+// Ayarlar modalını açar, veritabanından ayarları çeker ve satırları oluşturur.
+async function openBoxSettingsModal() {
+    if (!isAdmin) return;
+
+    const container = document.getElementById('boxSettingsRowsContainer');
+    container.innerHTML = ''; // Önceki satırları temizle
+
+    const settingsRef = db.ref('gameConfig/boxContents');
+    const snapshot = await settingsRef.once('value');
+
+    const defaultSettings = [ { type: 'points', value: 100, count: 10 }, { type: 'iflas', value: 0, count: 2 }, { type: 'iflasShield', value: 1, count: 2 } ];
+    const currentConfig = snapshot.exists() ? snapshot.val() : defaultSettings;
+
+    if (currentConfig && currentConfig.length > 0) {
+        currentConfig.forEach(item => addBoxSettingRow(item));
+    } else {
+        addBoxSettingRow(); // Eğer hiç ayar yoksa boş bir satırla başlat
+    }
+    
+    updateTotalBoxCount(); // Toplam sayıyı ilk açılışta hesapla
+    boxSettingsModal.style.display = 'flex';
+}
+
+function closeBoxSettingsModal() {
+    boxSettingsModal.style.display = 'none';
+}
+
+// Tüm satırlardaki verileri okur, yeni ayarları veritabanına kaydeder ve oyunu sıfırlar.
+async function saveBoxSettings() {
+    if (!isAdmin) return;
+
+    const newConfig = [];
+    let totalBoxes = 0;
+    let hasError = false;
+
+    document.querySelectorAll('.box-setting-row').forEach(row => {
+        const type = row.querySelector('.setting-type').value;
+        const value = parseInt(row.querySelector('.setting-value').value);
+        const count = parseInt(row.querySelector('.setting-count').value);
+
+        // Doğrulama: Adet ve Değer alanları geçerli mi?
+        if (isNaN(count) || count <= 0) {
+            // Adet girilmemişse bu satırı atla
+            return;
+        }
+        if (isNaN(value) && (type === 'points' || type === 'multiplier')) {
+            displayMessage(`Hata: ${type} türü için geçerli bir 'Değer' girmelisiniz.`);
+            hasError = true;
+            return;
+        }
+        
+        newConfig.push({ type, value, count });
+        totalBoxes += count;
+    });
+
+    if (hasError) return; // Hata varsa işlemi durdur
+
+    if (totalBoxes === 0) {
+        displayMessage("En az bir kutu türü için adet girmelisiniz!");
+        return;
+    }
+
+    const confirmed = await customConfirm(`Toplam ${totalBoxes} kutu ile yeni bir oyun başlatılacak. Mevcut oyun sıfırlanacak. Onaylıyor musunuz?`);
+    if (confirmed) {
+        await db.ref('gameConfig/boxContents').set(newConfig);
+        await resetGameBoard(); 
+        displayMessage("Kutu ayarları başarıyla kaydedildi ve oyun yeni ayarlarla yeniden başlatıldı!");
+        closeBoxSettingsModal();
+    }
+}
+
 </script>
 </body>
 </html>
