@@ -964,11 +964,11 @@
         <p class="flex justify-between items-center"><span><span id="publicBadgeBalance" class="inline-block w-6 text-center"></span>Mevcut Puan:</span> <span id="publicUserBalance" class="font-bold text-yellow-300 text-lg"></span></p>
         <p class="flex justify-between items-center"><span><span id="publicBadgeHighest" class="inline-block w-6 text-center"></span>Ulaşılan En Yüksek Puan:</span> <span id="publicUserHighestBalance" class="font-bold text-green-400 text-lg"></span></p>
         <hr class="border-gray-600 !my-2">
-                <p class="flex justify-between items-center"><span>📦 Kutu Hakkı:</span> <span id="publicUserBoxRight" class="font-bold text-green-400 text-lg"></span></p>
-                <p class="flex justify-between items-center"><span>🎟️ Şans Çarkı Bileti:</span> <span id="publicUserWheelTickets" class="font-bold text-yellow-400 text-lg"></span></p>
-                <p class="flex justify-between items-center"><span>🎯 Tıkla-Yakala Bileti:</span> <span id="publicUserClickCatchTickets" class="font-bold text-fuchsia-400 text-lg"></span></p>
-                <p class="flex justify-between items-center"><span>🛡️ İflas Kalkanı:</span> <span id="publicUserIflasShield" class="font-bold text-blue-400 text-lg"></span></p>
-                <p class="flex justify-between items-center"><span>✖️ Aktif Çarpan:</span> <span id="publicUserMultiplier" class="font-bold text-purple-400 text-lg text-right"></span></p>
+                <p class="flex justify-between items-center"><span> Kutu Hakkı:</span> <span id="publicUserBoxRight" class="font-bold text-green-400 text-lg"></span></p>
+                <p class="flex justify-between items-center"><span> Şans Çarkı Bileti:</span> <span id="publicUserWheelTickets" class="font-bold text-yellow-400 text-lg"></span></p>
+                <p class="flex justify-between items-center"><span> Tıkla-Yakala Bileti:</span> <span id="publicUserClickCatchTickets" class="font-bold text-fuchsia-400 text-lg"></span></p>
+                <p class="flex justify-between items-center"><span> İflas Kalkanı:</span> <span id="publicUserIflasShield" class="font-bold text-blue-400 text-lg"></span></p>
+                <p class="flex justify-between items-center"><span> Aktif Çarpan:</span> <span id="publicUserMultiplier" class="font-bold text-purple-400 text-lg text-right"></span></p>
             </div>
         </div>
 
@@ -5348,34 +5348,33 @@ await userRef.child('wheelSpinsCount').transaction(currentCount => {
         const currentUserDataSnap = await userRef.once('value');
         const currentUserData = currentUserDataSnap.val();
 
-        switch(winningSegment.type) {
-            case 'points':
-                updates.balance = (currentUserData.balance || 0) + winningSegment.value;
-                if(updates.balance > (currentUserData.highestBalanceEver || 0)) updates.highestBalanceEver = updates.balance;
-                break;
-            case 'boxRights':
-                updates.kutuHakki = (currentUserData.kutuHakki || 0) + winningSegment.value;
-                break;
-            case 'iflasShield':
-                updates.iflasShieldUses = (currentUserData.iflasShieldUses || 0) + winningSegment.value;
-                break;
-            // YENİ ÖDÜL TİPİ EKLENDİ
-            case 'clickCatchTicket':
-                updates.clickCatchTickets = (currentUserData.clickCatchTickets || 0) + winningSegment.value;
-                break;
-            case 'tempMultiplier':
-                updates.activeMultiplier = winningSegment.value;
-                updates.multiplierSource = 'store';
-                updates.multiplierRemainingUses = winningSegment.duration;
-                break;
-            case 'surpriseBox':
-                 db.ref('surprise_box_session').set({ active: true, user: currentUser, multiplier: 1, cards: shuffleArray([...cardValues]), selection: null, result: null, timestamp: firebase.database.ServerValue.TIMESTAMP });
-                 openCardSelectionModal(currentUser);
-                 break;
-            case 'pas':
-                message = "Bu seferlik pas! Bir dahaki sefere daha şanslı olabilirsin.";
-                break;
-        }
+switch(winningSegment.type) {
+    case 'points':
+        updates.balance = (currentUserData.balance || 0) + winningSegment.value;
+        if(updates.balance > (currentUserData.highestBalanceEver || 0)) updates.highestBalanceEver = updates.balance;
+        break;
+    case 'boxRights':
+        updates.kutuHakki = (currentUserData.kutuHakki || 0) + winningSegment.value;
+        break;
+    case 'iflasShield':
+        updates.iflasShieldUses = (currentUserData.iflasShieldUses || 0) + winningSegment.value;
+        break;
+    case 'clickCatchTicket': // BU SATIR DÜZGÜN ÇALIŞMASI İÇİN EKLENDİ
+        updates.clickCatchTickets = (currentUserData.clickCatchTickets || 0) + winningSegment.value;
+        break;
+    case 'tempMultiplier':
+        updates.activeMultiplier = winningSegment.value;
+        updates.multiplierSource = 'store';
+        updates.multiplierRemainingUses = winningSegment.duration;
+        break;
+    case 'surpriseBox':
+         db.ref('surprise_box_session').set({ active: true, user: currentUser, multiplier: 1, cards: shuffleArray([...cardValues]), selection: null, result: null, timestamp: firebase.database.ServerValue.TIMESTAMP });
+         openCardSelectionModal(currentUser);
+         break;
+    case 'pas':
+        message = "Bu seferlik pas! Bir dahaki sefere daha şanslı olabilirsin.";
+        break;
+}
 
         if(Object.keys(updates).length > 0) await userRef.update(updates);
         displayMessage(message);
