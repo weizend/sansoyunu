@@ -910,7 +910,7 @@
         <p><span id="managedBadgeStore" class="inline-block w-6 text-center"></span>Mağazada Harcanan Puan: <span id="managedUserTotalSpent" class="font-bold text-fuchsia-400"></span></p>
         <p><span id="managedBadgeShield" class="inline-block w-6 text-center"></span>Kullanılan Kalkan Sayısı: <span id="managedUserShieldUsedCount" class="font-bold text-fuchsia-400"></span></p>
         <p><span id="managedBadgeClickCatch" class="inline-block w-6 text-center"></span>Tıkla-Yakala Toplanan Puan: <span id="managedUserClickCatchScore" class="font-bold text-fuchsia-400"></span></p>
-      <p><span id="publicBadgeWheel" class="inline-block w-6 text-center"></span>Çevrilen Çark Sayısı: <span id="publicUserWheelSpins" class="font-bold text-fuchsia-400"></span></p>
+      <p><span id="managedBadgeWheel" class="inline-block w-6 text-center"></span>Çevrilen Çark Sayısı: <span id="managedUserWheelSpins" class="font-bold text-fuchsia-400"></span></p>
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -938,41 +938,56 @@
   </div>
 </div>
 
-<div id="publicUserDetailModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 hidden">
-  <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-red-700 w-11/12 max-w-lg text-center relative max-h-[90vh] overflow-y-auto">
-    <button class="modal-close-button" onclick="closePublicUserDetailModal()">&times;</button>
-    <img id="publicUserAvatar" src="" class="w-28 h-28 rounded-lg mx-auto mb-4 object-contain">
-    <h4 class="text-yellow-400 text-2xl font-bold mb-4 flex justify-center items-center">
-      <span id="publicUserName"></span>
-      <span id="publicUserKingBadge" class="ml-2 text-2xl"></span>
-    </h4>
-    
+<div id="publicUserDetailModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-50 hidden" onclick="closeModalOnClickOutside(event)">
+  <div class="modal-content bg-gray-900/95 backdrop-blur-sm p-6 rounded-2xl shadow-2xl border border-yellow-500 w-11/12 max-w-2xl text-center relative max-h-[90vh] overflow-y-auto scrollable-list">
+    <button class="modal-close-button absolute top-4 right-4 text-gray-400 hover:text-white text-4xl transition-colors" onclick="closePublicUserDetailModal()">&times;</button>
+
+    <div class="flex flex-col sm:flex-row items-center gap-4 mb-6">
+        <img id="publicUserAvatar" src="" class="w-28 h-28 rounded-full border-4 border-yellow-400 object-cover">
+        <div class="text-left">
+            <h4 class="text-yellow-300 text-3xl font-bold flex items-center gap-2">
+              <span id="publicUserName"></span>
+              <span id="publicUserKingBadge" class="text-3xl"></span>
+            </h4>
+            <div id="publicUserOtherBadges" class="flex items-center gap-2 h-8 mt-1"></div>
+        </div>
+    </div>
+
     <div id="publicUserBlockedInfo" class="hidden bg-red-900/50 border border-red-500 text-red-300 p-3 rounded-lg mb-4">
         Bu kullanıcı engellidir. Kalan süre: <span id="publicUserBlockedCountdown" class="font-bold"></span>
     </div>
 
-    <div id="publicUserDetails" class="text-left text-gray-300 mb-6 space-y-2 bg-gray-900 p-4 rounded-lg">
-        <p><span id="publicBadgeCurrent" class="inline-block w-6 text-center"></span>Mevcut Puan: <span id="publicUserBalance" class="font-bold text-yellow-300"></span></p>
-        <p><span id="publicBadgeHighest" class="inline-block w-6 text-center"></span>Ulaşılan En Yüksek Puan: <span id="publicUserHighestBalance" class="font-bold text-green-400"></span></p>
-        <hr class="my-2 border-gray-700">
-        <h5 class="font-bold text-yellow-200">Envanter</h5>
-        <p>Kutu Hakkı: <span id="publicUserBoxRight" class="font-bold text-green-400"></span></p>
-        <p>Şans Çarkı Bileti: <span id="publicUserWheelTickets" class="font-bold text-yellow-400"></span></p>
-        <p>Tıkla Yakala Bileti: <span id="publicUserClickCatchTickets" class="font-bold text-fuchsia-400"></span></p>
-        <p>İflas Kalkanı: <span id="publicUserIflasShield" class="font-bold text-blue-400"></span></p>
-        <p>Aktif Çarpan: <span id="publicUserMultiplier" class="font-bold text-purple-400"></span></p>
-        <hr class="my-2 border-gray-700">
-        <h5 class="font-bold text-yellow-200">İstatistikler</h5>
-        <p><span id="publicBadgeBox" class="inline-block w-6 text-center"></span>Açılan Kutu (Tüm Zamanlar): <span id="publicUserBoxesOpened" class="font-bold text-fuchsia-400"></span></p>
-        <p><span id="publicBadgeSurprise" class="inline-block w-6 text-center"></span>Bulunan Sürpriz Kutu Sayısı: <span id="publicUserSurpriseBoxes" class="font-bold text-fuchsia-400"></span></p>
-        <p><span id="publicBadgeBomb" class="inline-block w-6 text-center"></span>Bulunan Bomba Sayısı: <span id="publicUserBombCount" class="font-bold text-fuchsia-400"></span></p>
-        <p><span id="publicBadgeMultiplier" class="inline-block w-6 text-center"></span>Bulunan Çarpan Sayısı: <span id="publicUserMultiplierFoundCount" class="font-bold text-fuchsia-400"></span></p>
-        <p><span id="publicBadgeShield" class="inline-block w-6 text-center"></span>Kullanılan Kalkan Sayısı: <span id="publicUserShieldUsedCount" class="font-bold text-fuchsia-400"></span></p>
-        <p><span id="publicBadgeStore" class="inline-block w-6 text-center"></span>Mağazada Harcanan Puan: <span id="publicUserTotalSpent" class="font-bold text-fuchsia-400"></span></p>
-        <p><span id="publicBadgeClickCatch" class="inline-block w-6 text-center"></span>Tıkla-Yakala Toplanan Puan: <span id="publicUserClickCatchScore" class="font-bold text-fuchsia-400"></span></p>
-      <p><span id="managedBadgeWheel" class="inline-block w-6 text-center"></span>Çevrilen Çark Sayısı: <span id="managedUserWheelSpins" class="font-bold text-fuchsia-400"></span></p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+        <div class="bg-gray-800/70 p-4 rounded-xl border border-gray-700">
+            <h5 class="font-bold text-yellow-200 text-xl mb-3 border-b border-gray-600 pb-2">Puan & Envanter</h5>
+            <div class="space-y-3 text-gray-300">
+                <p class="flex justify-between items-center"><span>🥇 Mevcut Puan:</span> <span id="publicUserBalance" class="font-bold text-yellow-300 text-lg"></span></p>
+                <p class="flex justify-between items-center"><span>🏆 Ulaşılan En Yüksek Puan:</span> <span id="publicUserHighestBalance" class="font-bold text-green-400 text-lg"></span></p>
+                <hr class="border-gray-600 !my-2">
+                <p class="flex justify-between items-center"><span>📦 Kutu Hakkı:</span> <span id="publicUserBoxRight" class="font-bold text-green-400 text-lg"></span></p>
+                <p class="flex justify-between items-center"><span>🎟️ Şans Çarkı Bileti:</span> <span id="publicUserWheelTickets" class="font-bold text-yellow-400 text-lg"></span></p>
+                <p class="flex justify-between items-center"><span>🎯 Tıkla Yakala Bileti:</span> <span id="publicUserClickCatchTickets" class="font-bold text-fuchsia-400 text-lg"></span></p>
+                <p class="flex justify-between items-center"><span>🛡️ İflas Kalkanı:</span> <span id="publicUserIflasShield" class="font-bold text-blue-400 text-lg"></span></p>
+                <p class="flex justify-between items-center"><span>✖️ Aktif Çarpan:</span> <span id="publicUserMultiplier" class="font-bold text-purple-400 text-lg text-right"></span></p>
+            </div>
+        </div>
+
+        <div class="bg-gray-800/70 p-4 rounded-xl border border-gray-700">
+            <h5 class="font-bold text-yellow-200 text-xl mb-3 border-b border-gray-600 pb-2">Oyun İstatistikleri</h5>
+            <div class="space-y-3 text-gray-300">
+                <p class="flex justify-between items-center"><span>📦 Toplam Açılan Kutu:</span> <span id="publicUserBoxesOpened" class="font-bold text-fuchsia-400 text-lg"></span></p>
+                <p class="flex justify-between items-center"><span>🎡 Toplam Çevrilen Çark:</span> <span id="publicUserWheelSpins" class="font-bold text-fuchsia-400 text-lg"></span></p>
+                <p class="flex justify-between items-center"><span>🎯 Tıkla-Yakala Rekoru:</span> <span id="publicUserClickCatchScore" class="font-bold text-fuchsia-400 text-lg"></span></p>
+                <hr class="border-gray-600 !my-2">
+                <p class="flex justify-between items-center"><span>🎉 Bulunan Sürpriz Kutu:</span> <span id="publicUserSurpriseBoxes" class="font-bold text-fuchsia-400 text-lg"></span></p>
+                <p class="flex justify-between items-center"><span>💣 Bulunan Bomba Sayısı:</span> <span id="publicUserBombCount" class="font-bold text-fuchsia-400 text-lg"></span></p>
+                <p class="flex justify-between items-center"><span>✖️ Bulunan Çarpan Sayısı:</span> <span id="publicUserMultiplierFoundCount" class="font-bold text-fuchsia-400 text-lg"></span></p>
+                <p class="flex justify-between items-center"><span>🛡️ Kullanılan Kalkan Sayısı:</span> <span id="publicUserShieldUsedCount" class="font-bold text-fuchsia-400 text-lg"></span></p>
+                <p class="flex justify-between items-center"><span>🛒 Mağazada Harcanan Puan:</span> <span id="publicUserTotalSpent" class="font-bold text-fuchsia-400 text-lg"></span></p>
+            </div>
+        </div>
     </div>
-     <button onclick="closePublicUserDetailModal()" class="w-full py-3 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg">Kapat</button>
+     <button onclick="closePublicUserDetailModal()" class="mt-6 w-full max-w-xs mx-auto py-3 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg transition-colors">Kapat</button>
   </div>
 </div>
   <div id="inventoryModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 hidden">
@@ -1981,42 +1996,45 @@ async function logout() {
     ref.on('value', callback);
   }
   
-  // DEĞİŞTİRİLECEK FONKSİYON
-function getUserBadgesHtml(u, leaders) {
-    let crownHtml = '';
-    let otherBadgesHtml = '';
-    let otherBadges = [];
+ // YENİ VE GÜNCELLENMİŞ FONKSİYON
+function getUserBadgesHtml(u, leaders, forPublicProfile = false) {
+      let crownHtml = '';
+      let otherBadges = [];
 
-    const allLeaderBadges = [
-        leaders.isCurrentLeader, leaders.isHighLeader, leaders.isSurpriseLeader,
-        leaders.isBombLeader, leaders.isStoreLeader, leaders.isMultiplierLeader,
-        leaders.isBoxLeader, leaders.isShieldLeader, leaders.isClickCatchLeader,
-        leaders.isWheelSpinLeader // YENİ LİDER KONTROLÜ EKLENDİ
-    ];
-    
-    const hasKingCrown = allLeaderBadges.every(Boolean);
+      const allLeaderBadges = [
+          leaders.isCurrentLeader, leaders.isHighLeader, leaders.isSurpriseLeader,
+          leaders.isBombLeader, leaders.isStoreLeader, leaders.isMultiplierLeader,
+          leaders.isBoxLeader, leaders.isShieldLeader, leaders.isClickCatchLeader
+      ];
 
-    if (hasKingCrown) {
-        crownHtml = `<div class="flex justify-center w-full mb-1"><span class="text-3xl" title="Tüm Liderlik Rozetlerinin Sahibi!">👑</span></div>`;
-    } else {
-        if (leaders.isCurrentLeader) otherBadges.push(`<span class="text-xl" title="Mevcut Puan Lideri">🥇</span>`);
-        if (leaders.isHighLeader) otherBadges.push(`<span class="text-xl" title="En Yüksek Puan Lideri">🏆</span>`);
-        if (leaders.isSurpriseLeader) otherBadges.push(`<span class="text-xl" title="Sürpriz Kutu Lideri">🎉</span>`);
-        else if (u.surpriseBoxesOpened > 0) otherBadges.push(`<span class="text-xl" title="Sürpriz Kutu Rozeti">🎁</span>`);
-        
-        if (leaders.isBombLeader) otherBadges.push(`<span class="text-xl" title="Bomba Lideri">💣</span>`);
-        if (leaders.isStoreLeader) otherBadges.push(`<span class="text-xl" title="Alışveriş Lideri">🛒</span>`);
-        if (leaders.isMultiplierLeader) otherBadges.push(`<span class="text-xl" title="Çarpan Lideri">✖️</span>`);
-        if (leaders.isBoxLeader) otherBadges.push(`<span class="text-xl" title="Kutu Lideri">📦</span>`);
-        if (leaders.isShieldLeader) otherBadges.push(`<span class="text-xl" title="Kalkan Lideri">🛡️</span>`);
-        if (leaders.isClickCatchLeader) otherBadges.push(`<span class="text-xl" title="Usta Yakalayıcı">🎯</span>`);
-        // YENİ ROZET EKLENDİ
-        if (leaders.isWheelSpinLeader) otherBadges.push(`<span class="text-xl" title="Çark Lideri">🎡</span>`);
+      const hasKingCrown = allLeaderBadges.every(Boolean) && allLeaderBadges.length > 0;
 
-        otherBadgesHtml = `<div class="flex items-center justify-center gap-2 h-6">${otherBadges.join('')}</div>`;
-    }
-    return crownHtml + otherBadgesHtml;
-}
+      if (hasKingCrown) {
+          crownHtml = `<span class="text-3xl" title="Tüm Liderlik Rozetlerinin Sahibi!">👑</span>`;
+      } 
+
+      if (leaders.isCurrentLeader) otherBadges.push(`<span class="text-xl" title="Mevcut Puan Lideri">🥇</span>`);
+      if (leaders.isHighLeader) otherBadges.push(`<span class="text-xl" title="Ulaşılan En Yüksek Puan Lideri">🏆</span>`);
+      if (leaders.isClickCatchLeader) otherBadges.push(`<span class="text-xl" title="Haftanın Usta Yakalayıcısı">🎯</span>`);
+      if (leaders.isBoxLeader) otherBadges.push(`<span class="text-xl" title="Kutu Lideri">📦</span>`);
+      if (leaders.isSurpriseLeader) otherBadges.push(`<span class="text-xl" title="Sürpriz Kutu Lideri">🎉</span>`);
+      else if (u.surpriseBoxesOpened > 0) otherBadges.push(`<span class="text-xl" title="Sürpriz Kutu Rozeti">🎁</span>`);
+      if (leaders.isBombLeader) otherBadges.push(`<span class="text-xl" title="Bomba Lideri">💣</span>`);
+      if (leaders.isMultiplierLeader) otherBadges.push(`<span class="text-xl" title="Çarpan Lideri">✖️</span>`);
+      if (leaders.isStoreLeader) otherBadges.push(`<span class="text-xl" title="Alışveriş Lideri">🛒</span>`);
+      if (leaders.isShieldLeader) otherBadges.push(`<span class="text-xl" title="İflas Kalkanı Lideri">🛡️</span>`);
+
+      // Eğer profil penceresi için çağrıldıysa, obje olarak dön
+      if (forPublicProfile) {
+          return {
+              crown: crownHtml,
+              others: otherBadges.join('')
+          }
+      }
+
+      // Eğer sıralama listesi için çağrıldıysa, eski formatta dön
+      return (hasKingCrown ? `<div class="flex justify-center w-full mb-1">${crownHtml}</div>` : '') + `<div class="flex items-center justify-center gap-2 h-6">${otherBadges.join('')}</div>`;
+  }
 
   function loadUserRankingsAndBoxCounts() {
     const ref = db.ref('users');
@@ -3877,19 +3895,19 @@ async function buyItem(itemId) {
   function openBadgeInfoModal() { badgeInfoModal.style.display = 'flex'; }
   function closeBadgeInfoModal() { badgeInfoModal.style.display = 'none'; }
 
-
-  async function openPublicUserDetailModal(username) {
+async function openPublicUserDetailModal(username) {
     if (activeBlockedUserTimers[username]) {
         clearInterval(activeBlockedUserTimers[username]);
         delete activeBlockedUserTimers[username];
     }
+
     const userSnap = await db.ref('users/' + username).once('value');
-    const userData = userSnap.val();
+    const userData = userSnap.val(); 
     if (!userData) return;
 
     const allUsersSnap = await db.ref('users').once('value');
     const leaders = await calculateAllLeaders(allUsersSnap.val());
-      
+
     const userLeaderStatus = {
         isCurrentLeader: username === leaders.currentBalanceUser,
         isHighLeader: username === leaders.highEverBalanceUser,
@@ -3905,15 +3923,19 @@ async function buyItem(itemId) {
 
     const avatarUrl = userData.selectedAvatar ? userData.selectedAvatar.url : defaultAvatarUrl;
     document.getElementById('publicUserAvatar').src = avatarUrl;
-    
     document.getElementById('publicUserName').textContent = username;
+
+    const badges = getUserBadgesHtml(userData, userLeaderStatus, true);
+    document.getElementById('publicUserKingBadge').innerHTML = badges.crown;
+    document.getElementById('publicUserOtherBadges').innerHTML = badges.others;
+
     document.getElementById('publicUserBalance').textContent = userData.balance || 0;
     document.getElementById('publicUserHighestBalance').textContent = userData.highestBalanceEver || 0;
     document.getElementById('publicUserBoxRight').textContent = userData.kutuHakki || 0;
     document.getElementById('publicUserWheelTickets').textContent = userData.carkBileti || 0;
     document.getElementById('publicUserClickCatchTickets').textContent = userData.clickCatchTickets || 0;
     document.getElementById('publicUserIflasShield').textContent = userData.iflasShieldUses || 0;
-    
+
     let multiplierText = 'Yok';
     if (userData.multiplierSource === 'store' && userData.multiplierRemainingUses > 0) {
       multiplierText = `${userData.activeMultiplier}x (Mağaza - ${userData.multiplierRemainingUses} kullanım)`;
@@ -3921,20 +3943,19 @@ async function buyItem(itemId) {
       multiplierText = `${userData.activeMultiplier}x (Kutu - Otomatik)`;
     }
     document.getElementById('publicUserMultiplier').textContent = multiplierText;
-    
+
     document.getElementById('publicUserBoxesOpened').textContent = userData.boxesOpenedCount || 0;
+    document.getElementById('publicUserWheelSpins').textContent = userData.wheelSpinsCount || 0;
+    document.getElementById('publicUserClickCatchScore').textContent = userData.clickCatchHighestScore || 0;
     document.getElementById('publicUserSurpriseBoxes').textContent = userData.surpriseBoxesOpened || 0;
     document.getElementById('publicUserBombCount').textContent = userData.iflasCount || 0;
     document.getElementById('publicUserMultiplierFoundCount').textContent = userData.multiplierFoundCount || 0;
     document.getElementById('publicUserShieldUsedCount').textContent = userData.iflasShieldUsedCount || 0;
     document.getElementById('publicUserTotalSpent').textContent = userData.totalSpentPoints || 0;
-    document.getElementById('publicUserClickCatchScore').textContent = userData.clickCatchHighestScore || 0;
-    document.getElementById('publicUserWheelSpins').textContent = userData.wheelSpinsCount || 0; // YENİ EKLENEN SATIR
 
     const blockedInfoDiv = document.getElementById('publicUserBlockedInfo');
     const countdownEl = document.getElementById('publicUserBlockedCountdown');
     const isCurrentlyBlocked = userData.blocked && userData.blockedUntil && Date.now() < userData.blockedUntil;
-    
     if(isCurrentlyBlocked) {
         blockedInfoDiv.classList.remove('hidden');
         const updateCountdown = () => {
@@ -3954,36 +3975,18 @@ async function buyItem(itemId) {
     } else {
         blockedInfoDiv.classList.add('hidden');
     }
-
-    ['publicBadgeWheel', 'publicUserKingBadge', 'publicBadgeCurrent', 'publicBadgeHighest', 'publicBadgeBox', 'publicBadgeSurprise', 'publicBadgeBomb', 'publicBadgeMultiplier', 'publicBadgeShield', 'publicBadgeStore', 'publicBadgeClickCatch'].forEach(id => {
-        document.getElementById(id).innerHTML = '';
-    });
-
-    const hasKingCrown = Object.values(userLeaderStatus).every(Boolean);
-    
-    if (hasKingCrown) { document.getElementById('publicUserKingBadge').innerHTML = `<span title="Tüm rozetlerin lideri!">👑</span>`; }
-    if (userLeaderStatus.isCurrentLeader) document.getElementById('publicBadgeCurrent').innerHTML = `<span title="Mevcut Puan Lideri">🥇</span>`;
-    if (userLeaderStatus.isHighLeader) document.getElementById('publicBadgeHighest').innerHTML = `<span title="Ulaşılan En Yüksek Puan Lideri">🏆</span>`;
-    if (userLeaderStatus.isBoxLeader) document.getElementById('publicBadgeBox').innerHTML = `<span title="Kutu Lideri">📦</span>`;
-    if (userLeaderStatus.isSurpriseLeader) { document.getElementById('publicBadgeSurprise').innerHTML = `<span title="Sürpriz Kutu Lideri">🎉</span>`; } 
-    else if (userData.surpriseBoxesOpened > 0) { document.getElementById('publicBadgeSurprise').innerHTML = `<span title="Sürpriz Kutu Rozeti">🎁</span>`; }
-    if (userLeaderStatus.isBombLeader) document.getElementById('publicBadgeBomb').innerHTML = `<span title="Bomba Lideri">💣</span>`;
-    if (userLeaderStatus.isMultiplierLeader) document.getElementById('publicBadgeMultiplier').innerHTML = `<span title="Çarpan Lideri">✖️</span>`;
-    if (userLeaderStatus.isShieldLeader) document.getElementById('publicBadgeShield').innerHTML = `<span title="Kalkan Lideri">🛡️</span>`;
-    if (userLeaderStatus.isStoreLeader) document.getElementById('publicBadgeStore').innerHTML = `<span title="Alışveriş Lideri (En Çok Puan Harcayan)">🛒</span>`;
-    if (userLeaderStatus.isClickCatchLeader) document.getElementById('publicBadgeClickCatch').innerHTML = `<span title="Haftanın Usta Yakalayıcısı">🎯</span>`;
-    if (userLeaderStatus.isWheelSpinLeader) document.getElementById('publicBadgeWheel').innerHTML = `<span title="Çark Lideri">🎡</span>`;
-
+publicUserDetailModal.dataset.viewingUser = username;
     publicUserDetailModal.style.display = 'flex';
 }
   
-  async function openUserManagementModal(username) {
+  // YENİ VE DÜZELTİLMİŞ FONKSİYON
+async function openUserManagementModal(username) {
     if (activeBlockedUserTimers[username]) {
         clearInterval(activeBlockedUserTimers[username]);
         delete activeBlockedUserTimers[username];
     }
     selectedUserForManagement = username;
-    
+
     const [userSnap, allUsersSnap] = await Promise.all([
         db.ref('users/' + username).once('value'),
         db.ref('users').once('value')
@@ -3991,9 +3994,9 @@ async function buyItem(itemId) {
 
     const userData = userSnap.val();
     if (!userData) { displayMessage("Kullanıcı bulunamadı."); return; }
-    
+
     const leaders = await calculateAllLeaders(allUsersSnap.val());
-    
+
     const userLeaderStatus = {
         isBoxLeader: username === leaders.boxUser,
         isSurpriseLeader: username === leaders.surpriseBoxUser,
@@ -4055,10 +4058,11 @@ async function buyItem(itemId) {
     document.getElementById('managedUserTotalSpent').textContent = userData.totalSpentPoints || 0;
     document.getElementById('managedUserShieldUsedCount').textContent = userData.iflasShieldUsedCount || 0;
     document.getElementById('managedUserClickCatchScore').textContent = userData.clickCatchHighestScore || 0;
-    document.getElementById('managedUserWheelSpins').textContent = userData.wheelSpinsCount || 0; // YENİ EKLENEN SATIR
+    document.getElementById('managedUserWheelSpins').textContent = userData.wheelSpinsCount || 0;
 
     ['managedBadgeWheel', 'managedBadgeBox', 'managedBadgeSurprise', 'managedBadgeBomb', 'managedBadgeMultiplier', 'managedBadgeStore', 'managedBadgeShield', 'managedBadgeClickCatch'].forEach(id => {
-        document.getElementById(id).innerHTML = '';
+        const el = document.getElementById(id);
+        if(el) el.innerHTML = '';
     });
 
     if (userLeaderStatus.isBoxLeader) document.getElementById('managedBadgeBox').innerHTML = '📦';
@@ -4081,11 +4085,7 @@ async function buyItem(itemId) {
         }
         const sorted = Object.values(history).sort((a,b) => b.timestamp - a.timestamp);
         sorted.forEach(r => {
-            html += `<div class="p-2 bg-gray-900 mb-2 rounded text-sm">
-                <p><b>Ürün:</b> ${r.itemName}</p>
-                <p><b>Maliyet:</b> ${r.itemCost} Puan</p>
-                <p><b>Tarih:</b> ${new Date(r.timestamp).toLocaleString()}</p>
-            </div>`;
+            html += `<div class="p-2 bg-gray-900 mb-2 rounded text-sm"><b>Ürün:</b> ${r.itemName}, <b>Maliyet:</b> ${r.itemCost} Puan, <b>Tarih:</b> ${new Date(r.timestamp).toLocaleString()}</div>`;
         });
         historyList.innerHTML = html;
     });
@@ -4097,17 +4097,29 @@ async function buyItem(itemId) {
             const avatar = userData.avatars[avatarId];
             const avatarCard = document.createElement('div');
             avatarCard.className = 'relative p-2 bg-gray-700 rounded-lg text-center';
-            avatarCard.innerHTML = `
-                <img src="${avatar.imageUrl}" alt="${avatar.name}" class="w-full h-auto rounded-md object-cover aspect-square">
-                <p class="text-xs mt-2 text-white truncate" title="${avatar.name}">${avatar.name}</p>
-                <button onclick="deleteUserAvatar('${username}', '${avatarId}')" class="absolute -top-2 -right-2 bg-red-600 hover:bg-red-500 text-white rounded-full h-7 w-7 flex items-center justify-center text-lg font-bold" title="Bu Avatarı Sil">&times;</button>
-            `;
+            avatarCard.innerHTML = `<img src="${avatar.imageUrl}" alt="${avatar.name}" class="w-full h-auto rounded-md object-cover aspect-square"><p class="text-xs mt-2 text-white truncate" title="${avatar.name}">${avatar.name}</p><button onclick="deleteUserAvatar('${username}', '${avatarId}')" class="absolute -top-2 -right-2 bg-red-600 hover:bg-red-500 text-white rounded-full h-7 w-7 flex items-center justify-center text-lg font-bold" title="Bu Avatarı Sil">&times;</button>`;
             avatarGrid.appendChild(avatarCard);
         }
     } else {
         avatarGrid.innerHTML = '<p class="col-span-full text-center text-gray-500">Bu kullanıcının satın alınmış avatarı yok.</p>';
     }
+
     userManagementModal.style.display = 'flex';
+}
+
+    function closePublicUserDetailModal() {
+  const publicUserDetailModal = document.getElementById('publicUserDetailModal');
+  
+  // Modalı gizle
+  publicUserDetailModal.style.display = 'none';
+
+  // Modal kapatıldığında, içinde çalışan zamanlayıcıyı (varsa) temizle
+  // Bu, gereksiz kaynak kullanımını önler.
+  const viewingUser = publicUserDetailModal.dataset.viewingUser;
+  if (viewingUser && activeBlockedUserTimers[viewingUser]) {
+    clearInterval(activeBlockedUserTimers[viewingUser]);
+    delete activeBlockedUserTimers[viewingUser];
+  }
 }
   
   function closeUserManagementModal() {
@@ -5161,6 +5173,10 @@ async function spinWheel() {
         carkBileti: userData.carkBileti - 1,
         wheelSpinsCount: (userData.wheelSpinsCount || 0) + 1
     });
+  // YENİ: Çark çevirme sayısını artır
+await userRef.child('wheelSpinsCount').transaction(currentCount => {
+    return (currentCount || 0) + 1;
+});
 
     const totalWeight = wheelSegments.reduce((sum, seg) => sum + (seg.weight || 1), 0);
     let randomWeight = Math.random() * totalWeight;
@@ -6986,6 +7002,14 @@ function openHelpModal() {
 }
 function closeHelpModal() {
   helpModal.style.display = 'none';
+}
+
+    // YENİ EKLENEN FONKSİYON: DIŞARIYA TIKLAYINCA KAPATIR
+function closeModalOnClickOutside(event) {
+  // Eğer tıklanan elementin ID'si modalın kendisi ise (yani dıştaki karanlık alan ise)
+  if (event.target.id === 'publicUserDetailModal') {
+    closePublicUserDetailModal(); // Normal kapatma fonksiyonunu çağır
+  }
 }
 
 </script>
