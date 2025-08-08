@@ -482,7 +482,8 @@
             </div>
     
             <div class="tableBox bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700 w-full md:flex-1 min-w-[280px] mt-6 mx-auto max-w-2xl">
-              <h3 class="text-yellow-400 text-xl font-bold border-b border-gray-600 pb-3 mb-4">TIKLA VE YAKALA TOPLANAN PUAN SIRALAMASI 🎯</h3>
+              <h3 class="text-yellow-400 text-xl font-bold border-b border-gray-600 pb-3 mb-4">TIKLA-YAKALA TOPLANAN PUAN SIRALAMASI 🎯</h3>
+              <input type="text" id="searchClickCatchRanking" oninput="loadClickCatchRankings()" placeholder="Sıralamada Kullanıcı Ara..." class="w-full p-3 mb-4 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
               <div id="clickCatchRankings" class="scrollable-list max-h-80 overflow-y-auto border border-gray-600 rounded-lg p-3 bg-gray-900 text-sm leading-relaxed">Yükleniyor...</div>
             </div>
         
@@ -5367,7 +5368,8 @@ function handleSoloItemClick(event) {
     item.remove();
 }
   
-async function deleteUserFromLeaderboard(username) {
+async function deleteUserFromLeaderboard(event, username) {
+      event.stopPropagation(); // YENİ EKLENEN SATIR: Tıklamanın arkadaki satıra gitmesini engeller.
       if (!isAdmin) return;
       const confirmed = await customConfirm(`<b>${username}</b> adlı kullanıcıyı Yakalayıcılar listesinden silmek istediğinize emin misiniz?`);
       if (confirmed) {
@@ -5390,7 +5392,9 @@ async function getClickCatchLeaderUsername() {
 }
   function loadClickCatchRankings() {
       const rankingsList = document.getElementById('clickCatchRankings');
-      const ref = db.ref('clickCatchWeeklyScores').orderByValue().limitToLast(10);
+      // YENİ: Arama kutusundan arama terimini alıyoruz.
+      const searchTerm = document.getElementById('searchClickCatchRanking').value.trim().toLowerCase();
+      const ref = db.ref('clickCatchWeeklyScores').orderByValue();
       
       const callback = snap => {
           rankingsList.innerHTML = 'Yükleniyor...';
@@ -5415,18 +5419,25 @@ async function getClickCatchLeaderUsername() {
               clickCatchLeader = null;
           }
 
-          scores.forEach((entry, index) => {
-              const leaderBadge = (index === 0) ? '<span title="Tıkla-Yakala Lideri">🎯</span>' : '';
+          // YENİ: Arama terimine göre filtreleme yapıyoruz.
+          let filteredScores = scores;
+          if (searchTerm) {
+              filteredScores = scores.filter(entry => entry.username.toLowerCase().includes(searchTerm));
+          }
+
+          filteredScores.forEach((entry, index) => {
+              const leaderBadge = (index === 0 && !searchTerm) ? '<span title="Tıkla ve Yakala Lideri">🎯</span>' : ''; // Arama yapılıyorsa sıra numarası rozeti gösterme
               const deleteButton = isAdmin 
-                ? `<button onclick="deleteUserFromLeaderboard('${entry.username}')" class="ml-3 text-gray-500 hover:text-red-500 transition-colors" title="Skor Tablosundan Sil">
+              ? `<button onclick="deleteUserFromLeaderboard(event, '${entry.username}')" class="ml-3 text-gray-500 hover:text-red-500 transition-colors" title="Skor Tablosundan Sil">
                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
                      </svg>
                    </button>` 
                 : '';
 
+              // YENİ: Tıklanma özelliği (onclick) ve stil (cursor-pointer) eklendi.
               html += `
-                <div class="flex justify-between items-center p-2 mb-2 bg-gray-800 rounded-md">
+                <div onclick="openPublicUserDetailModal('${entry.username}')" class="flex justify-between items-center p-2 mb-2 bg-gray-800 rounded-md cursor-pointer hover:bg-gray-700 transition-colors">
                     <div class="flex items-center">
                         <span><b>${index + 1}.</b> ${leaderBadge} ${entry.username}</span>
                         ${deleteButton}
@@ -5435,8 +5446,12 @@ async function getClickCatchLeaderUsername() {
                 </div>
               `;
           });
-          rankingsList.innerHTML = html;
+          rankingsList.innerHTML = html || '<p class="text-center text-gray-400">Aramayla eşleşen kullanıcı bulunamadı.</p>';
       };
+      // Listener yönetim sistemiyle uyumlu hale getirildi.
+      if (activeListeners.clickCatchRankings) {
+          activeListeners.clickCatchRankings.ref.off('value', activeListeners.clickCatchRankings.callback);
+      }
       activeListeners.clickCatchRankings = { ref, event: 'value', callback };
       ref.on('value', callback);
   }
