@@ -2152,15 +2152,61 @@ async function calculateAllLeaders(allUsersData) {
     for (const u in allUsersData) {
         if (u.toLowerCase() === 'weizendtv' || !allUsersData[u].approved) continue;
         const userData = allUsersData[u];
-        if ((userData.balance || 0) > leaders.highestCurrentBalance) { leaders.highestCurrentBalance = userData.balance; leaders.currentBalanceUser = u; }
-        if ((userData.highestBalanceEver || 0) > leaders.highestEverBalance) { leaders.highestEverBalance = userData.highestBalanceEver; leaders.highEverBalanceUser = u; }
-        if ((userData.surpriseBoxesOpened || 0) > leaders.maxSurpriseBoxes) { leaders.maxSurpriseBoxes = userData.surpriseBoxesOpened; leaders.surpriseBoxUser = u; }
-        if ((userData.iflasCount || 0) > leaders.maxBombCount) { leaders.maxBombCount = userData.iflasCount; leaders.bombUser = u; }
-        if ((userData.totalSpentPoints || 0) > leaders.maxSpentPoints) { leaders.maxSpentPoints = userData.totalSpentPoints; leaders.spentPointsUser = u; }
-        if ((userData.multiplierFoundCount || 0) > leaders.maxMultiplierFound) { leaders.maxMultiplierFound = userData.multiplierFoundCount; leaders.multiplierUser = u; }
-        if ((userData.boxesOpenedCount || 0) > leaders.maxBoxesOpened) { leaders.maxBoxesOpened = userData.boxesOpenedCount; leaders.boxUser = u; }
-        if ((userData.iflasShieldUsedCount || 0) > leaders.maxShieldUsed) { leaders.maxShieldUsed = userData.iflasShieldUsedCount; leaders.shieldUser = u; }
-        if ((userData.wheelSpinsCount || 0) > leaders.maxWheelSpins) { leaders.maxWheelSpins = userData.wheelSpinsCount; leaders.wheelSpinUser = u; }
+        
+        // DÜZELTME: Lider olabilmek için istatistiğin 0'dan büyük olması şartı eklendi.
+        const userBalance = userData.balance || 0;
+        if (userBalance > 0 && userBalance > leaders.highestCurrentBalance) {
+            leaders.highestCurrentBalance = userBalance;
+            leaders.currentBalanceUser = u;
+        }
+
+        const userHighestBalance = userData.highestBalanceEver || 0;
+        if (userHighestBalance > 0 && userHighestBalance > leaders.highestEverBalance) {
+            leaders.highestEverBalance = userHighestBalance;
+            leaders.highEverBalanceUser = u;
+        }
+
+        const userSurpriseBoxes = userData.surpriseBoxesOpened || 0;
+        if (userSurpriseBoxes > 0 && userSurpriseBoxes > leaders.maxSurpriseBoxes) {
+            leaders.maxSurpriseBoxes = userSurpriseBoxes;
+            leaders.surpriseBoxUser = u;
+        }
+
+        const userBombCount = userData.iflasCount || 0;
+        if (userBombCount > 0 && userBombCount > leaders.maxBombCount) {
+            leaders.maxBombCount = userBombCount;
+            leaders.bombUser = u;
+        }
+
+        const userSpentPoints = userData.totalSpentPoints || 0;
+        if (userSpentPoints > 0 && userSpentPoints > leaders.maxSpentPoints) {
+            leaders.maxSpentPoints = userSpentPoints;
+            leaders.spentPointsUser = u;
+        }
+
+        const userMultiplierFound = userData.multiplierFoundCount || 0;
+        if (userMultiplierFound > 0 && userMultiplierFound > leaders.maxMultiplierFound) {
+            leaders.maxMultiplierFound = userMultiplierFound;
+            leaders.multiplierUser = u;
+        }
+
+        const userBoxesOpened = userData.boxesOpenedCount || 0;
+        if (userBoxesOpened > 0 && userBoxesOpened > leaders.maxBoxesOpened) {
+            leaders.maxBoxesOpened = userBoxesOpened;
+            leaders.boxUser = u;
+        }
+
+        const userShieldUsed = userData.iflasShieldUsedCount || 0;
+        if (userShieldUsed > 0 && userShieldUsed > leaders.maxShieldUsed) {
+            leaders.maxShieldUsed = userShieldUsed;
+            leaders.shieldUser = u;
+        }
+        
+        const userWheelSpins = userData.wheelSpinsCount || 0;
+        if (userWheelSpins > 0 && userWheelSpins > leaders.maxWheelSpins) {
+            leaders.maxWheelSpins = userWheelSpins;
+            leaders.wheelSpinUser = u;
+        }
     }
     
     // Tıkla-yakala liderini de objeye dahil et
