@@ -219,7 +219,7 @@
   <header class="w-full max-w-4xl bg-gradient-to-r from-red-700 to-black text-white text-3xl font-extrabold tracking-wider py-4 rounded-xl shadow-xl mb-8 text-center relative">
     WEIZENDTV KUTU OYUNU
 
-    <div id="activityBellContainer" class="absolute top-1/2 -translate-y-1/2 right-5 hidden">
+    <div id="activityBellContainer" class="absolute top-3 right-4 hidden">
         <button onclick="toggleActivityFeed()" class="relative p-2 rounded-full hover:bg-white/20 transition-colors" title="Son Eylemler">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -975,15 +975,15 @@
         <div class="bg-gray-800/70 p-4 rounded-xl border border-gray-700">
             <h5 class="font-bold text-yellow-200 text-xl mb-3 border-b border-gray-600 pb-2">Oyun İstatistikleri</h5>
             <div class="space-y-3 text-gray-300">
-                <p class="flex justify-between items-center"><span>📦 Toplam Açılan Kutu:</span> <span id="publicUserBoxesOpened" class="font-bold text-fuchsia-400 text-lg"></span></p>
-                <p class="flex justify-between items-center"><span>🎡 Toplam Çevrilen Çark:</span> <span id="publicUserWheelSpins" class="font-bold text-fuchsia-400 text-lg"></span></p>
-                <p class="flex justify-between items-center"><span>🎯 Tıkla-Yakala Rekoru:</span> <span id="publicUserClickCatchScore" class="font-bold text-fuchsia-400 text-lg"></span></p>
+                <p class="flex justify-between items-center"><span><span class="inline-block w-6 text-center" id="badge-stat-box"></span>Toplam Açılan Kutu:</span> <span id="publicUserBoxesOpened" class="font-bold text-fuchsia-400 text-lg"></span></p>
+                <p class="flex justify-between items-center"><span><span class="inline-block w-6 text-center" id="badge-stat-wheel"></span>Toplam Çevrilen Çark:</span> <span id="publicUserWheelSpins" class="font-bold text-fuchsia-400 text-lg"></span></p>
+                <p class="flex justify-between items-center"><span><span class="inline-block w-6 text-center" id="badge-stat-clickcatch"></span>Tıkla-Yakala Rekoru:</span> <span id="publicUserClickCatchScore" class="font-bold text-fuchsia-400 text-lg"></span></p>
                 <hr class="border-gray-600 !my-2">
-                <p class="flex justify-between items-center"><span>🎉 Bulunan Sürpriz Kutu:</span> <span id="publicUserSurpriseBoxes" class="font-bold text-fuchsia-400 text-lg"></span></p>
-                <p class="flex justify-between items-center"><span>💣 Bulunan Bomba Sayısı:</span> <span id="publicUserBombCount" class="font-bold text-fuchsia-400 text-lg"></span></p>
-                <p class="flex justify-between items-center"><span>✖️ Bulunan Çarpan Sayısı:</span> <span id="publicUserMultiplierFoundCount" class="font-bold text-fuchsia-400 text-lg"></span></p>
-                <p class="flex justify-between items-center"><span>🛡️ Kullanılan Kalkan Sayısı:</span> <span id="publicUserShieldUsedCount" class="font-bold text-fuchsia-400 text-lg"></span></p>
-                <p class="flex justify-between items-center"><span>🛒 Mağazada Harcanan Puan:</span> <span id="publicUserTotalSpent" class="font-bold text-fuchsia-400 text-lg"></span></p>
+                <p class="flex justify-between items-center"><span><span class="inline-block w-6 text-center" id="badge-stat-surprise"></span>Bulunan Sürpriz Kutu:</span> <span id="publicUserSurpriseBoxes" class="font-bold text-fuchsia-400 text-lg"></span></p>
+                <p class="flex justify-between items-center"><span><span class="inline-block w-6 text-center" id="badge-stat-bomb"></span>Bulunan Bomba Sayısı:</span> <span id="publicUserBombCount" class="font-bold text-fuchsia-400 text-lg"></span></p>
+                <p class="flex justify-between items-center"><span><span class="inline-block w-6 text-center" id="badge-stat-multiplier"></span>Bulunan Çarpan Sayısı:</span> <span id="publicUserMultiplierFoundCount" class="font-bold text-fuchsia-400 text-lg"></span></p>
+                <p class="flex justify-between items-center"><span><span class="inline-block w-6 text-center" id="badge-stat-shield"></span>Kullanılan Kalkan Sayısı:</span> <span id="publicUserShieldUsedCount" class="font-bold text-fuchsia-400 text-lg"></span></p>
+                <p class="flex justify-between items-center"><span><span class="inline-block w-6 text-center" id="badge-stat-store"></span>Mağazada Harcanan Puan:</span> <span id="publicUserTotalSpent" class="font-bold text-fuchsia-400 text-lg"></span></p>
             </div>
         </div>
     </div>
@@ -2001,30 +2001,21 @@ function getUserBadgesHtml(u, leaders, forPublicProfile = false) {
       let crownHtml = '';
       let otherBadges = [];
 
-      const allLeaderBadges = [
-          leaders.isCurrentLeader, leaders.isHighLeader, leaders.isSurpriseLeader,
-          leaders.isBombLeader, leaders.isStoreLeader, leaders.isMultiplierLeader,
-          leaders.isBoxLeader, leaders.isShieldLeader, leaders.isClickCatchLeader
-      ];
-
-      const hasKingCrown = allLeaderBadges.every(Boolean) && allLeaderBadges.length > 0;
+      const hasKingCrown = leaders.isCurrentLeader && leaders.isHighLeader && leaders.isSurpriseLeader &&
+                           leaders.isBombLeader && leaders.isStoreLeader && leaders.isMultiplierLeader &&
+                           leaders.isBoxLeader && leaders.isShieldLeader && leaders.isClickCatchLeader && leaders.isWheelSpinLeader;
 
       if (hasKingCrown) {
           crownHtml = `<span class="text-3xl" title="Tüm Liderlik Rozetlerinin Sahibi!">👑</span>`;
       } 
 
-      if (leaders.isCurrentLeader) otherBadges.push(`<span class="text-xl" title="Mevcut Puan Lideri">🥇</span>`);
-      if (leaders.isHighLeader) otherBadges.push(`<span class="text-xl" title="Ulaşılan En Yüksek Puan Lideri">🏆</span>`);
-      if (leaders.isClickCatchLeader) otherBadges.push(`<span class="text-xl" title="Haftanın Usta Yakalayıcısı">🎯</span>`);
-      if (leaders.isBoxLeader) otherBadges.push(`<span class="text-xl" title="Kutu Lideri">📦</span>`);
-      if (leaders.isSurpriseLeader) otherBadges.push(`<span class="text-xl" title="Sürpriz Kutu Lideri">🎉</span>`);
-      else if (u.surpriseBoxesOpened > 0) otherBadges.push(`<span class="text-xl" title="Sürpriz Kutu Rozeti">🎁</span>`);
-      if (leaders.isBombLeader) otherBadges.push(`<span class="text-xl" title="Bomba Lideri">💣</span>`);
-      if (leaders.isMultiplierLeader) otherBadges.push(`<span class="text-xl" title="Çarpan Lideri">✖️</span>`);
-      if (leaders.isStoreLeader) otherBadges.push(`<span class="text-xl" title="Alışveriş Lideri">🛒</span>`);
-      if (leaders.isShieldLeader) otherBadges.push(`<span class="text-xl" title="İflas Kalkanı Lideri">🛡️</span>`);
-
-      // Eğer profil penceresi için çağrıldıysa, obje olarak dön
+      // Liderlik rozetleri artık istatistiklerin yanında gösterileceği için buradan kaldırıldı.
+      // Sadece genel rozetler (varsa) burada kalır. Örn: Sürpriz kutu bulmuş ama lider değil.
+      if (!leaders.isSurpriseLeader && (u.surpriseBoxesOpened || 0) > 0) {
+          otherBadges.push(`<span class="text-xl" title="Sürpriz Kutu Rozeti">🎁</span>`);
+      }
+      
+      // Eğer profil penceresi için çağrıldıysa, sadece kral tacını ve diğer genel rozetleri dön
       if (forPublicProfile) {
           return {
               crown: crownHtml,
@@ -2032,8 +2023,23 @@ function getUserBadgesHtml(u, leaders, forPublicProfile = false) {
           }
       }
 
-      // Eğer sıralama listesi için çağrıldıysa, eski formatta dön
-      return (hasKingCrown ? `<div class="flex justify-center w-full mb-1">${crownHtml}</div>` : '') + `<div class="flex items-center justify-center gap-2 h-6">${otherBadges.join('')}</div>`;
+      // Eğer sıralama listesi için çağrıldıysa, tüm rozetleri göster
+      const rankingBadges = [];
+      if (leaders.isCurrentLeader) rankingBadges.push(`<span class="text-xl" title="Mevcut Puan Lideri">🥇</span>`);
+      if (leaders.isHighLeader) rankingBadges.push(`<span class="text-xl" title="Ulaşılan En Yüksek Puan Lideri">🏆</span>`);
+      if (leaders.isClickCatchLeader) rankingBadges.push(`<span class="text-xl" title="Tıkla-Yakala Lideri">🎯</span>`);
+      if (leaders.isWheelSpinLeader) rankingBadges.push(`<span class="text-xl" title="Çark Lideri">🎡</span>`);
+      if (leaders.isBoxLeader) rankingBadges.push(`<span class="text-xl" title="Kutu Lideri">📦</span>`);
+      if (leaders.isSurpriseLeader) rankingBadges.push(`<span class="text-xl" title="Sürpriz Kutu Lideri">🎉</span>`);
+      if (leaders.isBombLeader) rankingBadges.push(`<span class="text-xl" title="Bomba Lideri">💣</span>`);
+      if (leaders.isMultiplierLeader) rankingBadges.push(`<span class="text-xl" title="Çarpan Lideri">✖️</span>`);
+      if (leaders.isStoreLeader) rankingBadges.push(`<span class="text-xl" title="Alışveriş Lideri">🛒</span>`);
+      if (leaders.isShieldLeader) rankingBadges.push(`<span class="text-xl" title="Kalkan Lideri">🛡️</span>`);
+      if (!leaders.isSurpriseLeader && (u.surpriseBoxesOpened || 0) > 0) {
+        rankingBadges.push(`<span class="text-xl" title="Sürpriz Kutu Rozeti">🎁</span>`);
+      }
+
+      return (hasKingCrown ? `<div class="flex justify-center w-full mb-1">${crownHtml}</div>` : '') + `<div class="flex items-center justify-center gap-1 h-6">${rankingBadges.join('')}</div>`;
   }
 
   function loadUserRankingsAndBoxCounts() {
@@ -2108,18 +2114,20 @@ function getUserBadgesHtml(u, leaders, forPublicProfile = false) {
             blockedInfo = `<div class="text-red-400 font-bold mt-2">Engelli - Kalan Süre: <span id="countdown-${u.username}">--:--</span></div>`;
         }
 
+        // ... fonksiyonun başı ...
         return `<div class="mb-3 p-3 bg-gray-800 rounded-md border border-gray-700 cursor-pointer hover:bg-gray-700" onclick="openPublicUserDetailModal('${u.username}')">
               <div class="text-center">${userIcons}</div>
-              <div class="flex items-center justify-between mt-1">
+              <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-1 gap-2">
                 <div class="flex items-center text-left">
-                  <span class="font-semibold text-lg text-yellow-300 mr-3">${i + 1}.</span>
-                  <img src="${avatarUrl}" class="w-12 h-12 rounded-md mr-3 object-contain">
-                  <span class="font-semibold text-lg">${u.username}</span>
+                  <span class="font-semibold text-base sm:text-lg text-yellow-300 mr-3 w-8 text-center">${i + 1}.</span>
+                  <img src="${avatarUrl}" class="w-10 h-10 sm:w-12 sm:h-12 rounded-md mr-3 object-contain">
+                  <span class="font-semibold text-base sm:text-lg">${u.username}</span>
                 </div>
-                <span class="text-yellow-400 font-bold">${u.balance || 0} Puan</span>
+                <span class="text-yellow-400 font-bold text-base sm:text-lg w-full sm:w-auto text-right pr-2 sm:pr-0">${u.balance || 0} Puan</span>
               </div>
               ${blockedInfo}
             </div>`;
+// ... fonksiyonun sonu ...
     }).join("");
 
     document.getElementById("allUserRankings").innerHTML = html || "<div class='text-center text-gray-400'>Aramayla eşleşen kullanıcı bulunamadı.</div>";
@@ -2184,7 +2192,8 @@ async function loadLeaderboardRanking() {
 
         Object.entries(usersData).forEach(([username, userData]) => {
             if (username === "weizendtv" || !userData.approved) return;
-            if (leaderUsernames.has(username) || (userData.surpriseBoxesOpened || 0) > 0) {
+            // SADECE GERÇEK LİDERLERİ ALAN DÜZELTİLMİŞ KONTROL
+            if (leaderUsernames.has(username)) {
                 const userLeaderStatus = {
                     isCurrentLeader: username === leaders.currentBalanceUser,
                     isHighLeader: username === leaders.highEverBalanceUser,
@@ -3900,6 +3909,7 @@ async function openPublicUserDetailModal(username) {
         clearInterval(activeBlockedUserTimers[username]);
         delete activeBlockedUserTimers[username];
     }
+    publicUserDetailModal.dataset.viewingUser = username;
 
     const userSnap = await db.ref('users/' + username).once('value');
     const userData = userSnap.val(); 
@@ -3925,17 +3935,19 @@ async function openPublicUserDetailModal(username) {
     document.getElementById('publicUserAvatar').src = avatarUrl;
     document.getElementById('publicUserName').textContent = username;
 
+    // Sadece genel rozetler (Kral Tacı ve Sürpriz Kutu bulan) üstte gösterilir
     const badges = getUserBadgesHtml(userData, userLeaderStatus, true);
     document.getElementById('publicUserKingBadge').innerHTML = badges.crown;
     document.getElementById('publicUserOtherBadges').innerHTML = badges.others;
 
+    // Puan ve Envanter Bilgileri
     document.getElementById('publicUserBalance').textContent = userData.balance || 0;
     document.getElementById('publicUserHighestBalance').textContent = userData.highestBalanceEver || 0;
     document.getElementById('publicUserBoxRight').textContent = userData.kutuHakki || 0;
     document.getElementById('publicUserWheelTickets').textContent = userData.carkBileti || 0;
     document.getElementById('publicUserClickCatchTickets').textContent = userData.clickCatchTickets || 0;
     document.getElementById('publicUserIflasShield').textContent = userData.iflasShieldUses || 0;
-
+    
     let multiplierText = 'Yok';
     if (userData.multiplierSource === 'store' && userData.multiplierRemainingUses > 0) {
       multiplierText = `${userData.activeMultiplier}x (Mağaza - ${userData.multiplierRemainingUses} kullanım)`;
@@ -3944,6 +3956,7 @@ async function openPublicUserDetailModal(username) {
     }
     document.getElementById('publicUserMultiplier').textContent = multiplierText;
 
+    // İstatistik Bilgileri
     document.getElementById('publicUserBoxesOpened').textContent = userData.boxesOpenedCount || 0;
     document.getElementById('publicUserWheelSpins').textContent = userData.wheelSpinsCount || 0;
     document.getElementById('publicUserClickCatchScore').textContent = userData.clickCatchHighestScore || 0;
@@ -3952,7 +3965,21 @@ async function openPublicUserDetailModal(username) {
     document.getElementById('publicUserMultiplierFoundCount').textContent = userData.multiplierFoundCount || 0;
     document.getElementById('publicUserShieldUsedCount').textContent = userData.iflasShieldUsedCount || 0;
     document.getElementById('publicUserTotalSpent').textContent = userData.totalSpentPoints || 0;
+    
+    // İstatistiklerin yanındaki rozetleri temizle ve yeniden doldur
+    const statBadgeIds = ['box', 'wheel', 'clickcatch', 'surprise', 'bomb', 'multiplier', 'shield', 'store'];
+    statBadgeIds.forEach(id => document.getElementById(`badge-stat-${id}`).innerHTML = '');
 
+    if (userLeaderStatus.isBoxLeader) document.getElementById('badge-stat-box').innerHTML = '📦';
+    if (userLeaderStatus.isWheelSpinLeader) document.getElementById('badge-stat-wheel').innerHTML = '🎡';
+    if (userLeaderStatus.isClickCatchLeader) document.getElementById('badge-stat-clickcatch').innerHTML = '🎯';
+    if (userLeaderStatus.isSurpriseLeader) document.getElementById('badge-stat-surprise').innerHTML = '🎉';
+    if (userLeaderStatus.isBombLeader) document.getElementById('badge-stat-bomb').innerHTML = '💣';
+    if (userLeaderStatus.isMultiplierLeader) document.getElementById('badge-stat-multiplier').innerHTML = '✖️';
+    if (userLeaderStatus.isShieldLeader) document.getElementById('badge-stat-shield').innerHTML = '🛡️';
+    if (userLeaderStatus.isStoreLeader) document.getElementById('badge-stat-store').innerHTML = '🛒';
+
+    // Engelli Durumu
     const blockedInfoDiv = document.getElementById('publicUserBlockedInfo');
     const countdownEl = document.getElementById('publicUserBlockedCountdown');
     const isCurrentlyBlocked = userData.blocked && userData.blockedUntil && Date.now() < userData.blockedUntil;
@@ -3975,7 +4002,7 @@ async function openPublicUserDetailModal(username) {
     } else {
         blockedInfoDiv.classList.add('hidden');
     }
-publicUserDetailModal.dataset.viewingUser = username;
+
     publicUserDetailModal.style.display = 'flex';
 }
   
