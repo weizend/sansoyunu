@@ -355,7 +355,7 @@
       </button>
        <button id="clickCatchTabBtn" onclick="showSection('clickCatch')"
               class="relative py-3 px-8 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
-        Tıkla ve Yakala
+        Tıkla-Yakala
       </button>
       <button id="storeTabBtn" onclick="showSection('store')"
               class="relative py-3 px-8 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
@@ -417,7 +417,7 @@
         <div id="clickCatchContent" class="w-full hidden">
     
             <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700 text-center">
-                <h3 class="text-yellow-400 text-3xl font-bold mb-4">Tıkla ve Yakala</h3>
+                <h3 class="text-yellow-400 text-3xl font-bold mb-4">Tıkla-Yakala</h3>
         
                 <div id="clickCatchAdminButtonsContainer" class="hidden bg-gray-900/50 p-4 rounded-lg border border-yellow-500 mb-6 flex justify-center gap-4">
                     <button onclick="openSoloGameSettingsModal()" class="py-3 px-6 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg shadow-md">
@@ -965,7 +965,7 @@
     <p><span id="managedBadgeMultiplier" class="inline-block w-6 text-center"></span>Bulunan Çarpan Sayısı: <span id="managedUserMultiplierFoundCount" class="font-bold text-fuchsia-400"></span></p>
     <p><span id="managedBadgeStore" class="inline-block w-6 text-center"></span>Mağazada Harcanan Puan: <span id="managedUserTotalSpent" class="font-bold text-fuchsia-400"></span></p>
     <p><span id="managedBadgeShield" class="inline-block w-6 text-center"></span>Kullanılan Kalkan Sayısı: <span id="managedUserShieldUsedCount" class="font-bold text-fuchsia-400"></span></p>
-    <p><span id="managedBadgeClickCatch" class="inline-block w-6 text-center"></span>Tıkla ve Yakala Toplanan Puan: <span id="managedUserClickCatchScore" class="font-bold text-fuchsia-400"></span></p>
+    <p><span id="managedBadgeClickCatch" class="inline-block w-6 text-center"></span>Tıkla-Yakala Toplanan Puan: <span id="managedUserClickCatchScore" class="font-bold text-fuchsia-400"></span></p>
 </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1046,7 +1046,7 @@
   <p><span id="publicBadgeMultiplier" class="inline-block w-6 text-center"></span>Bulunan Çarpan Sayısı: <span id="publicUserMultiplierFoundCount" class="font-bold text-fuchsia-400"></span></p>
   <p><span id="publicBadgeShield" class="inline-block w-6 text-center"></span>Kullanılan Kalkan Sayısı: <span id="publicUserShieldUsedCount" class="font-bold text-fuchsia-400"></span></p>
   <p><span id="publicBadgeStore" class="inline-block w-6 text-center"></span>Mağazada Harcanan Puan: <span id="publicUserTotalSpent" class="font-bold text-fuchsia-400"></span></p>
-  <p><span id="publicBadgeClickCatch" class="inline-block w-6 text-center"></span>Tıkla ve Yakala Toplanan Puan: <span id="publicUserClickCatchScore" class="font-bold text-fuchsia-400"></span></p>
+  <p><span id="publicBadgeClickCatch" class="inline-block w-6 text-center"></span>Tıkla-Yakala Toplanan Puan: <span id="publicUserClickCatchScore" class="font-bold text-fuchsia-400"></span></p>
 </div>
      <button onclick="closePublicUserDetailModal()"
             class="w-full py-3 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
@@ -1158,7 +1158,7 @@
               <span class="text-3xl w-10 text-center mr-4">🎯</span>
               <div>
                   <h5 class="font-bold text-yellow-300">Yakalayıcı Lideri</h5>
-                  <p class="text-gray-300">"Tıkla ve Yakala" oyununda liderlik tablosunda birinci olan kullanıcı.</p>
+                  <p class="text-gray-300">"Tıkla-Yakala" oyununda liderlik tablosunda birinci olan kullanıcı.</p>
               </div>
           </div>
   </div>
@@ -1252,7 +1252,7 @@
       
       <div class="mt-6 pt-4 border-t border-gray-600">
           <button onclick="resetClickCatchLeaderboard()" class="w-full py-2 px-4 bg-red-800 hover:bg-red-700 text-white font-bold rounded-lg shadow-md">
-              Tıkla ve Yakala Sıralamasını Sıfırla
+              Tıkla-Yakala Sıralamasını Sıfırla
           </button>
       </div>
   </div>
@@ -1356,6 +1356,21 @@
   }
 
   const db = firebase.database();
+  
+  // --- YENİ: Listener (Dinleyici) Yönetimi ---
+  let activeListeners = {};
+  function detachAllListeners() {
+      console.log("Tüm Firebase dinleyicileri kapatılıyor...");
+      for (const key in activeListeners) {
+          const listener = activeListeners[key];
+          if (listener && listener.ref && listener.event && listener.callback) {
+              listener.ref.off(listener.event, listener.callback);
+          }
+      }
+      activeListeners = {};
+      console.log("Dinleyiciler kapatıldı.");
+  }
+  // --- YENİ KOD BİTİŞ ---
   const auth = firebase.auth();
 
   // Global değişkenler
@@ -1904,35 +1919,24 @@ if (isAdmin) {
 // MEVCUT logout FONKSİYONUNU SİLİP YERİNE BU KODU KOMPLE YAPIŞTIR
 
 async function logout() {
-    // 1. Kullanıcıdan "Emin misin?" diye onay al
     const confirmed = await customConfirm("Çıkış yapmak istediğinize emin misiniz?");
-    if (!confirmed) {
-        return; // Eğer "Hayır" derse, fonksiyondan çık ve hiçbir şey yapma
-    }
+    if (!confirmed) return;
 
-    // 2. Firebase'den çıkış yapma işlemini başlat
+    // --- YENİ: Önce tüm listener'ları kapatıyoruz ---
+    detachAllListeners();
+
     auth.signOut().then(() => {
-        // 3. Arayüzü manuel olarak sıfırla (sayfayı yenilemek yerine)
         document.getElementById("gameDiv").style.display = "none";
         document.getElementById("loginContainer").style.display = "block";
         
-        // Aktivite Akışı (çan) butonunu gizle
-        if (activityBellContainer) {
-            activityBellContainer.classList.add('hidden');
-        }
-        // Aktivite panelini de gizle (eğer açıksa)
-        if (activityFeedPanel) {
-            activityFeedPanel.classList.add('hidden');
-        }
+        if (activityBellContainer) activityBellContainer.classList.add('hidden');
+        if (activityFeedPanel) activityFeedPanel.classList.add('hidden');
 
-        // Giriş/Kayıt sekmelerini varsayılan haline getir
         switchAuthTab('login');
         
-        // 4. Global değişkenleri ve zamanlayıcıları temizle
         currentUser = null;
         isAdmin = false;
         
-        // Çalışan interval'ler varsa temizle (hata almamak için önemli)
         if (countdownInterval) clearInterval(countdownInterval);
         if (globalCountdownInterval) clearInterval(globalCountdownInterval);
         if (clickCatchTimerInterval) clearInterval(clickCatchTimerInterval);
@@ -1940,7 +1944,6 @@ async function logout() {
         Object.values(activeBlockedUserTimers).forEach(clearInterval);
         activeBlockedUserTimers = {};
         
-        // location.reload() yerine bu yöntem daha temiz bir geçiş sağlar.
         console.log("Kullanıcı başarıyla çıkış yaptı.");
         
     }).catch((error) => {
@@ -1948,14 +1951,13 @@ async function logout() {
         displayMessage("Çıkış yapılırken bir sorun oluştu.");
     });
 }
-
-  // Bakiye ve durum yükleme
   function loadBalanceAndBoxRights() {
     if (isAdmin) {
       document.getElementById("balance").textContent = "Admin Paneli Aktif";
       return;
     }
-    db.ref('users/' + currentUser).on('value', snap => {
+    const ref = db.ref('users/' + currentUser);
+    const callback = snap => {
       const userData = snap.val();
       if (!userData) return;
       
@@ -1967,9 +1969,7 @@ async function logout() {
       
       let statusText = `Mevcut Puan: ${userData.balance || 0} | Kutu Hakkı: ${userData.kutuHakki || 0}`;
       if ((userData.carkBileti || 0) > 0) statusText += ` | 🎡 Çark Bileti: ${userData.carkBileti}`;
-      // YENİ EKLENEN BİLET GÖSTERİMİ
       if ((userData.clickCatchTickets || 0) > 0) statusText += ` | 🎯 Yakalama Bileti: ${userData.clickCatchTickets}`;
-      // YENİ EKLENEN BİLET GÖSTERİMİ BİTİŞ
       if (userData.iflasShieldUses > 0) statusText += ` | 🛡️ Kalkan: ${userData.iflasShieldUses}`;
       if (userData.multiplierSource === 'store' && userData.multiplierRemainingUses > 0) statusText += ` | ✖️ Çarpan: ${userData.activeMultiplier}x (${userData.multiplierRemainingUses} kullanım)`;
       else if (userData.multiplierSource === 'box') statusText += ` | ✖️ Çarpan: ${userData.activeMultiplier}x (Otomatik)`;
@@ -1978,9 +1978,12 @@ async function logout() {
       document.getElementById('storeCurrentUserBalance').textContent = userData.balance || 0;
       document.getElementById('storeCurrentUserSpent').textContent = userData.totalSpentPoints || 0;
       document.getElementById('wheelTicketBalance').textContent = userData.carkBileti || 0;
-    });
+    };
+    
+    activeListeners.balance = { ref, event: 'value', callback };
+    ref.on('value', callback);
   }
-
+  
   function getUserBadgesHtml(u, leaders) {
       let crownHtml = '';
       let otherBadgesHtml = '';
@@ -2028,20 +2031,21 @@ async function logout() {
   }
 
   function loadUserRankingsAndBoxCounts() {
-    db.ref('users').on('value', userSnap => {
+    const ref = db.ref('users');
+    const callback = userSnap => {
         const usersData = userSnap.val();
         if (!usersData) {
-            allUsersCache = []; // Veri yoksa önbelleği temizle
+            allUsersCache = [];
         } else {
-            // Tüm kullanıcı verilerini işle ve önbelleğe al
             allUsersCache = Object.entries(usersData)
-                .filter(([username, userData]) => username !== 'weizendtv' && userData.approved)
+                .filter(([username, userData]) => username.toLowerCase() !== 'weizendtv' && userData.approved)
                 .map(([username, userData]) => ({ username, ...userData }));
         }
-        // Veri güncellendiğinde, listeyi yeniden çiz
         renderUserRankings(); 
-    });
-}
+    };
+    activeListeners.userRankings = { ref, event: 'value', callback };
+    ref.on('value', callback);
+  }
 
   // YENİ FONKSİYON: Kullanıcıları arama filtresine göre ekrana çizer
 async function renderUserRankings() {
@@ -2118,7 +2122,8 @@ async function renderUserRankings() {
     document.getElementById("totalUsers").textContent = allUsersCache.length; // Toplam kullanıcı sayısı değişmez
 }
   function loadLeaderboardRanking() {
-    db.ref('users').on('value', async snap => {
+    const ref = db.ref('users');
+    const callback = async snap => {
         const currentClickCatchLeader = await getClickCatchLeaderUsername();
         let usersData = snap.val();
         if (!usersData) {
@@ -2138,7 +2143,7 @@ async function renderUserRankings() {
         };
 
         for (const u in usersData) {
-            if (u === 'weizendtv' || !usersData[u].approved) continue;
+            if (u.toLowerCase() === 'weizendtv' || !usersData[u].approved) continue;
 
             const userData = usersData[u];
             if ((userData.balance || 0) > leaders.highestCurrentBalance && userData.balance > 0) { leaders.highestCurrentBalance = userData.balance; leaders.currentBalanceUser = u; }
@@ -2151,33 +2156,22 @@ async function renderUserRankings() {
             if ((userData.iflasShieldUsedCount || 0) > leaders.maxShieldUsed && userData.iflasShieldUsedCount > 0) { leaders.maxShieldUsed = userData.iflasShieldUsedCount; leaders.shieldUser = u; }
         }
 
-        // --- DEĞİŞİKLİK BURADA BAŞLIYOR ---
-
         let leaderUsers = [];
-        // Önce tüm liderlerin kullanıcı adlarını bir sete ekleyelim.
         const leaderUsernames = new Set([
-            leaders.currentBalanceUser,
-            leaders.highEverBalanceUser, // En Yüksek Puan Lideri'ni de ekliyoruz
-            leaders.surpriseBoxUser,
-            leaders.bombUser,
-            leaders.spentPointsUser,
-            leaders.multiplierUser,
-            leaders.boxUser,
-            leaders.shieldUser,
-            currentClickCatchLeader
+            leaders.currentBalanceUser, leaders.highEverBalanceUser, leaders.surpriseBoxUser,
+            leaders.bombUser, leaders.spentPointsUser, leaders.multiplierUser,
+            leaders.boxUser, leaders.shieldUser, currentClickCatchLeader
         ]);
         
-        // `null` değerleri setten temizleyelim
         leaderUsernames.delete(null);
 
         Object.entries(usersData).forEach(([username, userData]) => {
             if (username === "weizendtv" || !userData.approved) return;
 
-            // Bir kullanıcı, LİDERLERDEN BİRİYSE veya SÜRPRİZ KUTU AÇMIŞSA listeye dahil edilir.
             if (leaderUsernames.has(username) || (userData.surpriseBoxesOpened || 0) > 0) {
                 const userLeaderStatus = {
                     isCurrentLeader: username === leaders.currentBalanceUser,
-                    isHighLeader: username === leaders.highEverBalanceUser, // Liderlik durumunu yine de kontrol ediyoruz
+                    isHighLeader: username === leaders.highEverBalanceUser,
                     isSurpriseLeader: username === leaders.surpriseBoxUser,
                     isBombLeader: username === leaders.bombUser,
                     isStoreLeader: username === leaders.spentPointsUser,
@@ -2189,8 +2183,6 @@ async function renderUserRankings() {
                 leaderUsers.push({ username, ...userData, ...userLeaderStatus });
             }
         });
-
-        // --- DEĞİŞİKLİK BURADA BİTİYOR ---
 
         leaderUsers.sort((a, b) => {
             const aBadgeCount = Object.values(a).filter(val => val === true).length;
@@ -2210,62 +2202,75 @@ async function renderUserRankings() {
         }).join("");
 
         document.getElementById("badgedUsersRanking").innerHTML = html || "<div class='text-center text-gray-400'>Henüz lider kullanıcı yok.</div>";
-    });
-}
+    };
+    activeListeners.leaderboard = { ref, event: 'value', callback };
+    ref.on('value', callback);
+  }
+  
   function loadPendingUsers() {
-    db.ref('users').on('value', snap => {
+    const ref = db.ref('users');
+    const callback = snap => {
       const data = snap.val();
       let html = "";
-      for (const u in data) {
-        if (data[u].approved === false) {
-          html += `<div class="flex justify-between items-center p-3 mb-2 bg-gray-700 rounded-md border-l-4 border-red-500">
-            <span class="text-gray-200">${u}</span>
-            <div class="flex space-x-2">
-            <button onclick="approveUser('${u}')" class="py-1 px-3 bg-green-600 hover:bg-green-500 text-white text-sm font-bold rounded-md">Onayla</button>
-            <button onclick="denyUser('${u}', true)" class="py-1 px-3 bg-red-600 hover:bg-red-500 text-white text-sm font-bold rounded-md">Sil</button></div></div>`;
-        }
+      if (data) {
+          for (const u in data) {
+            if (data[u].approved === false) {
+              html += `<div class="flex justify-between items-center p-3 mb-2 bg-gray-700 rounded-md border-l-4 border-red-500">
+                <span class="text-gray-200">${u}</span>
+                <div class="flex space-x-2">
+                <button onclick="approveUser('${u}')" class="py-1 px-3 bg-green-600 hover:bg-green-500 text-white text-sm font-bold rounded-md">Onayla</button>
+                <button onclick="denyUser('${u}', true)" class="py-1 px-3 bg-red-600 hover:bg-red-500 text-white text-sm font-bold rounded-md">Sil</button></div></div>`;
+            }
+          }
       }
       document.getElementById("pendingUsers").innerHTML = html || "<div class='text-center text-gray-400'>Onay bekleyen kullanıcı yok.</div>";
-    });
+    };
+    activeListeners.pendingUsers = { ref, event: 'value', callback };
+    ref.on('value', callback);
   }
 
   function loadAllUsers() {
-    db.ref('users').on('value', snap => {
+    const ref = db.ref('users');
+    const callback = snap => {
       const data = snap.val();
       let html = "";
-      for (const u in data) {
-        if (u.toLowerCase() === "weizendtv") continue;
-        const user = data[u];
-        let blockedStatusHtml = '';
-        const isCurrentlyBlocked = user.blocked && user.blockedUntil && Date.now() < user.blockedUntil;
-        if (isCurrentlyBlocked) {
-            blockedStatusHtml = `<span class="text-red-400">(Engelli - <span id="admin-countdown-${u}">--:--</span>)</span>`;
-            if (!activeBlockedUserTimers[u]) {
-                const timerId = setInterval(() => {
-                    const timeLeft = user.blockedUntil - Date.now();
-                    const el = document.getElementById(`admin-countdown-${u}`);
-                    if (timeLeft <= 0) {
-                        clearInterval(timerId);
-                        if(el) el.parentElement.innerHTML = '<span class="text-green-400">(Engel Kalktı)</span>';
-                    } else {
-                        const minutes = Math.floor(timeLeft / 60000);
-                        const seconds = Math.floor((timeLeft % 60000) / 1000).toString().padStart(2, '0');
-                        if(el) el.textContent = `${minutes}:${seconds}`;
-                    }
-                }, 1000);
-                activeBlockedUserTimers[u] = timerId;
+      if (data) {
+          for (const u in data) {
+            if (u.toLowerCase() === "weizendtv") continue;
+            const user = data[u];
+            let blockedStatusHtml = '';
+            const isCurrentlyBlocked = user.blocked && user.blockedUntil && Date.now() < user.blockedUntil;
+            if (isCurrentlyBlocked) {
+                blockedStatusHtml = `<span class="text-red-400">(Engelli - <span id="admin-countdown-${u}">--:--</span>)</span>`;
+                if (!activeBlockedUserTimers[u]) {
+                    const timerId = setInterval(() => {
+                        const timeLeft = user.blockedUntil - Date.now();
+                        const el = document.getElementById(`admin-countdown-${u}`);
+                        if (timeLeft <= 0) {
+                            clearInterval(timerId);
+                            if(el) el.parentElement.innerHTML = '<span class="text-green-400">(Engel Kalktı)</span>';
+                        } else {
+                            const minutes = Math.floor(timeLeft / 60000);
+                            const seconds = Math.floor((timeLeft % 60000) / 1000).toString().padStart(2, '0');
+                            if(el) el.textContent = `${minutes}:${seconds}`;
+                        }
+                    }, 1000);
+                    activeBlockedUserTimers[u] = timerId;
+                }
+            } else if (user.blocked) {
+                blockedStatusHtml = `<span class="text-green-400">(Engel Süresi Doldu)</span>`;
             }
-        } else if (user.blocked) {
-            blockedStatusHtml = `<span class="text-green-400">(Engel Süresi Doldu)</span>`;
-        }
 
-        html += `<div class="flex items-center justify-between p-3 mb-2 bg-gray-700 rounded-md border-l-4 border-blue-500 cursor-pointer" onclick="openUserManagementModal('${u}')">
-            <span class="text-gray-200">${u} ${blockedStatusHtml}</span>
-            <span class="text-yellow-300">Puan: ${user.balance || 0}</span>
-            </div>`;
+            html += `<div class="flex items-center justify-between p-3 mb-2 bg-gray-700 rounded-md border-l-4 border-blue-500 cursor-pointer" onclick="openUserManagementModal('${u}')">
+                <span class="text-gray-200">${u} ${blockedStatusHtml}</span>
+                <span class="text-yellow-300">Puan: ${user.balance || 0}</span>
+                </div>`;
+          }
       }
       document.getElementById("allUsers").innerHTML = html || "<div class='text-center text-gray-400'>Kullanıcı yok.</div>";
-    });
+    };
+    activeListeners.allUsers = { ref, event: 'value', callback };
+    ref.on('value', callback);
   }
   
   function displayMessage(message) { document.getElementById('generalMessageContent').innerHTML = message; generalMessageModal.style.display = 'flex'; }
@@ -2395,7 +2400,7 @@ function adjustUserClickCatchTickets(add) {
         // 1. Ana kullanıcı verisini silmek için hazırlıyoruz.
         updates[`users/${user}`] = null;
 
-        // 2. Haftalık "Tıkla ve Yakala" skor tablosundaki kaydını siliyoruz.
+        // 2. Haftalık "Tıkla-Yakala" skor tablosundaki kaydını siliyoruz.
         // Rozetlerin geri gelmesinin ana sebebi bu kaydın kalmasıydı.
         updates[`clickCatchWeeklyScores/${user}`] = null;
         
@@ -2514,7 +2519,20 @@ function adjustUserClickCatchTickets(add) {
     db.ref('gameStats/boxesOpenedByUsers').remove(); 
   }
   
-  function loadBoxes() { db.ref('boxes').on('value', snap => { if (!snap.exists()) { createBoxes(); } else { boxes = snap.val(); renderBoxes(); loadTotalOpenedBoxesCount(); } }); }
+  function loadBoxes() {
+    const ref = db.ref('boxes');
+    const callback = snap => {
+        if (!snap.exists()) {
+            createBoxes();
+        } else {
+            boxes = snap.val();
+            renderBoxes();
+        }
+    };
+    activeListeners.boxes = { ref, event: 'value', callback };
+    ref.on('value', callback);
+  }
+  
   function renderBoxes() { 
       const container = document.getElementById("boxContainer"); 
       container.innerHTML = ''; 
@@ -2862,7 +2880,20 @@ async function openBox(index) {
     }
   }
 
-  function loadTotalOpenedBoxesCount() { db.ref('boxes').on('value', snap => { const allBoxes = snap.val(); let openedCount = 0; if (allBoxes) { openedCount = allBoxes.filter(box => box.opened).length; } document.getElementById('totalOpenedBoxesCount').textContent = openedCount; }); }
+  function loadTotalOpenedBoxesCount() {
+    const ref = db.ref('boxes');
+    const callback = snap => {
+        const allBoxes = snap.val();
+        let openedCount = 0;
+        if (allBoxes) {
+            openedCount = allBoxes.filter(box => box.opened).length;
+        }
+        document.getElementById('totalOpenedBoxesCount').textContent = openedCount;
+    };
+    activeListeners.totalOpenedBoxes = { ref, event: 'value', callback };
+    ref.on('value', callback);
+  }
+  
   function searchUsers() { const term = document.getElementById("searchUser").value.trim().toLowerCase(); db.ref('users').once('value').then(snap => { const data = snap.val(); let html = ""; for (const u in data) { if (u.toLowerCase().includes(term) && u !== 'weizendtv') { html += `<div class="flex items-center justify-between p-3 mb-2 bg-gray-700 rounded-md border-l-4 border-blue-500 cursor-pointer" onclick="openUserManagementModal('${u}')"><span>${u}</span></div>`; } } document.getElementById("allUsers").innerHTML = html || "Kullanıcı bulunamadı."; }); }
   
   function displayBlockedMessage(blockedUntil, username) {
@@ -3018,10 +3049,13 @@ async function openBox(index) {
   }
   
   function loadStoreItems() {
-    storeItemsRef.on('value', snap => {
+    const ref = storeItemsRef;
+    const callback = snap => {
         const items = snap.val();
         renderStoreItems(items);
-    });
+    };
+    activeListeners.storeItems = { ref, event: 'value', callback };
+    ref.on('value', callback);
   }
   
   function updateStoreCountdowns() {
@@ -3859,10 +3893,10 @@ for (const u in allUsersData) {
     selectedUserForManagement = null; 
   }
 
-  // Özel Ürün Onay Sistemi
   function loadPendingSpecialPurchases() {
     const list = document.getElementById('pendingSpecialPurchasesList');
-    db.ref('pendingSpecialPurchases').on('value', snap => {
+    const ref = db.ref('pendingSpecialPurchases');
+    const callback = snap => {
         const purchases = snap.val();
         let html = '';
         if (!purchases || Object.keys(purchases).length === 0) {
@@ -3885,7 +3919,9 @@ for (const u in allUsersData) {
             `;
         }
         list.innerHTML = html;
-    });
+    };
+    activeListeners.pendingPurchases = { ref, event: 'value', callback };
+    ref.on('value', callback);
   }
 
   async function approveSpecialPurchase(purchaseId, username) {
@@ -3946,18 +3982,24 @@ for (const u in allUsersData) {
   let globalCountdownInterval = null;
 
   function listenForGameChanges() {
-    db.ref('gameLock').on('value', snap => {
+    const gameLockRef = db.ref('gameLock');
+    const gameLockCallback = snap => {
         isGameLocked = snap.val() === true;
-    });
+    };
+    activeListeners.gameLock = { ref: gameLockRef, event: 'value', callback: gameLockCallback };
+    gameLockRef.on('value', gameLockCallback);
 
-    db.ref('lastOpenedBox').on('value', snap => {
+    const lastOpenedBoxRef = db.ref('lastOpenedBox');
+    const lastOpenedBoxCallback = snap => {
         const info = snap.val();
-        if (info && (Date.now() - info.timestamp < 10000)) { 
+        if (info && (Date.now() - info.timestamp < 10000)) {
             if (info.content !== 'surpriz') {
                 showGlobalOpenedBoxInfo(info);
             }
         }
-    });
+    };
+    activeListeners.lastOpenedBox = { ref: lastOpenedBoxRef, event: 'value', callback: lastOpenedBoxCallback };
+    lastOpenedBoxRef.on('value', lastOpenedBoxCallback);
   }
 
   function showGlobalOpenedBoxInfo(info) {
@@ -4085,8 +4127,9 @@ for (const u in allUsersData) {
     function loadAnnouncements() {
         const listEl = document.getElementById('announcementsList');
         const userRef = db.ref(`users/${currentUser}`);
+        const ref = db.ref('announcements').orderByChild('timestamp');
 
-        db.ref('announcements').orderByChild('timestamp').on('value', async (snap) => {
+        const callback = async (snap) => {
             listEl.innerHTML = '';
             const announcements = snap.val();
 
@@ -4103,7 +4146,6 @@ for (const u in allUsersData) {
             
             sortedAnnouncements.forEach(([id, ann]) => {
                 const date = new Date(ann.timestamp).toLocaleString('tr-TR');
-                
                 const processedText = ann.text.replace(/@(\w+)/g, (match, username) => {
                     const isCurrentUserMention = username.toLowerCase() === (currentUser || '').toLowerCase();
                     const highlightClass = isCurrentUserMention ? 'user-mention highlighted' : 'user-mention';
@@ -4150,7 +4192,10 @@ for (const u in allUsersData) {
                     }
                 }
             });
-        });
+        };
+
+        activeListeners.announcements = { ref, event: 'value', callback };
+        ref.on('value', callback);
     }
 
     async function likeAnnouncement(announcementId) {
@@ -4175,10 +4220,10 @@ for (const u in allUsersData) {
     }
     
     function listenForNewAnnouncements() {
-        const announcementsRef = db.ref('announcements');
+        const ref = db.ref('announcements').orderByChild('timestamp').limitToLast(1);
         const userRef = db.ref(`users/${currentUser}`);
 
-        announcementsRef.orderByChild('timestamp').limitToLast(1).on('child_added', async (snap) => {
+        const callback = async (snap) => {
             const latestAnn = snap.val();
             if (!latestAnn) return;
             
@@ -4192,7 +4237,10 @@ for (const u in allUsersData) {
                 newAnnouncementModal.style.display = 'flex';
                 document.getElementById('announcementIndicator').classList.remove('hidden');
             }
-        });
+        };
+
+        activeListeners.newAnnouncements = { ref, event: 'child_added', callback };
+        ref.on('child_added', callback);
     }
 
     function closeNewAnnouncementModal() {
@@ -4644,26 +4692,29 @@ async function claimDailyReward(rewardId) {
     }
   
     function listenForDailyRewardChanges() {
-        const rewardsRef = db.ref('dailyRewardOptions');
-        rewardsRef.on('value', snap => {
+        const ref = db.ref('dailyRewardOptions');
+        const callback = snap => {
             if (dailyRewardModal.style.display === 'flex') {
                 openDailyRewardModal();
             }
             checkAvailableDailyRewards();
-        });
+        };
+        activeListeners.dailyRewards = { ref, event: 'value', callback };
+        ref.on('value', callback);
     }
   
     function listenForAdminNotifications() {
-      const notificationsRef = db.ref(`users/${currentUser}/notifications`);
-      notificationsRef.orderByChild('timestamp').startAt(sessionStartTime).on('child_added', snap => {
+      const ref = db.ref(`users/${currentUser}/notifications`);
+      const callback = snap => {
           const notification = snap.val();
           if (notification && notification.message) {
               displayMessage(notification.message);
               snap.ref.remove();
           }
-        
-      });
-    }
+      };
+      activeListeners.adminNotifications = { ref: ref.orderByChild('timestamp').startAt(sessionStartTime), event: 'child_added', callback };
+      ref.orderByChild('timestamp').startAt(sessionStartTime).on('child_added', callback);
+  }
   
     function openBoxStatsModal() {
       const listEl = document.getElementById('boxStatsList');
@@ -4692,9 +4743,13 @@ async function claimDailyReward(rewardId) {
 
 function listenForSurpriseBox() {
     const sessionRef = db.ref('surprise_box_session');
-    if (surpriseSessionListener) sessionRef.off('value', surpriseSessionListener);
+    
+    // Önceki listener'ı kapat (eğer varsa), bu fonksiyon özel bir durum
+    if (activeListeners.surpriseBox) {
+        activeListeners.surpriseBox.ref.off(activeListeners.surpriseBox.event, activeListeners.surpriseBox.callback);
+    }
 
-    surpriseSessionListener = sessionRef.on('value', snap => {
+    const callback = snap => {
         const sessionData = snap.val();
 
         if (sessionData && sessionData.active && sessionData.result && sessionData.user !== currentUser) {
@@ -4702,7 +4757,6 @@ function listenForSurpriseBox() {
         }
 
         if (sessionData && sessionData.active && sessionData.result && sessionData.user === currentUser) {
-            // --- YENİ EKLENEN SATIR: Sürpriz kutu kazancını Son Eylemler'e kaydet ---
             logActivity('surpriseBox', sessionData.user, { points: sessionData.result.points });
 
             closeCardSelectionModal();
@@ -4712,7 +4766,10 @@ function listenForSurpriseBox() {
                 sessionRef.remove();
             }, 4000);
         }
-    });
+    };
+
+    activeListeners.surpriseBox = { ref: sessionRef, event: 'value', callback };
+    sessionRef.on('value', callback);
 }
 
   function showGlobalSurpriseBoxNotification(data) {
@@ -5037,7 +5094,7 @@ async function resetClickCatchLeaderboard() {
     }
 
     const confirmed = await customConfirm(
-        "Tüm 'Tıkla ve Yakala' sıralamasını ve tüm kullanıcıların kişisel rekorlarını kalıcı olarak silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!"
+        "Tüm 'Tıkla-Yakala' sıralamasını ve tüm kullanıcıların kişisel rekorlarını kalıcı olarak silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!"
     );
 
     if (!confirmed) {
@@ -5072,10 +5129,10 @@ async function resetClickCatchLeaderboard() {
         // 3. Global lider değişkenini temizle
         clickCatchLeader = null;
 
-        displayMessage("Tüm Tıkla ve Yakala sıralaması ve kişisel rekorlar başarıyla sıfırlandı.");
+        displayMessage("Tüm Tıkla-Yakala sıralaması ve kişisel rekorlar başarıyla sıfırlandı.");
         
     } catch (error) {
-        console.error("Tıkla ve Yakala sıralaması sıfırlanırken hata oluştu:", error);
+        console.error("Tıkla-Yakala sıralaması sıfırlanırken hata oluştu:", error);
         displayMessage("Sıfırlama işlemi sırasında bir hata meydana geldi.");
     }
 }
@@ -5237,17 +5294,16 @@ async function clearLastWinner() {
         displayMessage("Son kazanan bilgisi başarıyla silindi.");
     }
 }
-// YENİ: Son lobi kazananını dinler ve ekranda gösterir
+  
 function listenForLastWinner() {
-    const lastWinnerRef = db.ref('clickCatchLobbyLastWinner');
+    const ref = db.ref('clickCatchLobbyLastWinner');
     const container = document.getElementById('lastWinnerContainer');
     const infoEl = document.getElementById('lastWinnerInfo');
 
-    lastWinnerRef.on('value', snap => {
+    const callback = snap => {
         const winnerData = snap.val();
         if (winnerData && winnerData.username) {
             let deleteButton = '';
-            // YENİ KOD: Sadece admin için silme butonu
             if (isAdmin) {
                 deleteButton = `
                     <button onclick="clearLastWinner()" class="ml-2 text-gray-500 hover:text-red-500 transition-colors" title="Son Kazananı Sil">
@@ -5262,8 +5318,11 @@ function listenForLastWinner() {
         } else {
             container.classList.add('hidden');
         }
-    });
-}
+    };
+    activeListeners.lastWinner = { ref, event: 'value', callback };
+    ref.on('value', callback);
+  }
+  
   // BU FONKSİYONUN TAMAMI DEĞİŞECEK
 function handleSoloItemClick(event) {
     if (!clickCatchGameActive) return;
@@ -5317,7 +5376,7 @@ async function deleteUserFromLeaderboard(username) {
           loadClickCatchRankings(); // Tabloyu anında yenile
       }
   }
-  // YENİ YARDIMCI FONKSİYON: Tıkla ve Yakala liderinin kullanıcı adını anlık çeker.
+  // YENİ YARDIMCI FONKSİYON: Tıkla-Yakala liderinin kullanıcı adını anlık çeker.
 async function getClickCatchLeaderUsername() {
     const scoresSnap = await db.ref('clickCatchWeeklyScores').orderByValue().limitToLast(1).once('value');
     if (!scoresSnap.exists()) {
@@ -5331,15 +5390,14 @@ async function getClickCatchLeaderUsername() {
 }
   function loadClickCatchRankings() {
       const rankingsList = document.getElementById('clickCatchRankings');
+      const ref = db.ref('clickCatchWeeklyScores').orderByValue().limitToLast(10);
       
-      // .once() yerine .on() kullanarak anlık dinleme yapıyoruz.
-      // Veritabanında bir değişiklik olduğunda bu fonksiyon otomatik olarak tekrar çalışır.
-      db.ref('clickCatchWeeklyScores').orderByValue().limitToLast(10).on('value', snap => {
-          rankingsList.innerHTML = 'Yükleniyor...'; // Her güncellemede listeyi temizliyoruz
+      const callback = snap => {
+          rankingsList.innerHTML = 'Yükleniyor...';
           
           if (!snap.exists()) {
               rankingsList.innerHTML = '<p class="text-center text-gray-400">Bu hafta henüz skor kaydedilmedi.</p>';
-              clickCatchLeader = null; // Lider kalmadı, değişkeni temizliyoruz
+              clickCatchLeader = null;
               return;
           }
 
@@ -5349,9 +5407,8 @@ async function getClickCatchLeaderUsername() {
               scores.push({ username: child.key, score: child.val() });
           });
 
-          scores.reverse(); // En yüksek skoru en üste almak için diziyi ters çeviriyoruz
+          scores.reverse();
 
-          // Lideri belirliyoruz. Diğer fonksiyonlar bu değişkene bakıp rozeti ekleyecek.
           if(scores.length > 0) {
               clickCatchLeader = scores[0].username;
           } else {
@@ -5359,9 +5416,7 @@ async function getClickCatchLeaderUsername() {
           }
 
           scores.forEach((entry, index) => {
-              // Sadece birinci olan kullanıcıya rozet ekliyoruz
-              const leaderBadge = (index === 0) ? '<span title="Tıkla ve Yakala Lideri">🎯</span>' : '';
-
+              const leaderBadge = (index === 0) ? '<span title="Tıkla-Yakala Lideri">🎯</span>' : '';
               const deleteButton = isAdmin 
                 ? `<button onclick="deleteUserFromLeaderboard('${entry.username}')" class="ml-3 text-gray-500 hover:text-red-500 transition-colors" title="Skor Tablosundan Sil">
                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -5381,19 +5436,24 @@ async function getClickCatchLeaderUsername() {
               `;
           });
           rankingsList.innerHTML = html;
-      });
-}
+      };
+      activeListeners.clickCatchRankings = { ref, event: 'value', callback };
+      ref.on('value', callback);
+  }
 
-  // Lobi Fonksiyonları
   function listenForLobbyChanges() {
     const lobbyRef = db.ref('clickCatchLobby');
-    if (lobbyListener) lobbyRef.off('value', lobbyListener);
+
+    // Önceki listener'ı kapat (eğer varsa)
+    if (activeListeners.lobby) {
+        activeListeners.lobby.ref.off(activeListeners.lobby.event, activeListeners.lobby.callback);
+    }
     
     const startScreen = document.getElementById('clickCatchStartScreen');
     const lobbyStatusContainer = document.getElementById('lobbyStatusContainer');
     const lobbyGameOverScreen = document.getElementById('lobbyGameOverScreen');
 
-    lobbyListener = lobbyRef.on('value', snap => {
+    const callback = snap => {
         const lobbyData = snap.val();
         const joinLobbyBtn = document.getElementById('joinLobbyBtn');
         const startSoloGameBtn = document.getElementById('startSoloGameBtn');
@@ -5401,7 +5461,6 @@ async function getClickCatchLeaderUsername() {
         
         if (countdownInterval) clearInterval(countdownInterval);
 
-        // Butonun durumunu her zaman aktif yapıyoruz, kontrolü tıklama fonksiyonu yapacak.
         startSoloGameBtn.disabled = false;
 
         if (!lobbyData || !lobbyData.state) {
@@ -5447,13 +5506,11 @@ async function getClickCatchLeaderUsername() {
         }
 
         if (isAdmin) {
-            // Adminler için Tek Oyna butonu her zaman pasif olmalı.
             startSoloGameBtn.disabled = true;
             joinLobbyBtn.disabled = true;
             if(lobbyStartBtn) lobbyStartBtn.disabled = !(lobbyData.state === 'waiting' && hasPlayers);
         } else {
             if (isCurrentUserInLobby) {
-                // Kullanıcı lobideyken Tek Oyna butonunun kontrolü yine tıklama fonksiyonunda yapılacak.
                 joinLobbyBtn.disabled = lobbyData.state === 'active';
                 joinLobbyBtn.textContent = 'Lobiden Ayrıl';
                 joinLobbyBtn.onclick = () => leaveLobby();
@@ -5475,10 +5532,7 @@ async function getClickCatchLeaderUsername() {
             
         } else if (lobbyData.state === 'active') {
             document.getElementById('lobbyStatusTitle').textContent = "Oyun Başladı! Hedefe İlk Ulaşan Kazanır!";
-            
-            // HATA BURADA DÜZELTİLİYOR! BU SATIRI EKLEDİK.
             startScreen.style.display = 'none';
-
             document.getElementById('displayScore').classList.add('hidden');
             document.getElementById('displaySpecials').classList.add('hidden');
             document.getElementById('displayTimer').classList.add('hidden');
@@ -5502,7 +5556,10 @@ async function getClickCatchLeaderUsername() {
             clearInterval(clickCatchItemInterval);
             clickCatchItemInterval = null;            
         }
-    });
+    };
+
+    activeListeners.lobby = { ref: lobbyRef, event: 'value', callback };
+    lobbyRef.on('value', callback);
   }
   
   async function startLobbyGame() {
@@ -5855,19 +5912,15 @@ function logActivity(type, username, details = {}) {
     });
 }
 
-// initActivityFeed FONKSİYONUNU BU YENİ HALİYLE EKLE/DEĞİŞTİR
-// ESKİ initActivityFeed FONKSİYONUNU SİLİP, YERİNE BUNU YAPIŞTIRIN
-
 function initActivityFeed() {
     activityBellContainer.classList.remove('hidden');
 
     const userFeedStatusRef = db.ref(`users/${currentUser}/lastCheckedFeedTimestamp`);
-    const activityFeedRef = db.ref('activityFeed').orderByChild('timestamp');
+    const ref = db.ref('activityFeed').orderByChild('timestamp');
 
-    activityFeedRef.on('value', async (snapshot) => {
+    const callback = async (snapshot) => {
         const feedData = snapshot.val();
         
-        // Eğer hiç aktivite yoksa listeyi boşalt ve çık
         if (!feedData) {
             renderActivityFeed([]); 
             activityCounter.classList.add('hidden'); 
@@ -5879,14 +5932,9 @@ function initActivityFeed() {
         
         let unreadCount = 0;
         
-        // **** SORUNU ÇÖZEN DÜZELTME BURADA ****
-        // Veritabanından gelen objenin anahtarını (key), her bir eylemin içine 'id' olarak ekliyoruz.
         const sortedActivities = Object.keys(feedData).map(key => {
-            return {
-                id: key, // -> Örn: -NfAbc_123xyz
-                ...feedData[key]
-            };
-        }).sort((a, b) => b.timestamp - a.timestamp); // Artık ID'li objelerden oluşan diziyi sıralıyoruz.
+            return { id: key, ...feedData[key] };
+        }).sort((a, b) => b.timestamp - a.timestamp);
 
         sortedActivities.forEach(activity => {
             if (activity.timestamp > lastChecked) {
@@ -5901,9 +5949,11 @@ function initActivityFeed() {
             activityCounter.classList.add('hidden');
         }
         
-        // ID'leri doğru şekilde içeren yeni diziyi render fonksiyonuna gönderiyoruz.
         renderActivityFeed(sortedActivities);
-    });
+    };
+
+    activeListeners.activityFeed = { ref, event: 'value', callback };
+    ref.on('value', callback);
 }
 
 function renderActivityFeed(activities) {
@@ -6009,11 +6059,11 @@ function renderActivityFeed(activities) {
                 } else {
                     specialItemText = ', ancak özel hediye kazanamadı.';
                 }
-                message = `<b>${activity.username}</b>, Tıkla ve Yakala oyunu oynadı ${scoreText}${specialItemText}`;
+                message = `<b>${activity.username}</b>, Tıkla-Yakala oyunu oynadı ${scoreText}${specialItemText}`;
                 break;
             case 'clickCatchLobby':
                 icon = '🏆';
-                message = `<b>${activity.username}</b>, Tıkla ve Yakala lobi oyununda birinci oldu ve <span class="text-orange-400 font-bold">${activity.details.prize} Puan</span> ödül kazandı!`;
+                message = `<b>${activity.username}</b>, Tıkla-Yakala lobi oyununda birinci oldu ve <span class="text-orange-400 font-bold">${activity.details.prize} Puan</span> ödül kazandı!`;
                 break;
         }
 
