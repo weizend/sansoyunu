@@ -100,18 +100,28 @@
       height: 350px;
       margin: 2rem auto;
   }
-  #wheel {
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      background: conic-gradient(
-          #f44336 0deg 30deg, #4caf50 30deg 60deg,
-          #2196f3 60deg 90deg, #ffeb3b 90deg 120deg,
-          #9c27b0 120deg 150deg, #e91e63 150deg 180deg,
-          #00bcd4 180deg 210deg, #8bc34a 210deg 240deg,
-          #ff9800 240deg 270deg, #607d8b 270deg 300deg,
-          #795548 300deg 330deg, #cddc39 330deg 360deg
-      );
+  .wheel-segment-text {
+    position: absolute;
+    width: 50%;
+    height: 50%;
+    transform-origin: 100% 100%;
+    left: 0;
+    top: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    user-select: none; /* Metin seçilemesini engeller */
+}
+
+.wheel-segment-text span {
+    position: absolute;
+    transform: translateY(-50%) rotate(90deg); /* Metni çemberin dışına doğru konumlandırır ve döndürür */
+    font-size: 14px;
+    font-weight: bold;
+    color: #fff; /* Metin rengi */
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8); /* Gölge efekti (isteğe bağlı) */
+    white-space: nowrap; /* Metnin tek satırda kalmasını sağlar */
+}
       border: 10px solid #4a5568;
       transition: transform 5s cubic-bezier(0.25, 0.1, 0.25, 1);
       position: relative;
@@ -345,6 +355,7 @@ body.modal-open .modal-content {
       <button id="storeTabBtn" onclick="showSection('store')"
               class="relative py-3 px-8 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
         Puan Alışverişi
+        <span id="storeIndicator" class="hidden absolute -top-1 -right-1 h-3 w-3 rounded-full bg-red-500 animate-pulse"></span>
       </button>
       <button id="announcementsTabBtn" onclick="showSection('announcements')"
               class="relative py-3 px-8 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
@@ -2025,15 +2036,29 @@ async function logout() {
     const confirmed = await customConfirm("Çıkış yapmak istediğinize emin misiniz?");
     if (!confirmed) return;
 
-    // 1. Tüm aktif dinleyicileri kapat
+    // Tüm aktif Firebase dinleyicilerini kapat
     detachAllListeners();
 
-    // 2. Sadece çıkış komutunu ver ve olası anlık ağ hatalarını yakala
-    // Arayüz temizliğini artık onAuthStateChanged yapacak.
-    auth.signOut().catch((error) => {
-        console.error("Çıkış komutu verilirken anlık bir hata oluştu: ", error);
-        displayMessage("Çıkış yapılırken bir ağ hatası veya anlık bir sorun oluştu.");
-    });
+    if (isAdmin) {
+        // Eğer kullanıcı admin ise Firebase'in kendi çıkış fonksiyonunu kullan
+        auth.signOut().catch((error) => {
+            console.error("Admin çıkışı yapılırken hata oluştu: ", error);
+            displayMessage("Çıkış yapılırken bir hata oluştu.");
+        });
+    } else {
+        // --- MANUEL ÇIKIŞ İŞLEMİ (ONLINE EDİTÖR UYUMLU) ---
+        
+        // 1. Oyun ekranını gizle, giriş ekranını göster
+        document.getElementById("gameDiv").style.display = "none";
+        document.getElementById("loginContainer").style.display = "block";
+        
+        // 2. Aktif kullanıcı bilgilerini programdan temizle
+        currentUser = null;
+        isAdmin = false;
+        
+        // 3. Giriş formunu "Giriş Yap" sekmesine geri döndür
+        switchAuthTab('login');
+    }
 }
   function loadBalanceAndBoxRights() {
     if (isAdmin) {
@@ -4399,6 +4424,7 @@ async function openUserManagementModal(username) {
   }
 
   let globalCountdownInterval = null;
+    let spectatorCountdownInterval = null;
 
   function listenForGameChanges() {
     const gameLockRef = db.ref('gameLock');
@@ -5435,24 +5461,28 @@ function openSpectatorModal(sessionData) {
   }
   
   function renderWheel() {
-    wheel.innerHTML = ''; // Önceki içeriği temizle
+    wheel.innerHTML = ''; // Önceki içeriği (yazıları) temizle
     const segmentCount = wheelSegments.length;
     if (segmentCount === 0) return;
 
     const segmentAngle = 360 / segmentCount;
-    let gradientParts = [];
+    let gradientParts = []; // Renk dilimlerini tutacak dizi
 
     wheelSegments.forEach((segment, i) => {
+        // --- 1. Renkli Arka Planı Oluşturma ---
         const startAngle = segmentAngle * i;
         const endAngle = startAngle + segmentAngle;
+        // Her dilimin rengini ve açısını `conic-gradient` için hazırla
         gradientParts.push(`${segment.color || '#cccccc'} ${startAngle}deg ${endAngle}deg`);
 
+        // --- 2. Yazıları Dilimlerin Ortasına Yerleştirme ---
         // Yazının yerleşeceği dilimin tam orta açısını hesapla
         const textAngle = startAngle + (segmentAngle / 2);
 
-        // Yazıyı tutacak olan ve dönecek olan ana konteyneri (çubuğu) oluştur
+        // Yazıyı tutacak olan ve dönecek olan ana konteyneri (görünmez çubuğu) oluştur
         const textHolder = document.createElement('div');
         textHolder.className = 'wheel-text-container';
+        // Bu çubuğu doğru açıyla döndür
         textHolder.style.transform = `rotate(${textAngle}deg)`;
 
         const textSpan = document.createElement('span');
@@ -5460,7 +5490,7 @@ function openSpectatorModal(sessionData) {
         textSpan.textContent = segment.label;
         
         // Yazının yarısından fazlası baş aşağı olmasın diye kontrol et ve düzelt
-        // 90 derece (saat 6 yönü) ile 270 derece (saat 12 yönü) arasındaysa yazıyı ters çevir
+        // 90 derece (saat 3 yönü) ile 270 derece (saat 9 yönü) arasındaysa yazıyı ters çevir
         if (textAngle > 90 && textAngle < 270) {
             textSpan.style.transform = 'translateY(-50%) rotate(180deg)';
         } else {
@@ -5471,7 +5501,7 @@ function openSpectatorModal(sessionData) {
         wheel.appendChild(textHolder);
     });
 
-    // Renkli dilimleri ana çark elementine uygula
+    // --- 3. Oluşturulan Renk Dilimlerini Çarkın Arka Planı Olarak Ayarla ---
     wheel.style.background = `conic-gradient(${gradientParts.join(', ')})`;
 }
 async function spinWheel() {
@@ -7388,6 +7418,56 @@ async function deleteWheelHistoryEntry(entryKey) {
         await db.ref('wheelHistory/' + entryKey).remove();
     }
 }
+
+    function updateWheelAppearance() {
+     const wheel = document.getElementById('wheel');
+     if (!wheel) return;
+
+     const segments = defaultWheelSegments;
+     const numSegments = segments.length;
+     const degreesPerSegment = 360 / numSegments;
+
+     let conicGradient = 'conic-gradient(';
+     wheel.innerHTML = ''; // Önceki yazıları temizle
+
+     for (let i = 0; i < numSegments; i++) {
+         const startAngle = i * degreesPerSegment;
+         const endAngle = (i + 1) * degreesPerSegment;
+         const color = getSegmentColor(i); // Fonksiyonu basitleştirdik
+         
+         // Renk dilimini oluştur
+         conicGradient += `${color} ${startAngle}deg ${endAngle}deg`;
+         if (i < numSegments - 1) {
+             conicGradient += ', ';
+         }
+
+         // Yazıları oluştur ve yerleştir
+         const segmentTextContainer = document.createElement('div');
+         segmentTextContainer.className = 'wheel-segment-text';
+         segmentTextContainer.style.transform = `rotate(${startAngle + (degreesPerSegment / 2)}deg)`;
+         
+         const textSpan = document.createElement('span');
+         // HATALI KISIM DÜZELTİLDİ: Artık doğrudan doğru segmentin etiketini alıyor
+         textSpan.innerText = segments[i].label; 
+         
+         segmentTextContainer.appendChild(textSpan);
+         wheel.appendChild(segmentTextContainer);
+     }
+     conicGradient += ')';
+     wheel.style.background = conicGradient;
+ }
+
+function getSegmentColor(index) {
+     // Basit bir renk atama mantığı
+     const colors = ['#f44336', '#4caf50', '#2196f3', '#ffeb3b', '#9c27b0', '#e91e63', '#00bcd4', '#8bc34a', '#ff9800', '#607d8b', '#795548', '#cddc39'];
+     // HATALI KISIM DÜZELTİLDİ: Artık renkleri sırayla ve hatasız alıyor
+     return colors[index % colors.length];
+ }
+
+// Çark ilk yüklendiğinde ve segmentler değiştiğinde görünümü güncelle
+updateWheelAppearance();
+
+// Eğer defaultWheelSegments dizin değişirse bu fonksiyonu tekrar çağırabilirsin.
 
 </script>
 </body>
