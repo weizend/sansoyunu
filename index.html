@@ -1951,41 +1951,53 @@ async function logout() {
     const confirmed = await customConfirm("Çıkış yapmak istediğinize emin misiniz?");
     if (!confirmed) return;
 
-    // Önce tüm dinleyicileri kapat
-    detachAllListeners();
+    try {
+        // 1. Önce tüm dinleyicileri kapat
+        detachAllListeners();
 
-    // Ardından tüm UI temizliğini ve durum sıfırlamasını yap.
-    // Başarılı olacağını varsayarak promise'in çözülmesini beklemiyoruz.
-    document.getElementById("gameDiv").style.display = "none";
-    document.getElementById("loginContainer").style.display = "block";
-    if (activityBellContainer) activityBellContainer.classList.add('hidden');
-    if (activityFeedPanel) activityFeedPanel.classList.add('hidden');
-    switchAuthTab('login');
+        // 2. Ardından Firebase çıkış işleminin tamamlanmasını bekle
+        await auth.signOut();
 
-    currentUser = null;
-    isAdmin = false;
+        // 3. Çıkış başarılı olduktan sonra arayüzü temizle ve durumu sıfırla
+        document.getElementById("gameDiv").style.display = "none";
+        document.getElementById("loginContainer").style.display = "block";
+        if (activityBellContainer) activityBellContainer.classList.add('hidden');
+        if (activityFeedPanel) activityFeedPanel.classList.add('hidden');
+        switchAuthTab('login');
 
-    // Tüm zamanlayıcıları temizle
-    if (countdownInterval) clearInterval(countdownInterval);
-    if (globalCountdownInterval) clearInterval(globalCountdownInterval);
-    if (clickCatchTimerInterval) clearInterval(clickCatchTimerInterval);
-    if (clickCatchItemInterval) clearInterval(clickCatchItemInterval);
-    if (storeCountdownInterval) clearInterval(storeCountdownInterval);
-    if (spectatorCountdownInterval) clearInterval(spectatorCountdownInterval);
+        currentUser = null;
+        isAdmin = false;
 
-    Object.values(activeBlockedUserTimers).forEach(clearInterval);
-    activeBlockedUserTimers = {};
-    Object.values(activeDailyRewardTimers).forEach(clearInterval);
-    activeDailyRewardTimers = {};
-    activeStoreCountdowns = {};
+        // 4. Tüm zamanlayıcıları temizle (önlem olarak)
+        if (countdownInterval) clearInterval(countdownInterval);
+        if (globalCountdownInterval) clearInterval(globalCountdownInterval);
+        if (clickCatchTimerInterval) clearInterval(clickCatchTimerInterval);
+        if (clickCatchItemInterval) clearInterval(clickCatchItemInterval);
+        if (storeCountdownInterval) clearInterval(storeCountdownInterval);
+        if (spectatorCountdownInterval) clearInterval(spectatorCountdownInterval);
 
-    // Firebase çıkış işlemini arka planda başlat.
-    // Herhangi bir hata olursa sadece konsola yazdır, kullanıcıya gösterme.
-    auth.signOut().catch((error) => {
-        console.error("Çıkış sırasında bir arka plan hatası oluştu (genellikle zararsız): ", error);
-    });
+        Object.values(activeBlockedUserTimers).forEach(clearInterval);
+        activeBlockedUserTimers = {};
+        Object.values(activeDailyRewardTimers).forEach(clearInterval);
+        activeDailyRewardTimers = {};
+        activeStoreCountdowns = {};
 
-    console.log("Çıkış işlemi başlatıldı ve arayüz temizlendi.");
+        console.log("Kullanıcı başarıyla çıkış yaptı ve arayüz temizlendi.");
+
+        // 5. Kullanıcıya başarı mesajı göster
+        displayMessage("Başarıyla çıkış yapıldı.");
+
+    } catch (error) {
+        // Hata olursa (genellikle zararsız), sadece konsola yazdır.
+        console.error("Çıkış sırasında bir hata oluştu: ", error);
+        // Hata durumunda bile arayüzü sıfırlamayı dene ki kullanıcı kilitli kalmasın.
+        document.getElementById("gameDiv").style.display = "none";
+        document.getElementById("loginContainer").style.display = "block";
+        currentUser = null;
+        isAdmin = false;
+        // Hata olsa bile kullanıcıya bir geri bildirim ver.
+        displayMessage("Çıkış işlemi sırasında bir sorunla karşılaşıldı ancak oturum sonlandırıldı.");
+    }
 }
   function loadBalanceAndBoxRights() {
     if (isAdmin) {
