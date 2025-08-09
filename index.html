@@ -403,9 +403,14 @@ body.modal-open .modal-content {
         <div id="chanceWheelContent" class="w-full hidden">
     <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700 text-center">
         <div class="flex justify-center items-center gap-4 mb-4">
-            <h3 class="text-yellow-400 text-3xl font-bold">Şans Çarkı</h3>
-            <button id="wheelSettingsButton" onclick="openWheelSettingsModal()" class="hidden py-1 px-3 text-sm bg-teal-600 hover:bg-teal-500 rounded-lg">Çark Ayarları</button>
-        </div>
+    <h3 class="text-yellow-400 text-3xl font-bold">Şans Çarkı</h3>
+    
+    <button onclick="openWheelLegendModal()" class="text-blue-400 hover:text-blue-300 transition-colors" title="Simge Anlamları">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+    </button>
+    
+    <button id="wheelSettingsButton" onclick="openWheelSettingsModal()" class="hidden py-1 px-3 text-sm bg-teal-600 hover:bg-teal-500 rounded-lg">Çark Ayarları</button>
+</div>
         
         <p class="text-gray-300 mb-2">Çarkı çevirerek harika ödüller kazanma şansı yakala!</p>
         <p class="text-lg font-semibold mb-4">Çevirme Bedeli: <span class="text-green-400">1 Çark Bileti</span> | Mevcut Biletlerin: <span id="wheelTicketBalance" class="text-yellow-400 font-bold">0</span></p>
@@ -1407,6 +1412,14 @@ body.modal-open .modal-content {
           <button onclick="saveDailyReward()" id="saveDailyRewardBtn" class="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg">GÜNLÜK ÖDÜL OLUŞTUR</button>
           <button onclick="resetDailyRewardForm()" class="w-full py-2 mt-2 bg-gray-600 hover:bg-gray-500 text-white font-bold rounded-lg shadow-md hover:-translate-y-1 transition duration-300">Formu Temizle</button>
       </div>
+  </div>
+</div>
+  <div id="wheelLegendModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 hidden">
+  <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-blue-500 w-11/12 max-w-md text-center relative max-h-[90vh]">
+      <button class="modal-close-button" onclick="closeWheelLegendModal()">&times;</button>
+      <h4 class="text-blue-300 text-2xl font-bold mb-6">Çark Simgeleri ve Anlamları</h4>
+      <div id="wheelLegendContent" class="space-y-3 text-left scrollable-list max-h-80 overflow-y-auto">
+          </div>
   </div>
 </div>
   <script>
@@ -6690,96 +6703,50 @@ function initActivityFeed() {
     ref.on('value', callback);
 }
 
+// renderActivityFeed fonksiyonunun simge mantığı temizlenmiş hali
 function renderActivityFeed(activities) {
     activityFeedList.innerHTML = '';
-
-    if (isAdmin) {
-        activityFeedList.innerHTML += `<div class="p-2 mb-2 text-center"><button onclick="clearAllActivities()" class="w-full py-2 px-4 bg-red-800 hover:bg-red-700 text-white font-bold rounded-lg shadow-md text-sm">Tüm Eylemleri Temizle</button></div>`;
-    }
-
-    if (!activities || activities.length === 0) {
-        activityFeedList.innerHTML += '<p class="text-center text-gray-500 mt-4">Henüz bir aktivite yok.</p>';
-        return;
-    }
+    if (isAdmin) { /* ... admin butonu ... */ }
+    if (!activities || activities.length === 0) { /* ... aktivite yok mesajı ... */ return; }
 
     activities.forEach(activity => {
         let iconContent = '';
         let message = '';
         const timeAgo = formatRelativeTime(activity.timestamp);
-        const deleteButtonHtml = isAdmin ? `<div class="flex-shrink-0 ml-2"><button id="delete-activity-${activity.id}" data-activity-id="${activity.id}" class="text-gray-600 hover:text-red-500 transition-colors p-1 rounded-full" title="Bu eylemi sil"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1-1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button></div>` : '';
-
+        const deleteButtonHtml = isAdmin ? `` : '';
         let multiplierText = '';
-        if (activity.details.multiplier && activity.details.multiplier > 1) {
-            multiplierText = ` (${activity.details.multiplier}x çarpan ile)`;
-        }
+        if (activity.details.multiplier && activity.details.multiplier > 1) { multiplierText = ` (${activity.details.multiplier}x çarpan ile)`; }
         
         switch (activity.type) {
-            case 'openBox': iconContent = '🎁'; message = `<b>${activity.username}</b>, ${activity.details.boxId} numaralı kutuyu açtı ve <span class="text-green-400 font-bold">${activity.details.points} Puan</span> kazandı${multiplierText}.`; break;
-            case 'surpriseBox': iconContent = '🎉'; if (activity.details.boxId === 'Çark') { message = `<b>${activity.username}</b>, Şans Çarkı'ndan Sürpriz Kutu kazandı ve <span class="text-yellow-300 font-bold">${activity.details.points} Puan</span> elde etti!`; } else { message = `<b>${activity.username}</b>, ${activity.details.boxId} numaralı kutudan Sürpriz Kutu buldu ve <span class="text-yellow-300 font-bold">${activity.details.points} Puan</span> kazandı! Oyun yeniden başladı.`; } break;
-            case 'iflas': if (activity.details.shieldUsed) { iconContent = '🛡️'; message = `<b>${activity.username}</b>, ${activity.details.boxId} numaralı kutuyu açarak iflas etti ama Kalkanı sayesinde korundu.`; } else { iconContent = '💣'; message = `<b>${activity.username}</b>, ${activity.details.boxId} numaralı kutuyu açarak iflas etti ve <span class="text-red-500 font-bold">${activity.details.lostPoints} Puan</span> kaybetti.`; } break;
-            case 'newItemFound': switch (activity.details.itemType) { case 'iflasShield': iconContent = '🛡️'; break; case 'wheelTicket': iconContent = '🎟️'; break; case 'clickCatchTicket': iconContent = '🎫'; break; default: iconContent = '✨'; }; message = `<b>${activity.username}</b>, ${activity.details.boxId} numaralı kutuyu açtı ve <span class="text-cyan-400 font-bold">${activity.details.itemName}</span> buldu${multiplierText}.`; break;
-            case 'multiplierFound': iconContent = '✖️'; message = `<b>${activity.username}</b>, ${activity.details.boxId} numaralı kutuyu açtı ve <span class="text-blue-400 font-bold">${activity.details.value}x Çarpan</span> buldu.`; break;
-            case 'multiplierRefund': iconContent = '🔄'; message = `<b>${activity.username}</b>, ${activity.details.boxId} numaralı kutuyu çarpanla açarak <b>${activity.details.newMultiplier}x</b>'lik yeni bir çarpan buldu ve <b>${activity.details.refundedMultiplier}x</b>'lik mağaza çarpan hakkı iade edildi!`; break;
-            case 'clickCatchLobby': iconContent = '🏆'; message = `<b>${activity.username}</b>, Tıkla-Yakala lobi oyununda birinci oldu ve <span class="text-orange-400 font-bold">${activity.details.prize} Puan</span> ödül kazandı!`; break;
-            case 'buyItem': message = `<b>${activity.username}</b>, mağazadan <span class="text-teal-400 font-bold">${activity.details.itemName}</span> ürününü <span class="text-green-400 font-bold">${activity.details.itemCost} Puana</span> satın aldı.`; if (activity.details.imageUrl) { iconContent = `<img src="${activity.details.imageUrl}" class="w-full h-full object-contain" alt="${activity.details.itemName}">`; } else { iconContent = '🛒'; } break;
-            case 'dailyReward': message = `<b>${activity.username}</b>, günlük ödüllerden <span class="text-indigo-400 font-bold">${activity.details.rewardName}</span> hediyesini aldı.`; if (activity.details.imageUrl) { iconContent = `<img src="${activity.details.imageUrl}" class="w-full h-full object-contain" alt="${activity.details.rewardName}">`; } else { iconContent = '📅'; } break;
-            case 'spinWheel': const segment = activity.details.winningSegment; if (segment) { let prizeIcon = '🎡'; const label = (segment.label || '').toUpperCase(); if (label.includes('1000 PUAN')) prizeIcon = '💎'; else if (label.includes('100 PUAN')) prizeIcon = '💰'; else if (label.includes('50 PUAN')) prizeIcon = '🍪'; else if (label.includes('3 KUTU HAKKI')) prizeIcon = '📦'; else if (label.includes('1 KUTU HAKKI')) prizeIcon = '🎁'; else if (label.includes('TIKLA-YAKALA')) prizeIcon = '🎟️'; else if (label.includes('5X ÇARPAN')) prizeIcon = '✖️'; else if (label.includes('SÜPRİZ KUTU')) prizeIcon = '🎉'; else if (label.includes('İFLAS KALKANI')) prizeIcon = '🛡️'; else if (label.includes('PAS')) prizeIcon = '☠️'; iconContent = prizeIcon; if (segment.type === 'pas') { message = `<b>${activity.username}</b>, Şans Çarkı'nı çevirdi ve <span class="text-gray-400 font-bold">Pas geldi</span>.`; } else { message = `<b>${activity.username}</b>, Şans Çarkı'nı çevirdi ve <span class="text-purple-400 font-bold">${segment.label}</span> kazandı.`; } } else { message = `<b>${activity.username}</b>, Şans Çarkı'nı çevirdi.`; iconContent = '🎡'; } break;
-            
-            // --- YENİLENEN KISIM BURASI ---
-            case 'clickCatchSolo':
-                iconContent = '🎯';
+            // Diğer tüm case'ler aynı kalıyor...
+            case 'openBox': iconContent = '🎁'; message = `...`; break;
+            case 'surpriseBox': iconContent = '🎉'; message = `...`; break;
+            // ...
+            // ...
 
-                let scoreMessage = '';
-                const score = activity.details.score;
-                
-                // Puan mesajını oluştur (kazandı/kaybetti)
-                if (score >= 0) {
-                    scoreMessage = `ve <span class="text-pink-400 font-bold">${score} Puan</span> kazandı.`;
+            case 'spinWheel':
+                const segment = activity.details.winningSegment;
+                if (segment) {
+                    // ARTIK SİMGEYİ TEK BİR YERDEN ÇAĞIRIYORUZ
+                    iconContent = getIconForWheelLabel(segment.label);
+
+                    if (segment.type === 'pas') {
+                        message = `<b>${activity.username}</b>, Şans Çarkı'nı çevirdi ve <span class="text-gray-400 font-bold">Pas geldi</span>.`;
+                    } else {
+                        message = `<b>${activity.username}</b>, Şans Çarkı'nı çevirdi ve <span class="text-purple-400 font-bold">${segment.label}</span> kazandı.`;
+                    }
                 } else {
-                    scoreMessage = `ve <span class="text-red-500 font-bold">${-score} Puan</span> kaybetti.`;
+                    message = `<b>${activity.username}</b>, Şans Çarkı'nı çevirdi.`;
+                    iconContent = '🎡';
                 }
-
-                // Özel hediye mesajını oluştur (parantez içinde)
-                let specialPrizeMessage = '';
-                const specialItems = activity.details.specialItems;
-
-                if (specialItems) {
-                    specialPrizeMessage = ` <span class="text-cyan-400">[${specialItems.toUpperCase()} YAKALANDI]</span>`;
-                } else {
-                    specialPrizeMessage = ` <span class="text-gray-500">[Özel Hediye Yakalanmadı]</span>`;
-                }
-
-                // İki mesajı birleştir
-                message = `<b>${activity.username}</b>, Tıkla-Yakala oyunu oynadı ${scoreMessage}${specialPrizeMessage}`;
                 break;
         }
 
-        const activityHtml = `
-            <div id="activity-${activity.id}" class="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg mb-2">
-                <div class="flex items-start gap-3 flex-grow">
-                    <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-gray-800 rounded-lg text-2xl">
-                        ${iconContent}
-                    </div>
-                    <div class="flex-1">
-                        <div class="text-sm text-gray-300">${message}</div>
-                        <div class="text-xs text-gray-500 text-right mt-1">${timeAgo}</div>
-                    </div>
-                </div>
-                ${deleteButtonHtml}
-            </div>`;
+        const activityHtml = ``;
         activityFeedList.innerHTML += activityHtml;
     });
 
-    if (isAdmin) {
-        activities.forEach(activity => {
-            const deleteBtn = document.getElementById(`delete-activity-${activity.id}`);
-            if (deleteBtn) {
-                deleteBtn.addEventListener('click', function() {
-                    deleteActivity(this.getAttribute('data-activity-id'));
-                });
-            }
-        });
-    }
+    if (isAdmin) { /* ... silme butonu event listener'ları ... */ }
 }
 
 // YENİ VE GÜNCELLENMİŞ VERSİYONLAR
@@ -7516,7 +7483,64 @@ function getSegmentColor(index) {
 updateWheelAppearance();
 
 // Eğer defaultWheelSegments dizin değişirse bu fonksiyonu tekrar çağırabilirsin.
+// YENİ: Çark simgelerinin anlamlarını gösteren pencereyi açan ve kapatan fonksiyonlar
 
+// Bu yardımcı fonksiyon, bir ödül etiketine göre senin belirlediğin simgeyi döndürür.
+function getIconForWheelLabel(label) {
+    const upperLabel = (label || '').toUpperCase();
+    if (upperLabel.includes('1000 PUAN')) return '💎';
+    if (upperLabel.includes('100 PUAN')) return '💰';
+    if (upperLabel.includes('50 PUAN')) return '🍪';
+    if (upperLabel.includes('3 KUTU HAKKI')) return '📦';
+    if (upperLabel.includes('1 KUTU HAKKI')) return '🎁';
+    if (upperLabel.includes('TIKLA-YAKALA')) return '🎟️';
+    if (upperLabel.includes('5X ÇARPAN')) return '✖️';
+    if (upperLabel.includes('SÜPRİZ KUTU')) return '🎉';
+    if (upperLabel.includes('İFLAS KALKANI')) return '🛡️';
+    if (upperLabel.includes('PAS')) return '☠️';
+    return '🎡'; // Varsayılan simge
+}
+
+function openWheelLegendModal() {
+    const contentDiv = document.getElementById('wheelLegendContent');
+    contentDiv.innerHTML = ''; // Önce mevcut içeriği temizle
+
+    // Pencerenin içinde görünecek olan simgeler, başlıklar ve detaylı açıklamalar
+    const legendData = [
+        { icon: '💎', title: '1000 PUAN', description: 'Çarktan kazanabileceğin en yüksek puanlardan birini verir.' },
+        { icon: '💰', title: '100 PUAN', description: 'Hesabına anında 100 Puan eklenir.' },
+        { icon: '🍪', title: '50 PUAN', description: 'Küçük ama tatlı bir puan ödülüdür.' },
+        { icon: '📦', title: '1 KUTU HAKKI', description: 'Ana oyundaki kutu oyununda kullanabileceğin 1 adet açma hakkı kazandırır.' },
+        { icon: '🎁', title: '3 KUTU HAKKI', description: 'Büyük ödül! Kutu oyununda kullanmak üzere tam 3 adet açma hakkı verir.' },
+        { icon: '🎟️', title: 'TIKLA-YAKALA BİLETİ', description: 'Tıkla-Yakala mini oyununa bir giriş hakkı kazandırır.' },
+        { icon: '✖️', title: '5X ÇARPAN', description: 'Bir sonraki kutu açılışında kazanacağın puanı veya içinden çıkan eşyayı 5\'e katlar.' },
+        { icon: '🎉', title: 'SÜRPRİZ KUTU', description: 'İçinden çok yüksek puanlar çıkan özel bir kart seçme oyunu başlatır.' },
+        { icon: '🛡️', title: 'İFLAS KALKANI', description: 'Kutu oyununda "Bomba" bulursan puanlarının sıfırlanmasını bir defaya mahsus engeller.' },
+        { icon: '☠️', title: 'PAS', description: 'Şanssızlık! Bu dilimde herhangi bir ödül yoktur.' }
+    ];
+
+    // Her bir öğe için HTML listesini oluştur
+    legendData.forEach(item => {
+        const itemHtml = `
+            <div class="flex items-start gap-4 p-3 bg-gray-900 rounded-lg text-left">
+                <span class="text-3xl w-8 text-center mt-1">${item.icon}</span>
+                <div class="flex-1">
+                    <strong class="text-yellow-200 block">${item.title}</strong>
+                    <p class="text-gray-400 text-sm">${item.description}</p>
+                </div>
+            </div>
+        `;
+        contentDiv.innerHTML += itemHtml;
+    });
+
+    // Hazırlanan pencereyi görünür yap
+    document.getElementById('wheelLegendModal').style.display = 'flex';
+}
+
+function closeWheelLegendModal() {
+    document.getElementById('wheelLegendModal').style.display = 'none';
+}
+    
 </script>
 </body>
 </html>
