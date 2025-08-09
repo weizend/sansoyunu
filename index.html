@@ -112,29 +112,34 @@
     /* Arka plan JS tarafından 'conic-gradient' ile doldurulacak */
 }
 
-  .wheel-text-container {
+  /* Yazıyı taşıyan ve merkezden dönen görünmez "çubuk" */
+.wheel-text-container {
     position: absolute;
     left: 50%;
     top: 50%;
     width: 50%; /* Çarkın yarıçapı kadar */
     height: 1px;
     transform-origin: left center; /* Merkezden dönmesini sağlar */
+    z-index: 6; /* Yazıların renklerin üstünde olmasını sağlar */
 }
 
 /* Yazının kendisi */
 .wheel-text {
     display: block;
     position: absolute;
-    right: 15px; /* Yazıyı çubuğun en dışına (kenara yakın) iter */
-    top: 50%;
-    /* Yazıyı dikey olarak tam ortalar */
-    transform: translateY(-50%);
+    /* YENİ AYAR: Yazının merkezini, çubuğun %60'ına konumlandırır. */
+    /* Bu sayede yazı hem merkeze biraz daha yaklaşır hem de saat yönünün tersine doğru kayar. */
+    left: 60%; 
+    top: 60%;
+    
+    /* Bu transform, yazıyı kendi boyutlarına göre tam olarak ortalar. */
+    transform: translate(-80%, -80%);
     
     /* Görsel Stiller */
     color: white;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: bold;
-    text-shadow: 0px 0px 5px rgba(0, 0, 0, 0.9);
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 1);
     white-space: nowrap;
 }
   
@@ -1526,19 +1531,20 @@ body.modal-open .modal-content {
   const spinBtn = document.getElementById('spinWheelBtn');
   let isWheelSpinning = false;
   let wheelSegments = []; // Bu artık veritabanından doldurulacak
+// MEVCUT defaultWheelSegments DİZİSİNİ TAMAMEN SİLİP YERİNE BUNU YAPIŞTIRIN
 const defaultWheelSegments = [
-    { type: 'points', value: 1000, label: '1000 Puan', color: '#e53935', weight: 2 },          // 1. Kırmızı
-    { type: 'tempMultiplier', value: 5, duration: 1, label: '5x Çarpan', color: '#43a047', weight: 1 }, // 2. Yeşil
-    { type: 'surpriseBox', value: 1, label: 'Sürpriz Kutu!', color: '#5e35b1', weight: 1 },    // 3. Koyu Mor
-    { type: 'boxRights', value: 3, label: '3 KUTU HAKKI', color: '#1e88e5', weight: 4 },        // 4. Mavi
-    { type: 'boxRights', value: 1, label: '+1 Kutu Hakkı', color: '#fdd835', weight: 8 },      // 5. Sarı
-    { type: 'pas', label: 'Pas', color: '#546e7a', weight: 10 },                               // 6. Gri
-    { type: 'points', value: 250, label: '250 Puan', color: '#d81b60', weight: 6 },            // 7. Pembe
-    { type: 'iflasShield', value: 1, label: '+1 Kalkan', color: '#8e24aa', weight: 5 },       // 8. Mor
-    { type: 'pas', label: 'Pas', color: '#546e7a', weight: 10 },                               // 9. Gri
-    { type: 'points', value: 10, label: '10 Puan', color: '#00acc1', weight: 25 },             // 10. Turkuaz
-    { type: 'points', value: 100, label: '100 PUAN', color: '#fb8c00', weight: 15 },           // 11. Turuncu
-    { type: 'pas', label: 'Pas', color: '#546e7a', weight: 10 },                               // 12. Gri
+    { type: 'points', value: 100, label: '100 Puan', color: '#E53935', weight: 15 },      // Canlı Kırmızı
+    { type: 'pas', label: 'Pas', color: '#43A047', weight: 10 },                          // Canlı Yeşil
+    { type: 'clickCatchTicket', value: 1, label: 'Tıkla-Yakala Bileti', color: '#5E35B1', weight: 4 }, // Canlı Mor
+    { type: 'points', value: 1000, label: '1000 Puan', color: '#1E88E5', weight: 2 },      // Canlı Mavi
+    { type: 'tempMultiplier', value: 5, duration: 1, label: '5x Çarpan', color: '#FDD835', weight: 1 }, // Canlı Sarı
+    { type: 'surpriseBox', value: 1, label: 'Sürpriz Kutu!', color: '#546E7A', weight: 1 }, // Koyu Gri Mavi
+    { type: 'boxRights', value: 3, label: '3 KUTU HAKKI', color: '#D81B60', weight: 3 },    // Canlı Pembe
+    { type: 'boxRights', value: 1, label: '+1 Kutu Hakkı', color: '#8E24AA', weight: 8 },   // Canlı Eflatun
+    { type: 'pas', label: 'Pas', color: '#00897B', weight: 10 },                          // Haki Yeşil
+    { type: 'points', value: 250, label: '250 Puan', color: '#039BE5', weight: 6 },         // Açık Mavi
+    { type: 'iflasShield', value: 1, label: '+1 Kalkan', color: '#FB8C00', weight: 5 },    // Canlı Turuncu
+    { type: 'points', value: 10, label: '10 Puan', color: '#C0CA33', weight: 20 }          // Fıstık Yeşili
 ];
   
   // Tıkla Yakala Değişkenleri
@@ -5447,8 +5453,6 @@ function openSpectatorModal(sessionData) {
       spectatorModal.style.display = 'none';
   }
  
-// MEVCUT renderWheel FONKSİYONUNU SİLİP YERİNE BU NİHAİ VERSİYONU YAPIŞTIR
-
 function renderWheel() {
     const wheelElement = document.getElementById('wheel');
     if (!wheelElement) { return; }
@@ -5459,47 +5463,39 @@ function renderWheel() {
     const segmentCount = segments.length;
     if (segmentCount === 0) return;
 
-    const wheelRadius = wheelElement.offsetWidth / 2;
-    if (wheelRadius === 0) {
-        setTimeout(renderWheel, 100);
-        return;
-    }
-
     const segmentAngle = 360 / segmentCount;
     let gradientParts = [];
 
     segments.forEach((segment, i) => {
-        // Renkli arka planı oluştur
         const startAngle = segmentAngle * i;
         const endAngle = startAngle + segmentAngle;
         gradientParts.push(`${segment.color || '#cccccc'} ${startAngle}deg ${endAngle}deg`);
 
-        // Yazının dilimin tam ortasındaki açısını bul
         const textAngle = startAngle + (segmentAngle / 2);
         
-        // 1. Ana konteyneri (görünmez çubuğu) oluştur
         const textHolder = document.createElement('div');
         textHolder.className = 'wheel-text-container';
-        // Bu çubuğu doğru açıyla döndür
         textHolder.style.transform = `rotate(${textAngle}deg)`;
 
-        // 2. Yazıyı içeren span elementini oluştur
         const textSpan = document.createElement('span');
         textSpan.className = 'wheel-text';
         textSpan.textContent = segment.label;
 
-        // 3. Yazının baş aşağı durmasını engellemek için kontrol et
-        // Eğer yazı çarkın sol tarafındaysa, okunabilir olması için 180 derece çevir
+        // YAZININ YÖNÜNÜ VE ORTALANMASINI AYARLAYAN GÜNCEL KISIM
+        // Yazı, çarkın sol tarafında kalıyorsa (90-270 derece arası),
+        // okunabilir olması için 180 derece döndürülür.
         if (textAngle > 90 && textAngle < 270) {
-            textSpan.style.transform = 'translateY(-50%) rotate(180deg)';
+            // CSS'teki translate(-50%, -50%) ile rotate(180deg)'i birleştirir.
+            textSpan.style.transform = 'translate(-50%, -50%) rotate(180deg)';
+        } else {
+            // Sağ taraftaki yazılar için sadece ortalama yeterlidir.
+            textSpan.style.transform = 'translate(-50%, -50%)';
         }
 
-        // Span'ı konteynerin içine, konteyneri de ana çarkın içine ekle
         textHolder.appendChild(textSpan);
         wheelElement.appendChild(textHolder);
     });
 
-    // Renkli arka planı uygula
     wheelElement.style.background = `conic-gradient(${gradientParts.join(', ')})`;
 }
     
@@ -5551,8 +5547,9 @@ async function spinWheel() {
     // Rastgele tur sayısı ekle
     const randomSpins = 5 + Math.random() * 5;
 
-    // DÜZELTİLMİŞ FORMÜL:
-    // İşaretçi yukarıda (270 derece) olduğu için doğru pozisyonda durmasını sağlıyoruz.
+    // ***İŞTE BU KISIM DÜZELTİLDİ***
+    // Bu yeni formül, işaretçi (marker) 270 derecede (tepede) olduğu için
+    // kazanan dilimin ortasının tam olarak okun altında durmasını garanti eder.
     const finalRotation = (360 * randomSpins) + 270 - stopAngle;
 
     wheel.style.transition = 'transform 5s cubic-bezier(0.25, 0.1, 0.25, 1)';
@@ -5605,7 +5602,7 @@ async function spinWheel() {
             case 'surpriseBox':
                  db.ref('surprise_box_session').set({ active: true, user: currentUser, boxId: 'Çark', multiplier: 1, cards: shuffleArray([...cardValues]), selection: null, result: null, timestamp: firebase.database.ServerValue.TIMESTAMP });
                  openCardSelectionModal(currentUser);
-                 message = "Vay canına! Çarktan Sürpriz Kutu çıktı! Şimdi bir kart seç."; // Mesajı daha açıklayıcı hale getirdik.
+                 message = "Vay canına! Çarktan Sürpriz Kutu çıktı! Şimdi bir kart seç.";
                  break;
             case 'pas':
                 message = "Bu seferlik pas! Bir dahaki sefere daha şanslı olabilirsin.";
