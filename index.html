@@ -111,18 +111,7 @@
     position: relative;
     /* Arka plan JS tarafından 'conic-gradient' ile doldurulacak */
 }
-
-/* Yazıların yerleştirileceği, dönmeyen sabit katman */
-#wheelTextOverlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none; /* Tıklamaları engeller, alttaki çarkın tıklanmasını sağlar */
-    z-index: 5;
-}
-
+  
 /* Her bir yazı parçasının stili */
 .wheel-text-item {
     position: absolute;
@@ -389,10 +378,9 @@ body.modal-open .modal-content {
         <p class="text-lg font-semibold mb-4">Çevirme Bedeli: <span class="text-green-400">1 Çark Bileti</span> | Mevcut Biletlerin: <span id="wheelTicketBalance" class="text-yellow-400 font-bold">0</span></p>
         
         <div id="wheelContainer">
-            <div id="wheel"></div>
-            <div id="wheelTextOverlay"></div> 
-            <div id="wheelMarker"></div>
-        </div>
+    <div id="wheel"></div>
+    <div id="wheelMarker"></div>
+</div>
 
         <button id="spinWheelBtn" onclick="spinWheel()" class="py-3 px-10 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
             Çarkı Çevir!
@@ -5444,20 +5432,19 @@ function openSpectatorModal(sessionData) {
       spectatorModal.style.display = 'none';
   }
   
-  // ŞANS ÇARKI GÖRSELİNİ OLUŞTURAN FONKSİYON
+  // NİHAİ VE DOĞRU RENDERWHEEL FONKSİYONU
 function renderWheel() {
+    // Yazıları ve renkleri taşıyacak olan ana çark elementini seçiyoruz
     const wheelElement = document.getElementById('wheel');
-    const textOverlay = document.getElementById('wheelTextOverlay');
 
-    // Elementler bulunamazsa hatayı önle
-    if (!wheelElement || !textOverlay) {
-        console.error("Çark elementleri bulunamadı!");
+    // Element bulunamazsa hatayı önle
+    if (!wheelElement) {
+        console.error("Çark elementi (#wheel) bulunamadı!");
         return;
     }
 
-    // Önceki çizimleri temizle
+    // Önceki tüm içeriği (yazıları) temizle
     wheelElement.innerHTML = ''; 
-    textOverlay.innerHTML = '';
 
     const segments = wheelSegments;
     const segmentCount = segments.length;
@@ -5466,53 +5453,54 @@ function renderWheel() {
     // Çarkın boyutlarını al (JS'nin geç çalışması ihtimaline karşı)
     const wheelRadius = wheelElement.offsetWidth / 2;
     if (wheelRadius === 0) {
-        console.error("Çark boyutu hesaplanamadı (0). Sayfa tam yüklenmemiş olabilir.");
-        // Eğer boyut hala 0 ise, birkaç milisaniye sonra tekrar dene
+        // Eğer çarkın boyutu henüz tarayıcı tarafından hesaplanmadıysa,
+        // fonksiyonu kısa bir gecikmeyle tekrar çağırarak sorunu çöz.
         setTimeout(renderWheel, 100);
         return;
     }
 
-    // Yazıların merkezden ne kadar uzakta olacağını belirle
     const textRadius = wheelRadius * 0.75; 
     const segmentAngle = 360 / segmentCount;
     let gradientParts = [];
 
     segments.forEach((segment, i) => {
-        // 1. Renkli Arka Planı Oluştur
+        // 1. Renkli Arka Plan için gradient dizisini doldur
         const startAngle = segmentAngle * i;
         const endAngle = startAngle + segmentAngle;
         gradientParts.push(`${segment.color || '#cccccc'} ${startAngle}deg ${endAngle}deg`);
 
         // 2. Trigonometri ile Her Yazının Konumunu Hesapla
         const textAngleDegrees = startAngle + (segmentAngle / 2);
-        const angleRadians = (textAngleDegrees - 90) * (Math.PI / 180); // -90 derece ofset, 0 derecenin yukarı bakması için
+        const angleRadians = (textAngleDegrees - 90) * (Math.PI / 180);
 
         const x = wheelRadius + textRadius * Math.cos(angleRadians);
         const y = wheelRadius + textRadius * Math.sin(angleRadians);
         
-        // 3. Yazı Elementini Oluştur ve Yerleştir
+        // 3. Yazı Elementini Oluştur
         const textItem = document.createElement('div');
         textItem.className = 'wheel-text-item';
         textItem.textContent = segment.label;
         
+        // Konumunu ayarla
         textItem.style.left = `${x}px`;
         textItem.style.top = `${y}px`;
         
         // Yazıyı merkezden dışarı doğru bakacak şekilde döndür
         let textRotation = textAngleDegrees;
-        // Çarkın sol tarafındaki yazıların baş aşağı durmasını engelle
         if (textAngleDegrees > 90 && textAngleDegrees < 270) {
             textRotation += 180;
         }
-
         textItem.style.transform = `translate(-50%, -50%) rotate(${textRotation}deg)`;
 
-        textOverlay.appendChild(textItem);
+        // --- EN ÖNEMLİ DEĞİŞİKLİK ---
+        // Yazıyı artık doğrudan dönen wheelElement'in içine ekliyoruz
+        wheelElement.appendChild(textItem);
     });
 
-    // 4. Renkli Arka Planı Uygula
+    // 4. Oluşturulan renkli arka planı uygula
     wheelElement.style.background = `conic-gradient(${gradientParts.join(', ')})`;
 }
+    
 async function spinWheel() {
     if (isWheelSpinning) return;
     if (isAdmin) {
