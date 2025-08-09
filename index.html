@@ -4070,11 +4070,15 @@ async function deletePurchase(purchaseId) {
 
 // YENİ VE GÜNCELLENMİŞ FONKSİYON
 async function openPublicUserDetailModal(username) {
+  // DÜZELTME: Fonksiyonun başında body'e class ekleniyor.
+  // Bu, modal açıldığında arka planın kaymasını engeller.
   document.body.classList.add('modal-open');
     if (activeBlockedUserTimers[username]) {
         clearInterval(activeBlockedUserTimers[username]);
         delete activeBlockedUserTimers[username];
     }
+    // DÜZELTME: Hangi kullanıcının modal'ının açık olduğunu takip etmek için
+    // modal elementine bir data attribute ekliyoruz. Kapatma işleminde bu bize lazım olacak.
     publicUserDetailModal.dataset.viewingUser = username;
 
     const userSnap = await db.ref('users/' + username).once('value');
@@ -4097,10 +4101,8 @@ async function openPublicUserDetailModal(username) {
         isWheelSpinLeader: username === leaders.wheelSpinUser
     };
 
-    // Fonksiyonu `forPublicProfile = true` parametresiyle çağırarak rozetleri al
     const badges = getUserBadgesHtml(userData, userLeaderStatus, true);
     
-    // Gelen verilere göre elementleri doldur
     document.getElementById('publicUserKingBadge').innerHTML = badges.crown;
     document.getElementById('publicUserOtherBadges').innerHTML = badges.others;
 
@@ -4309,11 +4311,15 @@ async function openUserManagementModal(username) {
     function closePublicUserDetailModal() {
   const publicUserDetailModal = document.getElementById('publicUserDetailModal');
   
-  // Modalı gizle
+  // 1. Modalı gizle
   publicUserDetailModal.style.display = 'none';
 
-  // Modal kapatıldığında, içinde çalışan zamanlayıcıyı (varsa) temizle
-  // Bu, gereksiz kaynak kullanımını önler.
+  // 2. DÜZELTME: Sayfayı tekrar kullanılabilir hale getirmek için body'den class'ı kaldır.
+  // Donma sorununun ana kaynağı bu satırın eksik olmasıdır.
+  document.body.classList.remove('modal-open');
+
+  // 3. DÜZELTME: Arka planda çalışan zamanlayıcıyı (varsa) durdur.
+  // Bu, performans sorunlarını ve gereksiz kod çalışmasını engeller.
   const viewingUser = publicUserDetailModal.dataset.viewingUser;
   if (viewingUser && activeBlockedUserTimers[viewingUser]) {
     clearInterval(activeBlockedUserTimers[viewingUser]);
@@ -6072,7 +6078,7 @@ function handleSoloItemClick(event) {
 }
   
 async function deleteUserFromLeaderboard(event, username) {
-      event.stopPropagation(); // YENİ EKLENEN SATIR: Tıklamanın arkadaki satıra gitmesini engeller.
+      event.stopPropagation(); // Olayın yayılmasını engeller
       if (!isAdmin) return;
       const confirmed = await customConfirm(`<b>${username}</b> adlı kullanıcıyı Yakalayıcılar listesinden silmek istediğinize emin misiniz?`);
       if (confirmed) {
@@ -6125,9 +6131,9 @@ async function getClickCatchLeaderUsername() {
           filteredScores.forEach((entry, index) => {
               const leaderBadge = (index === 0 && !searchTerm) ? '<span title="Tıkla ve Yakala Lideri">🎯</span>' : '';
               const deleteButton = isAdmin 
-              ? `<button onclick="deleteUserFromLeaderboard(event, '${entry.username}')" class="ml-3 text-gray-500 hover:text-red-500 transition-colors" title="Skor Tablosundan Sil">
-                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
-                   </button>` : '';
+? `<button onclick="deleteUserFromLeaderboard(event, '${entry.username}')" class="ml-3 text-gray-500 hover:text-red-500 transition-colors" title="Skor Tablosundan Sil">
+       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1-1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+     </button>` : '';
 
               const userData = allUsersCache.find(user => user.username === entry.username);
               const avatarUrl = userData && userData.selectedAvatar ? userData.selectedAvatar.url : defaultAvatarUrl;
