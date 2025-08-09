@@ -93,78 +93,61 @@
   #gameDiv.modal-is-open .best-seller-badge {
     visibility: hidden;
   }
-   /* Şans Çarkı Stilleri */
-  #wheelContainer {
-      position: relative;
-      width: 350px;
-      height: 350px;
-      margin: 2rem auto;
-  }
-  .wheel-segment-text {
+  /* ŞANS ÇARKI STİLLERİ BAŞLANGIÇ */
+#wheelContainer {
+    position: relative;
+    width: 350px;
+    height: 350px;
+    margin: 2rem auto;
+}
+
+/* Sadece renkli dilimleri içeren dönen arka plan */
+#wheel {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 10px solid #4a5568;
+    transition: transform 5s cubic-bezier(0.25, 0.1, 0.25, 1);
+    position: relative;
+    /* Arka plan JS tarafından 'conic-gradient' ile doldurulacak */
+}
+
+/* Yazıların yerleştirileceği, dönmeyen sabit katman */
+#wheelTextOverlay {
     position: absolute;
-    width: 50%;
-    height: 50%;
-    transform-origin: 100% 100%;
-    left: 0;
     top: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    user-select: none; /* Metin seçilemesini engeller */
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Tıklamaları engeller, alttaki çarkın tıklanmasını sağlar */
+    z-index: 5;
 }
 
-.wheel-segment-text span {
+/* Her bir yazı parçasının stili */
+.wheel-text-item {
     position: absolute;
-    transform: translateY(-50%) rotate(90deg); /* Metni çemberin dışına doğru konumlandırır ve döndürür */
-    font-size: 14px;
-    font-weight: bold;
-    color: #fff; /* Metin rengi */
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8); /* Gölge efekti (isteğe bağlı) */
-    white-space: nowrap; /* Metnin tek satırda kalmasını sağlar */
-}
-      border: 10px solid #4a5568;
-      transition: transform 5s cubic-bezier(0.25, 0.1, 0.25, 1);
-      position: relative;
-      overflow: hidden;
-  }
-  /* Bu, yazıyı taşıyacak olan ve dönen görünmez çubuktur */
-/* Yazıyı taşıyan ve merkezden dönen görünmez "çubuk" */
-.wheel-text-container {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 50%; /* Çarkın yarıçapı kadar */
-    height: 1px; /* Sadece bir çizgi olduğu için yüksekliğe gerek yok */
-    transform-origin: left center; /* Sol-orta noktadan (merkezden) dönmesini sağlar */
-}
-
-/* Yazının kendisi */
-.wheel-text {
-    display: block;
-    position: absolute;
-    /* Çubuğun sağ ucuna (dış kenara) yerleştirir */
-    right: 15px;
-    top: 50%;
-    
-    /* Metin stilleri */
     color: white;
     font-size: 14px;
     font-weight: bold;
     text-shadow: 1px 1px 2px black;
-    white-space: nowrap; /* Yazıların alt satıra kaymasını engeller */
+    white-space: nowrap;
+    /* Konumu ve dönüşü JS tarafından ayarlanacak */
 }
-  #wheelMarker {
-      position: absolute;
-      top: -5px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 0;
-      height: 0;
-      border-left: 20px solid transparent;
-      border-right: 20px solid transparent;
-      border-top: 30px solid #fde047;
-      z-index: 10;
-  }
+
+/* Üstteki sabit sarı ok işareti */
+#wheelMarker {
+    position: absolute;
+    top: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 20px solid transparent;
+    border-right: 20px solid transparent;
+    border-top: 30px solid #fde047;
+    z-index: 10;
+}
+/* ŞANS ÇARKI STİLLERİ BİTİŞ */
    /* Tıkla Yakala Stilleri */
    #clickCatchGameArea {
     width: 100%;
@@ -407,6 +390,7 @@ body.modal-open .modal-content {
         
         <div id="wheelContainer">
             <div id="wheel"></div>
+            <div id="wheelTextOverlay"></div> 
             <div id="wheelMarker"></div>
         </div>
 
@@ -5460,49 +5444,74 @@ function openSpectatorModal(sessionData) {
       spectatorModal.style.display = 'none';
   }
   
-  function renderWheel() {
-    wheel.innerHTML = ''; // Önceki içeriği (yazıları) temizle
-    const segmentCount = wheelSegments.length;
+  // ŞANS ÇARKI GÖRSELİNİ OLUŞTURAN FONKSİYON
+function renderWheel() {
+    const wheelElement = document.getElementById('wheel');
+    const textOverlay = document.getElementById('wheelTextOverlay');
+
+    // Elementler bulunamazsa hatayı önle
+    if (!wheelElement || !textOverlay) {
+        console.error("Çark elementleri bulunamadı!");
+        return;
+    }
+
+    // Önceki çizimleri temizle
+    wheelElement.innerHTML = ''; 
+    textOverlay.innerHTML = '';
+
+    const segments = wheelSegments;
+    const segmentCount = segments.length;
     if (segmentCount === 0) return;
 
-    const segmentAngle = 360 / segmentCount;
-    let gradientParts = []; // Renk dilimlerini tutacak dizi
+    // Çarkın boyutlarını al (JS'nin geç çalışması ihtimaline karşı)
+    const wheelRadius = wheelElement.offsetWidth / 2;
+    if (wheelRadius === 0) {
+        console.error("Çark boyutu hesaplanamadı (0). Sayfa tam yüklenmemiş olabilir.");
+        // Eğer boyut hala 0 ise, birkaç milisaniye sonra tekrar dene
+        setTimeout(renderWheel, 100);
+        return;
+    }
 
-    wheelSegments.forEach((segment, i) => {
-        // --- 1. Renkli Arka Planı Oluşturma ---
+    // Yazıların merkezden ne kadar uzakta olacağını belirle
+    const textRadius = wheelRadius * 0.75; 
+    const segmentAngle = 360 / segmentCount;
+    let gradientParts = [];
+
+    segments.forEach((segment, i) => {
+        // 1. Renkli Arka Planı Oluştur
         const startAngle = segmentAngle * i;
         const endAngle = startAngle + segmentAngle;
-        // Her dilimin rengini ve açısını `conic-gradient` için hazırla
         gradientParts.push(`${segment.color || '#cccccc'} ${startAngle}deg ${endAngle}deg`);
 
-        // --- 2. Yazıları Dilimlerin Ortasına Yerleştirme ---
-        // Yazının yerleşeceği dilimin tam orta açısını hesapla
-        const textAngle = startAngle + (segmentAngle / 2);
+        // 2. Trigonometri ile Her Yazının Konumunu Hesapla
+        const textAngleDegrees = startAngle + (segmentAngle / 2);
+        const angleRadians = (textAngleDegrees - 90) * (Math.PI / 180); // -90 derece ofset, 0 derecenin yukarı bakması için
 
-        // Yazıyı tutacak olan ve dönecek olan ana konteyneri (görünmez çubuğu) oluştur
-        const textHolder = document.createElement('div');
-        textHolder.className = 'wheel-text-container';
-        // Bu çubuğu doğru açıyla döndür
-        textHolder.style.transform = `rotate(${textAngle}deg)`;
-
-        const textSpan = document.createElement('span');
-        textSpan.className = 'wheel-text';
-        textSpan.textContent = segment.label;
+        const x = wheelRadius + textRadius * Math.cos(angleRadians);
+        const y = wheelRadius + textRadius * Math.sin(angleRadians);
         
-        // Yazının yarısından fazlası baş aşağı olmasın diye kontrol et ve düzelt
-        // 90 derece (saat 3 yönü) ile 270 derece (saat 9 yönü) arasındaysa yazıyı ters çevir
-        if (textAngle > 90 && textAngle < 270) {
-            textSpan.style.transform = 'translateY(-50%) rotate(180deg)';
-        } else {
-            textSpan.style.transform = 'translateY(-50%)';
+        // 3. Yazı Elementini Oluştur ve Yerleştir
+        const textItem = document.createElement('div');
+        textItem.className = 'wheel-text-item';
+        textItem.textContent = segment.label;
+        
+        textItem.style.left = `${x}px`;
+        textItem.style.top = `${y}px`;
+        
+        // Yazıyı merkezden dışarı doğru bakacak şekilde döndür
+        let textRotation = textAngleDegrees;
+        // Çarkın sol tarafındaki yazıların baş aşağı durmasını engelle
+        if (textAngleDegrees > 90 && textAngleDegrees < 270) {
+            textRotation += 180;
         }
 
-        textHolder.appendChild(textSpan);
-        wheel.appendChild(textHolder);
+        textItem.style.transform = `translate(-50%, -50%) rotate(${textRotation}deg)`;
+
+        textOverlay.appendChild(textItem);
     });
 
-    // --- 3. Oluşturulan Renk Dilimlerini Çarkın Arka Planı Olarak Ayarla ---
-    wheel.style.background = `conic-gradient(${gradientParts.join(', ')})`;
+    // 4. Renkli Arka Planı Uygula
+    wheelElement.style.background = `conic-gradient(${gradientParts.join(', ')})`;
 }
 async function spinWheel() {
     if (isWheelSpinning) return;
