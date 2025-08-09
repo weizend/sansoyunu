@@ -143,6 +143,19 @@
     white-space: nowrap;
 }
   
+  .wheel-image {
+    display: block;
+    position: absolute;
+    left: 60%; 
+    top: 50%;
+    /* Boyutları ayarla */
+    width: 45px;
+    height: 45px;
+    object-fit: contain; /* Resmin orantısını bozmadan sığdır */
+    /* Ortalamak için transformu ayarla */
+    transform: translate(-50%, -50%);
+}
+  
 /* Üstteki sabit sarı ok işareti */
 #wheelMarker {
     position: absolute;
@@ -5487,7 +5500,7 @@ function openSpectatorModal(sessionData) {
   function closeSpectatorModal() {
       spectatorModal.style.display = 'none';
   }
- 
+    
 // Çarkın GÖRSELİNİ (dilimleri ve yazıları) oluşturan fonksiyon
 function renderWheel() {
     const wheelElement = document.getElementById('wheel');
@@ -5513,23 +5526,38 @@ function renderWheel() {
         textHolder.className = 'wheel-text-container';
         textHolder.style.transform = `rotate(${textAngle}deg)`;
 
-        const textSpan = document.createElement('span');
-        textSpan.className = 'wheel-text';
-        textSpan.textContent = segment.label;
-
-        if (textAngle > 90 && textAngle < 270) {
-            textSpan.style.transform = 'translate(-50%, -50%) rotate(180deg)';
+        // --- YENİ MANTIK BURADA ---
+        // Eğer segmentin imageUrl özelliği varsa ve boş değilse, bir resim elementi oluştur.
+        if (segment.imageUrl && segment.imageUrl.trim() !== '') {
+            const imageEl = document.createElement('img');
+            imageEl.src = segment.imageUrl;
+            imageEl.className = 'wheel-image'; // Resimler için yeni CSS class'ı
+            
+            if (textAngle > 90 && textAngle < 270) {
+                imageEl.style.transform = 'translate(-50%, -50%) rotate(180deg)';
+            } else {
+                imageEl.style.transform = 'translate(-50%, -50%)';
+            }
+            textHolder.appendChild(imageEl);
         } else {
-            textSpan.style.transform = 'translate(-50%, -50%)';
-        }
+            // Eğer imageUrl yoksa, eskisi gibi yazıyı göster.
+            const textSpan = document.createElement('span');
+            textSpan.className = 'wheel-text';
+            textSpan.textContent = segment.label;
 
-        textHolder.appendChild(textSpan);
+            if (textAngle > 90 && textAngle < 270) {
+                textSpan.style.transform = 'translate(-50%, -50%) rotate(180deg)';
+            } else {
+                textSpan.style.transform = 'translate(-50%, -50%)';
+            }
+            textHolder.appendChild(textSpan);
+        }
+        
         wheelElement.appendChild(textHolder);
     });
 
     wheelElement.style.background = `conic-gradient(${gradientParts.join(', ')})`;
 }
-
     
 // Çarkı ÇEVİREN ve sonucu belirleyen ana fonksiyon (TAM VE EKSİKSİZ HALİ)
 async function spinWheel() {
@@ -6675,7 +6703,7 @@ function renderActivityFeed(activities) {
     }
 
     activities.forEach(activity => {
-        let icon = '💬';
+        let iconContent = '';
         let message = '';
         const timeAgo = formatRelativeTime(activity.timestamp);
         const deleteButtonHtml = isAdmin ? `<div class="flex-shrink-0 ml-2"><button id="delete-activity-${activity.id}" data-activity-id="${activity.id}" class="text-gray-600 hover:text-red-500 transition-colors p-1 rounded-full" title="Bu eylemi sil"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1-1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button></div>` : '';
@@ -6683,76 +6711,62 @@ function renderActivityFeed(activities) {
         let multiplierText = '';
         if (activity.details.multiplier && activity.details.multiplier > 1) {
             multiplierText = ` (${activity.details.multiplier}x çarpan ile)`;
-        } else {
-            multiplierText = ` (çarpan kullanılmadı)`;
         }
         
         switch (activity.type) {
-            case 'openBox':
-                icon = '🎁';
-                message = `<b>${activity.username}</b>, ${activity.details.boxId} numaralı kutuyu açtı ve <span class="text-green-400 font-bold">${activity.details.points} Puan</span> kazandı${multiplierText}.`;
-                break;
-            case 'surpriseBox':
-                icon = '🎉';
-                if (activity.details.boxId === 'Çark') {
-                    message = `<b>${activity.username}</b>, Şans Çarkı'ndan Sürpriz Kutu kazandı ve kart seçiminden <span class="text-yellow-300 font-bold">${activity.details.points} Puan</span> elde etti!${multiplierText}.`;
-                } else {
-                    message = `<b>${activity.username}</b>, ${activity.details.boxId} numaralı kutudan Sürpriz Kutu buldu ve <span class="text-yellow-300 font-bold">${activity.details.points} Puan</span> kazandı!${multiplierText}. Oyun yeniden başladı.`;
-                }
-                break;
-            case 'iflas': // GÜNCELLENDİ
-                if (activity.details.shieldUsed) {
-                    icon = '🛡️';
-                    message = `<b>${activity.username}</b>, ${activity.details.boxId} numaralı kutuyu açarak iflas etti ama Kalkanı sayesinde korundu.`;
-                } else {
-                    icon = '💣';
-                    message = `<b>${activity.username}</b>, ${activity.details.boxId} numaralı kutuyu açarak iflas etti ve <span class="text-red-500 font-bold">${activity.details.lostPoints} Puan</span> kaybetti.`;
-                }
-                break;
-            case 'newItemFound': // GÜNCELLENDİ
-                // itemType'a göre doğru ikonu seç
-                switch (activity.details.itemType) {
-                    case 'iflasShield': icon = '🛡️'; break;
-                    case 'wheelTicket': icon = '🎟️'; break;
-                    case 'clickCatchTicket': icon = '🎫'; break;
-                    default: icon = '✨';
-                }
-                message = `<b>${activity.username}</b>, ${activity.details.boxId} numaralı kutuyu açtı ve <span class="text-cyan-400 font-bold">${activity.details.itemName}</span> buldu${multiplierText}.`;
-                break;
-            case 'multiplierFound':
-                icon = '✖️';
-                message = `<b>${activity.username}</b>, ${activity.details.boxId} numaralı kutuyu açtı ve <span class="text-blue-400 font-bold">${activity.details.value}x Çarpan</span> buldu.`;
-                break;
-            case 'multiplierRefund':
-                icon = '🔄';
-                // GÜNCELLENDİ (daha anlaşılır olması için kutu numarası eklendi)
-                message = `<b>${activity.username}</b>, ${activity.details.boxId} numaralı kutuyu çarpanla açarak <b>${activity.details.newMultiplier}x</b>'lik yeni bir çarpan buldu ve <b>${activity.details.refundedMultiplier}x</b>'lik mağaza çarpan hakkı iade edildi!`;
-                break;
-            case 'spinWheel':
-                icon = '🎡';
-                message = `<b>${activity.username}</b>, Şans Çarkı'nı çevirdi ve <span class="text-purple-400 font-bold">${activity.details.result}</span> kazandı.`;
-                break;
-            case 'buyItem':
-                icon = '🛒';
-                message = `<b>${activity.username}</b>, mağazadan <span class="text-teal-400 font-bold">${activity.details.itemName}</span> ürününü <span class="text-green-400 font-bold">${activity.details.itemCost} Puana</span> satın aldı.`;
-                break;
-            case 'dailyReward':
-                icon = '📅';
-                message = `<b>${activity.username}</b>, günlük ödüllerden <span class="text-indigo-400 font-bold">${activity.details.rewardName}</span> hediyesini aldı.`;
-                break;
+            case 'openBox': iconContent = '🎁'; message = `<b>${activity.username}</b>, ${activity.details.boxId} numaralı kutuyu açtı ve <span class="text-green-400 font-bold">${activity.details.points} Puan</span> kazandı${multiplierText}.`; break;
+            case 'surpriseBox': iconContent = '🎉'; if (activity.details.boxId === 'Çark') { message = `<b>${activity.username}</b>, Şans Çarkı'ndan Sürpriz Kutu kazandı ve <span class="text-yellow-300 font-bold">${activity.details.points} Puan</span> elde etti!`; } else { message = `<b>${activity.username}</b>, ${activity.details.boxId} numaralı kutudan Sürpriz Kutu buldu ve <span class="text-yellow-300 font-bold">${activity.details.points} Puan</span> kazandı! Oyun yeniden başladı.`; } break;
+            case 'iflas': if (activity.details.shieldUsed) { iconContent = '🛡️'; message = `<b>${activity.username}</b>, ${activity.details.boxId} numaralı kutuyu açarak iflas etti ama Kalkanı sayesinde korundu.`; } else { iconContent = '💣'; message = `<b>${activity.username}</b>, ${activity.details.boxId} numaralı kutuyu açarak iflas etti ve <span class="text-red-500 font-bold">${activity.details.lostPoints} Puan</span> kaybetti.`; } break;
+            case 'newItemFound': switch (activity.details.itemType) { case 'iflasShield': iconContent = '🛡️'; break; case 'wheelTicket': iconContent = '🎟️'; break; case 'clickCatchTicket': iconContent = '🎫'; break; default: iconContent = '✨'; }; message = `<b>${activity.username}</b>, ${activity.details.boxId} numaralı kutuyu açtı ve <span class="text-cyan-400 font-bold">${activity.details.itemName}</span> buldu${multiplierText}.`; break;
+            case 'multiplierFound': iconContent = '✖️'; message = `<b>${activity.username}</b>, ${activity.details.boxId} numaralı kutuyu açtı ve <span class="text-blue-400 font-bold">${activity.details.value}x Çarpan</span> buldu.`; break;
+            case 'multiplierRefund': iconContent = '🔄'; message = `<b>${activity.username}</b>, ${activity.details.boxId} numaralı kutuyu çarpanla açarak <b>${activity.details.newMultiplier}x</b>'lik yeni bir çarpan buldu ve <b>${activity.details.refundedMultiplier}x</b>'lik mağaza çarpan hakkı iade edildi!`; break;
+            case 'clickCatchLobby': iconContent = '🏆'; message = `<b>${activity.username}</b>, Tıkla-Yakala lobi oyununda birinci oldu ve <span class="text-orange-400 font-bold">${activity.details.prize} Puan</span> ödül kazandı!`; break;
+            case 'buyItem': message = `<b>${activity.username}</b>, mağazadan <span class="text-teal-400 font-bold">${activity.details.itemName}</span> ürününü <span class="text-green-400 font-bold">${activity.details.itemCost} Puana</span> satın aldı.`; if (activity.details.imageUrl) { iconContent = `<img src="${activity.details.imageUrl}" class="w-full h-full object-contain" alt="${activity.details.itemName}">`; } else { iconContent = '🛒'; } break;
+            case 'dailyReward': message = `<b>${activity.username}</b>, günlük ödüllerden <span class="text-indigo-400 font-bold">${activity.details.rewardName}</span> hediyesini aldı.`; if (activity.details.imageUrl) { iconContent = `<img src="${activity.details.imageUrl}" class="w-full h-full object-contain" alt="${activity.details.rewardName}">`; } else { iconContent = '📅'; } break;
+            case 'spinWheel': const segment = activity.details.winningSegment; if (segment) { let prizeIcon = '🎡'; const label = (segment.label || '').toUpperCase(); if (label.includes('1000 PUAN')) prizeIcon = '💎'; else if (label.includes('100 PUAN')) prizeIcon = '💰'; else if (label.includes('50 PUAN')) prizeIcon = '🍪'; else if (label.includes('3 KUTU HAKKI')) prizeIcon = '📦'; else if (label.includes('1 KUTU HAKKI')) prizeIcon = '🎁'; else if (label.includes('TIKLA-YAKALA')) prizeIcon = '🎟️'; else if (label.includes('5X ÇARPAN')) prizeIcon = '✖️'; else if (label.includes('SÜPRİZ KUTU')) prizeIcon = '🎉'; else if (label.includes('İFLAS KALKANI')) prizeIcon = '🛡️'; else if (label.includes('PAS')) prizeIcon = '☠️'; iconContent = prizeIcon; if (segment.type === 'pas') { message = `<b>${activity.username}</b>, Şans Çarkı'nı çevirdi ve <span class="text-gray-400 font-bold">Pas geldi</span>.`; } else { message = `<b>${activity.username}</b>, Şans Çarkı'nı çevirdi ve <span class="text-purple-400 font-bold">${segment.label}</span> kazandı.`; } } else { message = `<b>${activity.username}</b>, Şans Çarkı'nı çevirdi.`; iconContent = '🎡'; } break;
+            
+            // --- YENİLENEN KISIM BURASI ---
             case 'clickCatchSolo':
-                icon = '🎯';
-                let scoreText = (activity.details.score >= 0) ? `ve <span class="text-pink-400 font-bold">${activity.details.score} Puan</span>` : `ve <span class="text-red-500 font-bold">${-activity.details.score} Puan</span> kaybetti`;
-                let specialItemText = activity.details.specialItems ? ` ve <span class="text-cyan-400 font-bold">${activity.details.specialItems}</span> hediyesi kazandı.` : ', ancak özel hediye kazanamadı.';
-                message = `<b>${activity.username}</b>, Tıkla-Yakala oyunu oynadı ${scoreText}${specialItemText}`;
-                break;
-            case 'clickCatchLobby':
-                icon = '🏆';
-                message = `<b>${activity.username}</b>, Tıkla-Yakala lobi oyununda birinci oldu ve <span class="text-orange-400 font-bold">${activity.details.prize} Puan</span> ödül kazandı!`;
+                iconContent = '🎯';
+
+                let scoreMessage = '';
+                const score = activity.details.score;
+                
+                // Puan mesajını oluştur (kazandı/kaybetti)
+                if (score >= 0) {
+                    scoreMessage = `ve <span class="text-pink-400 font-bold">${score} Puan</span> kazandı.`;
+                } else {
+                    scoreMessage = `ve <span class="text-red-500 font-bold">${-score} Puan</span> kaybetti.`;
+                }
+
+                // Özel hediye mesajını oluştur (parantez içinde)
+                let specialPrizeMessage = '';
+                const specialItems = activity.details.specialItems;
+
+                if (specialItems) {
+                    specialPrizeMessage = ` <span class="text-cyan-400">[${specialItems.toUpperCase()} YAKALANDI]</span>`;
+                } else {
+                    specialPrizeMessage = ` <span class="text-gray-500">[Özel Hediye Yakalanmadı]</span>`;
+                }
+
+                // İki mesajı birleştir
+                message = `<b>${activity.username}</b>, Tıkla-Yakala oyunu oynadı ${scoreMessage}${specialPrizeMessage}`;
                 break;
         }
 
-        const activityHtml = `<div id="activity-${activity.id}" class="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg mb-2"><div class="flex items-start gap-3 flex-grow"><div class="text-2xl pt-1">${icon}</div><div class="flex-1"><div class="text-sm text-gray-300">${message}</div><div class="text-xs text-gray-500 text-right mt-1">${timeAgo}</div></div></div>${deleteButtonHtml}</div>`;
+        const activityHtml = `
+            <div id="activity-${activity.id}" class="flex items-center justify-between p-3 bg-gray-900/50 rounded-lg mb-2">
+                <div class="flex items-start gap-3 flex-grow">
+                    <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center bg-gray-800 rounded-lg text-2xl">
+                        ${iconContent}
+                    </div>
+                    <div class="flex-1">
+                        <div class="text-sm text-gray-300">${message}</div>
+                        <div class="text-xs text-gray-500 text-right mt-1">${timeAgo}</div>
+                    </div>
+                </div>
+                ${deleteButtonHtml}
+            </div>`;
         activityFeedList.innerHTML += activityHtml;
     });
 
@@ -7050,21 +7064,22 @@ function closeWheelSettingsModal() {
     wheelSettingsModal.style.display = 'none';
 }
 
-// DEĞİŞTİRİLECEK FONKSİYON
 function addWheelSettingRow(item = {}) {
     const container = document.getElementById('wheelSettingsRowsContainer');
     const row = document.createElement('div');
-    row.className = 'wheel-setting-row grid grid-cols-1 sm:grid-cols-6 items-center gap-3 p-3 bg-gray-900 rounded-lg';
+    // DÜZENLEME: Grid yapısı 7 sütuna çıkarıldı
+    row.className = 'wheel-setting-row grid grid-cols-1 sm:grid-cols-7 items-center gap-3 p-3 bg-gray-900 rounded-lg';
 
     const type = item.type || 'points';
     const value = item.value || '';
     const duration = item.duration || '';
     const label = item.label || '';
-    const color = item.color || '#f44336'; // YENİ: Varsayılan renk eklendi
+    const imageUrl = item.imageUrl || ''; // YENİ: Resim URL'i eklendi
+    const color = item.color || '#f44336';
     const weight = item.weight || 10;
 
     row.innerHTML = `
-        <select class="setting-type col-span-1 sm:col-span-1 bg-gray-700 p-2 rounded-md text-white border border-gray-600" onchange="handleWheelRowTypeChange(this)">
+        <select class="setting-type col-span-1 bg-gray-700 p-2 rounded-md text-white border border-gray-600" onchange="handleWheelRowTypeChange(this)">
             <option value="points" ${type === 'points' ? 'selected' : ''}>Puan</option>
             <option value="boxRights" ${type === 'boxRights' ? 'selected' : ''}>Kutu Hakkı</option>
             <option value="iflasShield" ${type === 'iflasShield' ? 'selected' : ''}>Kalkan</option>
@@ -7075,17 +7090,21 @@ function addWheelSettingRow(item = {}) {
             <option value="pas" ${type === 'pas' ? 'selected' : ''}>Pas</option>
         </select>
         <input type="text" value="${label}" class="setting-label col-span-1 sm:col-span-2 bg-gray-700 p-2 rounded-md text-white" placeholder="Etiket (Örn: 100 Puan)">
+        
+        <input type="text" value="${imageUrl}" class="setting-image-url col-span-1 sm:col-span-2 bg-gray-700 p-2 rounded-md text-white" placeholder="Resim URL (Opsiyonel)">
+
         <input type="number" value="${value}" class="setting-value bg-gray-700 p-2 rounded-md text-white" placeholder="Değer">
         <input type="number" value="${duration}" class="setting-duration bg-gray-700 p-2 rounded-md text-white" placeholder="Süre/Kullanım">
-        <div class="col-span-1 sm:col-span-1 flex items-center gap-2">
+        <div class="col-span-1 flex items-center gap-2">
             <input type="color" value="${color}" class="setting-color h-10 w-10 p-1 bg-gray-700 rounded-md">
-            <input type="number" value="${weight}" class="setting-weight flex-grow bg-gray-700 p-2 rounded-md text-white" placeholder="Şans Ağırlığı">
+            <input type="number" value="${weight}" class="setting-weight flex-grow bg-gray-700 p-2 rounded-md text-white" placeholder="Şans">
             <button class="bg-red-700 hover:bg-red-600 text-white p-2 rounded-md" onclick="this.parentElement.parentElement.remove();">Sil</button>
         </div>
     `;
     container.appendChild(row);
     handleWheelRowTypeChange(row.querySelector('.setting-type'));
 }
+    
 function handleWheelRowTypeChange(selectElement) {
     const row = selectElement.closest('.wheel-setting-row');
     const valueInput = row.querySelector('.setting-value');
@@ -7102,7 +7121,6 @@ function handleWheelRowTypeChange(selectElement) {
     }
 }
 
-// Çark Ayarlarını veritabanına KAYDEDEN fonksiyon
 async function saveWheelSettings() {
     if (!isAdmin) return;
 
@@ -7113,6 +7131,7 @@ async function saveWheelSettings() {
         
         const type = row.querySelector('.setting-type').value;
         const label = row.querySelector('.setting-label').value.trim();
+        const imageUrl = row.querySelector('.setting-image-url').value.trim(); // YENİ: Resim URL'i okunuyor
         const value = parseInt(row.querySelector('.setting-value').value) || 0;
         const duration = parseInt(row.querySelector('.setting-duration').value) || 0;
         const color = row.querySelector('.setting-color').value;
@@ -7123,7 +7142,7 @@ async function saveWheelSettings() {
             hasError = true;
         }
 
-        const segment = { type, label, color, weight, order: index };
+        const segment = { type, label, imageUrl, color, weight, order: index }; // YENİ: imageUrl veriye eklendi
         if (!row.querySelector('.setting-value').disabled) segment.value = value;
         if (!row.querySelector('.setting-duration').disabled) segment.duration = duration;
         
@@ -7145,6 +7164,7 @@ async function saveWheelSettings() {
         closeWheelSettingsModal();
     }
 }
+    
 async function resetWheelSettingsToDefault() {
     if (!isAdmin) return;
     const confirmed = await customConfirm("Mevcut ayarları silip varsayılan çark yapılandırmasına dönmek istediğinize emin misiniz? (Değişiklikleri kalıcı yapmak için kaydetmeniz gerekir.)");
