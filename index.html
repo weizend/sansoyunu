@@ -3063,38 +3063,37 @@ async function openBox(index) {
         }
 
     } else if (box.content === 'wheelTicket' || box.content === 'clickCatchTicket' || box.content === 'iflasShield') {
-        const itemsGained = box.value * finalMultiplier;
-        const itemNames = {
-            wheelTicket: 'Şans Çarkı Bileti',
-            clickCatchTicket: 'Tıkla-Yakala Bileti',
-            iflasShield: 'İflas Kalkanı'
-        };
-        const dbKeys = {
-            wheelTicket: 'carkBileti',
-            clickCatchTicket: 'clickCatchTickets',
-            iflasShield: 'iflasShieldUses'
-        };
+    const itemsGained = box.value * finalMultiplier;
+    const itemNames = {
+        wheelTicket: 'Şanslı Çark Bileti', // "Şanslı" olarak değiştirildi
+        clickCatchTicket: 'Tıkla-Yakala Bileti',
+        iflasShield: 'İflas Kalkanı'
+    };
+    const dbKeys = {
+        wheelTicket: 'carkBileti',
+        clickCatchTicket: 'clickCatchTickets',
+        iflasShield: 'iflasShieldUses'
+    };
 
-        updates[dbKeys[box.content]] = (user[dbKeys[box.content]] || 0) + itemsGained;
-        
-        message = finalMultiplier > 1 
-            ? `Çarpan Etkisi! Kutudan <b>+${itemsGained} ${itemNames[box.content]}</b> kazandın! <br><span class='text-sm text-gray-400'>(${box.value} Adet x ${finalMultiplier} Çarpan)</span>`
-            : `Tebrikler! Kutudan <b>+${itemsGained} ${itemNames[box.content]}</b> kazandın!`;
-        
-        boxUpdate.baseValue = box.value;
-        boxUpdate.finalValue = itemsGained;
-        boxOpenInfo.baseValue = box.value;
-        boxOpenInfo.finalValue = itemsGained;
-        boxOpenInfo.multiplierUsed = finalMultiplier;
-        
-        // EYLEM KAYDI GÜNCELLENDİ (itemType eklendi)
-        logActivity('newItemFound', currentUser, { 
-            itemName: `${itemsGained} ${itemNames[box.content]}`, 
-            itemType: box.content, // Hangi eşya olduğunu belirtiyoruz
-            boxId: box.id, 
-            multiplier: finalMultiplier 
-        });
-    }
+    updates[dbKeys[box.content]] = (user[dbKeys[box.content]] || 0) + itemsGained;
+    
+    message = finalMultiplier > 1 
+        ? `Çarpan Etkisi! Kutudan <b>+${itemsGained} ${itemNames[box.content]}</b> kazandın! <br><span class='text-sm text-gray-400'>(${box.value} Adet x ${finalMultiplier} Çarpan)</span>`
+        : `Tebrikler! Kutudan <b>+${itemsGained} ${itemNames[box.content]}</b> kazandın!`;
+    
+    boxUpdate.baseValue = box.value;
+    boxUpdate.finalValue = itemsGained;
+    boxOpenInfo.baseValue = box.value;
+    boxOpenInfo.finalValue = itemsGained;
+    boxOpenInfo.multiplierUsed = finalMultiplier;
+
+    logActivity('newItemFound', currentUser, { 
+        itemName: `+${itemsGained} ${itemNames[box.content]}`, // Başına "+" eklendi
+        itemType: box.content, 
+        boxId: box.id, 
+        multiplier: finalMultiplier 
+    });
+}
 
     if (user.multiplierSource === 'store' && updates['multiplierRemainingUses'] !== undefined && updates['multiplierRemainingUses'] <= 0) {
         updates['multiplierSource'] = 'none';
