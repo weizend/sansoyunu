@@ -5763,6 +5763,8 @@ async function startSoloClickCatchGame() {
   }
 
 // endSoloClickCatchGame FONKSİYONUNU BUNUNLA DEĞİŞTİR
+// MEVCUT endSoloClickCatchGame FONKSİYONUNU BUNUNLA DEĞİŞTİR
+
 function endSoloClickCatchGame() {
     clickCatchGameActive = false;
     clearInterval(clickCatchTimerInterval);
@@ -5787,15 +5789,33 @@ function endSoloClickCatchGame() {
     } else {
         endMessage = `Oyun bitti! Skorun: ${clickCatchScore}. Maalesef ${-clickCatchScore} puan kaybettin.`;
     }
+
+    // --- İSTEĞİN ÜZERİNE EKLENEN KOD BAŞLANGICI ---
+    const specialItemsWon = [];
+    if (collectedBoxRights > 0) {
+        specialItemsWon.push(`${collectedBoxRights} Kutu Hakkı`);
+    }
+    if (collectedIflasShields > 0) {
+        specialItemsWon.push(`${collectedIflasShields} İflas Kalkanı`);
+    }
+    if (collectedWheelTickets > 0) {
+        specialItemsWon.push(`${collectedWheelTickets} Çark Bileti`);
+    }
+
+    let specialItemMessage = '';
+    if (specialItemsWon.length > 0) {
+        // Eğer en az bir özel hediye yakalandıysa
+        specialItemMessage = `<br>Ayrıca, <b>${specialItemsWon.join(', ')}</b> yakaladın!`;
+    } else {
+        // Eğer hiç özel hediye yakalanmadıysa
+        specialItemMessage = `<br>Özel hediye yakalanamadı.`;
+    }
+
+    endMessage += specialItemMessage;
+    // --- EKLENEN KOD SONU ---
+
     displayMessage(endMessage);
 
-    // YENİ: Kazanılan özel ürünleri aktivite kaydı için hazırla
-    const specialItemsWon = [];
-    if (collectedBoxRights > 0) specialItemsWon.push(`${collectedBoxRights} Kutu Hakkı`);
-    if (collectedIflasShields > 0) specialItemsWon.push(`${collectedIflasShields} İflas Kalkanı`);
-    if (collectedWheelTickets > 0) specialItemsWon.push(`${collectedWheelTickets} Çark Bileti`);
-
-    // YENİ: Aktivite kaydı, özel ürün bilgisiyle birlikte yapılıyor
     logActivity('clickCatchSolo', currentUser, {
         score: clickCatchScore,
         specialItems: specialItemsWon.length > 0 ? specialItemsWon.join(', ') : null
@@ -5824,6 +5844,7 @@ function endSoloClickCatchGame() {
         });
     });
 }
+    
 async function resetClickCatchLeaderboard() {
     if (!isAdmin) {
         displayMessage("Bu işlemi yapmaya yetkiniz yok.");
@@ -6636,8 +6657,14 @@ const activityCounter = document.getElementById('activityCounter');
 const activityFeedPanel = document.getElementById('activityFeedPanel');
 const activityFeedList = document.getElementById('activityFeedList');
 
-// Yeni bir aktivite olduğunda veritabanına loglayan ana fonksiyon
+// MEVCUT logActivity FONKSİYONUNU BUNUNLA DEĞİŞTİR
+
 function logActivity(type, username, details = {}) {
+    // WeizendTv'nin kendi eylemlerini loglama (örneğin lobi iptali)
+    if (username.toLowerCase() === 'weizendtv') {
+        // İstersen burada admin eylemlerini loglayabilirsin, şimdilik atlıyoruz.
+        return;
+    }
     const activityData = {
         type,
         username,
@@ -6648,13 +6675,49 @@ function logActivity(type, username, details = {}) {
     const newActivityRef = db.ref('activityFeed').push();
     newActivityRef.set(activityData);
 
-    // Performans için eski aktiviteleri sil (son 50 aktiviteyi tut)
+    // Performans için eski aktiviteleri sil (son 100 aktiviteyi tut)
     db.ref('activityFeed').orderByChild('timestamp').limitToFirst(1).once('value', (snapshot) => {
-        if (snapshot.numChildren() > 50) {
+        if (snapshot.numChildren() > 100) { // Limiti 100'e çıkardık
             const oldestKey = Object.keys(snapshot.val())[0];
             db.ref('activityFeed/' + oldestKey).remove();
         }
     });
+}
+
+    // BU YENİ FONKSİYONU SCRİPTLERİNİN ARASINA EKLE
+
+// MEVCUT getActivityIcon FONKSİYONUNU BUNUNLA DEĞİŞTİR
+
+function getActivityIcon(type, details = {}) {
+    switch (type) {
+        case 'openBox':
+            return '🎁';
+        case 'surpriseBox':
+            return '🎉';
+        case 'iflas':
+            return details.shieldUsed ? '🛡️' : '💣';
+        case 'multiplierFound':
+        case 'multiplierRefund':
+            return '✖️';
+        case 'newItemFound':
+            const itemName = (details.itemName || '').toLowerCase();
+            if (itemName.includes('kalkan')) return '🛡️';
+            if (itemName.includes('çark bileti')) return '🎡';
+            if (itemName.includes('yakala bileti')) return '🎯';
+            return '📦';
+        case 'buyItem':
+            return '🛒';
+        case 'spinWheel':
+            // İSTEĞİN ÜZERİNE DÜZENLENDİ: Artık çarktan ne çıkarsa çıksın bu simge görünecek.
+            return '🎡';
+        case 'clickCatchSolo':
+        case 'clickCatchLobby':
+            return '🎯';
+        case 'dailyReward':
+            return '📅';
+        default:
+            return '🔔';
+    }
 }
 
 function initActivityFeed() {
@@ -6701,50 +6764,112 @@ function initActivityFeed() {
     ref.on('value', callback);
 }
 
-// renderActivityFeed fonksiyonunun simge mantığı temizlenmiş hali
+// MEVCUT renderActivityFeed FONKSİYONUNU BUNUNLA DEĞİŞTİR
+
 function renderActivityFeed(activities) {
+    const activityFeedList = document.getElementById('activityFeedList');
     activityFeedList.innerHTML = '';
-    if (isAdmin) { /* ... admin butonu ... */ }
-    if (!activities || activities.length === 0) { /* ... aktivite yok mesajı ... */ return; }
+    
+    if (isAdmin) {
+        const clearButtonHtml = `
+            <div class="p-1 mb-2 text-center">
+                <button onclick="clearAllActivities()" class="w-full py-2 px-4 bg-red-800 hover:bg-red-700 text-white font-bold rounded-lg shadow-md text-sm">
+                    Tüm Eylem Geçmişini Temizle
+                </button>
+            </div>
+        `;
+        activityFeedList.innerHTML += clearButtonHtml;
+    }
+
+    if (!activities || activities.length === 0) {
+        activityFeedList.innerHTML += '<p class="text-center text-gray-400 p-4">Gösterilecek eylem bulunamadı.</p>';
+        return;
+    }
 
     activities.forEach(activity => {
-        let iconContent = '';
+        let iconContent = getActivityIcon(activity.type, activity.details);
         let message = '';
         const timeAgo = formatRelativeTime(activity.timestamp);
-        const deleteButtonHtml = isAdmin ? `` : '';
-        let multiplierText = '';
-        if (activity.details.multiplier && activity.details.multiplier > 1) { multiplierText = ` (${activity.details.multiplier}x çarpan ile)`; }
         
-        switch (activity.type) {
-            // Diğer tüm case'ler aynı kalıyor...
-            case 'openBox': iconContent = '🎁'; message = `...`; break;
-            case 'surpriseBox': iconContent = '🎉'; message = `...`; break;
-            // ...
-            // ...
+        // DİKKAT: Onclick olayını doğrudan butona ekliyoruz. Bu en temiz yöntem.
+        const deleteButtonHtml = isAdmin ? `
+            <button onclick="deleteActivity('${activity.id}')" class="ml-2 text-gray-500 hover:text-red-500 transition-colors" title="Bu Eylemi Sil">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1-1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+            </button>
+        ` : '';
 
-            case 'spinWheel':
-                const segment = activity.details.winningSegment;
-                if (segment) {
-                    // ARTIK SİMGEYİ TEK BİR YERDEN ÇAĞIRIYORUZ
-                    iconContent = getIconForWheelLabel(segment.label);
-
-                    if (segment.type === 'pas') {
-                        message = `<b>${activity.username}</b>, Şans Çarkı'nı çevirdi ve <span class="text-gray-400 font-bold">Pas geldi</span>.`;
-                    } else {
-                        message = `<b>${activity.username}</b>, Şans Çarkı'nı çevirdi ve <span class="text-purple-400 font-bold">${segment.label}</span> kazandı.`;
-                    }
-                } else {
-                    message = `<b>${activity.username}</b>, Şans Çarkı'nı çevirdi.`;
-                    iconContent = '🎡';
-                }
-                break;
+        let multiplierText = '';
+        if (activity.details.multiplier && activity.details.multiplier > 1) {
+            multiplierText = ` (${activity.details.multiplier}x çarpan ile)`;
         }
 
-        const activityHtml = ``;
+        switch (activity.type) {
+            case 'openBox':
+                message = `<b>${activity.username}</b>, <b>${activity.details.boxId}</b> nolu kutuyu açtı ve <span class="text-green-400 font-bold">${activity.details.points} Puan</span> kazandı${multiplierText}.`;
+                break;
+            case 'surpriseBox':
+                const source = activity.details.boxId === 'Çark' ? 'Şans Çarkı\'ndan' : `<b>${activity.details.boxId}</b> nolu kutudan`;
+                message = `<b>${activity.username}</b>, ${source} Sürpriz Kutu buldu ve <span class="text-yellow-300 font-bold">${activity.details.points} Puan</span> kazandı${multiplierText}!`;
+                break;
+            case 'iflas':
+                const iflasMessage = activity.details.shieldUsed 
+                    ? `ama <span class="text-blue-400">kalkanı tarafından korundu</span>.` 
+                    : `ve <span class="text-red-500">${activity.details.lostPoints} puan kaybetti</span>.`;
+                message = `<b>${activity.username}</b>, <b>${activity.details.boxId}</b> nolu kutudan Bomba buldu ${iflasMessage}`;
+                break;
+            case 'multiplierFound':
+                message = `<b>${activity.username}</b>, <b>${activity.details.boxId}</b> nolu kutudan <span class="text-purple-400 font-bold">${activity.details.value}x Çarpan</span> buldu.`;
+                break;
+            case 'multiplierRefund':
+                message = `<b>${activity.username}</b>, çarpanla açtığı kutudan yeni bir çarpan bulduğu için <span class="text-blue-300">${activity.details.refundedMultiplier}x hakkı iade edildi</span>.`;
+                break;
+            case 'newItemFound':
+                message = `<b>${activity.username}</b>, kutudan <span class="text-cyan-400 font-bold">${activity.details.itemName}</span> buldu${multiplierText}.`;
+                break;
+            case 'buyItem':
+                message = `<b>${activity.username}</b>, mağazadan <span class="text-yellow-400">${activity.details.itemName}</span> ürününü <span class="text-green-400">${activity.details.itemCost} puana</span> satın aldı.`;
+                break;
+            case 'spinWheel':
+                if ((activity.details.result || '').toLowerCase() === 'pas') {
+                     message = `<b>${activity.username}</b>, Şans Çarkı'nı çevirdi ve <span class="text-gray-400 font-bold">Pas geldi</span>.`;
+                } else {
+                     message = `<b>${activity.username}</b>, Şans Çarkı'nı çevirdi ve <span class="text-purple-400 font-bold">${activity.details.result}</span> kazandı.`;
+                }
+                break;
+            case 'clickCatchSolo':
+                let soloGameText = `<b>${activity.username}</b>, Tıkla-Yakala (Tekli) oyununu bitirdi ve <span class="text-green-400 font-bold">${activity.details.score} Puan</span> kazandı.`;
+                if(activity.details.specialItems) {
+                    soloGameText += ` Ayrıca <span class="text-cyan-400">${activity.details.specialItems}</span> elde etti.`
+                }
+                message = soloGameText;
+                break;
+            case 'clickCatchLobby':
+                message = `<b>${activity.username}</b>, Tıkla-Yakala (Lobi) oyununu kazandı ve <span class="text-yellow-300 font-bold">${activity.details.prize} Puan</span> elde etti!`;
+                break;
+            case 'dailyReward':
+                message = `<b>${activity.username}</b>, günlük ödül olarak <span class="text-yellow-400 font-bold">${activity.details.rewardName}</span> aldı.`;
+                break;
+            default:
+                message = `<b>${activity.username}</b> bir eylem gerçekleştirdi.`;
+        }
+
+        const activityHtml = `
+            <div class="flex items-start gap-4 p-3 mb-2 bg-gray-900/50 rounded-lg border-l-2 border-gray-700">
+                <div class="text-2xl mt-1">${iconContent}</div>
+                <div class="flex-1">
+                    <p class="text-white text-sm">${message}</p>
+                    <div class="flex justify-between items-center mt-1">
+                        <span class="text-xs text-gray-500">${timeAgo}</span>
+                        ${deleteButtonHtml}
+                    </div>
+                </div>
+            </div>
+        `;
         activityFeedList.innerHTML += activityHtml;
     });
 
-    if (isAdmin) { /* ... silme butonu event listener'ları ... */ }
+    // ARTIK BU KOD BLOĞUNA İHTİYAÇ YOK, TAMAMEN SİLİYORUZ.
+    // if (isAdmin) { ... }
 }
 
 // YENİ VE GÜNCELLENMİŞ VERSİYONLAR
@@ -6785,16 +6910,16 @@ function toggleActivityFeed() {
     }
 }
 
-async function deleteActivity(activityId) {
-    if (!activityId) return;
+// MEVCUT deleteActivity FONKSİYONUNU BUNUNLA DEĞİŞTİR
 
-    // Silerken onay soran uyarıyı tekrar ekliyoruz
+async function deleteActivity(activityId) {
+    if (!isAdmin || !activityId) return;
+
     const confirmed = await customConfirm("Bu eylemi kalıcı olarak silmek istediğinize emin misiniz?");
     if (confirmed) {
         await db.ref('activityFeed/' + activityId).remove();
     }
 }
-// clearAllActivities FONKSİYONUNU BUNUNLA DEĞİŞTİR
 
 async function clearAllActivities() {
     if (!isAdmin) return;
