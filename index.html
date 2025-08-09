@@ -111,18 +111,33 @@
     position: relative;
     /* Arka plan JS tarafından 'conic-gradient' ile doldurulacak */
 }
-  
-/* Her bir yazı parçasının stili */
-.wheel-text-item {
+
+  .wheel-text-container {
     position: absolute;
-    color: white;
-    font-size: 14px;
-    font-weight: bold;
-    text-shadow: 1px 1px 2px black;
-    white-space: nowrap;
-    /* Konumu ve dönüşü JS tarafından ayarlanacak */
+    left: 50%;
+    top: 50%;
+    width: 50%; /* Çarkın yarıçapı kadar */
+    height: 1px;
+    transform-origin: left center; /* Merkezden dönmesini sağlar */
 }
 
+/* Yazının kendisi */
+.wheel-text {
+    display: block;
+    position: absolute;
+    right: 15px; /* Yazıyı çubuğun en dışına (kenara yakın) iter */
+    top: 50%;
+    /* Yazıyı dikey olarak tam ortalar */
+    transform: translateY(-50%);
+    
+    /* Görsel Stiller */
+    color: white;
+    font-size: 15px;
+    font-weight: bold;
+    text-shadow: 0px 0px 5px rgba(0, 0, 0, 0.9);
+    white-space: nowrap;
+}
+  
 /* Üstteki sabit sarı ok işareti */
 #wheelMarker {
     position: absolute;
@@ -1512,18 +1527,18 @@ body.modal-open .modal-content {
   let isWheelSpinning = false;
   let wheelSegments = []; // Bu artık veritabanından doldurulacak
 const defaultWheelSegments = [
-    { type: 'points', value: 100, label: '100 Puan', color: '#f44336', weight: 20 },
-    { type: 'boxRights', value: 1, label: '+1 Kutu Hakkı', color: '#4caf50', weight: 15 },
-    { type: 'pas', label: 'Pas', color: '#607d8b', weight: 10 },
-    { type: 'points', value: 250, label: '250 Puan', color: '#2196f3', weight: 10 },
-    { type: 'iflasShield', value: 1, label: '+1 Kalkan', color: '#ffeb3b', weight: 5 },
-    { type: 'pas', label: 'Pas', color: '#607d8b', weight: 10 },
-    { type: 'points', value: 10, label: '10 Puan', color: '#9c27b0', weight: 20 },
-    { type: 'boxRights', value: 3, label: '+3 Kutu Hakkı', color: '#e91e63', weight: 2 },
-    { type: 'pas', label: 'Pas', color: '#607d8b', weight: 10 },
-    { type: 'points', value: 1000, label: '1000 Puan', color: '#00bcd4', weight: 1 },
-    { type: 'tempMultiplier', value: 2, duration: 3, label: '2x Çarpan (3 Kutu)', color: '#ff9800', weight: 2 },
-    { type: 'surpriseBox', value: 1, label: 'Sürpriz Kutu!', color: '#cddc39', weight: 1 }
+    { type: 'points', value: 1000, label: '1000 Puan', color: '#e53935', weight: 2 },          // 1. Kırmızı
+    { type: 'tempMultiplier', value: 5, duration: 1, label: '5x Çarpan', color: '#43a047', weight: 1 }, // 2. Yeşil
+    { type: 'surpriseBox', value: 1, label: 'Sürpriz Kutu!', color: '#5e35b1', weight: 1 },    // 3. Koyu Mor
+    { type: 'boxRights', value: 3, label: '3 KUTU HAKKI', color: '#1e88e5', weight: 4 },        // 4. Mavi
+    { type: 'boxRights', value: 1, label: '+1 Kutu Hakkı', color: '#fdd835', weight: 8 },      // 5. Sarı
+    { type: 'pas', label: 'Pas', color: '#546e7a', weight: 10 },                               // 6. Gri
+    { type: 'points', value: 250, label: '250 Puan', color: '#d81b60', weight: 6 },            // 7. Pembe
+    { type: 'iflasShield', value: 1, label: '+1 Kalkan', color: '#8e24aa', weight: 5 },       // 8. Mor
+    { type: 'pas', label: 'Pas', color: '#546e7a', weight: 10 },                               // 9. Gri
+    { type: 'points', value: 10, label: '10 Puan', color: '#00acc1', weight: 25 },             // 10. Turkuaz
+    { type: 'points', value: 100, label: '100 PUAN', color: '#fb8c00', weight: 15 },           // 11. Turuncu
+    { type: 'pas', label: 'Pas', color: '#546e7a', weight: 10 },                               // 12. Gri
 ];
   
   // Tıkla Yakala Değişkenleri
@@ -5431,73 +5446,60 @@ function openSpectatorModal(sessionData) {
   function closeSpectatorModal() {
       spectatorModal.style.display = 'none';
   }
-  
-  // NİHAİ VE DOĞRU RENDERWHEEL FONKSİYONU
+ 
+// MEVCUT renderWheel FONKSİYONUNU SİLİP YERİNE BU NİHAİ VERSİYONU YAPIŞTIR
+
 function renderWheel() {
-    // Yazıları ve renkleri taşıyacak olan ana çark elementini seçiyoruz
     const wheelElement = document.getElementById('wheel');
-
-    // Element bulunamazsa hatayı önle
-    if (!wheelElement) {
-        console.error("Çark elementi (#wheel) bulunamadı!");
-        return;
-    }
-
-    // Önceki tüm içeriği (yazıları) temizle
+    if (!wheelElement) { return; }
+    
     wheelElement.innerHTML = ''; 
 
     const segments = wheelSegments;
     const segmentCount = segments.length;
     if (segmentCount === 0) return;
 
-    // Çarkın boyutlarını al (JS'nin geç çalışması ihtimaline karşı)
     const wheelRadius = wheelElement.offsetWidth / 2;
     if (wheelRadius === 0) {
-        // Eğer çarkın boyutu henüz tarayıcı tarafından hesaplanmadıysa,
-        // fonksiyonu kısa bir gecikmeyle tekrar çağırarak sorunu çöz.
         setTimeout(renderWheel, 100);
         return;
     }
 
-    const textRadius = wheelRadius * 0.75; 
     const segmentAngle = 360 / segmentCount;
     let gradientParts = [];
 
     segments.forEach((segment, i) => {
-        // 1. Renkli Arka Plan için gradient dizisini doldur
+        // Renkli arka planı oluştur
         const startAngle = segmentAngle * i;
         const endAngle = startAngle + segmentAngle;
         gradientParts.push(`${segment.color || '#cccccc'} ${startAngle}deg ${endAngle}deg`);
 
-        // 2. Trigonometri ile Her Yazının Konumunu Hesapla
-        const textAngleDegrees = startAngle + (segmentAngle / 2);
-        const angleRadians = (textAngleDegrees - 90) * (Math.PI / 180);
+        // Yazının dilimin tam ortasındaki açısını bul
+        const textAngle = startAngle + (segmentAngle / 2);
+        
+        // 1. Ana konteyneri (görünmez çubuğu) oluştur
+        const textHolder = document.createElement('div');
+        textHolder.className = 'wheel-text-container';
+        // Bu çubuğu doğru açıyla döndür
+        textHolder.style.transform = `rotate(${textAngle}deg)`;
 
-        const x = wheelRadius + textRadius * Math.cos(angleRadians);
-        const y = wheelRadius + textRadius * Math.sin(angleRadians);
-        
-        // 3. Yazı Elementini Oluştur
-        const textItem = document.createElement('div');
-        textItem.className = 'wheel-text-item';
-        textItem.textContent = segment.label;
-        
-        // Konumunu ayarla
-        textItem.style.left = `${x}px`;
-        textItem.style.top = `${y}px`;
-        
-        // Yazıyı merkezden dışarı doğru bakacak şekilde döndür
-        let textRotation = textAngleDegrees;
-        if (textAngleDegrees > 90 && textAngleDegrees < 270) {
-            textRotation += 180;
+        // 2. Yazıyı içeren span elementini oluştur
+        const textSpan = document.createElement('span');
+        textSpan.className = 'wheel-text';
+        textSpan.textContent = segment.label;
+
+        // 3. Yazının baş aşağı durmasını engellemek için kontrol et
+        // Eğer yazı çarkın sol tarafındaysa, okunabilir olması için 180 derece çevir
+        if (textAngle > 90 && textAngle < 270) {
+            textSpan.style.transform = 'translateY(-50%) rotate(180deg)';
         }
-        textItem.style.transform = `translate(-50%, -50%) rotate(${textRotation}deg)`;
 
-        // --- EN ÖNEMLİ DEĞİŞİKLİK ---
-        // Yazıyı artık doğrudan dönen wheelElement'in içine ekliyoruz
-        wheelElement.appendChild(textItem);
+        // Span'ı konteynerin içine, konteyneri de ana çarkın içine ekle
+        textHolder.appendChild(textSpan);
+        wheelElement.appendChild(textHolder);
     });
 
-    // 4. Oluşturulan renkli arka planı uygula
+    // Renkli arka planı uygula
     wheelElement.style.background = `conic-gradient(${gradientParts.join(', ')})`;
 }
     
