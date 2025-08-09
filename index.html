@@ -190,23 +190,34 @@
  /* YENİ EKLENECEK KOD */
   .modal-close-button {
     position: absolute;
-    top: 2px; /* İsteğe bağlı olarak yukarıdan boşluk ayarlanabilir */
-    right: 10px; /* İsteğe bağlı olarak sağdan boşluk ayarlanabilir */
+    top: 10px; /* Yukarıdan boşluk */
+    right: 15px; /* Sağdan boşluk */
     color: white; /* Buton rengi */
-    font-size: 24px; /* Buton yazı boyutu */
+    font-size: 28px; /* Buton yazı boyutu */
     line-height: 1; /* Satır yüksekliği */
     background: none; /* Arka planı transparan yapar */
     border: none; /* Kenarlığı kaldırır */
     cursor: pointer; /* Üzerine gelince fare işaretçisini değiştirir */
     opacity: 0.7; /* Başlangıçta biraz saydam yapar */
-    transition: opacity 0.2s ease-in-out; /* Saydamlık geçiş efekti */
+    transition: all 0.2s ease-in-out; /* Geçiş efekti */
+    z-index: 10; /* Diğer içeriklerin üstünde kalmasını sağlar */
 }
 
 .modal-close-button:hover {
     opacity: 1; /* Üzerine gelince tam görünür yapar */
-    color: #ffdddd; /* Üzerine gelince renk değişimi (isteğe bağlı) */
+    transform: scale(1.1); /* Hafifçe büyütür */
+    color: #ffdddd; /* Üzerine gelince renk değişimi */
 }
 
+/* Modal açıkken body'nin kaymasını engelleyen sınıf */
+body.modal-open {
+    overflow: hidden;
+}
+
+/* Modal içerisindeki kaydırılabilir alanların kaymasını engellememek için */
+body.modal-open .modal-content {
+    overflow-y: auto;
+}
   .box-setting-input {
     width: 100%;
     padding: 10px;
@@ -526,7 +537,7 @@
   
 <div id="adminStoreModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-60 hidden">
   <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-red-700 w-11/12 max-w-3xl text-center relative max-h-[90vh] overflow-y-auto scrollable-list">
-      <button class="modal-close-button absolute top-2 right-4 text-white text-4xl" onclick="closeAdminStoreModal()">&times;</button>
+      <button class="modal-close-button" onclick="closeModalFunctionName()">&times;</button>
       <h3 class="text-yellow-400 text-3xl font-bold mb-6 text-center">Ürün Ekle / Düzenle</h3>
       <div id="adminStoreControls" class="bg-gray-900 p-6 rounded-lg border border-gray-700 mb-6">
           <div class="mb-4">
@@ -602,36 +613,74 @@
     </div>
 </div>
 
-<div id="adminPanelModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 hidden">
-  <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-red-700 w-11/12 max-w-4xl text-center relative max-h-[90vh] overflow-y-auto scrollable-list">
-    <button class="modal-close-button absolute top-2 right-4 text-white text-4xl leading-none bg-transparent border-none cursor-pointer hover:text-red-500 transition duration-200" onclick="closeAdminPanelModal()">&times;</button>
-    <h3 class="text-yellow-400 text-3xl font-bold mb-6 text-center">Admin Paneli</h3>
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-      <div class="bg-gray-900 p-6 rounded-lg border border-gray-700">
-        <h4 class="text-yellow-300 text-xl font-semibold mb-4">Onay Bekleyen Kullanıcılar</h4>
-        <div id="pendingUsers" class="scrollable-list max-h-60 overflow-y-auto p-3 bg-gray-800 rounded-md">Yükleniyor...</div>
-      </div>
-      <div class="bg-gray-900 p-6 rounded-lg border border-gray-700">
-        <h4 class="text-yellow-300 text-xl font-semibold mb-4">Onay Bekleyen Özel Ürün Satın Alımları</h4>
-        <div id="pendingSpecialPurchasesList" class="scrollable-list max-h-60 overflow-y-auto p-3 bg-gray-800 rounded-md">Yükleniyor...</div>
-      </div>
+<div id="adminPanelModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-50 hidden">
+  <div class="modal-content bg-gray-900/95 backdrop-blur-sm p-4 sm:p-6 rounded-2xl shadow-2xl border border-yellow-500 w-full max-w-7xl h-[95vh] text-white relative flex flex-col">
+    <button class="modal-close-button" onclick="closeAdminPanelModal()">&times;</button>
+    
+    <div class="flex-shrink-0 mb-4">
+      <h3 class="text-yellow-300 text-3xl font-bold text-center">Yönetim Paneli</h3>
+      <p class="text-center text-gray-400">Tüm yönetim araçları elinizin altında.</p>
     </div>
-    <div class="bg-gray-900 p-6 rounded-lg border border-gray-700 mt-6 col-span-full">
-        <h4 class="text-yellow-300 text-xl font-semibold mb-4">Tüm Kullanıcı İşlemleri</h4>
-        <div class="mb-4">
-          <input type="number" id="globalPoint" placeholder="Puan Miktarı" min="1" class="w-full p-3 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white" />
-          <div class="flex gap-2">
-            <button onclick="changeAllPoints(true)" class="flex-1 py-2 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg">Toplu Puan Ekle</button>
-            <button onclick="changeAllPoints(false)" class="flex-1 py-2 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg">Toplu Puan Sil</button>
+
+    <div class="flex-grow grid grid-cols-1 lg:grid-cols-3 gap-6 overflow-y-auto scrollable-list pr-2">
+      
+      <div class="flex flex-col gap-6">
+        <div class="bg-gray-800/80 p-6 rounded-xl border border-gray-700">
+          <h4 class="text-yellow-200 text-xl font-semibold mb-4 border-b border-gray-600 pb-2">Onay Bekleyenler</h4>
+          <div class="space-y-4">
+            <div>
+              <h5 class="text-gray-300 font-bold mb-2">Kullanıcılar</h5>
+              <div id="pendingUsers" class="scrollable-list max-h-48 overflow-y-auto p-2 bg-gray-900/50 rounded-md">Yükleniyor...</div>
+            </div>
+            <div>
+              <h5 class="text-gray-300 font-bold mb-2">Özel Ürün Alımları</h5>
+              <div id="pendingSpecialPurchasesList" class="scrollable-list max-h-48 overflow-y-auto p-2 bg-gray-900/50 rounded-md">Yükleniyor...</div>
+            </div>
           </div>
         </div>
-        <div class="mb-4">
-          <input type="number" id="globalBoxRight" placeholder="Kutu Hakkı Miktarı" min="1" class="w-full p-3 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white" />
-          <div class="flex gap-2">
-            <button onclick="changeAllBoxRights(true)" class="flex-1 py-2 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg">Toplu Kutu Hakkı Ekle</button>
-            <button onclick="changeAllBoxRights(false)" class="flex-1 py-2 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg">Toplu Kutu Hakkı Sil</button>
+
+        <div class="bg-gray-800/80 p-6 rounded-xl border border-gray-700">
+          <h4 class="text-red-400 text-xl font-semibold mb-4 border-b border-gray-600 pb-2">Tehlikeli Bölge</h4>
+          <div class="flex flex-wrap gap-3 justify-center">
+            <button onclick="revealAll()" class="flex-1 py-2 px-3 bg-blue-800 hover:bg-blue-700 text-white font-bold rounded-lg text-sm">Tüm Kutuları Aç</button>
+            <button onclick="resetGame()" class="flex-1 py-2 px-3 bg-orange-700 hover:bg-orange-600 text-white font-bold rounded-lg text-sm">Oyunu Sıfırla</button>
+            <button onclick="restartSystem()" class="flex-1 py-2 px-3 bg-red-800 hover:bg-red-700 text-white font-bold rounded-lg text-sm">Sistemi Sıfırla</button>
+            <button onclick="clearAllTotalSpentPoints()" class="flex-1 py-2 px-3 bg-purple-800 hover:bg-purple-700 text-white font-bold rounded-lg text-sm">Harcanan Puanları Temizle</button>
+            <button onclick="clearPurchaseHistory()" class="flex-1 py-2 px-3 bg-pink-800 hover:bg-pink-700 text-white font-bold rounded-lg text-sm">Satın Alma Geçmişini Sil</button>
           </div>
         </div>
+      </div>
+
+      <div class="bg-gray-800/80 p-6 rounded-xl border border-gray-700 flex flex-col">
+        <h4 class="text-yellow-200 text-xl font-semibold mb-4 border-b border-gray-600 pb-2 flex-shrink-0">Kullanıcı Yönetimi</h4>
+        <div class="flex-shrink-0 mb-4">
+          <input type="text" id="searchUser" placeholder="Kullanıcı Ara..." oninput="searchUsers()" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500 transition duration-300">
+        </div>
+        <div id="allUsers" class="flex-grow scrollable-list overflow-y-auto bg-gray-900/50 p-2 rounded-md">Yükleniyor...</div>
+      </div>
+
+      <div class="bg-gray-800/80 p-6 rounded-xl border border-gray-700">
+        <h4 class="text-yellow-200 text-xl font-semibold mb-4 border-b border-gray-600 pb-2">Toplu Kullanıcı İşlemleri</h4>
+        <div class="space-y-6">
+          <div>
+            <label for="globalPoint" class="block text-gray-300 mb-1">Toplu Puan İşlemi</label>
+            <input type="number" id="globalPoint" placeholder="Puan Miktarı" min="1" class="w-full p-3 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
+            <div class="flex gap-2">
+              <button onclick="changeAllPoints(true)" class="flex-1 py-2 bg-green-700 hover:bg-green-600 text-white font-bold rounded-lg text-sm">Ekle</button>
+              <button onclick="changeAllPoints(false)" class="flex-1 py-2 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg text-sm">Sil</button>
+            </div>
+          </div>
+          <div>
+            <label for="globalBoxRight" class="block text-gray-300 mb-1">Toplu Kutu Hakkı İşlemi</label>
+            <input type="number" id="globalBoxRight" placeholder="Kutu Hakkı Miktarı" min="1" class="w-full p-3 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
+            <div class="flex gap-2">
+              <button onclick="changeAllBoxRights(true)" class="flex-1 py-2 bg-green-700 hover:bg-green-600 text-white font-bold rounded-lg text-sm">Ekle</button>
+              <button onclick="changeAllBoxRights(false)" class="flex-1 py-2 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg text-sm">Sil</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
         <div class="flex flex-wrap gap-2 justify-center mt-4">
           <button onclick="revealAll()" class="py-2 px-4 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg">Tüm Kutuları Aç</button>
           <button onclick="resetGame()" class="py-2 px-4 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg">Oyunu Baştan Başlat</button>
@@ -640,12 +689,7 @@
           <button onclick="clearPurchaseHistory()" class="py-2 px-4 bg-orange-700 hover:bg-orange-600 text-white font-bold rounded-lg">Satın Alma Geçmişini Temizle</button>
         </div>
     </div>
-    <div class="bg-gray-900 p-6 rounded-lg border border-gray-700 mt-6">
-      <h4 class="text-yellow-300 text-xl font-semibold mb-4">Kullanıcı Yönetimi</h4>
-      <input type="text" id="searchUser" placeholder="Kullanıcı Ara" oninput="searchUsers()" class="w-full p-3 mb-4 bg-gray-700 border border-gray-600 rounded-lg text-white" />
-      <div id="allUsers" class="scrollable-list max-h-80 overflow-y-auto p-3 bg-gray-800 rounded-md">Yükleniyor...</div>
-    </div>
-  </div>
+   </div>
 </div>
   <div id="pointAdjustmentModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[9999] hidden">
     <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-red-700 w-11/12 max-w-md text-center relative">
@@ -1967,15 +2011,16 @@ function showSection(sectionId) {
   
   // Admin panel
   function openAdminPanelModal() { 
+    document.body.classList.add('modal-open'); // BU SATIRI EKLE
     adminPanelModal.style.display = 'flex'; 
     loadPendingUsers(); 
     loadAllUsers(); 
     loadPendingSpecialPurchases();
   }
-  function closeAdminPanelModal() { adminPanelModal.style.display = 'none'; }
-// MEVCUT logout FONKSİYONUNU SİLİP YERİNE BU KODU KOMPLE YAPIŞTIR
-
-// ESKİ logout fonksiyonunu silip BUNU YAPIŞTIR
+  function closeAdminPanelModal() { 
+    document.body.classList.remove('modal-open'); // BU SATIRI EKLE
+    adminPanelModal.style.display = 'none'; 
+  }
 async function logout() {
     const confirmed = await customConfirm("Çıkış yapmak istediğinize emin misiniz?");
     if (!confirmed) return;
@@ -4007,6 +4052,7 @@ async function deletePurchase(purchaseId) {
 
 // YENİ VE GÜNCELLENMİŞ FONKSİYON
 async function openPublicUserDetailModal(username) {
+  document.body.classList.add('modal-open');
     if (activeBlockedUserTimers[username]) {
         clearInterval(activeBlockedUserTimers[username]);
         delete activeBlockedUserTimers[username];
