@@ -1947,47 +1947,47 @@ function showSection(sectionId) {
   function closeAdminPanelModal() { adminPanelModal.style.display = 'none'; }
 // MEVCUT logout FONKSİYONUNU SİLİP YERİNE BU KODU KOMPLE YAPIŞTIR
 
+// YERİNE BU FONKSİYONU YAPIŞTIR
 async function logout() {
     const confirmed = await customConfirm("Çıkış yapmak istediğinize emin misiniz?");
     if (!confirmed) return;
 
-    // 1. Önce tüm dinleyicileri kapat
+    // Önce tüm listener'ları güvenli bir şekilde kapatıyoruz
     detachAllListeners();
 
-    // 2. Arayüzü hemen temizle ve kullanıcı durumunu sıfırla
-    document.getElementById("gameDiv").style.display = "none";
-    document.getElementById("loginContainer").style.display = "block";
-    if (activityBellContainer) activityBellContainer.classList.add('hidden');
-    if (activityFeedPanel) activityFeedPanel.classList.add('hidden');
-    switchAuthTab('login');
+    auth.signOut().then(() => {
+        // Arayüzü sıfırla
+        document.getElementById("gameDiv").style.display = "none";
+        document.getElementById("loginContainer").style.display = "block";
+        if (activityBellContainer) activityBellContainer.classList.add('hidden');
+        if (activityFeedPanel) activityFeedPanel.classList.add('hidden');
+        switchAuthTab('login');
+        
+        // Kullanıcı durumunu sıfırla
+        currentUser = null;
+        isAdmin = false;
+        
+        // --- GÜNCELLENMİŞ KISIM: TÜM ZAMANLAYICILARI TEMİZLE ---
+        if (countdownInterval) clearInterval(countdownInterval);
+        if (globalCountdownInterval) clearInterval(globalCountdownInterval);
+        if (clickCatchTimerInterval) clearInterval(clickCatchTimerInterval);
+        if (clickCatchItemInterval) clearInterval(clickCatchItemInterval);
+        if (storeCountdownInterval) clearInterval(storeCountdownInterval);
+        if (spectatorCountdownInterval) clearInterval(spectatorCountdownInterval);
+        
+        // Obje olarak tutulan zamanlayıcıları temizle
+        Object.values(activeBlockedUserTimers).forEach(clearInterval);
+        activeBlockedUserTimers = {};
+        Object.values(activeDailyRewardTimers).forEach(clearInterval);
+        activeDailyRewardTimers = {};
+        activeStoreCountdowns = {};
 
-    currentUser = null;
-    isAdmin = false;
-
-    // 3. Tüm zamanlayıcıları temizle
-    if (countdownInterval) clearInterval(countdownInterval);
-    if (globalCountdownInterval) clearInterval(globalCountdownInterval);
-    if (clickCatchTimerInterval) clearInterval(clickCatchTimerInterval);
-    if (clickCatchItemInterval) clearInterval(clickCatchItemInterval);
-    if (storeCountdownInterval) clearInterval(storeCountdownInterval);
-    if (spectatorCountdownInterval) clearInterval(spectatorCountdownInterval);
-
-    Object.values(activeBlockedUserTimers).forEach(clearInterval);
-    activeBlockedUserTimers = {};
-    Object.values(activeDailyRewardTimers).forEach(clearInterval);
-    activeDailyRewardTimers = {};
-    activeStoreCountdowns = {};
-
-    // 4. Kullanıcıya BAŞARI MESAJINI GÖSTER
-    displayMessage("Başarıyla çıkış yapıldı.");
-
-    // 5. Arka planda Firebase'den çıkış yap ve olası zararsız hataları sadece konsola yazdır
-    try {
-        await auth.signOut();
-        console.log("Firebase oturumu başarıyla sonlandırıldı.");
-    } catch (error) {
-        console.error("Çıkış sırasında beklenen (genellikle zararsız) bir hata oluştu: ", error);
-    }
+        console.log("Kullanıcı başarıyla çıkış yaptı ve tüm dinleyiciler/zamanlayıcılar temizlendi.");
+        
+    }).catch((error) => {
+        console.error("Çıkış yaparken hata oluştu: ", error);
+        displayMessage("Çıkış yapılırken bir sorun oluştu.");
+    });
 }
   function loadBalanceAndBoxRights() {
     if (isAdmin) {
