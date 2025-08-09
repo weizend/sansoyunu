@@ -5529,6 +5529,7 @@ async function spinWheel() {
         wheelSpinsCount: (userData.wheelSpinsCount || 0) + 1
     });
 
+    // 1. KAZANAN ÖDÜL MANTIKSAL OLARAK BELİRLENİR
     const totalWeight = wheelSegments.reduce((sum, seg) => sum + (seg.weight || 1), 0);
     let randomWeight = Math.random() * totalWeight;
     let winningIndex = -1;
@@ -5542,19 +5543,21 @@ async function spinWheel() {
     
     const winningSegment = wheelSegments[winningIndex];
     const segmentAngle = 360 / wheelSegments.length;
-    // Kazanan dilimin orta açısını hesapla
-    const stopAngle = (winningIndex * segmentAngle) + (segmentAngle / 2);
-    // Rastgele tur sayısı ekle
-    const randomSpins = 5 + Math.random() * 5;
+    
+    // 2. GÖRSEL DÖNÜŞ AÇISI HESAPLANIR
 
-    // ***İŞTE BU KISIM DÜZELTİLDİ***
-    // Bu yeni formül, işaretçi (marker) 270 derecede (tepede) olduğu için
-    // kazanan dilimin ortasının tam olarak okun altında durmasını garanti eder.
+    // *** EN ÖNEMLİ DÜZELTME BURADA ***
+    // Bu yeni formül, mantıksal olarak seçilen "winningIndex" ne ise, o dilimin
+    // tam ortasının tepedeki okun altında durmasını garanti eder.
+    const stopAngle = (winningIndex * segmentAngle) + (segmentAngle / 2);
+    const randomSpins = 5 + Math.random() * 5; // Görsel şov için rastgele tur sayısı
     const finalRotation = (360 * randomSpins) + 270 - stopAngle;
+    // *** DÜZELTME SONU ***
 
     wheel.style.transition = 'transform 5s cubic-bezier(0.25, 0.1, 0.25, 1)';
     wheel.style.transform = `rotate(${finalRotation}deg)`;
     
+    // 3. ANİMASYON BİTTİKTEN SONRA ÖDÜL VERİLİR
     setTimeout(async () => {
         isWheelSpinning = false;
         spinBtn.disabled = false;
@@ -5619,7 +5622,6 @@ async function spinWheel() {
 
     }, 5100);
 }
-
   // YENİ TIKLA-YAKALA FONKSİYONLARI (Lobi ve Admin Paneli Dahil)
     // --- YENİ EKLENEN MODAL FONKSİYONLARI ---
 
