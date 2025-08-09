@@ -117,23 +117,32 @@
       position: relative;
       overflow: hidden;
   }
-  .wheel-segment {
-      position: absolute;
-      top: 0;
-      left: 50%;
-      width: 50%;
-      height: 100%;
-      transform-origin: 0% 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: bold;
-      font-size: 12px;
-      padding-left: 15px;
-      box-sizing: border-box;
-      text-shadow: 1px 1px 2px black;
-  }
+  /* Bu, yazıyı taşıyacak olan ve dönen görünmez çubuktur */
+/* Yazıyı taşıyan ve merkezden dönen görünmez "çubuk" */
+.wheel-text-container {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 50%; /* Çarkın yarıçapı kadar */
+    height: 1px; /* Sadece bir çizgi olduğu için yüksekliğe gerek yok */
+    transform-origin: left center; /* Sol-orta noktadan (merkezden) dönmesini sağlar */
+}
+
+/* Yazının kendisi */
+.wheel-text {
+    display: block;
+    position: absolute;
+    /* Çubuğun sağ ucuna (dış kenara) yerleştirir */
+    right: 15px;
+    top: 50%;
+    
+    /* Metin stilleri */
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px black;
+    white-space: nowrap; /* Yazıların alt satıra kaymasını engeller */
+}
   #wheelMarker {
       position: absolute;
       top: -5px;
@@ -5379,9 +5388,8 @@ function openSpectatorModal(sessionData) {
       spectatorModal.style.display = 'none';
   }
   
-  // DEĞİŞTİRİLECEK FONKSİYON
-function renderWheel() {
-    wheel.innerHTML = '';
+  function renderWheel() {
+    wheel.innerHTML = ''; // Önceki içeriği temizle
     const segmentCount = wheelSegments.length;
     if (segmentCount === 0) return;
 
@@ -5389,30 +5397,35 @@ function renderWheel() {
     let gradientParts = [];
 
     wheelSegments.forEach((segment, i) => {
-        const rotation = segmentAngle * i;
-        gradientParts.push(`${segment.color || '#cccccc'} ${rotation}deg ${rotation + segmentAngle}deg`);
+        const startAngle = segmentAngle * i;
+        const endAngle = startAngle + segmentAngle;
+        gradientParts.push(`${segment.color || '#cccccc'} ${startAngle}deg ${endAngle}deg`);
 
-        const textRotation = rotation + (segmentAngle / 2);
+        // Yazının yerleşeceği dilimin tam orta açısını hesapla
+        const textAngle = startAngle + (segmentAngle / 2);
 
+        // Yazıyı tutacak olan ve dönecek olan ana konteyneri (çubuğu) oluştur
         const textHolder = document.createElement('div');
-        textHolder.style.position = 'absolute';
-        textHolder.style.width = '100%';
-        textHolder.style.height = '100%';
-        textHolder.style.transform = `rotate(${textRotation}deg)`;
+        textHolder.className = 'wheel-text-container';
+        textHolder.style.transform = `rotate(${textAngle}deg)`;
+
+        const textSpan = document.createElement('span');
+        textSpan.className = 'wheel-text';
+        textSpan.textContent = segment.label;
         
-        const textDiv = document.createElement('div');
-        textDiv.className = 'wheel-segment';
-        textDiv.style.color = 'white'; // Yazı rengini buradan ayarlayabilirsiniz
-        textDiv.style.fontSize = '14px'; // Yazı boyutunu büyüttük
-        textDiv.style.fontWeight = 'bold';
-        textDiv.style.textShadow = '1px 1px 2px black';
-        textDiv.style.transform = 'translateX(25%) rotate(-90deg)'; // Pozisyonu düzelttik
-        textDiv.textContent = segment.label;
-        
-        textHolder.appendChild(textDiv);
+        // Yazının yarısından fazlası baş aşağı olmasın diye kontrol et ve düzelt
+        // 90 derece (saat 6 yönü) ile 270 derece (saat 12 yönü) arasındaysa yazıyı ters çevir
+        if (textAngle > 90 && textAngle < 270) {
+            textSpan.style.transform = 'translateY(-50%) rotate(180deg)';
+        } else {
+            textSpan.style.transform = 'translateY(-50%)';
+        }
+
+        textHolder.appendChild(textSpan);
         wheel.appendChild(textHolder);
     });
-    
+
+    // Renkli dilimleri ana çark elementine uygula
     wheel.style.background = `conic-gradient(${gradientParts.join(', ')})`;
 }
 async function spinWheel() {
@@ -7037,7 +7050,6 @@ async function resetWheelSettingsToDefault() {
     defaultWheelSegments.forEach(item => addWheelSettingRow(item));
 }
 
-// DEĞİŞTİRİLECEK FONKSİYON
 function loadWheelHistory() {
     const historyRef = db.ref('wheelHistory').limitToLast(10);
     const listEl = document.getElementById('wheelHistoryList');
@@ -7049,27 +7061,45 @@ function loadWheelHistory() {
         tempMultiplier: '✖️',
         surpriseBox: '🎉',
         clickCatchTicket: '🎯',
+        wheelTicket: '🎟️', // Bu simgeyi ekledim
         pas: '👎'
     };
     
     const callback = (snapshot) => {
-        listEl.innerHTML = '';
+        listEl.innerHTML = ''; // Listeyi temizle
+
+        // Admin ise "Tümünü Temizle" butonunu ekle
+        if (isAdmin) {
+            listEl.innerHTML += `<div class="p-1 mb-2 text-center"><button onclick="clearWheelHistory()" class="w-full py-2 px-4 bg-red-800 hover:bg-red-700 text-white font-bold rounded-lg shadow-md text-sm">Tüm Kazanan Geçmişini Temizle</button></div>`;
+        }
+
         if (!snapshot.exists()) {
-            listEl.innerHTML = '<p class="text-center text-gray-500">Henüz çark çevrilmedi.</p>';
+            listEl.innerHTML += '<p class="text-center text-gray-500">Henüz çark çevrilmedi.</p>';
             return;
         }
         
         const history = [];
-        snapshot.forEach(child => { history.push(child.val()); });
+        // Her kaydın anahtarını (key) da alıyoruz ki silebilelim
+        snapshot.forEach(child => { history.push({ key: child.key, ...child.val() }); });
         history.reverse();
 
         history.forEach(item => {
             const timeAgo = formatRelativeTime(item.timestamp);
             const icon = prizeIcons[item.type] || '❓';
+            // Admin ise silme butonu oluştur
+            const deleteButton = isAdmin 
+                ? `<button onclick="deleteWheelHistoryEntry('${item.key}')" class="ml-3 text-gray-500 hover:text-red-500 transition-colors" title="Bu Kaydı Sil">
+                       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1-1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+                   </button>` 
+                : '';
+
             listEl.innerHTML += `
                 <div class="p-2 bg-gray-800 rounded-md mb-2 text-sm flex justify-between items-center">
                     <span class="flex items-center"><span class="text-lg mr-2">${icon}</span><span><b>${item.username}:</b> <span class="text-yellow-200">${item.prize}</span></span></span>
-                    <span class="text-gray-500 text-xs">${timeAgo}</span>
+                    <div class="flex items-center">
+                        <span class="text-gray-500 text-xs">${timeAgo}</span>
+                        ${deleteButton}
+                    </div>
                 </div>
             `;
         });
@@ -7294,6 +7324,23 @@ function closeModalOnClickOutside(event) {
   if (event.target.id === 'publicUserDetailModal') {
     closePublicUserDetailModal(); // Normal kapatma fonksiyonunu çağır
   }
+}
+
+async function clearWheelHistory() {
+    if (!isAdmin) return;
+    const confirmed = await customConfirm("Tüm 'Son Kazananlar' geçmişini kalıcı olarak silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!");
+    if (confirmed) {
+        await db.ref('wheelHistory').remove();
+        displayMessage("Çark geçmişi başarıyla temizlendi.");
+    }
+}
+
+async function deleteWheelHistoryEntry(entryKey) {
+    if (!isAdmin || !entryKey) return;
+    const confirmed = await customConfirm("Bu kaydı kalıcı olarak silmek istediğinizden emin misiniz?");
+    if (confirmed) {
+        await db.ref('wheelHistory/' + entryKey).remove();
+    }
 }
 
 </script>
