@@ -1764,19 +1764,47 @@ const defaultWheelSegments = [
     afterLogin();
   }
 
-  auth.onAuthStateChanged(user => {
-    if (user) {
-      const firebaseAuthUsername = user.email ? user.email.split('@')[0].toLowerCase() : '';
-      if (firebaseAuthUsername === "weizendtv") {
-        currentUser = "WeizendTv";
-        isAdmin = true;
-        afterLogin();
-      }
-    } else {
-      document.getElementById("loginContainer").style.display = "block";
-      document.getElementById("gameDiv").style.display = "none";
+ // MEVCUT onAuthStateChanged fonksiyonunu bul ve aşağıdakiyle DEĞİŞTİR
+auth.onAuthStateChanged(user => {
+  if (user) {
+    // Bu kısım aynı kalacak
+    const firebaseAuthUsername = user.email ? user.email.split('@')[0].toLowerCase() : '';
+    if (firebaseAuthUsername === "weizendtv") {
+      currentUser = "WeizendTv";
+      isAdmin = true;
+      afterLogin();
     }
-  });
+  } else {
+    // ÇIKIŞ YAPILDIĞINDA ÇALIŞACAK BLOK (BURASI GÜNCELLENDİ)
+    // Arayüzü sıfırla
+    document.getElementById("loginContainer").style.display = "block";
+    document.getElementById("gameDiv").style.display = "none";
+    if (activityBellContainer) activityBellContainer.classList.add('hidden');
+    if (activityFeedPanel) activityFeedPanel.classList.add('hidden');
+    switchAuthTab('login');
+    
+    // Kullanıcı durumunu sıfırla
+    currentUser = null;
+    isAdmin = false;
+    
+    // Tüm zamanlayıcıları temizle
+    if (countdownInterval) clearInterval(countdownInterval);
+    if (globalCountdownInterval) clearInterval(globalCountdownInterval);
+    if (clickCatchTimerInterval) clearInterval(clickCatchTimerInterval);
+    if (clickCatchItemInterval) clearInterval(clickCatchItemInterval);
+    if (storeCountdownInterval) clearInterval(storeCountdownInterval);
+    if (spectatorCountdownInterval) clearInterval(spectatorCountdownInterval);
+    
+    // Obje olarak tutulan zamanlayıcıları temizle
+    Object.values(activeBlockedUserTimers).forEach(clearInterval);
+    activeBlockedUserTimers = {};
+    Object.values(activeDailyRewardTimers).forEach(clearInterval);
+    activeDailyRewardTimers = {};
+    activeStoreCountdowns = {};
+
+    console.log("Auth state changed to signed out. Cleanup complete.");
+  }
+});
 
   // DEĞİŞTİRİLECEK FONKSİYON
 async function afterLogin() {
@@ -1947,46 +1975,19 @@ function showSection(sectionId) {
   function closeAdminPanelModal() { adminPanelModal.style.display = 'none'; }
 // MEVCUT logout FONKSİYONUNU SİLİP YERİNE BU KODU KOMPLE YAPIŞTIR
 
-// YERİNE BU FONKSİYONU YAPIŞTIR
+// ESKİ logout fonksiyonunu silip BUNU YAPIŞTIR
 async function logout() {
     const confirmed = await customConfirm("Çıkış yapmak istediğinize emin misiniz?");
     if (!confirmed) return;
 
-    // Önce tüm listener'ları güvenli bir şekilde kapatıyoruz
+    // 1. Tüm aktif dinleyicileri kapat
     detachAllListeners();
 
-    auth.signOut().then(() => {
-        // Arayüzü sıfırla
-        document.getElementById("gameDiv").style.display = "none";
-        document.getElementById("loginContainer").style.display = "block";
-        if (activityBellContainer) activityBellContainer.classList.add('hidden');
-        if (activityFeedPanel) activityFeedPanel.classList.add('hidden');
-        switchAuthTab('login');
-        
-        // Kullanıcı durumunu sıfırla
-        currentUser = null;
-        isAdmin = false;
-        
-        // --- GÜNCELLENMİŞ KISIM: TÜM ZAMANLAYICILARI TEMİZLE ---
-        if (countdownInterval) clearInterval(countdownInterval);
-        if (globalCountdownInterval) clearInterval(globalCountdownInterval);
-        if (clickCatchTimerInterval) clearInterval(clickCatchTimerInterval);
-        if (clickCatchItemInterval) clearInterval(clickCatchItemInterval);
-        if (storeCountdownInterval) clearInterval(storeCountdownInterval);
-        if (spectatorCountdownInterval) clearInterval(spectatorCountdownInterval);
-        
-        // Obje olarak tutulan zamanlayıcıları temizle
-        Object.values(activeBlockedUserTimers).forEach(clearInterval);
-        activeBlockedUserTimers = {};
-        Object.values(activeDailyRewardTimers).forEach(clearInterval);
-        activeDailyRewardTimers = {};
-        activeStoreCountdowns = {};
-
-        console.log("Kullanıcı başarıyla çıkış yaptı ve tüm dinleyiciler/zamanlayıcılar temizlendi.");
-        
-    }).catch((error) => {
-        console.error("Çıkış yaparken hata oluştu: ", error);
-        displayMessage("Çıkış yapılırken bir sorun oluştu.");
+    // 2. Sadece çıkış komutunu ver ve olası anlık ağ hatalarını yakala
+    // Arayüz temizliğini artık onAuthStateChanged yapacak.
+    auth.signOut().catch((error) => {
+        console.error("Çıkış komutu verilirken anlık bir hata oluştu: ", error);
+        displayMessage("Çıkış yapılırken bir ağ hatası veya anlık bir sorun oluştu.");
     });
 }
   function loadBalanceAndBoxRights() {
