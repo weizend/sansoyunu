@@ -3967,11 +3967,11 @@ async function buyItem(itemId) {
               // YENİ EKLENEN SATIR BİTİŞ
               document.getElementById('inventoryIflasShields').textContent = user.iflasShieldUses || 0;
               
-              let multiplierHtml = '<p>Aktif çarpan yok.</p>';
+              let multiplierHtml = '<p>✖️ Aktif çarpan yok.</p>';
               if (user.multiplierSource === 'store' && user.multiplierRemainingUses > 0) {
-                  multiplierHtml = `<p><b>Tür:</b> Mağaza Çarpanı</p><p><b>Değer:</b> ${user.activeMultiplier}x</p><p><b>Kalan Kullanım:</b> ${user.multiplierRemainingUses} kutu</p>`;
+                  multiplierHtml = `<p><b>✖️ Aktif Çarpan:</b> </b> [ ${user.activeMultiplier}X - ${user.multiplierRemainingUses} ADET ] </p>`;
               } else if (user.multiplierSource === 'box') {
-                  multiplierHtml = `<p><b>Tür:</b> Kutu Çarpanı</p><p><b>Değer:</b> ${user.activeMultiplier}x</p><p><b>Kalan Kullanım:</b> 1 kutu (Otomatik)</p>`;
+                  multiplierHtml = `<p><b>✖️ Aktif Çarpan:</b> </b> [ ${user.activeMultiplier}X - [ </b> 1 ADET (Otomatik) ] </p>`;
               }
               document.getElementById('inventoryMultiplierDetails').innerHTML = multiplierHtml;
           }
