@@ -5488,6 +5488,7 @@ function openSpectatorModal(sessionData) {
       spectatorModal.style.display = 'none';
   }
  
+// Çarkın GÖRSELİNİ (dilimleri ve yazıları) oluşturan fonksiyon
 function renderWheel() {
     const wheelElement = document.getElementById('wheel');
     if (!wheelElement) { return; }
@@ -5516,14 +5517,9 @@ function renderWheel() {
         textSpan.className = 'wheel-text';
         textSpan.textContent = segment.label;
 
-        // YAZININ YÖNÜNÜ VE ORTALANMASINI AYARLAYAN GÜNCEL KISIM
-        // Yazı, çarkın sol tarafında kalıyorsa (90-270 derece arası),
-        // okunabilir olması için 180 derece döndürülür.
         if (textAngle > 90 && textAngle < 270) {
-            // CSS'teki translate(-50%, -50%) ile rotate(180deg)'i birleştirir.
             textSpan.style.transform = 'translate(-50%, -50%) rotate(180deg)';
         } else {
-            // Sağ taraftaki yazılar için sadece ortalama yeterlidir.
             textSpan.style.transform = 'translate(-50%, -50%)';
         }
 
@@ -5533,7 +5529,9 @@ function renderWheel() {
 
     wheelElement.style.background = `conic-gradient(${gradientParts.join(', ')})`;
 }
+
     
+// Çarkı ÇEVİREN ve sonucu belirleyen ana fonksiyon (TAM VE EKSİKSİZ HALİ)
 async function spinWheel() {
     if (isWheelSpinning) return;
     if (isAdmin) {
@@ -5564,7 +5562,7 @@ async function spinWheel() {
         wheelSpinsCount: (userData.wheelSpinsCount || 0) + 1
     });
 
-    // 1. KAZANAN ÖDÜL MANTIKSAL OLARAK BELİRLENİR
+    // 1. MANTIKSAL KAZANANIN BELİRLENMESİ
     const totalWeight = wheelSegments.reduce((sum, seg) => sum + (seg.weight || 1), 0);
     let randomWeight = Math.random() * totalWeight;
     let winningIndex = -1;
@@ -5575,24 +5573,21 @@ async function spinWheel() {
             break;
         }
     }
-    
+    if (winningIndex === -1) winningIndex = 0;
     const winningSegment = wheelSegments[winningIndex];
-    const segmentAngle = 360 / wheelSegments.length;
     
-    // 2. GÖRSEL DÖNÜŞ AÇISI HESAPLANIR
+    // 2. GÖRSEL DÖNÜŞ AÇISININ SIFIRDAN, KESİN HESAPLANMASI
+    const totalSegments = wheelSegments.length;
+    const degreesPerSegment = 360 / totalSegments;
+    const winningAngle = (winningIndex * degreesPerSegment) + (degreesPerSegment / 2);
 
-    // *** EN ÖNEMLİ DÜZELTME BURADA ***
-    // Bu yeni formül, mantıksal olarak seçilen "winningIndex" ne ise, o dilimin
-    // tam ortasının tepedeki okun altında durmasını garanti eder.
-    const stopAngle = (winningIndex * segmentAngle) + (segmentAngle / 2);
-    const randomSpins = 5 + Math.random() * 5; // Görsel şov için rastgele tur sayısı
-    const finalRotation = (360 * randomSpins) + 270 - stopAngle;
-    // *** DÜZELTME SONU ***
+    const spinCycles = 5 + Math.floor(Math.random() * 3);
+    const finalRotation = (spinCycles * 360) + 270 - winningAngle;
 
     wheel.style.transition = 'transform 5s cubic-bezier(0.25, 0.1, 0.25, 1)';
     wheel.style.transform = `rotate(${finalRotation}deg)`;
     
-    // 3. ANİMASYON BİTTİKTEN SONRA ÖDÜL VERİLİR
+    // 3. ANİMASYON BİTTİKTEN SONRA ÖDÜLÜN VERİLMESİ
     setTimeout(async () => {
         isWheelSpinning = false;
         spinBtn.disabled = false;
@@ -5601,15 +5596,10 @@ async function spinWheel() {
         let message = `Tebrikler, çarktan <b>${winningSegment.label}</b> kazandın!`;
         let updates = {};
         
-        const historyEntry = {
-            username: currentUser,
-            prize: winningSegment.label,
-            type: winningSegment.type,
+        db.ref('wheelHistory').push().set({
+            username: currentUser, prize: winningSegment.label, type: winningSegment.type,
             timestamp: firebase.database.ServerValue.TIMESTAMP
-        };
-        const newHistoryRef = db.ref('wheelHistory').push();
-        await newHistoryRef.set(historyEntry);
-
+        });
         logActivity('spinWheel', currentUser, { result: winningSegment.label });
         
         const currentUserDataSnap = await userRef.once('value');
@@ -5649,16 +5639,14 @@ async function spinWheel() {
 
         if(Object.keys(updates).length > 0) await userRef.update(updates);
         displayMessage(message);
-
-        // Bir sonraki dönüş için çarkın pozisyonunu sıfırla
-        const currentRotation = finalRotation % 360;
+        
+        // Animasyon sonrası, çarkın pozisyonunu bir sonraki dönüş için sıfırla
+        const normalizedRotation = finalRotation % 360;
         wheel.style.transition = 'none';
-        wheel.style.transform = `rotate(${currentRotation}deg)`;
+        wheel.style.transform = `rotate(${normalizedRotation}deg)`;
 
     }, 5100);
 }
-  // YENİ TIKLA-YAKALA FONKSİYONLARI (Lobi ve Admin Paneli Dahil)
-    // --- YENİ EKLENEN MODAL FONKSİYONLARI ---
 
 function openSoloGameSettingsModal() {
     soloGameSettingsModal.style.display = 'flex';
@@ -7030,19 +7018,26 @@ async function resetBoxSettingsToDefault() {
     updateTotalBoxCount(); // Toplam kutu sayısını güncelle
 }
 
-    // --- YENİ: ŞANS ÇARKI YÖNETİM FONKSİYONLARI ---
-
+    // Çark Ayarlarını veritabanından YÜKLEYEN ve sıralayan fonksiyon
 async function loadWheelSettingsFromDB() {
     const settingsRef = db.ref('gameConfig/wheelSegments');
     const snapshot = await settingsRef.once('value');
-    if (snapshot.exists()) {
-        wheelSegments = snapshot.val();
+    
+    if (snapshot.exists() && snapshot.val() !== null) {
+        const loadedData = snapshot.val();
+        
+        if (Array.isArray(loadedData)) {
+            wheelSegments = loadedData.filter(item => item).sort((a, b) => (a.order || 0) - (b.order || 0));
+        } else {
+            wheelSegments = Object.values(loadedData).sort((a, b) => (a.order || 0) - (b.order || 0));
+        }
     } else {
+        // Firebase'de ayar yoksa varsayılanı kullan
         wheelSegments = defaultWheelSegments;
     }
+    
     renderWheel();
 }
-
 function openWheelSettingsModal() {
     if (!isAdmin) return;
     const container = document.getElementById('wheelSettingsRowsContainer');
@@ -7107,18 +7102,19 @@ function handleWheelRowTypeChange(selectElement) {
     }
 }
 
+// Çark Ayarlarını veritabanına KAYDEDEN fonksiyon
 async function saveWheelSettings() {
     if (!isAdmin) return;
 
     const newConfig = [];
     let hasError = false;
-    document.querySelectorAll('.wheel-setting-row').forEach(row => {
+    document.querySelectorAll('.wheel-setting-row').forEach((row, index) => {
         if(hasError) return;
         
         const type = row.querySelector('.setting-type').value;
         const label = row.querySelector('.setting-label').value.trim();
-        const value = parseInt(row.querySelector('.setting-value').value);
-        const duration = parseInt(row.querySelector('.setting-duration').value);
+        const value = parseInt(row.querySelector('.setting-value').value) || 0;
+        const duration = parseInt(row.querySelector('.setting-duration').value) || 0;
         const color = row.querySelector('.setting-color').value;
         const weight = parseInt(row.querySelector('.setting-weight').value);
 
@@ -7127,7 +7123,7 @@ async function saveWheelSettings() {
             hasError = true;
         }
 
-        const segment = { type, label, color, weight };
+        const segment = { type, label, color, weight, order: index };
         if (!row.querySelector('.setting-value').disabled) segment.value = value;
         if (!row.querySelector('.setting-duration').disabled) segment.duration = duration;
         
@@ -7149,7 +7145,6 @@ async function saveWheelSettings() {
         closeWheelSettingsModal();
     }
 }
-
 async function resetWheelSettingsToDefault() {
     if (!isAdmin) return;
     const confirmed = await customConfirm("Mevcut ayarları silip varsayılan çark yapılandırmasına dönmek istediğinize emin misiniz? (Değişiklikleri kalıcı yapmak için kaydetmeniz gerekir.)");
