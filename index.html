@@ -576,21 +576,21 @@
 </div>
 
 <div id="globalSurpriseBoxModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-[99998] hidden">
-  <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border-4 border-yellow-500 w-11/12 max-w-md text-center relative">
-    <h4 class="text-yellow-400 text-3xl font-bold mb-4">🎉 SÜRPRİZ KUTU BULUNDU! 🎉</h4>
-    <div class="text-lg text-gray-200 space-y-3">
-        <p><span id="surpriseOpener" class="text-green-400 font-bold text-2xl"></span> adlı kullanıcı</p>
-        <p><span id="surpriseBoxId" class="text-red-400 font-bold"></span> numaralı kutuyu açtı ve</p>
-        <p class="text-3xl text-yellow-300 font-extrabold my-4">
-            <span id="surprisePoints"></span> Puan
-        </p>
-        <p id="surpriseMultiplierInfo" class="text-base text-gray-400 -mt-2"></p>
-        <p>kazandı!</p>
+    <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border-4 border-yellow-500 w-11/12 max-w-md text-center relative">
+        <h4 class="text-yellow-400 text-3xl font-bold mb-4">🎉 SÜRPRİZ KUTU! 🎉</h4>
+        <div class="text-lg text-gray-200 space-y-3">
+            <p><span id="surpriseOpener" class="text-green-400 font-bold text-2xl"></span> adlı kullanıcı,</p>
+            <p id="surpriseSourceInfo"></p>
+            <p class="text-3xl text-yellow-300 font-extrabold my-4">
+                <span id="surprisePoints"></span> Puan
+            </p>
+            <p id="surpriseMultiplierInfo" class="text-base text-gray-400 -mt-2"></p>
+            <p>kazandı!</p>
+        </div>
+        <button onclick="closeGlobalSurpriseBoxModal()" class="mt-8 w-full py-3 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg shadow-md">
+            Tamam
+        </button>
     </div>
-    <button onclick="closeGlobalSurpriseBoxModal()" class="mt-8 w-full py-3 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg shadow-md">
-      Tamam
-    </button>
-  </div>
 </div>
 
 <div id="adminPanelModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 hidden">
@@ -5205,7 +5205,6 @@ async function reorderDailyRewardItem(rewardId, newIndex) {
     let surpriseSessionListener = null;
     // listenForSurpriseBox FONKSİYONUNU BU YENİ HALİYLE DEĞİŞTİR
 
-// listenForSurpriseBox FONKSİYONUNUN YENİ HALİ
 function listenForSurpriseBox() {
     const sessionRef = db.ref('surprise_box_session');
     
@@ -5224,31 +5223,44 @@ function listenForSurpriseBox() {
 
             // Eğer KART SEÇİLMİŞSE ve sonucu belli olmuşsa
             if (sessionData.result) {
-                // Aktivite akışına logla (çarpan ve kutu id bilgisiyle)
+                // Aktivite akışına logla (çarpan ve kaynak bilgisiyle)
                 logActivity('surpriseBox', sessionData.user, { 
-                    boxId: sessionData.boxId,
+                    boxId: sessionData.boxId, // 'Çark' veya kutu numarası
                     points: sessionData.result.points, 
                     multiplier: sessionData.multiplier 
                 });
                 
-                // Eğer seçimi yapan kişi bensem, bilgilendirme mesajı göster ve oyunu sıfırla
+                // Eğer seçimi yapan kişi bensem, bilgilendirme mesajı göster
                 if (sessionData.user === currentUser) {
                     closeCardSelectionModal();
-                    displayMessage(`Sürpriz kutudan tebrikler! Toplam ${sessionData.result.points} puan kazandınız! Oyun 4 saniye içinde sıfırlanacak.`);
+                    let message = `Sürpriz kutudan tebrikler! Toplam ${sessionData.result.points} puan kazandınız!`;
+                    // Sadece normal kutudan bulunduysa oyunu sıfırlama mesajı ekle
+                    if (sessionData.boxId !== 'Çark') {
+                        message += " Oyun 4 saniye içinde sıfırlanacak.";
+                    }
+                    displayMessage(message);
                 }
                 
-                // Genel bildirim penceresini göster (eskisi gibi)
+                // Genel bildirim penceresini göster
                 showGlobalSurpriseBoxNotification(sessionData);
                 
-                // İzleyici penceresini kapat ve 4 saniye sonra oyunu sıfırla
-                setTimeout(() => {
-                    closeSpectatorModal();
-                    resetGameBoard();
-                    sessionRef.remove();
-                }, 4000);
+                // Eğer kutu normal oyundan bulunduysa oyunu sıfırla
+                if (sessionData.boxId !== 'Çark') {
+                    setTimeout(() => {
+                        closeSpectatorModal();
+                        resetGameBoard(); // Oyunu sıfırla
+                        sessionRef.remove();
+                    }, 4000);
+                } else {
+                    // Eğer çarktan geldiyse oyunu SIFIRLAMA, sadece oturumu temizle
+                    setTimeout(() => {
+                        closeSpectatorModal();
+                        sessionRef.remove();
+                    }, 4000);
+                }
             }
         } else {
-            // Session bittiyse veya yoksa, tüm pencereleri kapat
+            // Oturum bittiyse veya yoksa, tüm ilgili pencereleri kapat
             closeSpectatorModal();
         }
     };
@@ -5256,9 +5268,6 @@ function listenForSurpriseBox() {
     activeListeners.surpriseBox = { ref: sessionRef, event: 'value', callback };
     sessionRef.on('value', callback);
 }
-
-    // YENİ İZLEYİCİ PENCERESİ FONKSİYONU
-let spectatorCountdownInterval = null;
 
 function openSpectatorModal(sessionData) {
     if (spectatorCountdownInterval) clearInterval(spectatorCountdownInterval);
@@ -5300,21 +5309,28 @@ function openSpectatorModal(sessionData) {
 }
 
   function showGlobalSurpriseBoxNotification(data) {
-      // Yeni modalın içeriğini doldur
-      document.getElementById('surpriseOpener').textContent = data.user;
-      document.getElementById('surpriseBoxId').textContent = data.boxId;
-      document.getElementById('surprisePoints').textContent = data.result.points;
+    // Modalın içeriğini doldur
+    document.getElementById('surpriseOpener').textContent = data.user;
+    document.getElementById('surprisePoints').textContent = data.result.points;
+    
+    const sourceInfoEl = document.getElementById('surpriseSourceInfo');
+    // Sürpriz kutunun nereden geldiğine göre farklı metin göster
+    if (data.boxId === 'Çark') {
+        sourceInfoEl.innerHTML = `<b>Şans Çarkı</b>'ndan Sürpriz Kutu elde etti ve kart seçiminden`;
+    } else {
+        sourceInfoEl.innerHTML = `<span class="text-red-400 font-bold">${data.boxId}</span> numaralı kutuyu açtı ve`;
+    }
 
-      let multiplierText = '';
-      if (data.multiplier && data.multiplier > 1) {
-          const basePoints = Math.round(data.result.points / data.multiplier);
-          multiplierText = `(${basePoints} Puan x ${data.multiplier} Çarpan)`;
-      }
-      document.getElementById('surpriseMultiplierInfo').textContent = multiplierText;
+    let multiplierText = '';
+    if (data.multiplier && data.multiplier > 1) {
+        const basePoints = Math.round(data.result.points / data.multiplier);
+        multiplierText = `(${basePoints} Puan x ${data.multiplier} Çarpan)`;
+    }
+    document.getElementById('surpriseMultiplierInfo').textContent = multiplierText;
 
-      // Modalı göster
-      document.getElementById('globalSurpriseBoxModal').style.display = 'flex';
-  }
+    // Modalı göster
+    document.getElementById('globalSurpriseBoxModal').style.display = 'flex';
+}
 
   function closeGlobalSurpriseBoxModal() {
       document.getElementById('globalSurpriseBoxModal').style.display = 'none';
@@ -5397,8 +5413,6 @@ function renderWheel() {
     
     wheel.style.background = `conic-gradient(${gradientParts.join(', ')})`;
 }
-// DEĞİŞTİRİLECEK FONKSİYON
-// DEĞİŞTİRİLECEK FONKSİYON
 async function spinWheel() {
     if (isWheelSpinning) return;
     if (isAdmin) {
@@ -5442,9 +5456,14 @@ async function spinWheel() {
     
     const winningSegment = wheelSegments[winningIndex];
     const segmentAngle = 360 / wheelSegments.length;
+    // Kazanan dilimin orta açısını hesapla
     const stopAngle = (winningIndex * segmentAngle) + (segmentAngle / 2);
+    // Rastgele tur sayısı ekle
     const randomSpins = 5 + Math.random() * 5;
-    const finalRotation = (360 * randomSpins) + stopAngle;
+
+    // DÜZELTİLMİŞ FORMÜL:
+    // İşaretçi yukarıda (270 derece) olduğu için doğru pozisyonda durmasını sağlıyoruz.
+    const finalRotation = (360 * randomSpins) + 270 - stopAngle;
 
     wheel.style.transition = 'transform 5s cubic-bezier(0.25, 0.1, 0.25, 1)';
     wheel.style.transform = `rotate(${finalRotation}deg)`;
@@ -5485,7 +5504,7 @@ async function spinWheel() {
             case 'clickCatchTicket':
                 updates.clickCatchTickets = (currentUserData.clickCatchTickets || 0) + winningSegment.value;
                 break;
-            case 'wheelTicket': // DÜZELTME: Bu eksikti, eklendi.
+            case 'wheelTicket':
                 updates.carkBileti = (currentUserData.carkBileti || 0) + winningSegment.value;
                 break;
             case 'tempMultiplier':
@@ -5496,6 +5515,7 @@ async function spinWheel() {
             case 'surpriseBox':
                  db.ref('surprise_box_session').set({ active: true, user: currentUser, boxId: 'Çark', multiplier: 1, cards: shuffleArray([...cardValues]), selection: null, result: null, timestamp: firebase.database.ServerValue.TIMESTAMP });
                  openCardSelectionModal(currentUser);
+                 message = "Vay canına! Çarktan Sürpriz Kutu çıktı! Şimdi bir kart seç."; // Mesajı daha açıklayıcı hale getirdik.
                  break;
             case 'pas':
                 message = "Bu seferlik pas! Bir dahaki sefere daha şanslı olabilirsin.";
@@ -5505,6 +5525,7 @@ async function spinWheel() {
         if(Object.keys(updates).length > 0) await userRef.update(updates);
         displayMessage(message);
 
+        // Bir sonraki dönüş için çarkın pozisyonunu sıfırla
         const currentRotation = finalRotation % 360;
         wheel.style.transition = 'none';
         wheel.style.transform = `rotate(${currentRotation}deg)`;
