@@ -2426,7 +2426,15 @@ async function calculateAllLeaders(allUsersData) {
         filteredUsers = allUsersCache.filter(u => u.username.toLowerCase().includes(searchTerm));
     }
 
-    const leaders = await calculateAllLeaders(allUsersCache.reduce((obj, user) => (obj[user.username] = user, obj), {}));
+    // --- DÜZELTME BAŞLANGICI ---
+    // Liderleri hesaplamadan önce, veritabanından TÜM kullanıcıların en güncel ve tam halini çekiyoruz.
+    const allUsersSnap = await db.ref('users').once('value');
+    const allUsersData = allUsersSnap.val() || {};
+    
+    // Artık eski ve güvensiz önbellek yerine, taze çektiğimiz "allUsersData" objesini kullanıyoruz.
+    const leaders = await calculateAllLeaders(allUsersData);
+    // --- DÜZELTME SONU ---
+
 
     filteredUsers.sort((a, b) => (b.balance || 0) - (a.balance || 0));
 
@@ -2481,18 +2489,18 @@ async function loadLeaderboardRanking() {
 
     activeListeners.leaderboard = { ref: ref };
 
-    const renderLeaders = async () => {
-        const usersData = {};
-        allUsersCache.forEach(user => {
-            usersData[user.username] = user;
-        });
+    // 'snap' parametresi eklendi ve fonksiyonun veri kaynağı değiştirildi
+    const renderLeaders = async (snap) => { // <-- 1. DEĞİŞİKLİK: 'snap' parametresi eklendi
+        
+        // "allUsersCache" yerine doğrudan gelen taze veri kullanılıyor
+        const usersData = snap.val() || {}; // <-- 2. DEĞİŞİKLİK: usersData doğrudan snap'ten alınıyor
 
         if (Object.keys(usersData).length === 0) {
             document.getElementById("badgedUsersRanking").innerHTML = "<div class='text-center text-gray-400'>Henüz lider kullanıcı yok.</div>";
             return;
         }
 
-        const leaders = await calculateAllLeaders(usersData);
+        const leaders = await calculateAllLeaders(usersData); // Artık her zaman güncel veriyle hesap yapılacak
         
         const leaderUsernames = new Set([
             leaders.currentBalanceUser, leaders.highEverBalanceUser, leaders.surpriseBoxUser,
@@ -2500,10 +2508,12 @@ async function loadLeaderboardRanking() {
             leaders.boxUser, leaders.shieldUser, leaders.clickCatchLeaderUser, leaders.wheelSpinUser
         ]);
         leaderUsernames.delete(null);
+        
+        // ÖNEMLİ: Bu kısımda hala "allUsersCache" kullanıldığı için,
+        // onu da "usersData" objesinden türetmeliyiz.
+        const allUsersAsArray = Object.entries(usersData).map(([username, data]) => ({ username, ...data }));
+        const leaderUsers = allUsersAsArray.filter(u => leaderUsernames.has(u.username));
 
-        // ÖNCEKİ HATALI KISIM BURADAYDI, ŞİMDİ DÜZELTİLDİ.
-        // Sadece lider olan kullanıcıları listeye alıyoruz.
-        const leaderUsers = allUsersCache.filter(u => leaderUsernames.has(u.username));
 
         // Liderleri önce rozet sayısına, sonra puanına göre sırala
         leaderUsers.sort((a, b) => {
@@ -2530,7 +2540,6 @@ async function loadLeaderboardRanking() {
         });
 
         const html = leaderUsers.map((u, i) => {
-            // Her lider için rozet durumunu yeniden ve doğru bir şekilde hesaplıyoruz.
             const userLeaderStatus = {
                 isCurrentLeader: u.username === leaders.currentBalanceUser,
                 isHighLeader: u.username === leaders.highEverBalanceUser,
