@@ -6071,6 +6071,27 @@ async function spinWheel() {
             value: winningSegment.value !== undefined ? winningSegment.value : null,
             timestamp: firebase.database.ServerValue.TIMESTAMP
         });
+        // --- BURAYA EKLENECEK YENİ KOD ---
+const historyRef = db.ref('wheelHistory');
+historyRef.orderByChild('timestamp').once('value', (snapshot) => {
+    const totalCount = snapshot.numChildren();
+    const limit = 10; // İstenen limit
+
+    if (totalCount > limit) {
+        let itemsToDeleteCount = totalCount - limit;
+        snapshot.forEach((childSnapshot) => {
+            // Silinmesi gereken kadar öğe silindiyse döngüden çık
+            if (itemsToDeleteCount <= 0) {
+                return true; 
+            }
+            
+            // En eski kaydı sil
+            childSnapshot.ref.remove();
+            itemsToDeleteCount--;
+        });
+    }
+});
+// --- YENİ KOD BİTİŞİ ---
 
         if (winningSegment.type !== 'surpriseBox') {
             const logDetails = {
