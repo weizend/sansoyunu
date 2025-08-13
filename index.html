@@ -2020,6 +2020,7 @@ async function afterLogin() {
     listenForSurpriseBox();
     listenForDailyRewardChanges();
     initActivityFeed();
+    listenForGlobalNotifications();
     
     if (!isAdmin) {
         listenForAdminNotifications();
@@ -2931,9 +2932,150 @@ function adjustUserClickCatchTickets(add) {
         }
     }
 }
-  async function changeAllPoints(add) { const amount = parseInt(document.getElementById("globalPoint").value); if (isNaN(amount) || amount <= 0) { displayMessage("Geçerli miktar girin."); return; } const confirmed = await customConfirm(`Tüm kullanıcılara ${add ? 'eklemek' : 'silmek'} istediğinizden emin misiniz?`); if (confirmed) { db.ref('users').once('value').then(snap => { const updates = {}; snap.forEach(child => { if (child.val().approved && !child.val().blocked && child.key !== "weizendtv") { let balance = child.val().balance || 0; let highestBalanceEver = child.val().highestBalanceEver || 0; balance = add ? balance + amount : Math.max(balance - amount, 0); if (balance > highestBalanceEver) highestBalanceEver = balance; updates['users/' + child.key + '/balance'] = balance; updates['users/' + child.key + '/highestBalanceEver'] = highestBalanceEver; } }); db.ref().update(updates).then(() => displayMessage("Tüm kullanıcılara puan işlemi başarıyla uygulandı.")) }); } }
-  async function changeAllBoxRights(add) { const amount = parseInt(document.getElementById("globalBoxRight").value); if (isNaN(amount) || amount <= 0) { displayMessage("Geçerli miktar girin."); return; } const confirmed = await customConfirm(`Tüm kullanıcılara ${add ? 'eklemek' : 'silmek'} istediğinizden emin misiniz?`); if (confirmed) { db.ref('users').once('value').then(snap => { const updates = {}; snap.forEach(child => { if (child.val().approved && !child.val().blocked && child.key !== "weizendtv") { let kutuHakki = child.val().kutuHakki || 0; kutuHakki = add ? kutuHakki + amount : Math.max(kutuHakki - amount, 0); updates['users/' + child.key + '/kutuHakki'] = kutuHakki; } }); db.ref().update(updates).then(() => displayMessage("Tüm kullanıcılara kutu hakkı işlemi başarıyla uygulandı.")) }); } }
-  
+
+    async function changeAllPoints(add) {
+    const amount = parseInt(document.getElementById("globalPoint").value);
+    if (isNaN(amount) || amount <= 0) { displayMessage("Geçerli miktar girin."); return; }
+    const confirmed = await customConfirm(`Tüm kullanıcılara ${add ? 'eklemek' : 'silmek'} istediğinizden emin misiniz?`);
+    if (confirmed) {
+        db.ref('users').once('value').then(snap => {
+            const updates = {};
+            snap.forEach(child => {
+                if (child.val().approved && !child.val().blocked && child.key !== "weizendtv") {
+                    let balance = child.val().balance || 0;
+                    let highestBalanceEver = child.val().highestBalanceEver || 0;
+                    balance = add ? balance + amount : Math.max(balance - amount, 0);
+                    if (balance > highestBalanceEver) highestBalanceEver = balance;
+                    updates['users/' + child.key + '/balance'] = balance;
+                    updates['users/' + child.key + '/highestBalanceEver'] = highestBalanceEver;
+                }
+            });
+            db.ref().update(updates).then(() => {
+                displayMessage("Tüm kullanıcılara puan işlemi başarıyla uygulandı.");
+                const actionText = add ? 'ekledi' : 'çıkardı';
+                const notificationMessage = `Admin, tüm kullanıcılara ${amount} Puan ${actionText}.`;
+                db.ref('globalNotifications').push({ message: notificationMessage, timestamp: firebase.database.ServerValue.TIMESTAMP });
+            });
+        });
+    }
+}
+    
+  async function changeAllBoxRights(add) {
+    const amount = parseInt(document.getElementById("globalBoxRight").value);
+    if (isNaN(amount) || amount <= 0) { displayMessage("Geçerli miktar girin."); return; }
+    const confirmed = await customConfirm(`Tüm kullanıcılara ${add ? 'eklemek' : 'silmek'} istediğinizden emin misiniz?`);
+    if (confirmed) {
+        db.ref('users').once('value').then(snap => {
+            const updates = {};
+            snap.forEach(child => {
+                if (child.val().approved && !child.val().blocked && child.key !== "weizendtv") {
+                    let kutuHakki = child.val().kutuHakki || 0;
+                    kutuHakki = add ? kutuHakki + amount : Math.max(kutuHakki - amount, 0);
+                    updates['users/' + child.key + '/kutuHakki'] = kutuHakki;
+                }
+            });
+            db.ref().update(updates).then(() => {
+                displayMessage("Tüm kullanıcılara kutu hakkı işlemi başarıyla uygulandı.");
+                const actionText = add ? 'verdi' : 'sildi';
+                const notificationMessage = `Admin, tüm kullanıcılara ${amount} Kutu Hakkı ${actionText}.`;
+                db.ref('globalNotifications').push({ message: notificationMessage, timestamp: firebase.database.ServerValue.TIMESTAMP });
+            });
+        });
+    }
+}
+async function changeAllShields(add) {
+    const amount = parseInt(document.getElementById("globalShield").value);
+    if (isNaN(amount) || amount <= 0) { displayMessage("Geçerli bir kalkan miktarı girin."); return; }
+    const confirmed = await customConfirm(`Tüm kullanıcılara ${amount} adet İflas Kalkanı ${add ? 'eklemek' : 'silmek'} istediğinizden emin misiniz?`);
+    if (confirmed) {
+        db.ref('users').once('value').then(snap => {
+            const updates = {};
+            snap.forEach(child => {
+                if (child.val().approved && !child.val().blocked && child.key !== "weizendtv") {
+                    let currentShields = child.val().iflasShieldUses || 0;
+                    currentShields = add ? currentShields + amount : Math.max(0, currentShields - amount);
+                    updates['users/' + child.key + '/iflasShieldUses'] = currentShields;
+                }
+            });
+            db.ref().update(updates).then(() => {
+                displayMessage("Tüm kullanıcılara kalkan işlemi başarıyla uygulandı.");
+                const actionText = add ? 'gönderdi' : 'sildi';
+                const notificationMessage = `Admin, tüm kullanıcılara ${amount} İflas Kalkanı ${actionText}.`;
+                db.ref('globalNotifications').push({ message: notificationMessage, timestamp: firebase.database.ServerValue.TIMESTAMP });
+            });
+        });
+    }
+}
+async function changeAllWheelTickets(add) {
+    const amount = parseInt(document.getElementById("globalWheelTicket").value);
+    if (isNaN(amount) || amount <= 0) { displayMessage("Geçerli bir bilet miktarı girin."); return; }
+    const confirmed = await customConfirm(`Tüm kullanıcılara ${amount} adet Çark Bileti ${add ? 'eklemek' : 'silmek'} istediğinizden emin misiniz?`);
+    if (confirmed) {
+        db.ref('users').once('value').then(snap => {
+            const updates = {};
+            snap.forEach(child => {
+                if (child.val().approved && !child.val().blocked && child.key !== "weizendtv") {
+                    let currentTickets = child.val().carkBileti || 0;
+                    currentTickets = add ? currentTickets + amount : Math.max(0, currentTickets - amount);
+                    updates['users/' + child.key + '/carkBileti'] = currentTickets;
+                }
+            });
+            db.ref().update(updates).then(() => {
+                displayMessage("Tüm kullanıcılara Çark Bileti işlemi başarıyla uygulandı.");
+                const actionText = add ? 'gönderdi' : 'sildi';
+                const notificationMessage = `Admin, tüm kullanıcılara ${amount} Çark Bileti ${actionText}.`;
+                db.ref('globalNotifications').push({ message: notificationMessage, timestamp: firebase.database.ServerValue.TIMESTAMP });
+            });
+        });
+    }
+}
+async function setAllMultipliers() {
+    const multiplier = parseInt(document.getElementById("globalMultiplier").value);
+    const uses = parseInt(document.getElementById("globalMultiplierUses").value);
+    if (isNaN(multiplier) || multiplier < 2) { displayMessage("Geçerli bir çarpan değeri girin (en az 2)."); return; }
+    if (isNaN(uses) || uses <= 0) { displayMessage("Geçerli bir kullanım sayısı girin."); return; }
+    const confirmed = await customConfirm(`Tüm kullanıcılara ${multiplier}x çarpanı ${uses} kullanım hakkı ile uygulamak istediğinizden emin misiniz?`);
+    if (confirmed) {
+        db.ref('users').once('value').then(snap => {
+            const updates = {};
+            snap.forEach(child => {
+                if (child.val().approved && !child.val().blocked && child.key !== "weizendtv") {
+                    const userPath = 'users/' + child.key;
+                    updates[userPath + '/activeMultiplier'] = multiplier;
+                    updates[userPath + '/multiplierRemainingUses'] = uses;
+                    updates[userPath + '/multiplierSource'] = 'store';
+                }
+            });
+            db.ref().update(updates).then(() => {
+                displayMessage("Tüm kullanıcılara çarpan işlemi başarıyla uygulandı.");
+                const notificationMessage = `Admin, tüm kullanıcılara ${uses} kullanımlık ${multiplier}x Çarpan verdi.`;
+                db.ref('globalNotifications').push({ message: notificationMessage, timestamp: firebase.database.ServerValue.TIMESTAMP });
+            });
+        });
+    }
+}
+async function clearAllMultipliers() {
+    const confirmed = await customConfirm("Tüm kullanıcıların aktif çarpanlarını sıfırlamak istediğinizden emin misiniz? Bu işlem geri alınamaz.");
+    if (confirmed) {
+        db.ref('users').once('value').then(snap => {
+            const updates = {};
+            snap.forEach(child => {
+                if (child.val().approved && !child.val().blocked && child.key !== "weizendtv") {
+                    const userPath = 'users/' + child.key;
+                    updates[userPath + '/activeMultiplier'] = 1;
+                    updates[userPath + '/multiplierRemainingUses'] = 0;
+                    updates[userPath + '/multiplierSource'] = 'none';
+                    updates[userPath + '/activeStoreMultiplierItemId'] = null;
+                }
+            });
+            db.ref().update(updates).then(() => {
+                displayMessage("Tüm kullanıcıların çarpanları başarıyla sıfırlandı.");
+                const notificationMessage = `Admin, tüm kullanıcıların aktif çarpanlarını sıfırladı.`;
+                db.ref('globalNotifications').push({ message: notificationMessage, timestamp: firebase.database.ServerValue.TIMESTAMP });
+            });
+        });
+    }
+}
   async function resetUser(username) {
     const confirmed = await customConfirm(`<b>${username}</b> kullanıcısını sıfırlamak istediğinize emin misiniz? Bu işlem kullanıcının puanlarını, biletlerini ve istatistiklerini sıfırlar!`);
     if (!confirmed) return;
@@ -6831,10 +6973,62 @@ async function changeAllClickCatchTickets(add) {
                     updates['users/' + child.key + '/clickCatchTickets'] = currentTickets;
                 }
             });
-            db.ref().update(updates).then(() => displayMessage("Tüm kullanıcılara Tıkla-Yakala Bileti işlemi başarıyla uygulandı."));
+            db.ref().update(updates).then(() => {
+                 displayMessage("Tüm kullanıcılara Tıkla-Yakala Bileti işlemi başarıyla uygulandı.");
+                 // YENİ EKLENEN KOD
+                 const actionText = add ? 'gönderdi' : 'sildi';
+                 const notificationMessage = `Admin, tüm kullanıcılara ${amount} Tıkla-Yakala Bileti ${actionText}.`;
+                 db.ref('globalNotifications').push({ message: notificationMessage, timestamp: firebase.database.ServerValue.TIMESTAMP });
+            });
         });
     }
 }
+
+let globalNotificationTimeout;
+
+/**
+ * Ekranda genel bir yönetici bildirimi gösterir.
+ * @param {string} message - Gösterilecek mesaj.
+ */
+function displayGlobalNotification(message) {
+    const notificationEl = document.getElementById('globalAdminNotification');
+    if (!notificationEl) return;
+
+    // Önceki bildirimin zaman aşımını temizle
+    if (globalNotificationTimeout) {
+        clearTimeout(globalNotificationTimeout);
+    }
+
+    notificationEl.textContent = message;
+    // Bildirimi görünür yap ve animasyonu tetikle
+    notificationEl.classList.remove('opacity-0', '-translate-y-20');
+
+    // 5 saniye sonra bildirimi gizle
+    globalNotificationTimeout = setTimeout(() => {
+        notificationEl.classList.add('opacity-0', '-translate-y-20');
+    }, 5000);
+}
+
+/**
+ * Veritabanından gelen yeni genel bildirimleri dinler.
+ */
+function listenForGlobalNotifications() {
+    const ref = db.ref('globalNotifications');
+    const callback = snap => {
+        const notification = snap.val();
+        // Sadece admin olmayan kullanıcılar bildirimi görür
+        if (notification && notification.message && !isAdmin) {
+            displayGlobalNotification(notification.message);
+        }
+    };
+    
+    // Sadece oturum başladıktan sonra gelen yeni bildirimleri dinle
+    const listenerRef = ref.orderByChild('timestamp').startAt(sessionStartTime);
+    activeListeners.globalNotifications = { ref: listenerRef, event: 'child_added', callback };
+    listenerRef.on('child_added', callback);
+}
+
+// === GLOBAL YÖNETİCİ BİLDİRİM SİSTEMİ SONU ===
   
   async function startLobbyGame() {
     if (!isAdmin) return;
