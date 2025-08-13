@@ -3211,7 +3211,10 @@ async function openBox(index) {
             boxUpdate.refundedMultiplier = user.activeMultiplier;
             boxOpenInfo.refundOccurred = true;
             boxOpenInfo.refundedMultiplier = user.activeMultiplier;
-        } else {
+            updates['multiplierRemainingUses'] = (user.multiplierRemainingUses || 0);
+             }
+             
+          else {
             message = `Tebrikler! <b>${box.value}x Çarpan</b> buldun! Bu çarpan, bir sonraki kutu açılışında otomatik olarak kullanılacak.`;
             updates['activeMultiplier'] = box.value;
             updates['multiplierSource'] = 'box';
