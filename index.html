@@ -4330,11 +4330,12 @@ async function openPublicUserDetailModal(username) {
     const userRef = db.ref('users/' + username);
 
     // .once() yerine .on() kullanarak canlı bir dinleyici başlatıyoruz
-    activeUserProfileListener = userRef.on('value', async (userSnap) => {
+    // --- DEĞİŞEN KISIM BAŞLANGICI ---
+    const userProfileCallback = async (userSnap) => {
         const userData = userSnap.val();
         if (!userData) {
             // Eğer kullanıcı silinirse veya veri gelmezse pencereyi kapat
-            closePublicUserDetail-DetailModal();
+            closePublicUserDetailModal();
             return;
         }
 
@@ -4406,13 +4407,17 @@ async function openPublicUserDetailModal(username) {
         const isCurrentlyBlocked = userData.blocked && userData.blockedUntil && Date.now() < userData.blockedUntil;
         if(isCurrentlyBlocked) {
             blockedInfoDiv.classList.remove('hidden');
-            // ... (countdown logic aynı kalabilir)
         } else {
             blockedInfoDiv.classList.add('hidden');
         }
 
         publicUserDetailModal.style.display = 'flex';
-    });
+    };
+
+    userRef.on('value', userProfileCallback);
+    // Dinleyiciyi ve referansını bir obje olarak saklıyoruz.
+    activeUserProfileListener = { ref: userRef, callback: userProfileCallback };
+    // --- DEĞİŞEN KISIM SONU ---
 }
   
   // YENİ VE DÜZELTİLMİŞ FONKSİYON
@@ -4554,13 +4559,14 @@ async function openUserManagementModal(username) {
     publicUserDetailModal.style.display = 'none';
     document.body.classList.remove('modal-open');
 
-    // --- YENİ EKLENEN KISIM BAŞLANGICI ---
-    // Eğer aktif bir dinleyici varsa, onu kapatıyoruz.
-    if (activeUserProfileListener && activeUserProfileListener.ref) {
+    // --- DEĞİŞEN KISIM BAŞLANGICI ---
+    // Eğer aktif bir profil dinleyicisi varsa, onu kapatıyoruz.
+    if (activeUserProfileListener && activeUserProfileListener.ref && activeUserProfileListener.callback) {
+        // Dinleyiciyi 'value' event'i için ve sakladığımız callback ile kapatıyoruz.
         activeUserProfileListener.ref.off('value', activeUserProfileListener.callback);
-        activeUserProfileListener = null; // Değişkeni temizliyoruz.
+        activeUserProfileListener = null; // Değişkeni temizliyoruz ki tekrar kullanılmasın.
     }
-    // --- YENİ EKLENEN KISIM SONU ---
+    // --- DEĞİŞEN KISIM SONU ---
 
     const viewingUser = publicUserDetailModal.dataset.viewingUser;
     if (viewingUser && activeBlockedUserTimers[viewingUser]) {
