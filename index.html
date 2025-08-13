@@ -7160,7 +7160,6 @@ function closeLobbyGameOverScreen() {
 function logActivity(type, username, details = {}) {
     // WeizendTv'nin kendi eylemlerini loglama (örneğin lobi iptali)
     if (username.toLowerCase() === 'weizendtv') {
-        // İstersen burada admin eylemlerini loglayabilirsin, şimdilik atlıyoruz.
         return;
     }
     const activityData = {
@@ -7173,17 +7172,33 @@ function logActivity(type, username, details = {}) {
     const newActivityRef = db.ref('activityFeed').push();
     newActivityRef.set(activityData);
 
-    // Performans için eski aktiviteleri sil (son 20 aktiviteyi tut)
-    db.ref('activityFeed').orderByChild('timestamp').limitToFirst(1).once('value', (snapshot) => {
-        if (snapshot.numChildren() > 20) { // Limit 20 olarak ayarlandı
-            const oldestKey = Object.keys(snapshot.val())[0];
-            db.ref('activityFeed/' + oldestKey).remove();
+    // DÜZELTİLMİŞ KOD BAŞLANGICI
+    // Limiti korumak için eylem eklendikten sonra kontrol yap.
+    const feedRef = db.ref('activityFeed');
+    feedRef.orderByChild('timestamp').once('value', (snapshot) => {
+        const totalCount = snapshot.numChildren();
+        
+        // Eğer toplam sayı limiti aşıyorsa, en eski olanları sil.
+        if (totalCount > 20) {
+            let itemsToDeleteCount = totalCount - 20;
+            
+            // Sıralanmış snapshot'ta forEach en eskiden başlar.
+            snapshot.forEach((childSnapshot) => {
+                // Silinmesi gereken kadar öğe silindiyse döngüden çık.
+                if (itemsToDeleteCount <= 0) {
+                    return true; // forEach döngüsünü sonlandırır
+                }
+                
+                // En eski eylemi sil
+                childSnapshot.ref.remove();
+                itemsToDeleteCount--;
+            });
         }
     });
+    // DÜZELTİLMİŞ KOD SONU
 }
 
-// ESKİ getActivityIcon FONKSİYONUNU KOMPLE SİLİP, TÜM SİMGELERİ İÇEREN BU NİHAİ VERSİYONU YAPIŞTIR
-
+// DÜZELTİLMİŞ NİHAİ KOD
 function getActivityIcon(type, details = {}) {
     let icon = '🔔';
     let bgColor = 'bg-gray-500';
@@ -7198,13 +7213,13 @@ function getActivityIcon(type, details = {}) {
             bgColor = 'bg-yellow-500';
             break;
         case 'iflas':
-            // GÜNCELLENDİ: Artık çarpanla bomba bulma durumunu da kontrol ediyor.
             if (details.shieldUsed) {
                 icon = '🛡️';
                 bgColor = 'bg-blue-500';
             } else if (details.multiplier && details.multiplier > 1) {
-                icon = '❌'; // Çarpanla bulunan bomba için özel X simgesi
-                bgColor = 'bg-red-800'; // Daha koyu, tehlikeli bir kırmızı
+                // Çarpanla bomba bulma durumu için özel simge
+                icon = '❌'; 
+                bgColor = 'bg-red-800';
             } else {
                 icon = '💣';
                 bgColor = 'bg-red-600';
@@ -7212,7 +7227,7 @@ function getActivityIcon(type, details = {}) {
             break;
         case 'multiplierFound':
         case 'multiplierRefund':
-            icon = '✖️'; // Çarpan bulma simgesi
+            icon = '✖️';
             bgColor = 'bg-purple-500';
             break;
         case 'newItemFound':
@@ -7228,14 +7243,9 @@ function getActivityIcon(type, details = {}) {
             bgColor = 'bg-indigo-500';
             break;
         case 'spinWheel':
-            // GÜNCELLENDİ: Artık çarkın sonucuna göre farklı simgeler gösteriyor.
-            if (details.type === 'pas') {
-                icon = '❌'; // "Pas" geldiğinde artık bu simge görünecek.
-                bgColor = 'bg-gray-700';
-            } else {
-                icon = '🎡'; // Diğer tüm kazanç durumlarında bu simge görünecek.
-                bgColor = 'bg-pink-500';
-            }
+            // DÜZELTME: Artık çarktan ne çıkarsa çıksın bu simge kullanılacak.
+            icon = '🎡';
+            bgColor = 'bg-pink-500';
             break;
         case 'clickCatchSolo':
         case 'clickCatchLobby':
@@ -7259,8 +7269,6 @@ function getActivityIcon(type, details = {}) {
     `;
 }
 
-// ESKİ renderActivityFeed FONKSİYONUNU SİLİP, MİKTARLARI GÖSTEREN BU YENİ VERSİYONU YAPIŞTIR
-
 function renderActivityFeed(activities) {
     const activityFeedList = document.getElementById('activityFeedList');
     activityFeedList.innerHTML = '';
@@ -7281,7 +7289,6 @@ function renderActivityFeed(activities) {
         return;
     }
     
-    // YENİ: Kod anahtarlarını okunabilir isimlere çevirmek için bir yardımcı nesne
     const typeToName = {
         points: 'Puan',
         boxRights: 'Kutu Hakkı',
@@ -7331,7 +7338,6 @@ function renderActivityFeed(activities) {
                 message = `${userHtml}, ${source} Sürpriz Kutu buldu ve <span class="text-green-300 font-bold">+${details.points} Puan</span> kazandı${multiplierText}!`;
                 break;
             case 'buyItem':
-                // GÜNCELLENDİ: Alınan ürünün adı yerine, kazanılan eşyanın türü ve miktarı gösteriliyor.
                 let purchasedItemText = '';
                 if (details.itemType === 'tempMultiplier') {
                     purchasedItemText = `<span class="text-cyan-300 font-bold">${details.itemDuration} adet ${details.itemValue}x Çarpan</span>`;
@@ -7342,7 +7348,44 @@ function renderActivityFeed(activities) {
                 message = `${userHtml}, mağazadan <span class="text-red-400 font-bold">-${details.itemCost} puan</span> harcayarak ${purchasedItemText} aldı.`;
                 break;
             case 'spinWheel':
-                message = `${userHtml}, Şans Çarkı'nı çevirerek <span class="text-pink-300 font-bold">${details.result}</span> kazandı.`;
+                let prizeText = '';
+                const prizeType = details.type;
+                const prizeValue = details.value;
+
+                // Ödülün türüne göre metni kendimiz oluşturuyoruz
+                switch (prizeType) {
+                    case 'points':
+                        prizeText = `<span class="text-pink-300 font-bold">+${prizeValue} Puan</span>`;
+                        break;
+                    case 'boxRights':
+                        prizeText = `<span class="text-pink-300 font-bold">+${prizeValue} Kutu Hakkı</span>`;
+                        break;
+                    case 'iflasShield':
+                        prizeText = `<span class="text-pink-300 font-bold">+${prizeValue} İflas Kalkanı</span>`;
+                        break;
+                    case 'clickCatchTicket':
+                        prizeText = `<span class="text-pink-300 font-bold">+${prizeValue} Tıkla-Yakala Bileti</span>`;
+                        break;
+                    case 'wheelTicket':
+                        prizeText = `<span class="text-pink-300 font-bold">+${prizeValue} Çark Bileti</span>`;
+                        break;
+                    case 'tempMultiplier':
+                        prizeText = `<span class="text-pink-300 font-bold">${prizeValue}x Çarpan</span>`;
+                        break;
+                    case 'pas':
+                        // "Pas kazandı" dememek için fiili değiştiriyoruz
+                        message = `${userHtml}, Şans Çarkı'nı çevirdi ve <span class="text-gray-400 font-bold">Pas</span> geçti.`;
+                        break;
+                    default:
+                        // Beklenmedik bir durum olursa eski etiketi göster
+                        prizeText = `<span class="text-pink-300 font-bold">${details.result}</span>`;
+                        break;
+                }
+
+                // Eğer "Pas" değilse, standart "kazandı" cümlesini kur
+                if (prizeType !== 'pas') {
+                    message = `${userHtml}, Şans Çarkı'nı çevirerek ${prizeText} kazandı.`;
+                }
                 break;
             case 'clickCatchSolo':
                  message = `${userHtml}, Tıkla-Yakala oynadı ve <span class="text-orange-300 font-bold">${details.score} Puan</span> topladı.`;
@@ -7351,7 +7394,6 @@ function renderActivityFeed(activities) {
                 message = `${userHtml}, Tıkla-Yakala lobisini kazanarak <span class="text-orange-300 font-bold">${details.prize} Puan</span> elde etti.`;
                 break;
             case 'dailyReward':
-                // GÜNCELLENDİ: Alınan ödülün adı yerine, kazanılan eşyanın türü ve miktarı gösteriliyor.
                 let rewardText = '';
                 if (details.rewardType === 'tempMultiplier') {
                     rewardText = `<span class="text-teal-300 font-bold">${details.rewardUses} adet ${details.rewardValue}x Çarpan</span>`;
