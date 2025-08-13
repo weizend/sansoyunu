@@ -7157,8 +7157,6 @@ function closeLobbyGameOverScreen() {
     // --- YENİ EKLENEN SATIR SONU ---
 }
 
-// MEVCUT logActivity FONKSİYONUNU BUNUNLA DEĞİŞTİR
-
 function logActivity(type, username, details = {}) {
     // WeizendTv'nin kendi eylemlerini loglama (örneğin lobi iptali)
     if (username.toLowerCase() === 'weizendtv') {
@@ -7175,9 +7173,9 @@ function logActivity(type, username, details = {}) {
     const newActivityRef = db.ref('activityFeed').push();
     newActivityRef.set(activityData);
 
-    // Performans için eski aktiviteleri sil (son 100 aktiviteyi tut)
+    // Performans için eski aktiviteleri sil (son 20 aktiviteyi tut)
     db.ref('activityFeed').orderByChild('timestamp').limitToFirst(1).once('value', (snapshot) => {
-        if (snapshot.numChildren() > 100) { // Limiti 100'e çıkardık
+        if (snapshot.numChildren() > 20) { // Limit 20 olarak ayarlandı
             const oldestKey = Object.keys(snapshot.val())[0];
             db.ref('activityFeed/' + oldestKey).remove();
         }
