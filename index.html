@@ -7437,8 +7437,8 @@ function initActivityFeed() {
     activityBellContainer.classList.remove('hidden');
 
     const userFeedStatusRef = db.ref(`users/${currentUser}/lastCheckedFeedTimestamp`);
-    //... fonksiyonun devamı
-    const ref = db.ref('activityFeed').orderByChild('timestamp');
+    // initActivityFeed fonksiyonu içinde bu satırla değiştir:
+const ref = db.ref('activityFeed').orderByChild('timestamp').limitToLast(20);
 
     const callback = async (snapshot) => {
         const feedData = snapshot.val();
