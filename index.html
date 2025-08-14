@@ -1989,6 +1989,8 @@ auth.onAuthStateChanged(user => {
 });
 
   // DEĞİŞTİRİLECEK FONKSİYON
+// MEVCUT afterLogin FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
+
 async function afterLogin() {
     document.getElementById("loginContainer").style.display = "none";
     document.getElementById("gameDiv").style.display = "block";
@@ -2026,7 +2028,8 @@ async function afterLogin() {
     listenForSurpriseBox();
     listenForDailyRewardChanges();
     initActivityFeed();
-    listenForGlobalNotifications(); // <-- YENİ EKLENEN SATIR BU!
+    listenForGlobalNotifications();
+    listenForLobbyChanges(); // LOBİ DİNLEYİCİSİ ARTIK BURADA ÇAĞRILIYOR
     
     if (!isAdmin) {
         listenForAdminNotifications();
@@ -2069,7 +2072,8 @@ async function afterLogin() {
         gameTabBtn.classList.remove('border-red-500', 'text-white');
     }
   }
-  // DEĞİŞTİRİLECEK FONKSİYON
+  // MEVCUT showSection FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
+
 function showSection(sectionId) {
     document.getElementById('gameContent').classList.add('hidden');
     document.getElementById('storeSection').classList.add('hidden');
@@ -2118,7 +2122,7 @@ function showSection(sectionId) {
         }
     } else if (sectionId === 'clickCatch') {
         loadClickCatchRankings();
-        listenForLobbyChanges(); 
+        // listenForLobbyChanges(); // BU SATIR ARTIK BURADA DEĞİL
         listenForLastGameSummary(); 
         
         if (currentUser && !isAdmin) {
