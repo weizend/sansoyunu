@@ -2000,7 +2000,7 @@ async function afterLogin() {
     if (isAdmin) {
       document.getElementById('adminPanelToggleButton').classList.remove('hidden');
       document.getElementById('boxSettingsButton').classList.remove('hidden');
-      document.getElementById('currentUserAvatar').src = 'https://i.hizliresim.com/mtwdr1x.png?_gl=1*1vzhmma*_ga*MTA2NTkzNzE4OC4xNzQ3MTQ1Mzk0*_ga_M9ZRXYS2YN*czE3NTUxNzY3MTckbzEwJGcxJHQxNzU1MTc3NTAwJGozNyRsMCRoMA..';
+      document.getElementById('currentUserAvatar').src = 'https://i.hizliresim.com/bsjpkbe.png';
     } else {
       document.getElementById('adminPanelToggleButton').classList.add('hidden');
       document.getElementById('boxSettingsButton').classList.add('hidden');
@@ -7634,9 +7634,22 @@ function renderActivityFeed(activities) {
                         : ` <span class="text-xs text-gray-500">(Çarpan kullanılmadı)</span>`;
                     message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-cyan-300 font-bold">${details.itemName}</span> buldu${newItemMultiplierText}.`;
                     break;
+                
+                // --- İSTEĞİNİ KARŞILAYAN GÜNCELLEME BURADA ---
                 case 'buyItem':
-                    message = `${userHtml}, <span class="text-red-400 font-bold">-${details.itemCost} Puan</span> harcayarak mağazadan <span class="text-indigo-300 font-bold">${details.itemName}</span> ürününü aldı.`;
+                    let purchasedItemText = '';
+                    if (details.itemType === 'tempMultiplier') {
+                        purchasedItemText = `<span class="text-indigo-300 font-bold">${details.itemDuration} Adet ${details.itemValue}x Çarpan</span>`;
+                    } else if (details.itemValue) {
+                        const itemName = typeToName[details.itemType] || details.itemName;
+                        purchasedItemText = `<span class="text-indigo-300 font-bold">+${details.itemValue} ${itemName}</span>`;
+                    } else {
+                        purchasedItemText = `<span class="text-indigo-300 font-bold">${details.itemName}</span>`;
+                    }
+                    message = `${userHtml}, <span class="text-red-400 font-bold">-${details.itemCost} Puan</span> harcayarak mağazadan ${purchasedItemText} aldı.`;
                     break;
+                // --- GÜNCELLEME SONU ---
+
                 case 'spinWheel':
                     let prizeText = '';
                     const prizeType = details.type;
@@ -7659,8 +7672,6 @@ function renderActivityFeed(activities) {
                     if (details.score > 0) {
                         message = `${userHtml}, Tıkla-Yakala oynadı ve <span class="text-green-300 font-bold">+${details.score} Puan</span> topladı.`;
                     } else if (details.score < 0) {
-                        // --- SON İSTEĞİNİ KARŞILAYAN GÜNCELLEME BURADA ---
-                        // Math.abs kaldırıldı, böylece - işareti görünür.
                         message = `${userHtml}, Tıkla-Yakala oynadı ve <span class="text-red-400 font-bold">${details.score} Puan</span> kaybetti.`;
                     } else {
                         message = `${userHtml}, Tıkla-Yakala oynadı ancak puan kazanamadı.`;
