@@ -6890,9 +6890,10 @@ function listenForGlobalNotifications() {
     const lobbySnap = await lobbyRef.once('value');
     const lobbyData = lobbySnap.val();
 
-    if (!lobbyData || !lobbyData.players) {
+    // Lobi zaten yoksa veya boşsa işlemi bitir.
+    if (!lobbyData) {
         if (isCancel) {
-            displayMessage("Lobi zaten boş olduğu için iptal edildi.");
+            displayMessage("İptal edilecek aktif bir lobi bulunmuyor.");
         }
         await lobbyRef.remove();
         return;
@@ -6901,51 +6902,65 @@ function listenForGlobalNotifications() {
     const currentState = lobbyData.state;
     const useTickets = lobbyData.entryTickets > 0;
     const updates = {};
-    let message = "";
+    let messageForAdmin = "";
 
+    // Senaryo 1: Lobi "beklemede" veya "aktif" durumdayken admin tarafından iptal ediliyor.
+    // Bu durumda ücretler iade edilir ve bildirim gönderilir.
     if (isCancel && (currentState === 'waiting' || currentState === 'active')) {
-        const confirmed = await customConfirm("Lobi iptal edilecek. Oyun devam ederken iptal edildiği için tüm katılımcıların ücretleri iade edilecek. Emin misin?");
+        const confirmed = await customConfirm("Lobi iptal edilecek ve tüm katılımcıların ücretleri iade edilecek. Emin misin?");
         if (!confirmed) return;
 
-        for (const player in lobbyData.players) {
-            const userRef = db.ref(`users/${player}`);
-            const userSnap = await userRef.once('value');
-            const userData = userSnap.val();
+        // Lobide oyuncu varsa iade işlemlerini yap
+        if (lobbyData.players) {
+            for (const player in lobbyData.players) {
+                const userRef = db.ref(`users/${player}`);
+                const userSnap = await userRef.once('value');
+                const userData = userSnap.val();
 
-            if (userData) {
-                if (useTickets) {
-                    const currentTickets = userData.clickCatchTickets || 0;
-                    updates[`users/${player}/clickCatchTickets`] = currentTickets + (lobbyData.entryTickets || 0);
-                } else {
-                    const currentBalance = userData.balance || 0;
-                    updates[`users/${player}/balance`] = currentBalance + (lobbyData.entryFee || 0);
+                if (userData) {
+                    // Ücret türüne göre iadeyi hazırla
+                    if (useTickets) {
+                        const currentTickets = userData.clickCatchTickets || 0;
+                        updates[`users/${player}/clickCatchTickets`] = currentTickets + (lobbyData.entryTickets || 0);
+                    } else {
+                        const currentBalance = userData.balance || 0;
+                        updates[`users/${player}/balance`] = currentBalance + (lobbyData.entryFee || 0);
+                    }
+                    
+                    // --- YENİ EKLENEN BİLDİRİM KODU ---
+                    const messageForUser = "Kurulu lobi admin tarafından iptal edildi. Katılım ücretiniz iade edildi.";
+                    const notifKey = db.ref('users/' + player + '/notifications').push().key;
+                    updates[`users/${player}/notifications/${notifKey}`] = { message: messageForUser, timestamp: firebase.database.ServerValue.TIMESTAMP };
+                    // --- BİLDİRİM KODU SONU ---
                 }
             }
         }
-        message = "Lobi iptal edildi ve tüm katılımcıların ücretleri iade edildi.";
-        // BİLDİRİMİ GÖSTER
-        displayNotification("Lobi iptal edildi! Ücretleriniz iade edildi.", 'bg-red-500');
-
-    } else {
+        messageForAdmin = "Lobi iptal edildi ve tüm katılımcıların ücretleri iade edildi.";
+    } 
+    // Senaryo 2: Oyun zaten bitmiş veya başka bir durumda iptal ediliyor.
+    // Bu durumda ücret iadesi yapılmaz.
+    else {
+        let confirmationMessage = "Lobi sonlandırılacak. Bu işlem geri alınamaz.";
         if (isCancel) {
-            const confirmed = await customConfirm("Oyun zaten tamamlanmış. Lobiyi iptal etmek, katılım ücretlerinin iade edilmemesine sebep olacaktır. Emin misin?");
-            if (!confirmed) return;
+             confirmationMessage = "Oyun zaten tamamlanmış. Lobiyi sonlandırmak, ücretlerin iade edilmemesine neden olur. Emin misin?";
         }
-        
+        const confirmed = await customConfirm(confirmationMessage);
+        if (!confirmed) return;
+
         const winner = lobbyData.winner;
-        if (winner) {
-            message = `Oyun sonlandırıldı. Kazanan: ${winner}. Katılım ücretleri iade edilmedi.`;
-        } else {
-            message = "Lobi sonlandırıldı. Kazanan belirlenmediği için katılım ücretleri iade edilmedi.";
-        }
+        messageForAdmin = winner 
+            ? `Oyun sonlandırıldı. Kazanan: ${winner}. Ücretler iade edilmedi.`
+            : "Lobi sonlandırıldı. Kazanan belirlenmediği için ücretler iade edilmedi.";
     }
     
+    // Hazırlanan tüm güncellemeleri (iade ve bildirimler) tek seferde veritabanına yaz
     if (Object.keys(updates).length > 0) {
         await db.ref().update(updates);
     }
     
+    // Son olarak lobiyi sil ve admine bilgi ver
     await lobbyRef.remove();
-    displayMessage(message);
+    displayMessage(messageForAdmin);
 }
   // Yeni eklenecek fonksiyon: Ekranda geçici bildirim gösterir
 function displayNotification(message, color = 'bg-yellow-500') {
