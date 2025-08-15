@@ -6344,14 +6344,13 @@ function closeLobbySettingsModal() {
     }
   }
   
-// MEVCUT resetClickCatchLeaderboard FONKSİYONUNU SİL VE BUNU YAPIŞTIR
 async function resetClickCatchLeaderboard() {
     if (!isAdmin) {
         displayMessage("Bu işlemi yapmaya yetkiniz yok.");
         return;
     }
     const confirmed = await customConfirm(
-        "Tüm 'Tıkla-Yakala' sıralamasını ve tüm kullanıcıların kişisel rekorlarını VE <b>PROFiLLERİNDEKİ TOPLAM SKORLARINI</b> kalıcı olarak silmek istediğinizden emin misiniz? <b class='text-red-400'>Bu işlem lideri ödüllendirmeyecek ve kullanıcılara hediye bilet vermeyecektir!</b>"
+        "Tüm 'Tıkla-Yakala' haftalık sıralamasını VE tüm kullanıcıların toplam skorlarını kalıcı olarak silmek istediğinizden emin misiniz? <b class='text-red-400'>Bu işlem lideri ödüllendirmeyecek ve kullanıcılara hediye bilet vermeyecektir!</b>"
     );
 
     if (!confirmed) {
@@ -6359,30 +6358,34 @@ async function resetClickCatchLeaderboard() {
     }
 
     try {
-        await db.ref('clickCatchWeeklyScores').remove();
         const usersRef = db.ref('users');
         const usersSnap = await usersRef.once('value');
         const usersData = usersSnap.val();
         
         const updates = {};
+        
+        // 1. Haftalık skor tablosunu silmek için güncelleme ekle
+        updates['/clickCatchWeeklyScores'] = null;
+        
+        // 2. Tüm kullanıcıların ilgili skorlarını sıfırlamak için güncellemeler ekle
         if (usersData) {
             for (const username in usersData) {
-                // Hem tek oyundaki en yüksek skoru sıfırla
-                if (usersData[username].hasOwnProperty('clickCatchHighestScore')) {
-                    updates[`/users/${username}/clickCatchHighestScore`] = 0;
-                }
-                // Hem de profildeki toplam skoru sıfırla
-                if (usersData[username].hasOwnProperty('skor')) {
+                // Sadece 'skor' veya 'clickCatchHighestScore' alanı olan kullanıcıları güncelle
+                if (usersData[username].hasOwnProperty('skor') || usersData[username].hasOwnProperty('clickCatchHighestScore')) {
                     updates[`/users/${username}/skor`] = 0;
+                    updates[`/users/${username}/clickCatchHighestScore`] = 0;
                 }
             }
         }
 
+        // 3. Tüm güncellemeleri tek bir işlemle veritabanına yaz
         if (Object.keys(updates).length > 0) {
             await db.ref().update(updates);
         }
+        
+        // 4. Admini bilgilendir
         clickCatchLeader = null;
-        displayMessage("Tüm Tıkla-Yakala sıralaması, kişisel rekorlar ve toplam skorlar başarıyla sıfırlandı.");
+        displayMessage("Tüm Tıkla-Yakala haftalık sıralaması ve kullanıcıların toplam skorları başarıyla sıfırlandı.");
         
     } catch (error) {
         console.error("Tıkla-Yakala sıralaması sıfırlanırken hata oluştu:", error);
