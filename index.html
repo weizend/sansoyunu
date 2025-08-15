@@ -6352,7 +6352,8 @@ async function resetClickCatchLeaderboard() {
         return;
     }
     const confirmed = await customConfirm(
-        "Tüm 'Tıkla-Yakala' sıralamasını ve tüm kullanıcıların kişisel rekorlarını VE <b>PROFiLLERİNDEKİ TOPLAM SKORLARINI</b> kalıcı olarak silmek istediğinizden emin misiniz? <b class='text-red-400'>Bu işlem lideri ödüllendirmeyecek ve kullanıcılara hediye bilet vermeyecektir!</b>"
+        // GÜNCELLENEN MESAJ: Artık şampiyon bilgisinin de silineceği yazıyor.
+        "Tüm 'Tıkla-Yakala' sıralamasını, kullanıcıların toplam skorlarını VE <b>Önceki Sezonun Şampiyonu</b> bilgisini kalıcı olarak silmek istediğinizden emin misiniz? <b class='text-red-400'>Bu işlem lideri ödüllendirmeyecek ve hediye bilet vermeyecektir!</b>"
     );
 
     if (!confirmed) {
@@ -6361,6 +6362,9 @@ async function resetClickCatchLeaderboard() {
 
     try {
         await db.ref('clickCatchWeeklyScores').remove();
+        // YENİ EKLENEN SATIR: Şampiyon bilgisini de veritabanından siliyor.
+        await db.ref('gameStats/clickCatchSeasonSummary').remove(); 
+        
         const usersRef = db.ref('users');
         const usersSnap = await usersRef.once('value');
         const usersData = usersSnap.val();
@@ -6368,11 +6372,9 @@ async function resetClickCatchLeaderboard() {
         const updates = {};
         if (usersData) {
             for (const username in usersData) {
-                // Hem tek oyundaki en yüksek skoru sıfırla
                 if (usersData[username].hasOwnProperty('clickCatchHighestScore')) {
                     updates[`/users/${username}/clickCatchHighestScore`] = 0;
                 }
-                // Hem de profildeki toplam skoru sıfırla
                 if (usersData[username].hasOwnProperty('skor')) {
                     updates[`/users/${username}/skor`] = 0;
                 }
@@ -6383,7 +6385,8 @@ async function resetClickCatchLeaderboard() {
             await db.ref().update(updates);
         }
         clickCatchLeader = null;
-        displayMessage("Tüm Tıkla-Yakala sıralaması, kişisel rekorlar ve toplam skorlar başarıyla sıfırlandı.");
+        // GÜNCELLENEN MESAJ: Başarı mesajı da güncellendi.
+        displayMessage("Tüm Tıkla-Yakala sıralaması, şampiyon bilgisi ve toplam skorlar başarıyla sıfırlandı.");
         
     } catch (error) {
         console.error("Tıkla-Yakala sıralaması sıfırlanırken hata oluştu:", error);
