@@ -6344,13 +6344,14 @@ function closeLobbySettingsModal() {
     }
   }
   
+// MEVCUT resetClickCatchLeaderboard FONKSİYONUNU SİL VE BUNU YAPIŞTIR
 async function resetClickCatchLeaderboard() {
     if (!isAdmin) {
         displayMessage("Bu işlemi yapmaya yetkiniz yok.");
         return;
     }
     const confirmed = await customConfirm(
-        "Tüm 'Tıkla-Yakala' sıralamasını ve tüm kullanıcıların kişisel rekorlarını kalıcı olarak silmek istediğinizden emin misiniz? <b class='text-red-400'>Bu işlem lideri ödüllendirmeyecek ve kullanıcılara hediye bilet vermeyecektir!</b>"
+        "Tüm 'Tıkla-Yakala' sıralamasını ve tüm kullanıcıların kişisel rekorlarını VE <b>PROFiLLERİNDEKİ TOPLAM SKORLARINI</b> kalıcı olarak silmek istediğinizden emin misiniz? <b class='text-red-400'>Bu işlem lideri ödüllendirmeyecek ve kullanıcılara hediye bilet vermeyecektir!</b>"
     );
 
     if (!confirmed) {
@@ -6366,8 +6367,13 @@ async function resetClickCatchLeaderboard() {
         const updates = {};
         if (usersData) {
             for (const username in usersData) {
+                // Hem tek oyundaki en yüksek skoru sıfırla
                 if (usersData[username].hasOwnProperty('clickCatchHighestScore')) {
                     updates[`/users/${username}/clickCatchHighestScore`] = 0;
+                }
+                // Hem de profildeki toplam skoru sıfırla
+                if (usersData[username].hasOwnProperty('skor')) {
+                    updates[`/users/${username}/skor`] = 0;
                 }
             }
         }
@@ -6376,7 +6382,7 @@ async function resetClickCatchLeaderboard() {
             await db.ref().update(updates);
         }
         clickCatchLeader = null;
-        displayMessage("Tüm Tıkla-Yakala sıralaması ve kişisel rekorlar başarıyla sıfırlandı.");
+        displayMessage("Tüm Tıkla-Yakala sıralaması, kişisel rekorlar ve toplam skorlar başarıyla sıfırlandı.");
         
     } catch (error) {
         console.error("Tıkla-Yakala sıralaması sıfırlanırken hata oluştu:", error);
@@ -6406,6 +6412,7 @@ function closeClickCatchRewardModal() {
     document.getElementById('clickCatchRewardModal').style.display = 'none';
 }
 
+// MEVCUT confirmAndExecuteReset FONKSİYONUNU SİL VE BUNU YAPIŞTIR
 async function confirmAndExecuteReset() {
     if (!isAdmin) return;
 
@@ -6464,6 +6471,8 @@ async function confirmAndExecuteReset() {
         if (userData.approved && !userData.blocked && username !== 'weizendtv') {
             updates[`/users/${username}/clickCatchTickets`] = (userData.clickCatchTickets || 0) + allUsersTicketAmount;
             updates[`/users/${username}/clickCatchHighestScore`] = 0;
+            // YENİ EKLENEN SATIR: Herkesin toplam skorunu sıfırla
+            updates[`/users/${username}/skor`] = 0;
         }
     }
     
@@ -6638,11 +6647,15 @@ function handleSoloItemClick(event) {
 async function deleteUserFromLeaderboard(event, username) {
     event.stopPropagation();
     if (!isAdmin) return;
-    const confirmed = await customConfirm(`<b>${username}</b> adlı kullanıcıyı bu haftanın skor listesinden silmek istediğinize emin misiniz? Bu işlem, kullanıcının toplam skorunu etkilemez.`);
+    const confirmed = await customConfirm(`<b>${username}</b> adlı kullanıcıyı bu haftanın skor listesinden silmek istediğinize emin misiniz? Bu işlem, kullanıcının profilindeki <b>toplam skorunu da kalıcı olarak sıfırlayacaktır!</b>`);
     if (confirmed) {
+        // Haftalık skor tablosundan kullanıcıyı sil
         await db.ref(`clickCatchWeeklyScores/${username}`).remove();
-        displayMessage(`${username} bu haftanın skor tablosundan silindi.`);
-        loadClickCatchRankings();
+        // Kullanıcının profilindeki toplam 'skor' verisini sıfırla
+        await db.ref(`users/${username}/skor`).set(0); 
+        
+        displayMessage(`${username} bu haftanın skor tablosundan silindi ve toplam skoru sıfırlandı.`);
+        loadClickCatchRankings(); // Sıralamayı yenile
     }
 }
   // YENİ YARDIMCI FONKSİYON: Tıkla-Yakala liderinin kullanıcı adını anlık çeker.
@@ -7748,8 +7761,6 @@ function renderActivityFeed(activities) {
                         : ` <span class="text-xs text-gray-500">(Çarpan kullanılmadı)</span>`;
                     message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-cyan-300 font-bold">${details.itemName}</span> buldu${newItemMultiplierText}.`;
                     break;
-                
-                // --- İSTEĞİNİ KARŞILAYAN GÜNCELLEME BURADA ---
                 case 'buyItem':
                     let purchasedItemText = '';
                     if (details.itemType === 'tempMultiplier') {
@@ -7762,8 +7773,6 @@ function renderActivityFeed(activities) {
                     }
                     message = `${userHtml}, <span class="text-red-400 font-bold">-${details.itemCost} Puan</span> harcayarak mağazadan ${purchasedItemText} aldı.`;
                     break;
-                // --- GÜNCELLEME SONU ---
-
                 case 'spinWheel':
                     let prizeText = '';
                     const prizeType = details.type;
@@ -7791,7 +7800,8 @@ function renderActivityFeed(activities) {
                         message = `${userHtml}, Tıkla-Yakala oynadı ancak puan kazanamadı.`;
                     }
 
-                    if (details.specialItems && details.specialItems.length > 0) {
+                    // --- HATA DÜZELTMESİ: 'specialItems' verisinin bir dizi (array) olup olmadığını kontrol et ---
+                    if (details.specialItems && Array.isArray(details.specialItems) && details.specialItems.length > 0) {
                         message += ` Ayrıca, <span class="text-cyan-300 font-bold">${details.specialItems.join(', ')}</span> kazandı.`;
                     } else {
                         message += ` <span class="text-xs text-gray-500">(Özel eşya yakalanmadı)</span>`;
