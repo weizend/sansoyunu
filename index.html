@@ -7448,7 +7448,7 @@ async function startSoloClickCatchGame() {
     showGameCountdown(_actuallyStartSoloGame);
 }
 
-// MEVCUT endSoloClickCatchGame FONKSİYONUNU KOMPLE SİL VE BUNU YAPIŞTIR
+// DOSYANDAKİ MEVCUT endSoloClickCatchGame FONKSİYONUNU KOMPLE SİL VE BUNU YAPIŞTIR
 
 function endSoloClickCatchGame() {
     clickCatchGameActive = false;
@@ -7485,7 +7485,7 @@ function endSoloClickCatchGame() {
     const userRef = db.ref('users/' + currentUser);
     const weeklyScoreRef = db.ref(`clickCatchWeeklyScores/${currentUser}`);
 
-    // Haftalık skoru güncelle (Bu kısım aynı kalıyor, çünkü haftalık rekabeti tutuyor)
+    // Haftalık skoru güncelle (Bu kısım haftalık rekabeti tuttuğu için doğru)
     weeklyScoreRef.transaction(currentWeeklyScore => {
         return (currentWeeklyScore || 0) + clickCatchScore;
     });
@@ -7493,11 +7493,11 @@ function endSoloClickCatchGame() {
     // Kullanıcının ana verilerini güncelle
     userRef.transaction(user => {
         if (user) {
-            // --- DEĞİŞEN ANA MANTIK BURASI ---
-            // 1. Yeni 'skor' alanını güncelle, Puan (balance) alanına dokunma.
+            // --- DOĞRU MANTIK BURADA ---
+            // 1. Kazanılan skoru Puan'a (balance) değil, yeni 'skor' alanına ekliyoruz.
             user.skor = (user.skor || 0) + clickCatchScore;
 
-            // 2. Kazanılan özel eşyaları ekle.
+            // 2. Kazanılan özel eşyaları envantere ekliyoruz.
             user.kutuHakki = (user.kutuHakki || 0) + collectedBoxRights;
             user.iflasShieldUses = (user.iflasShieldUses || 0) + collectedIflasShields;
             user.carkBileti = (user.carkBileti || 0) + collectedWheelTickets;
