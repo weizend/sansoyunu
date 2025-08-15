@@ -2159,7 +2159,6 @@ function showSection(sectionId) {
         }
     } else if (sectionId === 'clickCatch') {
         loadClickCatchRankings();
-        listenForLastGameSummary(); 
         
         if (currentUser && !isAdmin) {
             db.ref('users/' + currentUser).once('value').then(snap => {
@@ -8678,102 +8677,89 @@ function closeWheelLegendModal() {
 }
 
     function listenForLastGameSummary() {
-    // 1. Lobi oyununun son kazananını dinle (Bu kısım aynı kalıyor)
+    const seasonRef = db.ref('gameStats/clickCatchSeasonSummary');
     const lobbyRef = db.ref('clickCatchLobbyLastGameSummary');
-    const lobbyContainer = document.getElementById('lastWinnerContainer');
+    const container = document.getElementById('lastWinnerContainer');
 
-    const lobbyCallback = snap => {
-        const summaryData = snap.val();
-        if (summaryData && summaryData.winner) {
-            let durationText = '';
-            if (summaryData.startTimestamp && summaryData.endTimestamp) {
-                const durationMs = summaryData.endTimestamp - summaryData.startTimestamp;
-                const seconds = Math.floor(durationMs / 1000);
-                const minutes = Math.floor(seconds / 60);
-                const remainingSeconds = seconds % 60;
-                durationText = ` (Süre: ${minutes}dk ${remainingSeconds}sn)`;
+    // Bu fonksiyon, hangi kazananın gösterileceğine karar verir.
+    const updateWinnerDisplay = async () => {
+        try {
+            const [seasonSnap, lobbySnap] = await Promise.all([
+                seasonRef.once('value'),
+                lobbyRef.once('value')
+            ]);
+
+            const seasonData = seasonSnap.val();
+            const lobbyData = lobbySnap.val();
+
+            container.innerHTML = ''; // Önce alanı temizle
+
+            // ÖNCELİK 1: Eğer sezon şampiyonu varsa, onu göster.
+            if (seasonData && seasonData.winnerName) {
+                let deleteButton = isAdmin ? `<button onclick="clearLastSeasonWinner()" class="ml-auto text-gray-500 hover:text-red-500 transition-colors" title="Sezon Kazananı Bilgisini Temizle"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1-1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>` : '';
+
+                const playtimeMs = seasonData.totalPlaytime || 0;
+                const totalSeconds = Math.floor(playtimeMs / 1000);
+                const minutes = Math.floor(totalSeconds / 60);
+                const seconds = totalSeconds % 60;
+                const playtimeText = `${minutes}dk ${seconds}sn`;
+
+                container.innerHTML = `
+                    <div class="flex justify-between items-center border-b border-gray-700 pb-2">
+                        <h4 class="text-yellow-300 text-xl font-semibold">👑 Önceki Sezonun Şampiyonu</h4>
+                        ${deleteButton}
+                    </div>
+                    <div class="mt-3 text-center">
+                        <b class="text-2xl text-white">${seasonData.winnerName}</b>
+                        <p class="text-2xl text-green-400 font-bold">${seasonData.winningScore} Skor</p>
+                    </div>
+                    <div class="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3 text-center text-sm bg-gray-800 p-3 rounded-lg">
+                        <div><p class="text-gray-400">Toplam Süre</p><p class="font-bold text-white">${playtimeText}</p></div>
+                        <div><p class="text-gray-400">Yakalanan Özel</p><p class="font-bold text-white">${seasonData.specialsCaught || 0} adet</p></div>
+                        <div><p class="text-gray-400">🥮 Normal</p><p class="font-bold text-white">${seasonData.normalsClicked || 0}</p></div>
+                        <div><p class="text-gray-400">💰 Altın</p><p class="font-bold text-white">${seasonData.goldsClicked || 0}</p></div>
+                        <div><p class="text-gray-400">💣 Bomba</p><p class="font-bold text-white">${seasonData.bombsClicked || 0}</p></div>
+                        <div><p class="text-gray-400">⏰ Süre</p><p class="font-bold text-white">${seasonData.timesClicked || 0}</p></div>
+                    </div>
+                `;
+                container.classList.remove('hidden');
+
+            // ÖNCELİK 2: Sezon şampiyonu yoksa ama lobi galibi varsa, onu göster.
+            } else if (lobbyData && lobbyData.winner) {
+                 let deleteButton = isAdmin ? `<button onclick="clearLastWinner()" class="ml-auto text-gray-500 hover:text-red-500 transition-colors" title="Son Lobi Kazananını Sil"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1-1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>` : '';
+                 container.innerHTML = `
+                    <div class="flex justify-between items-center border-b border-gray-700 pb-2 mb-3">
+                        <h4 class="text-cyan-300 text-xl font-semibold">🏆 Son Lobi Galibi: <b class="text-white">${lobbyData.winner}</b> (+${lobbyData.prize} Puan)</h4>
+                        ${deleteButton}
+                    </div>
+                `;
+                container.classList.remove('hidden');
+
+            // İkisi de yoksa, alanı gizle.
+            } else {
+                container.classList.add('hidden');
             }
-
-            let deleteButton = isAdmin ? `<button onclick="clearLastWinner()" class="ml-auto text-gray-500 hover:text-red-500 transition-colors" title="Son Lobi Kazananını Sil"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1-1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>` : '';
-            
-            const players = summaryData.players || {};
-            const sortedPlayers = Object.entries(players).sort(([, a], [, b]) => b.score - a.score);
-            
-            let detailsHtml = '';
-            sortedPlayers.forEach(([username, data], index) => {
-                const isWinner = username === summaryData.winner;
-                const rowClass = isWinner ? 'bg-green-800/50 border-green-500' : 'bg-gray-800/50 border-gray-700';
-                const rankIcon = index === 0 ? '🥇' : (index === 1 ? '🥈' : (index === 2 ? '🥉' : `${index + 1}.`));
-                detailsHtml += `<div class="flex justify-between items-center p-2 rounded border ${rowClass}">...</div>`;
-            });
-            
-            lobbyContainer.innerHTML = `
-                <div class="flex justify-between items-center border-b border-gray-700 pb-2 mb-3">
-                    <h4 class="text-cyan-300 text-xl font-semibold"> Lobi Galibi: <b class="text-white">${summaryData.winner}</b> (+${summaryData.prize} Puan)</h4>
-                    ${deleteButton}
-                </div>
-                <div class="text-sm text-gray-400">${durationText}</div>
-            `;
-            lobbyContainer.classList.remove('hidden'); 
-        } else {
-             lobbyContainer.classList.add('hidden');
+        } catch (error) {
+            console.error("Kazanan bilgisi gösterilirken hata oluştu:", error);
+            container.classList.add('hidden');
         }
     };
     
-    if (activeListeners.lobbySummary) {
-        activeListeners.lobbySummary.ref.off('value', activeListeners.lobbySummary.callback);
-    }
-    activeListeners.lobbySummary = { ref: lobbyRef, event: 'value', callback: lobbyCallback };
+    // Hem sezon hem de lobi verisi değiştiğinde ekranı güncelleyecek dinleyicileri ata.
+    const seasonCallback = () => updateWinnerDisplay();
+    const lobbyCallback = () => updateWinnerDisplay();
+
+    if (activeListeners.seasonSummary) seasonRef.off('value', activeListeners.seasonSummary.callback);
+    if (activeListeners.lobbySummary) lobbyRef.off('value', activeListeners.lobbySummary.callback);
+
+    seasonRef.on('value', seasonCallback);
     lobbyRef.on('value', lobbyCallback);
 
-    // 2. Haftalık sezon kazananını dinle (BU KISIM TAMAMEN DEĞİŞTİ)
-    const seasonRef = db.ref('gameStats/clickCatchSeasonSummary');
-    const seasonContainer = document.getElementById('lastWinnerContainer');
-
-    const seasonCallback = snap => {
-        const summaryData = snap.val();
-        if (summaryData && summaryData.winnerName) {
-            
-            let deleteButton = isAdmin ? `<button onclick="clearLastSeasonWinner()" class="ml-auto text-gray-500 hover:text-red-500 transition-colors" title="Sezon Kazananı Bilgisini Temizle"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1-1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>` : '';
-
-            const playtimeMs = summaryData.totalPlaytime || 0;
-            const totalSeconds = Math.floor(playtimeMs / 1000);
-            const minutes = Math.floor(totalSeconds / 60);
-            const seconds = totalSeconds % 60;
-            const playtimeText = `${minutes}dk ${seconds}sn`;
-
-            seasonContainer.innerHTML = `
-                <div class="flex justify-between items-center border-b border-gray-700 pb-2">
-                    <h4 class="text-yellow-300 text-xl font-semibold">👑 Önceki Sezonun Şampiyonu</h4>
-                    ${deleteButton}
-                </div>
-                <div class="mt-3 text-center">
-                    <b class="text-2xl text-white">${summaryData.winnerName}</b>
-                    <p class="text-2xl text-green-400 font-bold">${summaryData.winningScore} Skor</p>
-                </div>
-                <div class="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3 text-center text-sm bg-gray-800 p-3 rounded-lg">
-                    <div><p class="text-gray-400">Toplam Süre</p><p class="font-bold text-white">${playtimeText}</p></div>
-                    <div><p class="text-gray-400">Yakalanan Özel</p><p class="font-bold text-white">${summaryData.specialsCaught || 0} adet</p></div>
-                    <div><p class="text-gray-400">🥮 Normal</p><p class="font-bold text-white">${summaryData.normalsClicked || 0}</p></div>
-                    <div><p class="text-gray-400">💰 Altın</p><p class="font-bold text-white">${summaryData.goldsClicked || 0}</p></div>
-                    <div><p class="text-gray-400">💣 Bomba</p><p class="font-bold text-white">${summaryData.bombsClicked || 0}</p></div>
-                    <div><p class="text-gray-400">⏰ Süre</p><p class="font-bold text-white">${summaryData.timesClicked || 0}</p></div>
-                </div>
-            `;
-            seasonContainer.classList.remove('hidden');
-        } else {
-            // Eğer sezon kazananı yoksa ve lobi kazananı da yoksa gizle
-             if (!lobbyContainer.innerHTML.trim()) {
-                seasonContainer.classList.add('hidden');
-            }
-        }
-    };
-    
-    if (activeListeners.seasonSummary) {
-        activeListeners.seasonSummary.ref.off('value', activeListeners.seasonSummary.callback);
-    }
     activeListeners.seasonSummary = { ref: seasonRef, event: 'value', callback: seasonCallback };
-    seasonRef.on('value', seasonCallback);
+    activeListeners.lobbySummary = { ref: lobbyRef, event: 'value', callback: lobbyCallback };
+
+    // Sayfa ilk yüklendiğinde de bir kere çalıştır.
+    updateWinnerDisplay();
 }
     
 </script>
