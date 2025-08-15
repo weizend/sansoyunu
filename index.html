@@ -484,10 +484,7 @@ body.modal-open .modal-content {
         </div>
 
         <div id="lastWinnerContainer" class="hidden bg-gray-900/50 p-4 rounded-lg border border-yellow-400 mb-6 text-left">
-            <h4 id="lastWinnerInfo" class="text-yellow-300 text-xl font-semibold mb-3 border-b border-gray-700 pb-2"></h4>
-            <div id="lastGameDetailsList" class="space-y-2">
-            </div>
-        </div>
+    </div>
         
         <div id="lobbyStatusContainer" class="hidden bg-blue-900/50 p-4 rounded-lg border border-blue-400 mb-6">
             <h4 id="lobbyStatusTitle" class="text-blue-300 text-xl font-semibold animate-pulse">Lobi Katılıma Açık!</h4>
@@ -1709,6 +1706,12 @@ const defaultWheelSegments = [
   let clickCatchTimer = 30; // Bu artık sadece bir başlangıç değeri
   let clickCatchTimerInterval = null;
   let clickCatchItemInterval = null;
+    // YENİ EKLENEN DEĞİŞKENLER
+  let collectedBombs = 0;
+  let collectedGolds = 0;
+  let collectedNormals = 0;
+  let collectedTimes = 0;
+  let soloGameStartTime = 0; // Oyun süresini tutmak için
   
   // Oyun sonunda eklenecek ödülleri tutan değişkenler
   let collectedBoxRights = 0;
@@ -6441,40 +6444,23 @@ async function confirmAndExecuteReset() {
         displayMessage("Lütfen lider için geçerli bir ödül miktarı girin.");
         return;
     }
-    
-    // --- YENİ EKLENEN KOD BAŞLANGICI ---
-    // 1. Önceki sezonun kazanan bilgilerini ve yeni kazananın skorunu al
-    const seasonSummaryRef = db.ref('gameStats/clickCatchSeasonSummary');
-    const weeklyScoresRef = db.ref('clickCatchWeeklyScores');
-    
-    const [previousSummarySnap, weeklyScoresSnap] = await Promise.all([
-        seasonSummaryRef.once('value'),
-        weeklyScoresRef.once('value')
-    ]);
 
-    const previousSummary = previousSummarySnap.val();
-    const weeklyScores = weeklyScoresSnap.val();
-    const newWinningScore = weeklyScores[leader] || 0;
-
-    // 2. Yeni kazanan için özet verisini oluştur
+    // Liderin detaylı haftalık istatistiklerini çek
+    const leaderStatsSnap = await db.ref(`clickCatchWeeklyStats/${leader}`).once('value');
+    const leaderStats = leaderStatsSnap.val() || { score: 0, bombs: 0, golds: 0, normals: 0, times: 0, specials: 0, playtime: 0 };
+    
+    // Yeni sezon özetini oluştur
     const newSeasonSummary = {
         winnerName: leader,
-        winningScore: newWinningScore,
+        winningScore: leaderStats.score,
+        bombsClicked: leaderStats.bombs,
+        goldsClicked: leaderStats.golds,
+        normalsClicked: leaderStats.normals,
+        timesClicked: leaderStats.times,
+        specialsCaught: leaderStats.specials,
+        totalPlaytime: leaderStats.playtime,
         resetTimestamp: firebase.database.ServerValue.TIMESTAMP
     };
-
-    // 3. Eğer önceki kazanan aynı kişiyse, karşılaştırma yap
-    if (previousSummary && previousSummary.winnerName === leader) {
-        newSeasonSummary.previousScore = previousSummary.winningScore;
-        if (newWinningScore > previousSummary.winningScore) {
-            newSeasonSummary.scoreChange = 'up';
-        } else if (newWinningScore < previousSummary.winningScore) {
-            newSeasonSummary.scoreChange = 'down';
-        } else {
-            newSeasonSummary.scoreChange = 'same';
-        }
-    }
-    // --- YENİ EKLENEN KOD SONU ---
 
     const usersSnap = await db.ref('users').once('value');
     const allUsersData = usersSnap.val();
@@ -6507,7 +6493,8 @@ async function confirmAndExecuteReset() {
     }
     
     updates['/clickCatchWeeklyScores'] = null;
-    updates['/gameStats/clickCatchSeasonSummary'] = newSeasonSummary; // YENİ: Kazanan özetini güncelle
+    updates['/clickCatchWeeklyStats'] = null; // Detaylı istatistikleri de temizle
+    updates['/gameStats/clickCatchSeasonSummary'] = newSeasonSummary; 
 
     await db.ref().update(updates);
     
@@ -6642,25 +6629,29 @@ function handleSoloItemClick(event) {
             clickCatchScore = Number(clickCatchScore) + value;
             document.getElementById('clickCatchScore').textContent = clickCatchScore;
             floatingText = (value > 0 ? '+' : '') + value + ' Puan';
+            // Hangi tür puan olduğunu say
+            if (value === soloGameSettings.bombValue) collectedBombs++;
+            else if (value === soloGameSettings.goldValue) collectedGolds++;
+            else if (value === soloGameSettings.normalValue) collectedNormals++;
             break;
         case 'time':
             clickCatchTimer += value;
             document.getElementById('clickCatchTimer').textContent = clickCatchTimer;
             floatingText = `+${value} Saniye`;
+            collectedTimes++;
             break;
-        // DEĞİŞEN KISIM BURASI
         case 'boxRight':
-            collectedBoxRights += value; // Veritabanı yerine geçici değişkene ekle
+            collectedBoxRights += value;
             floatingText = `+${value} Kutu Hakkı`;
             document.getElementById('collectedSpecials').innerHTML += `<span class="text-xl">${emoji}</span>`;
             break;
         case 'iflasShield':
-            collectedIflasShields += value; // Veritabanı yerine geçici değişkene ekle
+            collectedIflasShields += value;
             floatingText = `+${value} İflas Kalkanı`;
             document.getElementById('collectedSpecials').innerHTML += `<span class="text-xl">${emoji}</span>`;
             break;
         case 'wheelTicket':
-            collectedWheelTickets += value; // Veritabanı yerine geçici değişkene ekle
+            collectedWheelTickets += value;
             floatingText = `+${value} Çark Bileti`;
             document.getElementById('collectedSpecials').innerHTML += `<span class="text-xl">${emoji}</span>`;
             break;
@@ -7439,9 +7430,6 @@ async function loadSoloGameSettings() {
     document.getElementById('soloSpecialValue').value = soloGameSettings.specialValue || 1;
 }
 
-
-// --- ESKİ startSoloClickCatchGame FONKSİYONUNU SİL, BUNU YAPIŞTIR ---
-
 async function startSoloClickCatchGame() {
     if (lobbyGameSettings && lobbyGameSettings.state && (lobbyGameSettings.state === 'waiting' || lobbyGameSettings.state === 'active')) {
         displayMessage("Şu anda aktif bir lobi var. Lobi sona erdiğinde tekli oyun oynayabilirsiniz.");
@@ -7475,9 +7463,17 @@ async function startSoloClickCatchGame() {
     clickCatchGameActive = true;
     clickCatchScore = 0;
     clickCatchTimer = soloGameSettings.duration;
+
+    // Tüm sayaçları sıfırla
     collectedBoxRights = 0;
     collectedIflasShields = 0;
     collectedWheelTickets = 0;
+    collectedBombs = 0;
+    collectedGolds = 0;
+    collectedNormals = 0;
+    collectedTimes = 0;
+    soloGameStartTime = Date.now(); // Oyun başlangıç zamanını kaydet
+
     document.getElementById('clickCatchScore').textContent = clickCatchScore;
     document.getElementById('clickCatchTimer').textContent = clickCatchTimer;
     document.getElementById('displayScore').classList.remove('hidden');
@@ -7488,9 +7484,7 @@ async function startSoloClickCatchGame() {
     showGameCountdown(_actuallyStartSoloGame);
 }
 
-// DOSYANDAKİ MEVCUT endSoloClickCatchGame FONKSİYONUNU KOMPLE SİL VE BUNU YAPIŞTIR
-
-function endSoloClickCatchGame() {
+async function endSoloClickCatchGame() {
     clickCatchGameActive = false;
     clearInterval(clickCatchTimerInterval);
     clearInterval(clickCatchItemInterval);
@@ -7523,26 +7517,47 @@ function endSoloClickCatchGame() {
     });
 
     const userRef = db.ref('users/' + currentUser);
-    const weeklyScoreRef = db.ref(`clickCatchWeeklyScores/${currentUser}`);
+    const weeklyStatsRef = db.ref(`clickCatchWeeklyStats/${currentUser}`);
 
-    // Haftalık skoru güncelle (Bu kısım haftalık rekabeti tuttuğu için doğru)
-    weeklyScoreRef.transaction(currentWeeklyScore => {
-        return (currentWeeklyScore || 0) + clickCatchScore;
+    // Haftalık istatistikleri güvenli bir şekilde güncelle
+    await weeklyStatsRef.transaction(currentStats => {
+        if (currentStats === null) {
+            return {
+                score: clickCatchScore,
+                bombs: collectedBombs,
+                golds: collectedGolds,
+                normals: collectedNormals,
+                times: collectedTimes,
+                specials: collectedBoxRights + collectedIflasShields + collectedWheelTickets,
+                playtime: Date.now() - soloGameStartTime
+            };
+        } else {
+            return {
+                score: (currentStats.score || 0) + clickCatchScore,
+                bombs: (currentStats.bombs || 0) + collectedBombs,
+                golds: (currentStats.golds || 0) + collectedGolds,
+                normals: (currentStats.normals || 0) + collectedNormals,
+                times: (currentStats.times || 0) + collectedTimes,
+                specials: (currentStats.specials || 0) + collectedBoxRights + collectedIflasShields + collectedWheelTickets,
+                playtime: (currentStats.playtime || 0) + (Date.now() - soloGameStartTime)
+            };
+        }
     });
 
     // Kullanıcının ana verilerini güncelle
-    userRef.transaction(user => {
+    await userRef.transaction(user => {
         if (user) {
-            // --- DOĞRU MANTIK BURADA ---
-            // 1. Kazanılan skoru Puan'a (balance) değil, yeni 'skor' alanına ekliyoruz.
             user.skor = (user.skor || 0) + clickCatchScore;
-
-            // 2. Kazanılan özel eşyaları envantere ekliyoruz.
             user.kutuHakki = (user.kutuHakki || 0) + collectedBoxRights;
             user.iflasShieldUses = (user.iflasShieldUses || 0) + collectedIflasShields;
             user.carkBileti = (user.carkBileti || 0) + collectedWheelTickets;
         }
         return user;
+    });
+    
+    // Eski skor sistemini de desteklemeye devam et
+    await db.ref(`clickCatchWeeklyScores/${currentUser}`).transaction(currentWeeklyScore => {
+        return (currentWeeklyScore || 0) + clickCatchScore;
     });
 }
 
@@ -8662,13 +8677,10 @@ function closeWheelLegendModal() {
     document.getElementById('wheelLegendModal').style.display = 'none';
 }
 
-    // MEVCUT listenForLastGameSummary FONKSİYONUNU BUL VE BUNUNLA DEĞİŞTİR
-function listenForLastGameSummary() {
-    // 1. Lobi oyununun son kazananını dinle
+    function listenForLastGameSummary() {
+    // 1. Lobi oyununun son kazananını dinle (Bu kısım aynı kalıyor)
     const lobbyRef = db.ref('clickCatchLobbyLastGameSummary');
-    const lobbyContainer = document.getElementById('lastWinnerContainer'); // Bu ID'yi HTML'de daha önce kullandık
-    const lobbyTitleEl = document.getElementById('lastWinnerInfo');
-    const lobbyDetailsListEl = document.getElementById('lastGameDetailsList');
+    const lobbyContainer = document.getElementById('lastWinnerContainer');
 
     const lobbyCallback = snap => {
         const summaryData = snap.val();
@@ -8682,16 +8694,8 @@ function listenForLastGameSummary() {
                 durationText = ` (Süre: ${minutes}dk ${remainingSeconds}sn)`;
             }
 
-            let deleteButton = '';
-            if (isAdmin) {
-                deleteButton = `
-                    <button onclick="clearLastWinner()" class="ml-2 text-gray-500 hover:text-red-500 transition-colors" title="Son Lobi Kazananını Sil">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1-1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
-                    </button>
-                `;
-            }
-            lobbyTitleEl.innerHTML = `🏆 Son Lobi Galibi: <b class="text-white">${summaryData.winner}</b> (+${summaryData.prize} Puan)${durationText}${deleteButton}`;
-
+            let deleteButton = isAdmin ? `<button onclick="clearLastWinner()" class="ml-auto text-gray-500 hover:text-red-500 transition-colors" title="Son Lobi Kazananını Sil"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1-1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>` : '';
+            
             const players = summaryData.players || {};
             const sortedPlayers = Object.entries(players).sort(([, a], [, b]) => b.score - a.score);
             
@@ -8700,20 +8704,19 @@ function listenForLastGameSummary() {
                 const isWinner = username === summaryData.winner;
                 const rowClass = isWinner ? 'bg-green-800/50 border-green-500' : 'bg-gray-800/50 border-gray-700';
                 const rankIcon = index === 0 ? '🥇' : (index === 1 ? '🥈' : (index === 2 ? '🥉' : `${index + 1}.`));
-                
-                detailsHtml += `
-                    <div class="flex justify-between items-center p-2 rounded border ${rowClass}">
-                        <span class="font-bold">${rankIcon} ${username}</span>
-                        <span class="text-gray-300">Skor: <b class="text-white">${data.score} / ${summaryData.target}</b></span>
-                    </div>
-                `;
+                detailsHtml += `<div class="flex justify-between items-center p-2 rounded border ${rowClass}">...</div>`;
             });
             
-            lobbyDetailsListEl.innerHTML = detailsHtml;
+            lobbyContainer.innerHTML = `
+                <div class="flex justify-between items-center border-b border-gray-700 pb-2 mb-3">
+                    <h4 class="text-cyan-300 text-xl font-semibold"> Lobi Galibi: <b class="text-white">${summaryData.winner}</b> (+${summaryData.prize} Puan)</h4>
+                    ${deleteButton}
+                </div>
+                <div class="text-sm text-gray-400">${durationText}</div>
+            `;
             lobbyContainer.classList.remove('hidden'); 
-
         } else {
-            lobbyContainer.classList.add('hidden');
+             lobbyContainer.classList.add('hidden');
         }
     };
     
@@ -8723,46 +8726,46 @@ function listenForLastGameSummary() {
     activeListeners.lobbySummary = { ref: lobbyRef, event: 'value', callback: lobbyCallback };
     lobbyRef.on('value', lobbyCallback);
 
-    // 2. Haftalık sezon kazananını dinle (YENİ EKLENEN KISIM)
+    // 2. Haftalık sezon kazananını dinle (BU KISIM TAMAMEN DEĞİŞTİ)
     const seasonRef = db.ref('gameStats/clickCatchSeasonSummary');
-    const seasonContainer = document.getElementById('lastWinnerContainer'); // Aynı container'ı kullanıyoruz.
+    const seasonContainer = document.getElementById('lastWinnerContainer');
 
     const seasonCallback = snap => {
         const summaryData = snap.val();
         if (summaryData && summaryData.winnerName) {
             
-            let comparisonHtml = '';
-            if (summaryData.scoreChange) {
-                if (summaryData.scoreChange === 'up') {
-                    comparisonHtml = `<span class="text-green-400 font-bold ml-2 flex items-center" title="Önceki rekorunu geçti! (${summaryData.previousScore})"> <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd" /></svg> (+${summaryData.winningScore - summaryData.previousScore})</span>`;
-                } else if (summaryData.scoreChange === 'down') {
-                    comparisonHtml = `<span class="text-red-400 font-bold ml-2 flex items-center" title="Önceki rekorunun altında kaldı. (${summaryData.previousScore})"> <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg> (${summaryData.winningScore - summaryData.previousScore})</span>`;
-                }
-            }
+            let deleteButton = isAdmin ? `<button onclick="clearLastSeasonWinner()" class="ml-auto text-gray-500 hover:text-red-500 transition-colors" title="Sezon Kazananı Bilgisini Temizle"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1-1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>` : '';
 
-            let deleteButton = '';
-            if (isAdmin) {
-                deleteButton = `<button onclick="clearLastSeasonWinner()" class="ml-auto text-gray-500 hover:text-red-500 transition-colors" title="Sezon Kazananı Bilgisini Temizle">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1-1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
-                    </button>`;
-            }
+            const playtimeMs = summaryData.totalPlaytime || 0;
+            const totalSeconds = Math.floor(playtimeMs / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            const playtimeText = `${minutes}dk ${seconds}sn`;
 
             seasonContainer.innerHTML = `
                 <div class="flex justify-between items-center border-b border-gray-700 pb-2">
                     <h4 class="text-yellow-300 text-xl font-semibold">👑 Önceki Sezonun Şampiyonu</h4>
                     ${deleteButton}
                 </div>
-                <div class="mt-3 flex items-center">
+                <div class="mt-3 text-center">
                     <b class="text-2xl text-white">${summaryData.winnerName}</b>
-                    <span class="text-xl text-gray-300 mx-2">-</span>
-                    <b class="text-2xl text-green-400">${summaryData.winningScore} Skor</b>
-                    ${comparisonHtml}
+                    <p class="text-2xl text-green-400 font-bold">${summaryData.winningScore} Skor</p>
+                </div>
+                <div class="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3 text-center text-sm bg-gray-800 p-3 rounded-lg">
+                    <div><p class="text-gray-400">Toplam Süre</p><p class="font-bold text-white">${playtimeText}</p></div>
+                    <div><p class="text-gray-400">Yakalanan Özel</p><p class="font-bold text-white">${summaryData.specialsCaught || 0} adet</p></div>
+                    <div><p class="text-gray-400">🥮 Normal</p><p class="font-bold text-white">${summaryData.normalsClicked || 0}</p></div>
+                    <div><p class="text-gray-400">💰 Altın</p><p class="font-bold text-white">${summaryData.goldsClicked || 0}</p></div>
+                    <div><p class="text-gray-400">💣 Bomba</p><p class="font-bold text-white">${summaryData.bombsClicked || 0}</p></div>
+                    <div><p class="text-gray-400">⏰ Süre</p><p class="font-bold text-white">${summaryData.timesClicked || 0}</p></div>
                 </div>
             `;
             seasonContainer.classList.remove('hidden');
         } else {
-            seasonContainer.classList.add('hidden');
-            seasonContainer.innerHTML = ''; // İçeriği temizle
+            // Eğer sezon kazananı yoksa ve lobi kazananı da yoksa gizle
+             if (!lobbyContainer.innerHTML.trim()) {
+                seasonContainer.classList.add('hidden');
+            }
         }
     };
     
