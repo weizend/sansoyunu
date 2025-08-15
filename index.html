@@ -539,12 +539,6 @@ body.modal-open .modal-content {
     </div>
 
     <div class="tableBox bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700 w-full md:flex-1 min-w-[280px] mt-6 mx-auto max-w-2xl">
-      
-      <div id="clickCatchAdminResetContainer" class="hidden mb-4">
-          <button onclick="startClickCatchResetProcess()" class="w-full py-3 bg-green-700 hover:bg-green-600 text-white font-bold rounded-lg shadow-md text-base">
-              🏆 Sezonu Sıfırla ve Lideri Ödüllendir
-          </button>
-      </div>
 
       <h3 class="text-yellow-400 text-xl font-bold border-b border-gray-600 pb-3 mb-4">TIKLA-YAKALA HAFTALIK SKOR SIRALAMASI 🎯</h3>
       <input type="text" id="searchClickCatchRanking" oninput="loadClickCatchRankings()" placeholder="Sıralamada Kullanıcı Ara..." class="w-full p-3 mb-4 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
@@ -1345,6 +1339,12 @@ body.modal-open .modal-content {
         </div>
         <div class="mt-6 pt-4 border-t border-gray-700">
             <button onclick="saveSoloGameSettings()" class="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg shadow-md">Tekli Oyun Ayarlarını Kaydet</button>
+            
+            <button onclick="startClickCatchResetProcess()" class="w-full mt-4 py-3 bg-green-700 hover:bg-green-600 text-white font-bold rounded-lg shadow-md text-base">
+                🏆 Sezonu Sıfırla ve Lideri Ödüllendir
+            </button>
+            
+            <button onclick="resetClickCatchLeaderboard()" class="w-full mt-4 py-3 bg-orange-700 hover:bg-orange-600 text-white font-bold rounded-lg shadow-md">Haftalık Sıralamayı Sıfırla</button>
         </div>
     </div>
 </div>
@@ -1382,12 +1382,12 @@ body.modal-open .modal-content {
         </div>
 
         <div class="bg-gray-900 p-4 rounded-lg border border-gray-700">
+            <div class="bg-gray-900 p-4 rounded-lg border border-gray-700">
             <h4 class="text-lg font-semibold text-yellow-300 mb-3">Oyun Kontrolü</h4>
             <div class="flex gap-4">
                 <button id="lobbyStartBtn" onclick="triggerLobbyGameStart()" class="flex-1 py-3 bg-blue-700 hover:bg-blue-600 text-white font-bold rounded-lg shadow-md disabled:bg-gray-600 disabled:cursor-not-allowed" disabled>Oyunu Başlat</button>
                 <button onclick="endLobbyGame(true)" class="flex-1 py-3 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg shadow-md">Lobi İptal Et ve Ücretleri İade Et</button>
             </div>
-            <button onclick="resetClickCatchLeaderboard()" class="w-full mt-4 py-2 bg-orange-700 hover:bg-orange-600 text-white font-bold rounded-lg shadow-md">Haftalık Sıralamayı Sıfırla</button>
         </div>
     </div>
 </div>
