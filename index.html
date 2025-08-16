@@ -209,8 +209,8 @@
     margin-bottom: 1rem;
   }
 
- /* YENİ EKLENECEK KOD */
-  .modal-close-button {
+ /* ...VE BU ORİJİNAL HALİYLE DEĞİŞTİR */
+.modal-close-button {
     position: absolute;
     top: 10px; /* Yukarıdan boşluk */
     right: 15px; /* Sağdan boşluk */
@@ -253,6 +253,9 @@ body.modal-open .modal-content {
     border-color: #8b5cf6; /* focus:border-purple-500 */
     box-shadow: 0 0 0 2px #a78bfa; /* focus:ring-2 focus:ring-purple-400 */
   }
+  body.modal-open {
+    overflow: hidden;
+}
 
 </style>
 </head>
@@ -973,56 +976,62 @@ body.modal-open .modal-content {
   </div>
 </div>
 
-<div id="userManagementModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 hidden">
-  <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-red-700 w-11/12 max-w-xl text-center relative max-h-[90vh] overflow-y-auto">
-    <button class="modal-close-button absolute top-2 right-4 text-white text-4xl leading-none bg-transparent border-none cursor-pointer hover:text-red-500 transition duration-200" onclick="closeUserManagementModal()">&times;</button>
-    <img id="managedUserAvatar" src="" class="w-24 h-24 rounded-lg mx-auto mb-4 object-contain">
-    <h4 class="text-yellow-400 text-2xl font-bold mb-6">Kullanıcı Yönetimi: <span id="managedUserName"></span></h4>
+<<div id="userManagementModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 hidden">
+  <div class="modal-content bg-gray-800 rounded-xl shadow-2xl border border-red-700 w-11/12 max-w-xl text-center relative max-h-[90vh] flex flex-col">
     
-    <div id="managedUserDetails" class="text-left text-gray-300 mb-6 space-y-1">
-    <p><span id="managedBadgeBalance" class="inline-block w-6 text-center"></span>Mevcut Puan: <span id="managedUserBalance" class="font-bold text-yellow-300"></span></p>
-    <p><span id="managedBadgeHighest" class="inline-block w-6 text-center"></span>Ulaşılan En Yüksek Puan: <span id="managedUserHighestBalance" class="font-bold text-green-400"></span></p>
-    <p>Kutu Hakkı: <span id="managedUserBoxRight" class="font-bold text-green-400"></span></p>
-        <p>Şans Çarkı Bileti: <span id="managedUserWheelTickets" class="font-bold text-yellow-400"></span></p>
-        <p>Tıkla-Yakala Bileti: <span id="managedUserClickCatchTickets" class="font-bold text-fuchsia-400"></span></p>
-        <p>İflas Kalkanı: <span id="managedUserIflasShield" class="font-bold text-blue-400"></span></p>
-        <p>Aktif Çarpan: <span id="managedUserMultiplier" class="font-bold text-purple-400"></span></p>
-        <p>Çarpan Kalan Kullanım: <span id="managedUserMultiplierUses" class="font-bold text-purple-400"></span></p>
-        <p>Engelli Durumu: <span id="managedUserBlockedStatus" class="font-bold"></span></p>
-        <p id="managedUserBlockedCountdownContainer" class="hidden text-red-400">Kalan Süre: <span id="managedUserBlockedCountdown" class="font-bold"></span></p>
-        <hr class="my-3 border-gray-600">
-        <p><span id="managedBadgeBox" class="inline-block w-6 text-center"></span>Açılan Kutu (Tüm Zamanlar): <span id="managedUserBoxesOpened" class="font-bold text-fuchsia-400"></span></p>
-        <p><span id="managedBadgeSurprise" class="inline-block w-6 text-center"></span>Sürpriz Kutu Buldu: <span id="managedUserSurpriseBoxes" class="font-bold text-fuchsia-400"></span></p>
-        <p><span id="managedBadgeBomb" class="inline-block w-6 text-center"></span>Bulunan Bomba Sayısı: <span id="managedUserBombCount" class="font-bold text-fuchsia-400"></span></p>
-        <p><span id="managedBadgeMultiplier" class="inline-block w-6 text-center"></span>Bulunan Çarpan Sayısı: <span id="managedUserMultiplierFoundCount" class="font-bold text-fuchsia-400"></span></p>
-        <p><span id="managedBadgeStore" class="inline-block w-6 text-center"></span>Mağazada Harcanan Puan: <span id="managedUserTotalSpent" class="font-bold text-fuchsia-400"></span></p>
-        <p><span id="managedBadgeShield" class="inline-block w-6 text-center"></span>Kullanılan Kalkan Sayısı: <span id="managedUserShieldUsedCount" class="font-bold text-fuchsia-400"></span></p>
-        <p><span id="managedBadgeClickCatch" class="inline-block w-6 text-center"></span>Tıkla-Yakala Rekoru: <span id="managedUserClickCatchScore" class="font-bold text-fuchsia-400"></span></p>
-      <p><span id="managedBadgeWheel" class="inline-block w-6 text-center"></span>Çevrilen Çark Sayısı: <span id="managedUserWheelSpins" class="font-bold text-fuchsia-400"></span></p>
+    <div class="p-8 pb-4 flex-shrink-0">
+        <button class="modal-close-button absolute top-2 right-4 text-white text-4xl leading-none bg-transparent border-none cursor-pointer hover:text-red-500 transition duration-200" onclick="closeUserManagementModal()">&times;</button>
+        <img id="managedUserAvatar" src="" class="w-24 h-24 rounded-lg mx-auto mb-4 object-contain">
+        <h4 class="text-yellow-400 text-2xl font-bold">Kullanıcı Yönetimi: <span id="managedUserName"></span></h4>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      <button onclick="openPointAdjustmentModal(selectedUserForManagement)" class="py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-md">Puan Ayarı</button>
-      <button onclick="openBoxRightAdjustmentModal(selectedUserForManagement)" class="py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg shadow-md">Kutu Hakkı Ayarı</button>
-      <button onclick="openIflasShieldAdjustmentModal(selectedUserForManagement)" class="py-3 bg-teal-600 hover:bg-teal-500 text-white font-bold rounded-lg shadow-md">İflas Kalkanı Ayarı</button>
-      <button onclick="openWheelTicketAdjustmentModal(selectedUserForManagement)" class="py-3 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-lg shadow-md">Çark Bileti Ayarı</button>
-      <button onclick="openClickCatchTicketAdjustmentModal(selectedUserForManagement)" class="py-3 bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-bold rounded-lg shadow-md">Tıkla-Yakala Bileti Ayarı</button>
-      <button onclick="openMultiplierAdjustmentModal(selectedUserForManagement)" class="py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg shadow-md">Çarpan Ayarı</button>
-      <button id="toggleBlockUserBtn" class="py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg shadow-md">Engelle / Engeli Kaldır</button>
-      <button onclick="resetUser(selectedUserForManagement)" class="py-3 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-lg shadow-md">Kullanıcıyı Sıfırla</button>
-      <button onclick="denyUser(selectedUserForManagement, false, true)" class="py-3 bg-gray-600 hover:bg-gray-500 text-white font-bold rounded-lg shadow-md lg:col-span-3">Kullanıcıyı Sil</button>
-    </div>
-<div class="bg-gray-900 p-6 rounded-lg border border-gray-700 mt-6">
-      <h4 class="text-yellow-300 text-xl font-semibold mb-4">Avatar Yönetimi</h4>
-      <div id="managedUserAvatarGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4 scrollable-list max-h-60 overflow-y-auto p-3 bg-gray-800 rounded-md">
+    <div class="overflow-y-auto px-8 pb-8">
+        <div id="managedUserDetails" class="text-left text-gray-300 mb-6 space-y-1">
+            <p><span id="managedBadgeBalance" class="inline-block w-6 text-center"></span>Mevcut Puan: <span id="managedUserBalance" class="font-bold text-yellow-300"></span></p>
+            <p><span id="managedBadgeHighest" class="inline-block w-6 text-center"></span>Ulaşılan En Yüksek Puan: <span id="managedUserHighestBalance" class="font-bold text-green-400"></span></p>
+            <p>Kutu Hakkı: <span id="managedUserBoxRight" class="font-bold text-green-400"></span></p>
+            <p>Şans Çarkı Bileti: <span id="managedUserWheelTickets" class="font-bold text-yellow-400"></span></p>
+            <p>Tıkla-Yakala Bileti: <span id="managedUserClickCatchTickets" class="font-bold text-fuchsia-400"></span></p>
+            <p>İflas Kalkanı: <span id="managedUserIflasShield" class="font-bold text-blue-400"></span></p>
+            <p>Aktif Çarpan: <span id="managedUserMultiplier" class="font-bold text-purple-400"></span></p>
+            <p>Çarpan Kalan Kullanım: <span id="managedUserMultiplierUses" class="font-bold text-purple-400"></span></p>
+            <p>Engelli Durumu: <span id="managedUserBlockedStatus" class="font-bold"></span></p>
+            <p id="managedUserBlockedCountdownContainer" class="hidden text-red-400">Kalan Süre: <span id="managedUserBlockedCountdown" class="font-bold"></span></p>
+            <hr class="my-3 border-gray-600">
+            <p><span id="managedBadgeBox" class="inline-block w-6 text-center"></span>Açılan Kutu (Tüm Zamanlar): <span id="managedUserBoxesOpened" class="font-bold text-fuchsia-400"></span></p>
+            <p><span id="managedBadgeSurprise" class="inline-block w-6 text-center"></span>Sürpriz Kutu Buldu: <span id="managedUserSurpriseBoxes" class="font-bold text-fuchsia-400"></span></p>
+            <p><span id="managedBadgeBomb" class="inline-block w-6 text-center"></span>Bulunan Bomba Sayısı: <span id="managedUserBombCount" class="font-bold text-fuchsia-400"></span></p>
+            <p><span id="managedBadgeMultiplier" class="inline-block w-6 text-center"></span>Bulunan Çarpan Sayısı: <span id="managedUserMultiplierFoundCount" class="font-bold text-fuchsia-400"></span></p>
+            <p><span id="managedBadgeStore" class="inline-block w-6 text-center"></span>Mağazada Harcanan Puan: <span id="managedUserTotalSpent" class="font-bold text-fuchsia-400"></span></p>
+            <p><span id="managedBadgeShield" class="inline-block w-6 text-center"></span>Kullanılan Kalkan Sayısı: <span id="managedUserShieldUsedCount" class="font-bold text-fuchsia-400"></span></p>
+            <p><span id="managedBadgeClickCatch" class="inline-block w-6 text-center"></span>Tıkla-Yakala Rekoru: <span id="managedUserClickCatchScore" class="font-bold text-fuchsia-400"></span></p>
+            <p><span id="managedBadgeWheel" class="inline-block w-6 text-center"></span>Çevrilen Çark Sayısı: <span id="managedUserWheelSpins" class="font-bold text-fuchsia-400"></span></p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <button onclick="openPointAdjustmentModal(selectedUserForManagement)" class="py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-md">Puan Ayarı</button>
+            <button onclick="openBoxRightAdjustmentModal(selectedUserForManagement)" class="py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg shadow-md">Kutu Hakkı Ayarı</button>
+            <button onclick="openIflasShieldAdjustmentModal(selectedUserForManagement)" class="py-3 bg-teal-600 hover:bg-teal-500 text-white font-bold rounded-lg shadow-md">İflas Kalkanı Ayarı</button>
+            <button onclick="openWheelTicketAdjustmentModal(selectedUserForManagement)" class="py-3 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-lg shadow-md">Çark Bileti Ayarı</button>
+            <button onclick="openClickCatchTicketAdjustmentModal(selectedUserForManagement)" class="py-3 bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-bold rounded-lg shadow-md">Tıkla-Yakala Bileti Ayarı</button>
+            <button onclick="openMultiplierAdjustmentModal(selectedUserForManagement)" class="py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg shadow-md">Çarpan Ayarı</button>
+            <button id="toggleBlockUserBtn" class="py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg shadow-md">Engelle / Engeli Kaldır</button>
+            <button onclick="resetUser(selectedUserForManagement)" class="py-3 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-lg shadow-md">Kullanıcıyı Sıfırla</button>
+            <button onclick="denyUser(selectedUserForManagement, false, true)" class="py-3 bg-gray-600 hover:bg-gray-500 text-white font-bold rounded-lg shadow-md lg:col-span-3">Kullanıcıyı Sil</button>
+        </div>
+        <div class="bg-gray-900 p-6 rounded-lg border border-gray-700 mt-6">
+            <h4 class="text-yellow-300 text-xl font-semibold mb-4">Avatar Yönetimi</h4>
+            <div id="managedUserAvatarGrid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4 scrollable-list max-h-60 overflow-y-auto p-3 bg-gray-800 rounded-md">
+            </div>
+        </div>
+        <div class="bg-gray-900 p-6 rounded-lg border border-gray-700 mt-6">
+            <h4 class="text-yellow-300 text-xl font-semibold mb-4">Kullanıcının Satın Alma Geçmişi</h4>
+            <div id="managedUserPurchaseHistory" class="scrollable-list max-h-60 overflow-y-auto p-3 bg-gray-800 rounded-md">
+                <div class='text-center text-gray-400'>Satın alma geçmişi yükleniyor...</div>
+            </div>
         </div>
     </div>
-    <div class="bg-gray-900 p-6 rounded-lg border border-gray-700 mt-6">
-      <h4 class="text-yellow-300 text-xl font-semibold mb-4">Kullanıcının Satın Alma Geçmişi</h4>
-      <div id="managedUserPurchaseHistory" class="scrollable-list max-h-60 overflow-y-auto p-3 bg-gray-800 rounded-md">
-        <div class='text-center text-gray-400'>Satın alma geçmişi yükleniyor...</div>
-      </div>
-    </div>
+
   </div>
 </div>
 
