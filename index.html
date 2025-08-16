@@ -2544,7 +2544,9 @@ async function calculateAllLeaders(allUsersData) {
     return leaders;
 }
 
-  async function renderUserRankings() {
+  // BU FONKSİYONU BUL VE AŞAĞIDAKİ KOD İLE DEĞİŞTİR
+
+async function renderUserRankings() {
     const searchTerm = document.getElementById('searchUserRanking').value.trim().toLowerCase();
     
     let filteredUsers = allUsersCache;
@@ -2552,15 +2554,10 @@ async function calculateAllLeaders(allUsersData) {
         filteredUsers = allUsersCache.filter(u => u.username.toLowerCase().includes(searchTerm));
     }
 
-    // --- DÜZELTME BAŞLANGICI ---
-    // Liderleri hesaplamadan önce, veritabanından TÜM kullanıcıların en güncel ve tam halini çekiyoruz.
     const allUsersSnap = await db.ref('users').once('value');
     const allUsersData = allUsersSnap.val() || {};
     
-    // Artık eski ve güvensiz önbellek yerine, taze çektiğimiz "allUsersData" objesini kullanıyoruz.
     const leaders = await calculateAllLeaders(allUsersData);
-    // --- DÜZELTME SONU ---
-
 
     filteredUsers.sort((a, b) => (b.balance || 0) - (a.balance || 0));
 
@@ -2587,25 +2584,26 @@ async function calculateAllLeaders(allUsersData) {
             blockedInfo = `<div class="text-red-400 font-bold mt-2">Engelli - Kalan Süre: <span id="countdown-${u.username}">--:--</span></div>`;
         }
 
-        // ...VE BUNUNLA DEĞİŞTİR
-return `<div class="mb-3 p-3 bg-gray-800 rounded-md border border-gray-700 cursor-pointer hover:bg-gray-700" onclick="openPublicUserDetailModal('${u.username}')">
-    <div class="flex items-center justify-between">
-        <span class="font-semibold text-lg text-yellow-300 w-8">${i + 1}.</span>
-        <div class="flex-grow flex flex-col items-center text-center">
-            <img src="${avatarUrl}" class="w-16 h-16 rounded-md mb-2 object-contain">
-            <div class="h-6 mb-1">${userIcons}</div>
-            <span class="font-semibold text-lg">${u.username}</span>
-        </div>
-        <span class="font-bold text-lg text-yellow-400 w-8 text-right">${u.balance || 0}</span>
-    </div>
-    ${blockedInfo}
-</div>`;
+        return `<div class="mb-3 p-3 bg-gray-800 rounded-md border border-gray-700 cursor-pointer hover:bg-gray-700" onclick="openPublicUserDetailModal('${u.username}')">
+            <div class="text-center">${userIcons}</div>
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-1 gap-2">
+                <div class="flex items-center text-left">
+                    <span class="font-semibold text-base sm:text-lg text-yellow-300 mr-3 w-8 text-center">${i + 1}.</span>
+                    <img src="${avatarUrl}" class="w-10 h-10 sm:w-12 sm:h-12 rounded-md mr-3 object-contain">
+                    <span class="font-semibold text-base sm:text-lg">${u.username}</span>
+                </div>
+                <span class="text-yellow-400 font-bold text-base sm:text-lg w-full sm:w-auto text-right pr-2 sm:pr-0">${u.balance || 0} Puan</span>
+            </div>
+            ${blockedInfo}
+        </div>`;
     }).join("");
 
     document.getElementById("allUserRankings").innerHTML = html || "<div class='text-center text-gray-400'>Aramayla eşleşen kullanıcı bulunamadı.</div>";
     document.getElementById("totalUsers").textContent = allUsersCache.length;
 }
 
+
+// BU FONKSİYONU DA BUL VE AŞAĞIDAKİ KOD İLE DEĞİŞTİR
 
 async function loadLeaderboardRanking() {
     const ref = db.ref('users');
@@ -2616,18 +2614,15 @@ async function loadLeaderboardRanking() {
 
     activeListeners.leaderboard = { ref: ref };
 
-    // 'snap' parametresi eklendi ve fonksiyonun veri kaynağı değiştirildi
-    const renderLeaders = async (snap) => { // <-- 1. DEĞİŞİKLİK: 'snap' parametresi eklendi
-        
-        // "allUsersCache" yerine doğrudan gelen taze veri kullanılıyor
-        const usersData = snap.val() || {}; // <-- 2. DEĞİŞİKLİK: usersData doğrudan snap'ten alınıyor
+    const renderLeaders = async (snap) => {
+        const usersData = snap.val() || {};
 
         if (Object.keys(usersData).length === 0) {
             document.getElementById("badgedUsersRanking").innerHTML = "<div class='text-center text-gray-400'>Henüz lider kullanıcı yok.</div>";
             return;
         }
 
-        const leaders = await calculateAllLeaders(usersData); // Artık her zaman güncel veriyle hesap yapılacak
+        const leaders = await calculateAllLeaders(usersData);
         
         const leaderUsernames = new Set([
             leaders.currentBalanceUser, leaders.highEverBalanceUser, leaders.surpriseBoxUser,
@@ -2636,13 +2631,9 @@ async function loadLeaderboardRanking() {
         ]);
         leaderUsernames.delete(null);
         
-        // ÖNEMLİ: Bu kısımda hala "allUsersCache" kullanıldığı için,
-        // onu da "usersData" objesinden türetmeliyiz.
         const allUsersAsArray = Object.entries(usersData).map(([username, data]) => ({ username, ...data }));
         const leaderUsers = allUsersAsArray.filter(u => leaderUsernames.has(u.username));
 
-
-        // Liderleri önce rozet sayısına, sonra puanına göre sırala
         leaderUsers.sort((a, b) => {
             const getBadgeCount = (user) => {
                 let count = 0;
@@ -2681,14 +2672,15 @@ async function loadLeaderboardRanking() {
             };
             const badgesHtml = getUserBadgesHtml(u, userLeaderStatus);
             const avatarUrl = u.selectedAvatar ? u.selectedAvatar.url : defaultAvatarUrl;
-            // ...VE BUNUNLA DEĞİŞTİR
-return `<div class="mb-3 p-3 bg-gray-800 rounded-md border border-gray-700 cursor-pointer hover:bg-gray-700" onclick="openPublicUserDetailModal('${u.username}')">
-    <div class="flex flex-col items-center text-center">
-        <img src="${avatarUrl}" class="w-16 h-16 rounded-md mb-2 object-contain">
-        <div class="h-10 mb-1">${badgesHtml}</div>
-        <span class="font-semibold text-lg">${u.username}</span>
-    </div>
-</div>`;
+
+            return `<div class="mb-3 p-3 bg-gray-800 rounded-md border border-gray-700 cursor-pointer hover:bg-gray-700" onclick="openPublicUserDetailModal('${u.username}')">
+                <div class="text-center">${badgesHtml}</div>
+                <div class="flex items-center justify-start mt-1">
+                    <span class="font-semibold text-lg text-yellow-300 mr-3 w-8 text-left">${i + 1}.</span>
+                    <img src="${avatarUrl}" class="w-12 h-12 rounded-md mr-3 object-contain">
+                    <span class="font-semibold text-lg">${u.username}</span>
+                </div>
+            </div>`;
         }).join("");
 
         document.getElementById("badgedUsersRanking").innerHTML = html || "<div class='text-center text-gray-400'>Henüz lider kullanıcı yok.</div>";
