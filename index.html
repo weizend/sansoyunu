@@ -1030,16 +1030,14 @@ body.modal-open .modal-content {
   <div class="modal-content bg-gray-900/95 backdrop-blur-sm p-6 rounded-2xl shadow-2xl border border-yellow-500 w-11/12 max-w-2xl text-center relative max-h-[90vh] overflow-y-auto scrollable-list">
     <button class="modal-close-button absolute top-4 right-4 text-gray-400 hover:text-white text-4xl transition-colors" onclick="closePublicUserDetailModal()">&times;</button>
 
-    <div class="flex flex-col sm:flex-row items-center gap-4 mb-6">
-        <img id="publicUserAvatar" src="" class="w-28 h-28 rounded-full border-4 border-yellow-400 object-cover">
-        <div class="text-left">
-            <h4 class="text-yellow-300 text-3xl font-bold flex items-center gap-2">
-              <span id="publicUserName"></span>
-              <span id="publicUserKingBadge" class="text-3xl"></span>
-            </h4>
-            <div id="publicUserOtherBadges" class="flex items-center gap-2 h-8 mt-1"></div>
-        </div>
+    <div class="flex flex-col items-center gap-4 mb-6">
+    <img id="publicUserAvatar" src="" class="w-28 h-28 rounded-full border-4 border-yellow-400 object-cover">
+    <div class="flex flex-col items-center text-center">
+        <div id="publicUserProfileBadges" class="flex items-center justify-center gap-2 h-8 mb-2"></div>
+        <h4 id="publicUserName" class="text-yellow-300 text-3xl font-bold">
+          </h4>
     </div>
+</div>
 
     <div id="publicUserBlockedInfo" class="hidden bg-red-900/50 border border-red-500 text-red-300 p-3 rounded-lg mb-4">
         Bu kullanıcı engellidir. Kalan süre: <span id="publicUserBlockedCountdown" class="font-bold"></span>
@@ -4629,17 +4627,18 @@ async function openPublicUserDetailModal(username) {
             isWheelSpinLeader: username === leaders.wheelSpinUser
         };
 
-        const badges = getUserBadgesHtml(userData, userLeaderStatus, true);
+        // ...VE BUNUNLA DEĞİŞTİR
+const badges = getUserBadgesHtml(userData, userLeaderStatus, true);
 
-        document.getElementById('publicUserKingBadge').innerHTML = badges.crown;
-        document.getElementById('publicUserOtherBadges').innerHTML = badges.others;
+// Yeni rozet alanını hedef alıp taç ve diğer rozetleri birleştirerek basıyoruz
+document.getElementById('publicUserProfileBadges').innerHTML = badges.crown + badges.others;
 
-        document.getElementById('publicBadgeBalance').innerHTML = userLeaderStatus.isCurrentLeader ? '🥇' : '';
-        document.getElementById('publicBadgeHighest').innerHTML = userLeaderStatus.isHighLeader ? '🏆' : '';
+document.getElementById('publicBadgeBalance').innerHTML = userLeaderStatus.isCurrentLeader ? '🥇' : '';
+document.getElementById('publicBadgeHighest').innerHTML = userLeaderStatus.isHighLeader ? '🏆' : '';
 
-        const avatarUrl = userData.selectedAvatar ? userData.selectedAvatar.url : defaultAvatarUrl;
-        document.getElementById('publicUserAvatar').src = avatarUrl;
-        document.getElementById('publicUserName').textContent = username;
+const avatarUrl = userData.selectedAvatar ? userData.selectedAvatar.url : defaultAvatarUrl;
+document.getElementById('publicUserAvatar').src = avatarUrl;
+document.getElementById('publicUserName').textContent = username; // Sadece ismi basıyoruz
         document.getElementById('publicUserBalance').textContent = userData.balance || 0;
         document.getElementById('publicUserHighestBalance').textContent = userData.highestBalanceEver || 0;
         document.getElementById('publicUserBoxRight').textContent = userData.kutuHakki || 0;
