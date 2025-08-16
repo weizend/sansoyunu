@@ -6619,7 +6619,7 @@ async function getClickCatchLeaderUsername() {
                         <span>${leaderBadge} ${entry.username}</span>
                         ${deleteButton}
                     </div>
-                    <span class="font-bold text-yellow-300">${entry.score} Puan</span>
+                    <span class="font-bold text-yellow-300">${entry.score} Skor</span>
                 </div>`;
           });
           rankingsList.innerHTML = html || '<p class="text-center text-gray-400">Aramayla eşleşen kullanıcı bulunamadı.</p>';
@@ -7875,21 +7875,22 @@ function renderActivityFeed(activities) {
                         message = `${userHtml}, çarkı çevirerek <span class="text-pink-300 font-bold">${prizeText}</span> kazandı.`;
                     }
                     break;
-                case 'clickCatchSolo':
-                    if (details.score > 0) {
-                        message = `${userHtml}, Tıkla-Yakala oynadı ve <span class="text-green-300 font-bold">+${details.score} Puan</span> topladı.`;
-                    } else if (details.score < 0) {
-                        message = `${userHtml}, Tıkla-Yakala oynadı ve <span class="text-red-400 font-bold">${details.score} Puan</span> kaybetti.`;
-                    } else {
-                        message = `${userHtml}, Tıkla-Yakala oynadı ancak puan kazanamadı.`;
-                    }
+                // ...VE BUNUNLA DEĞİŞTİR
+case 'clickCatchSolo':
+    if (details.score > 0) {
+        message = `${userHtml}, Tıkla-Yakala oynadı ve <span class="text-green-300 font-bold">+${details.score} Skor</span> topladı.`;
+    } else if (details.score < 0) {
+        message = `${userHtml}, Tıkla-Yakala oynadı ve <span class="text-red-400 font-bold">${details.score} Skor</span> kaybetti.`;
+    } else {
+        message = `${userHtml}, Tıkla-Yakala oynadı ancak skor toplayamadı.`;
+    }
 
-                    if (details.specialItems && details.specialItems.length > 0) {
-                        message += ` Ayrıca, <span class="text-cyan-300 font-bold">${details.specialItems.join(', ')}</span> kazandı.`;
-                    } else {
-                        message += ` <span class="text-xs text-gray-500">(Özel eşya yakalanmadı)</span>`;
-                    }
-                    break;
+    if (details.specialItems && details.specialItems.length > 0) {
+        message += ` Ayrıca, <span class="text-cyan-300 font-bold">${details.specialItems.join(', ')}</span> kazandı.`;
+    } else {
+        message += ` <span class="text-xs text-gray-500">(Özel eşya yakalanmadı)</span>`;
+    }
+    break;;
                 case 'clickCatchLobby':
                     message = `${userHtml}, lobi oyununu kazanarak <span class="text-yellow-300 font-bold">+${details.prize} Puan</span> ödül aldı!`;
                     break;
