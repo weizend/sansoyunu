@@ -2310,7 +2310,7 @@ function listenForWeeklyCountdown() {
 
         const settings = snap.val();
 
-        if (!settings || !settings.endDate || settings.endDate < Date.now()) {
+        if (!settings || !settings.endDate || settings.endDate < getSyncedTime()) {
             countdownContainer.classList.add('hidden');
             return;
         }
@@ -2318,7 +2318,7 @@ function listenForWeeklyCountdown() {
         countdownContainer.classList.remove('hidden');
 
         const updateTimer = () => {
-            const now = Date.now();
+            const now = getSyncedTime(); // <-- HATA DÜZELTİLDİ
             const timeLeft = settings.endDate - now;
 
             if (timeLeft <= 0) {
@@ -9342,14 +9342,13 @@ function listenForSeasonCountdown() {
     const ref = db.ref('gameConfig/seasonEndDate');
 
     const callback = snap => {
-        // Önceki zamanlayıcıyı temizle
         if (seasonCountdownInterval) {
             clearInterval(seasonCountdownInterval);
         }
 
         const endDateTimestamp = snap.val();
 
-        if (!endDateTimestamp || endDateTimestamp < Date.now()) {
+        if (!endDateTimestamp || endDateTimestamp < getSyncedTime()) {
             countdownContainer.classList.add('hidden');
             return;
         }
@@ -9357,7 +9356,7 @@ function listenForSeasonCountdown() {
         countdownContainer.classList.remove('hidden');
 
         const updateTimer = () => {
-            const now = Date.now();
+            const now = getSyncedTime(); // <-- HATA DÜZELTİLDİ
             const timeLeft = endDateTimestamp - now;
 
             if (timeLeft <= 0) {
@@ -9374,8 +9373,8 @@ function listenForSeasonCountdown() {
             countdownEl.textContent = `${days} Gün ${hours} Saat ${minutes} Dakika ${seconds} Saniye`;
         };
 
-        updateTimer(); // Hemen başlat
-        seasonCountdownInterval = setInterval(updateTimer, 1000); // Her saniye güncelle
+        updateTimer();
+        seasonCountdownInterval = setInterval(updateTimer, 1000);
     };
 
     if (activeListeners.seasonCountdown) {
