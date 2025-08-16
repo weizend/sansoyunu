@@ -573,7 +573,14 @@ body.modal-open .modal-content {
     <input type="text" id="searchClickCatchRanking" oninput="loadClickCatchRankings()" placeholder="Sıralamada Kullanıcı Ara..." class="w-full p-3 mb-4 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
     
     <div id="weeklyResetCountdownContainer" class="hidden text-center bg-purple-900/50 border border-purple-400 text-purple-200 p-3 rounded-lg mb-4">
-        Haftalık Liderin Belirlenmesine: <span id="weeklyResetCountdown" class="font-bold text-white tracking-wider"></span>
+        <div class="flex justify-center items-center gap-2">
+            <span>Haftalık Liderin Belirlenmesine: <span id="weeklyResetCountdown" class="font-bold text-white tracking-wider"></span></span>
+            <button onclick="openWeeklyResetInfoModal()" class="text-blue-400 hover:text-blue-300 transition-colors" title="Haftalık Sıfırlama Hakkında Bilgi">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </button>
+        </div>
     </div>
 
     <div id="clickCatchRankings" class="scrollable-list max-h-80 overflow-y-auto border border-gray-600 rounded-lg p-3 bg-gray-900 text-sm leading-relaxed">Yükleniyor...</div>
@@ -1738,6 +1745,31 @@ body.modal-open .modal-content {
             </ul>
         </div>
         <p class="font-bold text-center text-yellow-200 pt-2 border-t border-gray-700">Yeni sezon, yeni bir başlangıç demektir. Herkese bol şans!</p>
+    </div>
+  </div>
+</div>
+<div id="weeklyResetInfoModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[10001] hidden">
+  <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-purple-500 w-11/12 max-w-2xl text-left relative max-h-[90vh] flex flex-col">
+    <div class="flex-shrink-0 mb-4 pb-4 border-b border-gray-700">
+        <button class="modal-close-button" onclick="closeWeeklyResetInfoModal()">&times;</button>
+        <h4 class="text-purple-300 text-2xl font-bold text-center">🎯 Haftalık Tıkla-Yakala Sıfırlaması Nedir?</h4>
+    </div>
+    <div class="overflow-y-auto scrollable-list pr-4 space-y-4 text-gray-300">
+        <p>Tıkla-Yakala oyununda rekabeti canlı tutmak için her hafta liderlik tablosu sıfırlanır ve ödüller dağıtılır. Geri sayım sayacı sona erdiğinde, bir önceki hafta biter ve yeni bir hafta başlar.</p>
+        <div>
+            <h5 class="text-xl font-bold text-yellow-300 mb-2">Hafta Bittiğinde Ne Olur?</h5>
+            <ul class="list-disc list-inside space-y-2 pl-2">
+                <li><strong>Şampiyon Belirlenir:</strong> Haftalık skor tablosunda <strong>1. sırada</strong> olan oyuncu "Haftanın Şampiyonu" olur ve admin tarafından belirlenen özel ödülü kazanır.</li>
+                
+                <div id="weeklyWinnerPrizeDetails" class="mt-2 mb-2 bg-gray-900/50 p-4 rounded-lg border border-gray-600">
+                    <p class="text-gray-400">Şampiyon ödülü yükleniyor...</p>
+                </div>
+                
+                <li><strong>Katılım Ödülü Dağıtılır:</strong> O hafta en az bir kez Tıkla-Yakala oynamış olan <strong>tüm katılımcılara</strong> (şampiyon dahil) <strong class="text-green-400">+1 Tıkla-Yakala Bileti</strong> hediye edilir.</li>
+                <li><strong>Sıralama Sıfırlanır:</strong> Tüm oyuncuların o haftaki skorları ve haftalık liderlik tablosu tamamen temizlenir. Herkes yeni haftaya eşit şartlarda başlar.</li>
+            </ul>
+        </div>
+        <p class="font-bold text-center text-yellow-200 pt-2 border-t border-gray-700">Yeni hafta, yeni bir şampiyonluk şansı demektir. Bol şans!</p>
     </div>
   </div>
 </div>
@@ -9660,6 +9692,41 @@ async function openSeasonInfoModal() {
 function closeSeasonInfoModal() {
     document.body.classList.remove('modal-open');
     document.getElementById('seasonInfoModal').style.display = 'none';
+}
+
+// --- YENİ EKLENECEK HAFTALIK BİLGİ PENCERESİ FONKSİYONLARI ---
+
+async function openWeeklyResetInfoModal() {
+    document.body.classList.add('modal-open');
+    const detailsContainer = document.getElementById('weeklyWinnerPrizeDetails');
+    detailsContainer.innerHTML = '<p class="text-gray-400">Şampiyon ödülü yükleniyor...</p>';
+
+    try {
+        const settingsSnap = await db.ref('gameConfig/weeklyClickCatchReset/prize').once('value');
+        let prizeHtml = '';
+
+        if (settingsSnap.exists()) {
+            const prize = settingsSnap.val();
+            const prizeNames = { boxRights: "Kutu Hakkı", points: "Puan", wheelTicket: "Çark Bileti", iflasShield: "İflas Kalkanı" };
+            const prizeName = prizeNames[prize.type] || prize.type;
+            
+            prizeHtml = `<strong>🏆 Şampiyon Ödülü:</strong> <span class="text-white font-bold">${prize.amount} ${prizeName}</span>`;
+        } else {
+            prizeHtml = '<strong>🏆 Şampiyon Ödülü:</strong> <span class="text-gray-400">Henüz admin tarafından belirlenmedi.</span>';
+        }
+        detailsContainer.innerHTML = prizeHtml;
+
+    } catch (error) {
+        console.error("Haftalık ödül bilgisi alınırken hata:", error);
+        detailsContainer.innerHTML = '<p class="text-red-500">Ödül bilgileri yüklenemedi.</p>';
+    }
+
+    document.getElementById('weeklyResetInfoModal').style.display = 'flex';
+}
+
+function closeWeeklyResetInfoModal() {
+    document.body.classList.remove('modal-open');
+    document.getElementById('weeklyResetInfoModal').style.display = 'none';
 }
   // YENİ EKLENECEK KOD SONU
     
