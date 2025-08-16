@@ -3581,6 +3581,7 @@ async function handleSurpriseBoxCleanup(sessionData) {
                     updates['users/' + u + '/notifications'] = null;
                     updates['users/' + u + '/dailyRewardsClaimed'] = null;
                     updates['users/' + u + '/lastSeenAnnouncementTimestamp'] = null;
+                    updates['users/' + u + '/lastSeenGlobalNotifTimestamp'] = null; // YENİ EKLENEN SATIR
                 }
             }
             await db.ref().update(updates);
@@ -6887,18 +6888,39 @@ function displayGlobalNotification(message) {
     }, 5000);
 }
     
-function listenForGlobalNotifications() {
-    const ref = db.ref('globalNotifications');
-    const callback = snap => {
+// YUKARIDAKİ ESKİ KODU SİLİP, YERİNE BU YENİ KODU YAPIŞTIR
+async function listenForGlobalNotifications() {
+    // Adminler için bu fonksiyon çalışmasın
+    if (isAdmin) return;
+
+    const userRef = db.ref(`users/${currentUser}`);
+    const userSnap = await userRef.once('value');
+    const userData = userSnap.val();
+    
+    // Kullanıcının en son gördüğü bildirimin zamanını al, yoksa 0 kullan.
+    const lastSeenTimestamp = userData.lastSeenGlobalNotifTimestamp || 0;
+    
+    const notificationsRef = db.ref('globalNotifications');
+    const listenerRef = notificationsRef.orderByChild('timestamp').startAt(lastSeenTimestamp + 1);
+
+    const callback = (snap) => {
         const notification = snap.val();
-        // Sadece admin olmayan kullanıcılar bildirimi görür
-        if (notification && notification.message && !isAdmin) {
+        if (notification && notification.message) {
+            // Bildirimi göster
             displayGlobalNotification(notification.message);
+            
+            // Kullanıcının "son görme" zamanını bu yeni bildirimin zamanıyla güncelle
+            userRef.update({
+                lastSeenGlobalNotifTimestamp: notification.timestamp
+            });
         }
     };
     
-    // Sadece oturum başladıktan sonra gelen yeni bildirimleri dinle
-    const listenerRef = ref.orderByChild('timestamp').startAt(sessionStartTime);
+    // Listener'ı tekrar tekrar eklememek için kontrol
+    if (activeListeners.globalNotifications) {
+        activeListeners.globalNotifications.ref.off('child_added', activeListeners.globalNotifications.callback);
+    }
+    
     activeListeners.globalNotifications = { ref: listenerRef, event: 'child_added', callback };
     listenerRef.on('child_added', callback);
 }
