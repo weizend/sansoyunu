@@ -8791,13 +8791,14 @@ function closeWheelLegendModal() {
     document.getElementById('wheelLegendModal').style.display = 'none';
 }
 
-// ...VE YERİNE BU YENİ VERSİYONU YAPIŞTIR
+// BU İKİ FONKSİYONU KOPYALAYIP MEVCUT OLANLARLA DEĞİŞTİR
+
 function openWheelLegendModal() {
     document.body.classList.add('modal-open');
     const contentDiv = document.getElementById('wheelLegendContent');
     contentDiv.innerHTML = '';
 
-    // YENİ ÖDÜL LİSTEMİZE GÖRE GÜNCELLENMİŞ VERİ
+    // En son konuştuğumuz, güncel ve doğru ödül listesi
     const legendData = [
         { icon: '🎉', title: 'SÜRPRİZ KUTU', description: 'En nadir ödül! İçinden çok yüksek puanlar çıkan özel bir kart seçme oyunu başlatır.' },
         { icon: '✖️', title: '5X ÇARPAN', description: 'Çok nadir! Bir sonraki kutu açılışında kazanacağın puanı veya eşyayı 5\'e katlar.' },
@@ -8830,6 +8831,7 @@ function openWheelLegendModal() {
 }
 
 function closeWheelLegendModal() {
+    document.body.classList.remove('modal-open');
     document.getElementById('wheelLegendModal').style.display = 'none';
 }
 
