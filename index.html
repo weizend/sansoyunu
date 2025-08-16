@@ -1705,20 +1705,25 @@ function getSyncedTime() {
   const spinBtn = document.getElementById('spinWheelBtn');
   let isWheelSpinning = false;
   let wheelSegments = []; // Bu artık veritabanından doldurulacak
-// MEVCUT defaultWheelSegments DİZİSİNİ TAMAMEN SİLİP YERİNE BUNU YAPIŞTIRIN
+
 const defaultWheelSegments = [
-    { type: 'points', value: 100, label: '100 Puan', color: '#E53935', weight: 15 },      // Canlı Kırmızı
-    { type: 'pas', label: 'Pas', color: '#43A047', weight: 10 },                          // Canlı Yeşil
-    { type: 'clickCatchTicket', value: 1, label: 'Tıkla-Yakala Bileti', color: '#5E35B1', weight: 4 }, // Canlı Mor
-    { type: 'points', value: 1000, label: '1000 Puan', color: '#1E88E5', weight: 2 },      // Canlı Mavi
-    { type: 'tempMultiplier', value: 5, duration: 1, label: '5x Çarpan', color: '#FDD835', weight: 1 }, // Canlı Sarı
-    { type: 'surpriseBox', value: 1, label: 'Sürpriz Kutu!', color: '#546E7A', weight: 1 }, // Koyu Gri Mavi
-    { type: 'boxRights', value: 3, label: '3 KUTU HAKKI', color: '#D81B60', weight: 3 },    // Canlı Pembe
-    { type: 'boxRights', value: 1, label: '+1 Kutu Hakkı', color: '#8E24AA', weight: 8 },   // Canlı Eflatun
-    { type: 'pas', label: 'Pas', color: '#00897B', weight: 10 },                          // Haki Yeşil
-    { type: 'points', value: 250, label: '250 Puan', color: '#039BE5', weight: 6 },         // Açık Mavi
-    { type: 'iflasShield', value: 1, label: '+1 Kalkan', color: '#FB8C00', weight: 5 },    // Canlı Turuncu
-    { type: 'points', value: 10, label: '10 Puan', color: '#C0CA33', weight: 20 }          // Fıstık Yeşili
+    // Sık Gelen Ödüller (Toplam Ağırlık: 55)
+    { type: 'points', value: 100, label: '🍌', color: '#fde047', weight: 20 },
+    { type: 'boxRights', value: 1, label: '📦', color: '#8b5cf6', weight: 15 },
+    { type: 'pas', label: '☠️', color: '#6b7280', weight: 10 },
+    { type: 'points', value: 10, label: '🍆', color: '#9ca3af', weight: 10 },
+
+    // Orta Seviye Ödüller (Toplam Ağırlık: 30)
+    { type: 'points', value: 250, label: '🍐', color: '#22c55e', weight: 10 },
+    { type: 'iflasShield', value: 1, label: '🛡️', color: '#3b82f6', weight: 10 },
+    { type: 'clickCatchTicket', value: 1, label: '🎟️', color: '#ec4899', weight: 10 },
+
+    // Nadir Ödüller (Toplam Ağırlık: 15)
+    { type: 'wheelTicket', value: 1, label: '🎡', color: '#14b8a6', weight: 5 },
+    { type: 'boxRights', value: 3, label: '🎁', color: '#f97316', weight: 5 },
+    { type: 'points', value: 1000, label: '🎂', color: '#ef4444', weight: 2 },
+    { type: 'tempMultiplier', value: 5, duration: 1, label: '✖️', color: '#d946ef', weight: 2 },
+    { type: 'surpriseBox', value: 1, label: '🎉', color: '#eab308', weight: 1 }
 ];
   
   // Tıkla Yakala Değişkenleri
@@ -6177,7 +6182,7 @@ function closeSpectatorModal() {
     spectatorViewingResult = false;
 }
     
-// Çarkın GÖRSELİNİ (dilimleri ve yazıları) oluşturan fonksiyon
+// ...VE YERİNE BU YENİ VERSİYONU YAPIŞTİR
 function renderWheel() {
     const wheelElement = document.getElementById('wheel');
     if (!wheelElement) { return; }
@@ -6188,6 +6193,14 @@ function renderWheel() {
     const segmentCount = segments.length;
     if (segmentCount === 0) return;
 
+    // --- MANUEL AYAR NOKTAN BURASI ---
+    // Bu sayıyı değiştirerek tüm simgelerin yönünü ayarla.
+    // Pozitif sayı = Saat yönünde kaydırır.
+    // Negatif sayı = Saat yönünün tersine kaydırır.
+    // 0 = Tam ortaya alır.
+    const angleOffset = -5; 
+    // ------------------------------------
+
     const segmentAngle = 360 / segmentCount;
     let gradientParts = [];
 
@@ -6196,18 +6209,17 @@ function renderWheel() {
         const endAngle = startAngle + segmentAngle;
         gradientParts.push(`${segment.color || '#cccccc'} ${startAngle}deg ${endAngle}deg`);
 
-        const textAngle = startAngle + (segmentAngle / 1.3);
+        // HESAPLAMA BURADA DEĞİŞTİ: Artık angleOffset'i hesaba katıyor.
+        const textAngle = startAngle + (segmentAngle / 2) + angleOffset;
         
         const textHolder = document.createElement('div');
         textHolder.className = 'wheel-text-container';
         textHolder.style.transform = `rotate(${textAngle}deg)`;
 
-        // --- YENİ MANTIK BURADA ---
-        // Eğer segmentin imageUrl özelliği varsa ve boş değilse, bir resim elementi oluştur.
         if (segment.imageUrl && segment.imageUrl.trim() !== '') {
             const imageEl = document.createElement('img');
             imageEl.src = segment.imageUrl;
-            imageEl.className = 'wheel-image'; // Resimler için yeni CSS class'ı
+            imageEl.className = 'wheel-image';
             
             if (textAngle > 90 && textAngle < 270) {
                 imageEl.style.transform = 'translate(-50%, -50%) rotate(180deg)';
@@ -6216,7 +6228,6 @@ function renderWheel() {
             }
             textHolder.appendChild(imageEl);
         } else {
-            // Eğer imageUrl yoksa, eskisi gibi yazıyı göster.
             const textSpan = document.createElement('span');
             textSpan.className = 'wheel-text';
             textSpan.textContent = segment.label;
@@ -8419,8 +8430,6 @@ async function resetWheelSettingsToDefault() {
     defaultWheelSegments.forEach(item => addWheelSettingRow(item));
 }
 
-// MEVCUT loadWheelHistory FONKSİYONUNU BU BLOK İLE DEĞİŞTİRİN
-
 function loadWheelHistory() {
     const historyRef = db.ref('wheelHistory').limitToLast(10);
     const listEl = document.getElementById('wheelHistoryList');
@@ -8449,11 +8458,12 @@ function loadWheelHistory() {
             const prizeType = item.type;
             const prizeValue = item.value;
 
-            // İSTEĞİNİZE GÖRE DÜZENLENEN KISIM
+            // YENİ İKON MANTIĞI BURADA
             if (prizeType === 'points') {
-                if(prizeValue >= 1000) icon = '💎';
-                else if(prizeValue >= 100) icon = '💰';
-                else icon = '🍪'; // 100'den düşük tüm puanlar için
+                if (prizeValue >= 1000) icon = '🎂';
+                else if (prizeValue >= 250) icon = '🍐';
+                else if (prizeValue >= 100) icon = '🍌';
+                else icon = '🍆';
                 prizeText = `+${prizeValue} PUAN`; 
             } else if (prizeType === 'surpriseBox') {
                 icon = '🎉';
@@ -8465,7 +8475,7 @@ function loadWheelHistory() {
                 icon = '🎟️';
                 prizeText = `+${prizeValue} Tıkla-Yakala Bileti`;
             } else if (prizeType === 'wheelTicket') {
-                icon = '🎡'; // Bu çark ikonu kalabilir, yeni bilet kazandığını gösterir.
+                icon = '🎡';
                 prizeText = `+${prizeValue} Çark Bileti`;
             } else if (prizeType === 'tempMultiplier') {
                 icon = '✖️';
@@ -8484,7 +8494,6 @@ function loadWheelHistory() {
                    </button>` 
                 : '';
 
-            // İSTEĞİNİZE GÖRE DÜZENLENEN KISIM (HTML yapısı)
             listEl.innerHTML += `
                 <div class="p-2 bg-gray-800 rounded-md mb-2 text-sm flex justify-between items-center">
                     <span class="flex items-center">
@@ -8509,7 +8518,6 @@ function loadWheelHistory() {
     activeListeners.wheelHistory = { ref: historyRef, event: 'value', callback };
     historyRef.on('value', callback);
 }
-
   function openHelpModal() {
   helpModal.style.display = 'flex';
 }
@@ -8749,57 +8757,59 @@ function getSegmentColor(index) {
      return colors[index % colors.length];
  }
 
-// Çark ilk yüklendiğinde ve segmentler değiştiğinde görünümü güncelle
 updateWheelAppearance();
 
-// Eğer defaultWheelSegments dizin değişirse bu fonksiyonu tekrar çağırabilirsin.
-// YENİ: Çark simgelerinin anlamlarını gösteren pencereyi açan ve kapatan fonksiyonlar
-
-// Bu yardımcı fonksiyon, bir ödül etiketine göre senin belirlediğin simgeyi döndürür.
+// ...VE YERİNE BU YENİ VERSİYONU YAPIŞTIR
 function getIconForWheelLabel(label) {
     const upperLabel = (label || '').toUpperCase();
-    if (upperLabel.includes('1000 PUAN')) return '💎';
-    if (upperLabel.includes('100 PUAN')) return '💰';
-    if (upperLabel.includes('50 PUAN')) return '🍪';
+    
+    // Yeni Puan ikonları
+    if (upperLabel.includes('1000 PUAN')) return '🎂';
+    if (upperLabel.includes('250 PUAN')) return '🍐';
+    if (upperLabel.includes('100 PUAN')) return '🍌';
+    if (upperLabel.includes('10 PUAN')) return '🍆';
+
+    // Yeni "Bedava Çevirme" ödülü
+    if (upperLabel.includes('BEDAVA ÇEVİR')) return '🎡';
+
+    // Diğer sabit ödüller
     if (upperLabel.includes('3 KUTU HAKKI')) return '🎁';
     if (upperLabel.includes('1 KUTU HAKKI')) return '📦';
     if (upperLabel.includes('TIKLA-YAKALA')) return '🎟️';
     if (upperLabel.includes('5X ÇARPAN')) return '✖️';
-    if (upperLabel.includes('SÜPRİZ KUTU')) return '🎉';
+    if (upperLabel.includes('SÜRPRİZ KUTU')) return '🎉';
     if (upperLabel.includes('İFLAS KALKANI')) return '🛡️';
     if (upperLabel.includes('PAS')) return '☠️';
+    
     return '🎡'; // Varsayılan simge
-}
-
-    // === BU EKSİK FONKSİYONU DOSYANIN SONUNA EKLE ===
-
-function openWheelLegendModal() {
-    document.getElementById('wheelLegendModal').style.display = 'flex';
 }
 
 function closeWheelLegendModal() {
     document.getElementById('wheelLegendModal').style.display = 'none';
 }
 
+// ...VE YERİNE BU YENİ VERSİYONU YAPIŞTIR
 function openWheelLegendModal() {
+    document.body.classList.add('modal-open');
     const contentDiv = document.getElementById('wheelLegendContent');
-    contentDiv.innerHTML = ''; // Önce mevcut içeriği temizle
+    contentDiv.innerHTML = '';
 
-    // Pencerenin içinde görünecek olan simgeler, başlıklar ve detaylı açıklamalar
+    // YENİ ÖDÜL LİSTEMİZE GÖRE GÜNCELLENMİŞ VERİ
     const legendData = [
-        { icon: '💎', title: '1000 PUAN', description: 'Çarktan kazanabileceğin en yüksek puanlardan birini verir.' },
-        { icon: '💰', title: '100 PUAN', description: 'Hesabına anında 100 Puan eklenir.' },
-        { icon: '🍪', title: '50 PUAN', description: 'Küçük ama tatlı bir puan ödülüdür.' },
+        { icon: '🎉', title: 'SÜRPRİZ KUTU', description: 'En nadir ödül! İçinden çok yüksek puanlar çıkan özel bir kart seçme oyunu başlatır.' },
+        { icon: '✖️', title: '5X ÇARPAN', description: 'Çok nadir! Bir sonraki kutu açılışında kazanacağın puanı veya eşyayı 5\'e katlar.' },
+        { icon: '🎂', title: '1000 PUAN', description: 'Nadir bulunan, yüksek miktarda bir puan ödülüdür.' },
+        { icon: '🎁', title: '3 KUTU HAKKI', description: 'Değerli bir ödül! Kutu oyununda kullanmak üzere tam 3 adet açma hakkı verir.' },
+        { icon: '🍐', title: '250 PUAN', description: 'Hesabına anında 250 Puan eklenir.' },
         { icon: '📦', title: '1 KUTU HAKKI', description: 'Ana oyundaki kutu oyununda kullanabileceğin 1 adet açma hakkı kazandırır.' },
-        { icon: '🎁', title: '3 KUTU HAKKI', description: 'Büyük ödül! Kutu oyununda kullanmak üzere tam 3 adet açma hakkı verir.' },
-        { icon: '🎟️', title: 'TIKLA-YAKALA BİLETİ', description: 'Tıkla-Yakala mini oyununa bir giriş hakkı kazandırır.' },
-        { icon: '✖️', title: '5X ÇARPAN', description: 'Bir sonraki kutu açılışında kazanacağın puanı veya içinden çıkan eşyayı 5\'e katlar.' },
-        { icon: '🎉', title: 'SÜRPRİZ KUTU', description: 'İçinden çok yüksek puanlar çıkan özel bir kart seçme oyunu başlatır.' },
-        { icon: '🛡️', title: 'İFLAS KALKANI', description: 'Kutu oyununda "Bomba" bulursan puanlarının sıfırlanmasını bir defaya mahsus engeller.' },
+        { icon: '🛡️', title: 'İFLAS KALKANI', description: 'Kutu oyununda "Bomba" bulursan puanlarını bir defaya mahsus korur.' },
+        { icon: '🎟️', title: '+1 T-Y BİLETİ', description: 'Tıkla-Yakala mini oyununa bir giriş hakkı kazandırır.' },
+        { icon: '🎡', title: 'BEDAVA ÇEVİRME', description: 'Şansını tekrar denemen için +1 Çark Bileti kazandırır.' },
+        { icon: '🍌', title: '100 PUAN', description: 'Sıkça gelen, güzel bir puan ödülüdür.' },
+        { icon: '🍆', title: '10 PUAN', description: 'En küçük teselli puanı ödülüdür.' },
         { icon: '☠️', title: 'PAS', description: 'Şanssızlık! Bu dilimde herhangi bir ödül yoktur.' }
     ];
 
-    // Her bir öğe için HTML listesini oluştur
     legendData.forEach(item => {
         const itemHtml = `
             <div class="flex items-start gap-4 p-3 bg-gray-900 rounded-lg text-left">
@@ -8812,8 +8822,7 @@ function openWheelLegendModal() {
         `;
         contentDiv.innerHTML += itemHtml;
     });
-
-    // Hazırlanan pencereyi görünür yap
+    
     document.getElementById('wheelLegendModal').style.display = 'flex';
 }
 
