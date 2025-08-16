@@ -7470,7 +7470,7 @@ function closeSelectWinnerModal() {
     window.weeklyWinnerData = null;
 }
 
-// "Ödülü Ver ve Haftayı Sıfırla" butonuna basıldığında çalışır
+// ... VE YERİNE BU YENİ VERSİYONU YAPIŞTIR
 async function confirmAndAwardPrize() {
     if (!isAdmin || !window.weeklyWinnerData) return;
 
@@ -7497,6 +7497,12 @@ async function confirmAndAwardPrize() {
 
     if (!confirmed) return;
 
+    // --- YENİ ADIMLAR ---
+    // Önce o hafta oyuna katılan herkesi bulalım.
+    const weeklyScoresSnap = await db.ref('clickCatchWeeklyScores').once('value');
+    const participants = weeklyScoresSnap.exists() ? Object.keys(weeklyScoresSnap.val()) : [];
+    // --- YENİ ADIMLAR BİTİŞ ---
+
     // 1. Kazananın bilgilerini kalıcı olarak kaydet
     const winnerDataToSave = {
         winnerName: username,
@@ -7521,20 +7527,33 @@ async function confirmAndAwardPrize() {
     // 3. Haftalık skor tablosunu sil
     await db.ref('clickCatchWeeklyScores').remove();
 
-    // 4. Tüm kullanıcıların kişisel Tıkla-Yakala skorlarını sıfırla
+    // 4. Tüm kullanıcıların skorlarını ve BİLET HEDİYELERİNİ güncelle
     const allUsersSnap = await db.ref('users').once('value');
     const allUsers = allUsersSnap.val();
     const updates = {};
     for (const u in allUsers) {
+        // Kişisel skoru sıfırla (eğer varsa)
         if (allUsers[u].clickCatchHighestScore) {
             updates[`/users/${u}/clickCatchHighestScore`] = 0;
+        }
+        // Eğer bu kullanıcı o hafta katılım gösterdiyse +1 bilet hediye et
+        if (participants.includes(u)) {
+            const currentTickets = allUsers[u].clickCatchTickets || 0;
+            updates[`/users/${u}/clickCatchTickets`] = currentTickets + 1;
         }
     }
     if (Object.keys(updates).length > 0) {
         await db.ref().update(updates);
     }
+    
+    // --- YENİ BİLGİLENDİRME ADIMI ---
+    // Global bir bildirim göndererek herkesi bilgilendir
+    const notificationMessage = `Tıkla-Yakala haftasının şampiyonu ${username} oldu! Kendisini tebrik ederiz. Yeni hafta başladı!`;
+    db.ref('globalNotifications').push({ message: notificationMessage, timestamp: firebase.database.ServerValue.TIMESTAMP });
+    // --- YENİ BİLGİLENDİRME BİTİŞ ---
 
-    displayMessage(`${username} ödüllendirildi ve Tıkla-Yakala haftası başarıyla sıfırlandı!`);
+
+    displayMessage(`${username} ödüllendirildi ve Tıkla-Yakala haftası başarıyla sıfırlandı! Katılımcılara +1 bilet hediye edildi.`);
     closeSelectWinnerModal();
 }
 
