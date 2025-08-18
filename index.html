@@ -405,6 +405,8 @@ body.modal-open .modal-content {
       </div>
       <div id="lastSurpriseInfoContainer" class="hidden w-full max-w-2xl mx-auto mt-6 bg-gray-800 p-4 rounded-xl shadow-lg border-2 border-yellow-500 glowing-border text-center">
     </div>
+      <div id="lastSurpriseInfoContainer" class="hidden w-full max-w-2xl mx-auto mt-6 bg-gray-800 p-4 rounded-xl shadow-lg border-2 border-yellow-500 glowing-border text-center">
+    </div>
       <div id="tablesWrapper" class="flex flex-wrap justify-center gap-6 mb-8">
         <div class="tableBox bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700 w-full md:flex-1 min-w-[280px] md:max-w-md">
             <h3 class="text-yellow-400 text-xl font-bold border-b border-gray-600 pb-3 mb-4">KULLANICI PUAN SIRALAMASI 🥇</h3>
@@ -4219,7 +4221,7 @@ function openCardSelectionModal(userId) {
     });
 }
 
-// YEPYENİ FONKSİYON - BU KOD BLOĞUNU OLDUĞU GİBİ EKLE
+// BU YENİ FONKSİYONU OLDUĞU GİBİ KODLARINA EKLE
 function updateLastSurpriseInfoDisplay(info) {
     const container = document.getElementById('lastSurpriseInfoContainer');
     if (!info) {
@@ -4228,15 +4230,20 @@ function updateLastSurpriseInfoDisplay(info) {
     }
 
     let multiplierText = '';
-    if (info.timedOut) {
-        multiplierText = '<span class="text-red-400 font-bold">Süre doldu, kart seçilmedi.</span>';
-    } else if (info.multiplier && info.multiplier > 1) {
+    if (info.multiplier && info.multiplier > 1) {
         multiplierText = `Çarpan: <b class="text-white">${info.multiplier}x</b>`;
-    } else {
-        multiplierText = `Çarpan: <b class="text-white">Kullanılmadı</b>`;
     }
 
-    const sourceText = info.boxId === 'Çark' ? 'Şans Çarkı' : `${info.boxId} No'lu Kutu`;
+    const sourceText = info.boxId === 'Çark' 
+        ? 'Şans Çarkı' 
+        : `<b>${info.openerBoxCount}.</b> kutusunda`;
+
+    // Çarktan bulunduysa sıfırlama uyarısı gösterme
+    const resetWarningHtml = info.boxId !== 'Çark'
+        ? `<p class="mt-3 text-sm text-yellow-500 bg-gray-900/50 p-2 rounded-md">
+            Oyunun sıfırlanması için herhangi bir oyuncunun <b>"Sorunları Çöz"</b> menüsünden oyunu manuel olarak sıfırlaması gerekiyor.
+           </p>`
+        : '';
 
     container.innerHTML = `
         <h4 class="text-yellow-300 text-xl font-bold mb-3">👑 Son Sürpriz Kutu Bulan 👑</h4>
@@ -4244,11 +4251,9 @@ function updateLastSurpriseInfoDisplay(info) {
             <span>Bulan: <b class="text-white">${info.finder}</b></span>
             <span>Kaynak: <b class="text-white">${sourceText}</b></span>
             <span>Kazanç: <b class="text-white">${info.points} Puan</b></span>
-            <span>${multiplierText}</span>
+            ${multiplierText ? `<span>${multiplierText}</span>` : ''}
         </div>
-        <p class="mt-3 text-sm text-yellow-500 bg-gray-900/50 p-2 rounded-md">
-            Oyunun sıfırlanması için bir oyuncunun <b>"Sorunları Çöz"</b> menüsünden oyunu manuel olarak sıfırlaması gerekiyor.
-        </p>
+        ${resetWarningHtml}
     `;
     container.classList.remove('hidden');
 }
@@ -5338,9 +5343,9 @@ async function openUserManagementModal(username) {
   }
 
   let globalCountdownInterval = null;
-    let spectatorCountdownInterval = null;
+let spectatorCountdownInterval = null;
 
-  // MEVCUT listenForGameChanges FONKSİYONUNU BU BLOK İLE DEĞİŞTİRİN
+// MEVCUT listenForGameChanges FONKSİYONUNU BU BLOK İLE DEĞİŞTİRİN
 function listenForGameChanges() {
     // gameLock dinleyicisi aynı kalıyor
     const gameLockRef = db.ref('gameLock');
@@ -5377,15 +5382,15 @@ function listenForGameChanges() {
     lastOpenedBoxRef.on('value', lastOpenedBoxCallback);
 
     // --- YENİ EKLENEN DİNLEYİCİ ---
+    // Bu bölüm, sürpriz kutu bulunduğunda ekranda kalıcı olarak gösterilecek olan bilgiyi dinler.
     const lastSurpriseRef = db.ref('gameStats/lastSurpriseInfo');
     const lastSurpriseCallback = snap => {
+        // updateLastSurpriseInfoDisplay fonksiyonunu çağırarak arayüzü günceller.
         updateLastSurpriseInfoDisplay(snap.val());
     };
     activeListeners.lastSurprise = { ref: lastSurpriseRef, event: 'value', callback: lastSurpriseCallback };
     lastSurpriseRef.on('value', lastSurpriseCallback);
 }
-
-// --- SORUNLARI ÇÖZ MODALI İÇİN YENİ FONKSİYONLAR ---
 
 function openSolveProblemsModal() {
     document.getElementById('solveProblemsModal').style.display = 'flex';
@@ -5407,16 +5412,30 @@ async function manualUnlockGame() {
     closeSolveProblemsModal();
 }
 
+// ESKİ manualResetAfterSurprise FONKSİYONUNU SİL, BUNU YAPIŞTIR
 async function manualResetAfterSurprise() {
     const surpriseInfoRef = db.ref('gameStats/lastSurpriseInfo');
     const surpriseSnap = await surpriseInfoRef.once('value');
+
     if (surpriseSnap.exists()) {
+        const surpriseData = surpriseSnap.val();
+        
+        // Eğer sürpriz çarktan geldiyse, sıfırlamaya izin verme
+        if (surpriseData.boxId === 'Çark') {
+            displayMessage("Bu özellik sadece Kutu Oyunu'nda bulunan Sürpriz Kutular için geçerlidir. Çark'tan bulunanlar oyunu sıfırlamaz.");
+            closeSolveProblemsModal();
+            return;
+        }
+
+        // Kutu oyunundan geldiyse sıfırlama yap
         await resetGameBoard(); // Oyunu sıfırlayan ana fonksiyon
         await surpriseInfoRef.remove(); // Sıfırlama hakkını tek kullanımlık yapmak için bilgiyi sil
         displayMessage("Sürpriz kutu bulunduğu için oyun başarıyla sıfırlandı!");
+
     } else {
         displayMessage("Bu özellik sadece bir sürpriz kutu bulunduktan sonra kullanılabilir.");
     }
+    
     closeSolveProblemsModal();
 }
 
@@ -6355,24 +6374,30 @@ function listenForSurpriseBox() {
                         return currentData;
                     }
                     return; 
-                }, (error, committed, snapshot) => {
+                }, async (error, committed, snapshot) => { // async eklendi
                     if (error) {
                         console.error('Sürpriz kutu işlemi sırasında transaction hatası: ', error);
                         isProcessingSurpriseResult = false;
                     } else if (committed) {
                         const finalSessionData = snapshot.val();
 
-                        // --- YENİ EKLENEN KISIM BAŞLANGICI ---
+                        // --- İSTEĞİNİ KARŞILAYAN GÜNCEL KOD BURADA ---
+                        // Oyuncunun o turda kaç kutu açtığını alıyoruz
+                        const openerStatsSnap = await db.ref(`gameStats/boxesOpenedByUsers/${finalSessionData.user}`).once('value');
+                        const openerBoxCount = openerStatsSnap.val() || 0;
+
+                        // Kalıcı bilgi objesini oluşturuyoruz
                         const surpriseInfo = {
                             finder: finalSessionData.user,
                             boxId: finalSessionData.boxId,
                             points: finalSessionData.result.points,
                             multiplier: finalSessionData.multiplier,
-                            timedOut: false, // Kart seçtiği için zaman aşımı false
+                            openerBoxCount: openerBoxCount, // Açılan kutu sayısını da ekliyoruz
                             timestamp: firebase.database.ServerValue.TIMESTAMP
                         };
-                        db.ref('gameStats/lastSurpriseInfo').set(surpriseInfo);
-                        // --- YENİ EKLENEN KISIM SONU ---
+                        // Bilgiyi kalıcı olarak veritabanına kaydediyoruz
+                        await db.ref('gameStats/lastSurpriseInfo').set(surpriseInfo);
+                        // --- GÜNCEL KOD SONU ---
 
                         logActivity('surpriseBox', finalSessionData.user, { 
                             boxId: finalSessionData.boxId,
@@ -6391,7 +6416,7 @@ function listenForSurpriseBox() {
                             closeGlobalSurpriseBoxModal(); 
                             handleSurpriseBoxCleanup(finalSessionData);
                             isProcessingSurpriseResult = false;
-                        }, 4000);
+                        }, 5000); // Bildirimin 5sn kalması için süre uzatıldı
                     } else {
                         isProcessingSurpriseResult = false;
                     }
@@ -6724,20 +6749,26 @@ async function spinWheel() {
                 updates.multiplierSource = 'store';
                 updates.multiplierRemainingUses = winningSegment.duration;
                 break;
-            case 'surpriseBox':
-                 const sessionRef = db.ref('surprise_box_session');
-                 await sessionRef.set({ 
-                     active: true, user: currentUser, boxId: 'Çark', 
-                     multiplier: 1, cards: shuffleArray([...cardValues]), 
-                     selection: null, result: null, 
-                     timestamp: firebase.database.ServerValue.TIMESTAMP
-                 });
-                 const snap = await sessionRef.once('value');
-                 const serverTimestamp = snap.val().timestamp;
-                 await sessionRef.update({ expirationTimestamp: serverTimestamp + 60000 });
-                 openCardSelectionModal(currentUser);
-                 message = "Vay canına! Çarktan Sürpriz Kutu çıktı! Şimdi bir kart seç.";
-                 break;
+            // spinWheel fonksiyonu içindeki case 'surpriseBox': bölümünü bul ve değiştir
+
+case 'surpriseBox':
+     const sessionRef = db.ref('surprise_box_session');
+     await sessionRef.set({ 
+         active: true, 
+         user: currentUser, 
+         boxId: 'Çark', // <-- DEĞİŞİKLİK BURADA! Kaynağı 'Çark' olarak belirtiyoruz.
+         multiplier: 1, 
+         cards: shuffleArray([...cardValues]), 
+         selection: null, 
+         result: null, 
+         timestamp: firebase.database.ServerValue.TIMESTAMP
+     });
+     const snap = await sessionRef.once('value');
+     const serverTimestamp = snap.val().timestamp;
+     await sessionRef.update({ expirationTimestamp: serverTimestamp + 60000 });
+     openCardSelectionModal(currentUser);
+     message = "Vay canına! Çarktan Sürpriz Kutu çıktı! Şimdi bir kart seç.";
+     break;
             case 'pas':
                 message = "Bu seferlik pas! Bir dahaki sefere daha şanslı olabilirsin.";
                 break;
