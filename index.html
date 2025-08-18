@@ -1713,7 +1713,7 @@ body.modal-open .modal-content {
     
     <div class="flex-shrink-0 mb-4 pb-4 border-b border-gray-700">
         <button class="modal-close-button" onclick="closeSeasonInfoModal()">&times;</button>
-        <h4 class="text-blue-300 text-2xl font-bold text-center">🏆 Aylık Sezon Sıfırlaması Nedir?</h4>
+        <h4 class="text-blue-300 text-2xl font-bold text-center">Aylık Sezon Sıfırlaması Nedir?</h4>
     </div>
 
     <div class="overflow-y-auto scrollable-list pr-4 space-y-4 text-gray-300">
@@ -9710,19 +9710,18 @@ async function getTopBadgeHolder(allUsersData, leaders) {
     return topUser;
 }
 
-    // --- YENİ EKLENECEK SEZON BİLGİ FONKSİYONLARI ---
-
-// --- ESKİ openSeasonInfoModal FONKSİYONUNU SİL VE BUNU YAPIŞTIR ---
-
-async function openSeasonInfoModal() {
+    async function openSeasonInfoModal() {
     document.body.classList.add('modal-open');
-    const detailsContainer = document.getElementById('seasonGiftPackageDetails');
-    detailsContainer.innerHTML = '<p class="text-gray-400">Ödül detayları yükleniyor...</p>';
+    const modalContent = document.querySelector('#seasonInfoModal .modal-content .overflow-y-auto');
+    
+    // Geçici olarak bir yükleniyor metni göster
+    modalContent.innerHTML = '<p class="text-center text-gray-400">Bilgiler yükleniyor...</p>';
+    document.getElementById('seasonInfoModal').style.display = 'flex';
 
     try {
         const settingsSnap = await db.ref('gameConfig/seasonSettings/rewards/general').once('value');
         
-        let rewardsHtml = '<strong class="text-yellow-200 block mb-2">Bu Sezonun Hediye Paketi:</strong><ul class="list-disc list-inside space-y-1 text-gray-300">';
+        let rewardsHtml = '<strong class="text-yellow-200 block mb-2">Bu Sezonun Genel Hediye Paketi:</strong><ul class="list-disc list-inside space-y-1 text-gray-300">';
         let hasRewards = false;
 
         if (settingsSnap.exists()) {
@@ -9749,16 +9748,43 @@ async function openSeasonInfoModal() {
         if (!hasRewards) {
             rewardsHtml += '<li>Bu sezon için henüz genel bir ödül paketi belirlenmedi.</li>';
         }
-
         rewardsHtml += '</ul>';
-        detailsContainer.innerHTML = rewardsHtml;
+
+        // Tüm metni içeren yeni HTML yapısı
+        const fullContentHtml = `
+            <p class="mb-4">Oyunumuz, her ay rekabeti tazelemek ve tüm oyunculara yeni bir başlangıç şansı sunmak için <strong>Sezonluk Sıfırlama</strong> sistemini kullanır. Geri sayım sayacı sona erdiğinde, bir önceki sezon biter ve yeni bir sezon başlar.</p>
+            
+            <div>
+                <h5 class="text-xl font-bold text-yellow-300 mb-2">Şampiyon Ödülleri</h5>
+                <p class="mb-3">Sezon sonunda iki farklı kategoride şampiyon belirlenir ve özel olarak ödüllendirilir:</p>
+                <div class="space-y-3 bg-gray-900/50 p-4 rounded-lg border border-gray-600">
+                    <div>
+                        <strong class="text-yellow-200">KULLANICI PUAN SIRALAMASI 🥇 </strong>
+                        <p class="text-sm text-gray-400">Sezon sonunda en yüksek puana sahip olan oyuncu, admin tarafından belirlenen <strong>özel bir şampiyonluk avatarının</strong> sahibi olur. Ayrıca, profilindeki "Puan Şampiyonluğu" sayısı bir artar.</p>
+                    </div>
+                    <div>
+                        <strong class="text-yellow-200">LİDERLER SIRALAMASI 👑</strong>
+                        <p class="text-sm text-gray-400">Sezon sonunda en fazla liderlik rozetine sahip olan oyuncu, tıpkı puan lideri gibi, o da admin tarafından belirlenen <strong>özel bir şampiyonluk avatarı</strong> kazanır. Profilindeki "Rozet Şampiyonluğu" sayısı da bir artar.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <h5 class="text-xl font-bold text-yellow-300 mb-2">🎁 Genel Katılımcı Ödülleri</h5>
+                <p class="mb-3">Şampiyonlar dahil, oyundaki <strong>tüm oyunculara</strong> admin tarafından belirlenen bir <strong>hediye paketi</strong> (Kutu Hakkı, Biletler, Kalkan vb.) gönderilir. Bu sezonun hediye paketi şunları içerir:</p>
+                <div id="seasonGiftPackageDetails" class="bg-gray-900/50 p-4 rounded-lg border border-gray-600">
+                    ${rewardsHtml}
+                </div>
+            </div>
+            <p class="font-bold text-center text-yellow-200 pt-3 mt-4 border-t border-gray-700">Yeni sezon, yeni bir başlangıç demektir. Herkese bol şans!</p>
+        `;
+
+        modalContent.innerHTML = fullContentHtml;
 
     } catch (error) {
         console.error("Sezon ödülleri alınırken hata:", error);
-        detailsContainer.innerHTML = '<p class="text-red-500">Ödül bilgileri yüklenemedi.</p>';
+        modalContent.innerHTML = '<p class="text-red-500 text-center">Bilgiler yüklenemedi.</p>';
     }
-
-    document.getElementById('seasonInfoModal').style.display = 'flex';
 }
 
 function closeSeasonInfoModal() {
