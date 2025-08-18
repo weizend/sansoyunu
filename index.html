@@ -4221,41 +4221,71 @@ function openCardSelectionModal(userId) {
     });
 }
 
-// BU YENİ FONKSİYONU OLDUĞU GİBİ KODLARINA EKLE
-function updateLastSurpriseInfoDisplay(info) {
+// ESKİ renderSurpriseFinderPanel FONKSİYONUNU SİL, BUNU YAPIŞTIR
+function updateLastSurpriseInfoDisplay(info) { // Fonksiyon adını eski haline getirdik
     const container = document.getElementById('lastSurpriseInfoContainer');
+    const adminClearButton = isAdmin 
+        ? `<button onclick="clearLastSurpriseInfoPanel()" class="absolute -top-3 -right-3 bg-red-600 hover:bg-red-500 text-white rounded-full h-8 w-8 flex items-center justify-center text-lg font-bold" title="Sürpriz Bulan Panelini Temizle">&times;</button>`
+        : '';
+        
     if (!info) {
         container.classList.add('hidden');
         return;
     }
 
-    let multiplierText = '';
-    if (info.multiplier && info.multiplier > 1) {
-        multiplierText = `Çarpan: <b class="text-white">${info.multiplier}x</b>`;
-    }
-
     const sourceText = info.boxId === 'Çark' 
-        ? 'Şans Çarkı' 
-        : `<b>${info.openerBoxCount}.</b> kutusunda`;
+        ? 'Şans Çarkı\'ndan' 
+        : `<b>${info.roundBoxCount}.</b> kutusunda`;
+            
+    const finderHtml = `
+        <div class="bg-gray-900/70 p-3 rounded-lg border border-gray-700 text-left">
+            <div class="flex justify-between items-center font-bold text-lg">
+                <span class="text-yellow-300">${info.finder}</span>
+                <span class="text-green-300">+${info.points} Puan</span>
+            </div>
+            <div class="text-xs text-gray-400 mt-1">
+                <span>${sourceText} buldu.</span>
+                <span class="mx-2">|</span>
+                <span>Toplamda <b>${info.totalBoxCount}</b> kutu açtı.</span>
+                ${(info.multiplier > 1) ? `<span class="mx-2">|</span><span><b>${info.multiplier}x</b> Çarpan kullandı.</span>` : ''}
+            </div>
+        </div>
+    `;
 
-    // Çarktan bulunduysa sıfırlama uyarısı gösterme
-    const resetWarningHtml = info.boxId !== 'Çark'
-        ? `<p class="mt-3 text-sm text-yellow-500 bg-gray-900/50 p-2 rounded-md">
-            Oyunun sıfırlanması için herhangi bir oyuncunun <b>"Sorunları Çöz"</b> menüsünden oyunu manuel olarak sıfırlaması gerekiyor.
-           </p>`
-        : '';
+    // --- YENİ AÇIKLAMA MANTIĞI BURADA ---
+    let explanationHtml = '';
+    // Eğer 'resetBy' alanı varsa, sıfırlayan kişiyi göster
+    if (info.resetBy) {
+        explanationHtml = `
+            <p class="mt-3 text-sm text-green-400 bg-gray-900/50 p-2 rounded-md">
+                Oyun, <b>${info.resetBy}</b> tarafından yeniden başlatıldı!
+            </p>`;
+    } 
+    // Yoksa ve sürpriz çarktan GELMEDİYSE, sıfırlama uyarısını göster
+    else if (info.boxId !== 'Çark') {
+        explanationHtml = `
+            <p class="mt-3 text-sm text-yellow-500 bg-gray-900/50 p-2 rounded-md">
+                Oyun kilitlendi! Devam etmek için <b>'Sorunları Çöz'</b> menüsündeki araçları kullanabilirsiniz.
+            </p>`;
+    }
+    // --- YENİ AÇIKLAMA MANTIĞI SONU ---
 
     container.innerHTML = `
+        ${adminClearButton}
         <h4 class="text-yellow-300 text-xl font-bold mb-3">👑 Son Sürpriz Kutu Bulan 👑</h4>
-        <div class="flex flex-wrap justify-center items-center gap-x-4 gap-y-2 text-gray-300">
-            <span>Bulan: <b class="text-white">${info.finder}</b></span>
-            <span>Kaynak: <b class="text-white">${sourceText}</b></span>
-            <span>Kazanç: <b class="text-white">${info.points} Puan</b></span>
-            ${multiplierText ? `<span>${multiplierText}</span>` : ''}
-        </div>
-        ${resetWarningHtml}
+        ${finderHtml}
+        ${explanationHtml}
     `;
     container.classList.remove('hidden');
+}
+
+// ESKİ clearSurpriseFindersPanel FONKSİYONUNU SİL, BUNU YAPIŞTIR
+async function clearLastSurpriseInfoPanel() { // Fonksiyon adı değişti
+    if (!isAdmin) return;
+    const confirmed = await customConfirm("Sürpriz Bulan Panosunu kalıcı olarak temizlemek istediğinizden emin misiniz?");
+    if (confirmed) {
+        await db.ref('gameStats/lastSurpriseInfo').remove(); // Yol değişti
+    }
 }
 
 async function selectCard(selectedCardDiv, userId) { 
@@ -5381,15 +5411,16 @@ function listenForGameChanges() {
     activeListeners.lastOpenedBox = { ref: lastOpenedBoxRef, event: 'value', callback: lastOpenedBoxCallback };
     lastOpenedBoxRef.on('value', lastOpenedBoxCallback);
 
-    // --- YENİ EKLENEN DİNLEYİCİ ---
-    // Bu bölüm, sürpriz kutu bulunduğunda ekranda kalıcı olarak gösterilecek olan bilgiyi dinler.
-    const lastSurpriseRef = db.ref('gameStats/lastSurpriseInfo');
-    const lastSurpriseCallback = snap => {
-        // updateLastSurpriseInfoDisplay fonksiyonunu çağırarak arayüzü günceller.
-        updateLastSurpriseInfoDisplay(snap.val());
-    };
-    activeListeners.lastSurprise = { ref: lastSurpriseRef, event: 'value', callback: lastSurpriseCallback };
-    lastSurpriseRef.on('value', lastSurpriseCallback);
+    // listenForGameChanges fonksiyonu içindeki lastSurpriseRef bölümünü bul ve değiştir
+
+// --- ESKİ DİNLEYİCİYİ BUNUNLA DEĞİŞTİR ---
+const lastSurpriseRef = db.ref('gameStats/lastSurpriseInfo'); // Dinlenen yol eski haline döndü
+const lastSurpriseCallback = snap => {
+    updateLastSurpriseInfoDisplay(snap.val()); // Yeni render fonksiyonu çağrılıyor
+};
+activeListeners.lastSurprise = { ref: lastSurpriseRef, event: 'value', callback: lastSurpriseCallback };
+lastSurpriseRef.on('value', lastSurpriseCallback);
+// --- DEĞİŞİKLİK SONU ---
 }
 
 function openSolveProblemsModal() {
@@ -5414,23 +5445,33 @@ async function manualUnlockGame() {
 
 // ESKİ manualResetAfterSurprise FONKSİYONUNU SİL, BUNU YAPIŞTIR
 async function manualResetAfterSurprise() {
+    // Artık tek bir kaydı ('lastSurpriseInfo') kontrol ediyoruz
     const surpriseInfoRef = db.ref('gameStats/lastSurpriseInfo');
     const surpriseSnap = await surpriseInfoRef.once('value');
 
     if (surpriseSnap.exists()) {
         const surpriseData = surpriseSnap.val();
         
-        // Eğer sürpriz çarktan geldiyse, sıfırlamaya izin verme
+        // Eğer sürpriz çarktan geldiyse veya oyun zaten sıfırlandıysa, tekrar sıfırlamaya izin verme
         if (surpriseData.boxId === 'Çark') {
-            displayMessage("Bu özellik sadece Kutu Oyunu'nda bulunan Sürpriz Kutular için geçerlidir. Çark'tan bulunanlar oyunu sıfırlamaz.");
+            displayMessage("Bu özellik sadece Kutu Oyunu'nda bulunan Sürpriz Kutular için geçerlidir.");
+            closeSolveProblemsModal();
+            return;
+        }
+        if (surpriseData.resetBy) {
+            displayMessage("Oyun zaten başka bir kullanıcı tarafından yeniden başlatılmış.");
             closeSolveProblemsModal();
             return;
         }
 
         // Kutu oyunundan geldiyse sıfırlama yap
         await resetGameBoard(); // Oyunu sıfırlayan ana fonksiyon
-        await surpriseInfoRef.remove(); // Sıfırlama hakkını tek kullanımlık yapmak için bilgiyi sil
-        displayMessage("Sürpriz kutu bulunduğu için oyun başarıyla sıfırlandı!");
+        
+        // --- YENİ ADIM: SIFIRLAYAN KİŞİNİN ADINI KAYDET ---
+        // Paneli silmek yerine, 'resetBy' alanını o anki kullanıcı adıyla güncelliyoruz.
+        await surpriseInfoRef.update({ resetBy: currentUser });
+        
+        displayMessage("Oyun başarıyla yeniden başlatıldı!");
 
     } else {
         displayMessage("Bu özellik sadece bir sürpriz kutu bulunduktan sonra kullanılabilir.");
@@ -6329,7 +6370,7 @@ async function reorderDailyRewardItem(rewardId, newIndex) {
     let surpriseSessionListener = null;
     // listenForSurpriseBox FONKSİYONUNU BU YENİ HALİYLE DEĞİŞTİR
 
-// MEVCUT listenForSurpriseBox FONKSİYONUNU BU BLOK İLE DEĞİŞTİRİN
+// ESKİ listenForSurpriseBox FONKSİYONUNU SİL, BUNU YAPIŞTIR
 let isProcessingSurpriseResult = false;
 let spectatorViewingResult = false;
 
@@ -6355,18 +6396,13 @@ function listenForSurpriseBox() {
         if (sessionData && sessionData.active) {
             if (sessionData.user === currentUser && !sessionData.result && cardSelectionModal.style.display !== 'flex') {
                 openCardSelectionModal(currentUser);
-            }
-            
-            if (sessionData.selection && sessionData.result && spectatorModal.style.display === 'flex') {
-                updateSpectatorView(sessionData);
-            }
-
-            if (sessionData.user !== currentUser && !sessionData.result && sessionData.expirationTimestamp && spectatorModal.style.display !== 'flex' && !isProcessingSurpriseResult) {
+            } 
+            else if (sessionData.user !== currentUser && !sessionData.result && spectatorModal.style.display !== 'flex' && !isProcessingSurpriseResult) {
                 openSpectatorModal(sessionData);
             }
 
             if (sessionData.result && !sessionData.logged && !isProcessingSurpriseResult) {
-                isProcessingSurpriseResult = true; 
+                isProcessingSurpriseResult = true;
 
                 sessionRef.transaction(currentData => {
                     if (currentData && currentData.result && !currentData.logged) {
@@ -6374,30 +6410,36 @@ function listenForSurpriseBox() {
                         return currentData;
                     }
                     return; 
-                }, async (error, committed, snapshot) => { // async eklendi
+                }, async (error, committed, snapshot) => {
                     if (error) {
                         console.error('Sürpriz kutu işlemi sırasında transaction hatası: ', error);
                         isProcessingSurpriseResult = false;
                     } else if (committed) {
                         const finalSessionData = snapshot.val();
-
-                        // --- İSTEĞİNİ KARŞILAYAN GÜNCEL KOD BURADA ---
-                        // Oyuncunun o turda kaç kutu açtığını alıyoruz
+                        
+                        // --- TEK KİŞİLİK KALICI KAYIT SİSTEMİ ---
+                        const userRef = db.ref(`users/${finalSessionData.user}`);
+                        const userSnap = await userRef.once('value');
+                        const userData = userSnap.val();
+                        const totalBoxCount = userData ? (userData.boxesOpenedCount || 0) : 0;
+                        
                         const openerStatsSnap = await db.ref(`gameStats/boxesOpenedByUsers/${finalSessionData.user}`).once('value');
-                        const openerBoxCount = openerStatsSnap.val() || 0;
+                        const roundBoxCount = openerStatsSnap.val() || 0;
 
-                        // Kalıcı bilgi objesini oluşturuyoruz
                         const surpriseInfo = {
                             finder: finalSessionData.user,
                             boxId: finalSessionData.boxId,
                             points: finalSessionData.result.points,
                             multiplier: finalSessionData.multiplier,
-                            openerBoxCount: openerBoxCount, // Açılan kutu sayısını da ekliyoruz
+                            roundBoxCount: roundBoxCount,
+                            totalBoxCount: totalBoxCount,
                             timestamp: firebase.database.ServerValue.TIMESTAMP
+                            // resetBy alanı başlangıçta olmayacak
                         };
-                        // Bilgiyi kalıcı olarak veritabanına kaydediyoruz
+
+                        // Artık listeye eklemek yerine, .set() ile üzerine yazıyoruz.
                         await db.ref('gameStats/lastSurpriseInfo').set(surpriseInfo);
-                        // --- GÜNCEL KOD SONU ---
+                        // --- YENİ SİSTEM SONU ---
 
                         logActivity('surpriseBox', finalSessionData.user, { 
                             boxId: finalSessionData.boxId,
@@ -6416,7 +6458,7 @@ function listenForSurpriseBox() {
                             closeGlobalSurpriseBoxModal(); 
                             handleSurpriseBoxCleanup(finalSessionData);
                             isProcessingSurpriseResult = false;
-                        }, 5000); // Bildirimin 5sn kalması için süre uzatıldı
+                        }, 5000);
                     } else {
                         isProcessingSurpriseResult = false;
                     }
