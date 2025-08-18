@@ -3815,16 +3815,11 @@ async function openBox(index) {
 
     if (!user) { displayMessage("Kullanıcı verisi bulunamadı."); return; }
 
-    const isCurrentlyBlocked = user.blocked && user.blockedUntil && Date.now() < user.blockedUntil;
-    if (isCurrentlyBlocked) {
-        displayBlockedMessage(user.blockedUntil, currentUser);
-        return;
-    }
     if ((user.kutuHakki || 0) < BOX_RIGHTS_COST_PER_BOX) {
         displayMessage("Yetersiz kutu hakkı.");
         return;
     }
-
+    
     const initialConfirm = await customConfirm(`<b>${boxes[index].id}</b> numaralı kutuyu açmak istediğinize emin misiniz?`);
     if (!initialConfirm) return;
 
@@ -3850,21 +3845,13 @@ async function openBox(index) {
     } else if (user.multiplierSource === 'store' && (user.multiplierRemainingUses || 0) > 0) {
         const confirmed = await customConfirm(`Mevcut <b>${user.activeMultiplier}x</b> çarpanınızı kullanmak ister misiniz?`);
         if (confirmed) {
-            latestBoxSnap = await boxRef.once('value');
-            if (latestBoxSnap.val().opened) {
-                displayMessage(`Siz çarpanı onaylayana kadar bu kutu <b>${latestBoxSnap.val().opener}</b> tarafından açıldı. Haklarınız ve çarpanınız kullanılmadı.`);
-                await db.ref('gameLock').set(false);
-                return;
-            }
             finalMultiplier = user.activeMultiplier;
             useMultiplier = true;
         }
     }
 
     const statsRef = db.ref(`gameStats/boxesOpenedByUsers/${currentUser}`);
-    await statsRef.transaction(currentValue => {
-        return (currentValue || 0) + 1;
-    });
+    await statsRef.transaction(currentValue => (currentValue || 0) + 1);
 
     const box = boxes[index];
     let message = '';
@@ -3873,32 +3860,69 @@ async function openBox(index) {
     updates['boxesOpenedCount'] = (user.boxesOpenedCount || 0) + 1;
 
     const boxUpdate = { opened: true, opener: currentUser, id: box.id, content: box.content, value: box.value };
-    const boxOpenInfo = { boxId: box.id, opener: currentUser, content: box.content, value: box.value, timestamp: firebase.database.ServerValue.TIMESTAMP };
+    if (finalMultiplier > 1) boxUpdate.multiplierApplied = finalMultiplier;
 
-    if (finalMultiplier > 1) {
-        boxUpdate.multiplierApplied = finalMultiplier;
-        boxOpenInfo.multiplierUsed = finalMultiplier;
-    }
-     if (box.content === 'multiplier') {
+    if (box.content === 'multiplier') {
         updates['multiplierFoundCount'] = (user.multiplierFoundCount || 0) + 1;
+        
         if (useMultiplier && originalMultiplierSource === 'store') {
-            message = `VAY CANINA! 🤩<br>Mağaza çarpanıyla açtığın kutudan <b>yeni bir ${box.value}x Çarpan</b> daha buldun! <br>Bu tur harcadığın kullanım hakkın iade edildi ve mağaza çarpanını korudun.`;
-            logActivity('multiplierRefund', currentUser, { boxId: box.id, newMultiplier: box.value, refundedMultiplier: user.activeMultiplier });
+            if (box.value > user.activeMultiplier) {
+                const choice = await customChoiceConfirm(
+                    `Harika bir buluş! Mevcut <b>${user.activeMultiplier}x</b> çarpanın varken kutudan daha güçlü bir <b>${box.value}x</b> çarpan buldun.<br>Ne yapmak istersin?`,
+                    `Mevcut Çarpanımı Koru`,
+                    `Yeni ${box.value}x Çarpanına Yükselt`
+                );
+
+                if (choice === 'swap') { 
+                    const rightsGained = user.activeMultiplier * user.multiplierRemainingUses;
+                    updates['kutuHakki'] = (updates.kutuHakki || 0) + rightsGained;
+                    
+                    updates['activeMultiplier'] = box.value;
+                    updates['multiplierSource'] = 'box';
+                    updates['multiplierRemainingUses'] = 0;
+                    updates['activeStoreMultiplierItemId'] = null;
+
+                    message = `YÜKSELTME BAŞARILI! 🚀<br>Yeni <b>${box.value}x Çarpan</b> aktif edildi. Eski çarpanından kalanlar için <b>+${rightsGained} Kutu Hakkı</b> telafi edildi!`;
+                    logActivity('multiplierChoice', currentUser, { 
+                        boxId: box.id, 
+                        choice: 'swap',
+                        oldMultiplier: user.activeMultiplier,
+                        newMultiplier: box.value,
+                        compensation: rightsGained 
+                    });
+                } else { 
+                    const rightsGained = box.value;
+                    updates['kutuHakki'] = (updates.kutuHakki || 0) + rightsGained;
+                    message = `SEÇİMİNİ YAPTIN! 👍<br>Mevcut çarpanın korundu ve bulduğun çarpan <b>+${rightsGained} Kutu Hakkı'na</b> dönüştürüldü!`;
+                    logActivity('multiplierChoice', currentUser, { 
+                        boxId: box.id,
+                        choice: 'convert',
+                        oldMultiplier: user.activeMultiplier,
+                        newMultiplier: box.value,
+                        boxRightsGained: rightsGained
+                    });
+                }
+            } else { 
+                const rightsGained = box.value;
+                updates['kutuHakki'] = (updates.kutuHakki || 0) + rightsGained;
+                message = `HARİKA! 🤩<br>Mağaza çarpan hakkın korundu ve bulduğun çarpan <b>+${rightsGained} Kutu Hakkı'na</b> dönüştürüldü!`;
+                logActivity('multiplierChoice', currentUser, {
+                    boxId: box.id,
+                    choice: 'convert',
+                    oldMultiplier: user.activeMultiplier,
+                    newMultiplier: box.value,
+                    boxRightsGained: rightsGained
+                });
+            }
             boxUpdate.refundOccurred = true;
-            boxUpdate.refundedMultiplier = user.activeMultiplier;
-            boxOpenInfo.refundOccurred = true;
-            boxOpenInfo.refundedMultiplier = user.activeMultiplier;
-            updates['multiplierRemainingUses'] = (user.multiplierRemainingUses || 0);
-             }
-             
-          else {
+
+        } else {
             message = `Tebrikler! <b>${box.value}x Çarpan</b> buldun! Bu çarpan, bir sonraki kutu açılışında otomatik olarak kullanılacak.`;
             updates['activeMultiplier'] = box.value;
             updates['multiplierSource'] = 'box';
             logActivity('multiplierFound', currentUser, { boxId: box.id, value: box.value });
         }
-    }
-    else {
+    } else {
         if (useMultiplier && box.content !== 'surpriz') {
             if (originalMultiplierSource === 'box') {
                 updates['activeMultiplier'] = 1;
@@ -3911,17 +3935,12 @@ async function openBox(index) {
                 }
             }
         }
-
+        
         if (box.content === 'points') {
             const pointsGained = box.value * finalMultiplier;
             updates['balance'] = (user.balance || 0) + pointsGained;
             if (updates['balance'] > (user.highestBalanceEver || 0)) updates['highestBalanceEver'] = updates['balance'];
             message = `+${pointsGained} puan kazandınız!`;
-            boxUpdate.basePoints = box.value;
-            boxUpdate.finalPoints = pointsGained;
-            boxOpenInfo.basePoints = box.value;
-            boxOpenInfo.finalPoints = pointsGained;
-            logActivity('openBox', currentUser, { boxId: box.id, points: pointsGained, multiplier: finalMultiplier });
         }
         else if (box.content === 'iflas') {
             let shieldWasUsed = false;
@@ -3936,11 +3955,6 @@ async function openBox(index) {
                 updates['balance'] = 0;
                 message = `İflas! Tüm puanların (${lostPoints} puan) silindi.`;
             }
-            boxUpdate.shieldUsed = shieldWasUsed;
-            boxUpdate.lostPoints = shieldWasUsed ? 0 : lostPoints;
-            boxOpenInfo.shieldUsed = shieldWasUsed;
-            boxOpenInfo.lostPoints = shieldWasUsed ? 0 : lostPoints;
-            logActivity('iflas', currentUser, { shieldUsed: shieldWasUsed, lostPoints: shieldWasUsed ? 0 : lostPoints, boxId: box.id, multiplier: finalMultiplier });
         }
         else if (box.content === 'surpriz') {
             updates['surpriseBoxesOpened'] = (user.surpriseBoxesOpened || 0) + 1;
@@ -3960,13 +3974,6 @@ async function openBox(index) {
             const dbKeys = { wheelTicket: 'carkBileti', clickCatchTicket: 'clickCatchTickets', iflasShield: 'iflasShieldUses' };
             updates[dbKeys[box.content]] = (user[dbKeys[box.content]] || 0) + itemsGained;
             message = `Kutudan <b>+${itemsGained} ${itemNames[box.content]}</b> kazandın!`;
-
-            boxUpdate.baseValue = box.value;
-            boxUpdate.finalValue = itemsGained;
-            boxOpenInfo.baseValue = box.value;
-            boxOpenInfo.finalValue = itemsGained;
-
-            logActivity('newItemFound', currentUser, { itemName: `+${itemsGained} ${itemNames[box.content]}`, itemType: box.content, boxId: box.id, multiplier: finalMultiplier });
         }
     }
 
@@ -3974,7 +3981,6 @@ async function openBox(index) {
     await boxRef.update(boxUpdate);
 
     if (box.content !== 'surpriz') {
-        await db.ref('lastOpenedBox').set(boxOpenInfo);
         displayMessage(message);
     }
 }
@@ -4534,9 +4540,29 @@ async function buyItem(itemId) {
     
     if (!user || !item) return;
 
-    if (item.type === 'tempMultiplier' && (user.multiplierSource === 'store' || user.multiplierSource === 'box')) {
-        displayMessage("Mevcut bir çarpanınız varken yenisini alamazsınız.");
-        return;
+    if (item.type === 'tempMultiplier') {
+        if (user.multiplierSource === 'store' && user.activeMultiplier === item.value) {
+            if ((user.balance || 0) < item.cost) {
+                displayMessage("Yetersiz Puan!");
+                return;
+            }
+            const confirmed = await customConfirm(`${item.name} ürününden zaten var. Mevcut çarpanınıza +${item.duration} kullanım hakkı eklemek için ${item.cost} puan harcamak istiyor musunuz?`);
+            if (confirmed) {
+                const updates = {
+                    balance: user.balance - item.cost,
+                    totalSpentPoints: (user.totalSpentPoints || 0) + item.cost,
+                    multiplierRemainingUses: (user.multiplierRemainingUses || 0) + item.duration
+                };
+                await userRef.update(updates);
+                await itemRef.child('purchaseCount').transaction(count => (count || 0) + 1);
+                displayMessage(`Başarılı! Çarpanınıza +${item.duration} kullanım hakkı eklendi.`);
+            }
+            return;
+        }
+        if (user.multiplierSource === 'box') {
+            displayMessage("Kutudan bulduğunuz aktif bir çarpanınız varken yenisini alamazsınız.");
+            return;
+        }
     }
     
     if (item.type === 'avatar' && user.avatars && user.avatars[itemId]) {
@@ -4554,7 +4580,6 @@ async function buyItem(itemId) {
     }
     const confirmed = await customConfirm(`${item.name} ürününü ${item.cost} puana almak istiyor musunuz?`);
     if (confirmed) {
-      
         logActivity('buyItem', currentUser, { 
             itemName: item.name, 
             itemCost: item.cost,
@@ -4570,28 +4595,21 @@ async function buyItem(itemId) {
         };
         let message = 'Satın alma başarılı!';
         
-        // --- GÜVENLİK KONTROLLERİ EKLENDİ ---
         const itemValue = parseInt(item.value) || 0;
         const itemDuration = parseInt(item.duration) || 0;
 
         if (item.type === 'boxRights') {
-            if (itemValue <= 0) { displayMessage("Ürün hatası: Geçersiz Kutu Hakkı değeri."); return; }
             updates.kutuHakki = (user.kutuHakki || 0) + itemValue;
         } else if (item.type === 'wheelTicket') {
-            if (itemValue <= 0) { displayMessage("Ürün hatası: Geçersiz Bilet değeri."); return; }
             updates.carkBileti = (user.carkBileti || 0) + itemValue;
         } else if (item.type === 'clickCatchTicket') {
-            if (itemValue <= 0) { displayMessage("Ürün hatası: Geçersiz Bilet değeri."); return; }
             updates.clickCatchTickets = (user.clickCatchTickets || 0) + itemValue;
         } else if (item.type === 'tempMultiplier') {
-            if (itemValue <= 1) { displayMessage("Ürün hatası: Geçersiz Çarpan değeri (1'den büyük olmalı)."); return; }
-            if (itemDuration <= 0) { displayMessage("Ürün hatası: Geçersiz Çarpan kullanım hakkı."); return; }
             updates.activeMultiplier = itemValue;
             updates.multiplierSource = 'store';
             updates.multiplierRemainingUses = itemDuration;
             updates.activeStoreMultiplierItemId = itemId; 
         } else if (item.type === 'iflasShield') {
-            if (itemValue <= 0) { displayMessage("Ürün hatası: Geçersiz Kalkan değeri."); return; }
             updates.iflasShieldUses = (user.iflasShieldUses || 0) + itemValue;
         } 
         else if (item.type === 'avatar') {
@@ -4644,6 +4662,25 @@ async function buyItem(itemId) {
         
         displayMessage(message);
     }
+}
+
+function customChoiceConfirm(message, choiceA, choiceB) {
+    return new Promise(resolve => {
+        const choiceBox = document.createElement('div');
+        choiceBox.className = 'fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[99999]';
+        choiceBox.innerHTML = `
+          <div class="bg-gray-800 p-8 rounded-xl shadow-2xl border border-yellow-500 w-11/12 max-w-lg text-center relative">
+            <p class="text-lg text-gray-300 mb-6">${message}</p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+              <button id="choiceA_btn" class="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg">${choiceA}</button>
+              <button id="choiceB_btn" class="flex-1 py-3 bg-green-700 hover:bg-green-600 text-white font-bold rounded-lg">${choiceB}</button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(choiceBox);
+        document.getElementById('choiceA_btn').onclick = () => { choiceBox.remove(); resolve('convert'); };
+        document.getElementById('choiceB_btn').onclick = () => { choiceBox.remove(); resolve('swap'); };
+    });
 }
   
   function resetStoreItemForm() {
@@ -6058,8 +6095,7 @@ async function openDailyRewardModal() {
     }
 }
 
-// MEVCUT claimDailyReward FONKSİYONUNU BUNUNLA DEĞİŞTİR
-
+// MEVCUT claimDailyReward FONKSİYONUNU SİL VE BUNU YAPIŞTIR
 async function claimDailyReward(rewardId) {
     if (isAdmin) return;
 
@@ -6089,21 +6125,42 @@ async function claimDailyReward(rewardId) {
 
         if (Date.now() < lastClaim + cooldown) {
             displayMessage("Bu ödül için bekleme süresi henüz dolmadı.");
-            if (claimButton) {
-                claimButton.disabled = false;
-                claimButton.textContent = 'Ödülü Al';
-            }
+            if (claimButton) { claimButton.disabled = false; claimButton.textContent = 'Ödülü Al'; }
             return;
         }
 
+        // --- YENİ SEÇENEKLİ MANTIK BURADA ---
         if (reward.type === 'tempMultiplier' && user.multiplierSource !== 'none') {
-            displayMessage("Mevcut bir çarpanınız varken çarpan ödülü alamazsınız. Lütfen önce mevcut çarpanınızı kullanın.");
-            if (claimButton) {
-                claimButton.disabled = false;
-                claimButton.textContent = 'Ödülü Al';
+            const rightsGained = reward.value; // Çarpan değeri kadar kutu hakkı
+            const confirmationMessage = `Mevcut bir çarpanın olduğu için bu ödülü alamazsın. Bunun yerine, bu ödülü <b>+${rightsGained} Kutu Açma Hakkı'na</b> dönüştürmek ister misin?`;
+            
+            const confirmed = await customConfirm(confirmationMessage);
+
+            if (confirmed) {
+                // Kullanıcı teklifi kabul etti, Kutu Hakkını ver
+                await userRef.update({
+                    kutuHakki: (user.kutuHakki || 0) + rightsGained
+                });
+                // Ödülü "alındı" olarak işaretle
+                await db.ref(`users/${currentUser}/dailyRewardsClaimed/${rewardId}`).set(firebase.database.ServerValue.TIMESTAMP);
+                
+                // Bu özel durumu Son Eylemler'e kaydet
+                logActivity('dailyRewardConverted', currentUser, {
+                    originalRewardName: reward.name,
+                    boxRightsGained: rightsGained
+                });
+                
+                displayMessage(`Ödül başarıyla <b>+${rightsGained} Kutu Hakkı'na</b> dönüştürüldü!`);
+                closeDailyRewardModal();
+                checkAvailableDailyRewards();
+
+            } else {
+                // Kullanıcı teklifi reddetti, hiçbir şey yapma
+                if (claimButton) { claimButton.disabled = false; claimButton.textContent = 'Ödülü Al'; }
             }
-            return;
+            return; // Fonksiyonu burada bitir.
         }
+        // --- YENİ MANTIK SONU ---
 
         let updates = {};
         let message = `Tebrikler! Günlük ödül olarak <b>${reward.name}</b> kazandın.`;
@@ -6134,14 +6191,13 @@ async function claimDailyReward(rewardId) {
                 break;
         }
 
-        // *** DEĞİŞEN KISIM BURASI: Çarpan ise kullanım hakkını da logluyoruz ***
         const logDetails = { 
             rewardName: reward.name, 
             rewardType: reward.type, 
             rewardValue: reward.value 
         };
         if (reward.type === 'tempMultiplier') {
-            logDetails.rewardUses = reward.uses; // Kullanım hakkını ekle
+            logDetails.rewardUses = reward.uses;
         }
         logActivity('dailyReward', currentUser, logDetails);
         
@@ -6791,26 +6847,20 @@ async function spinWheel() {
                 updates.multiplierSource = 'store';
                 updates.multiplierRemainingUses = winningSegment.duration;
                 break;
-            // spinWheel fonksiyonu içindeki case 'surpriseBox': bölümünü bul ve değiştir
-
-case 'surpriseBox':
-     const sessionRef = db.ref('surprise_box_session');
-     await sessionRef.set({ 
-         active: true, 
-         user: currentUser, 
-         boxId: 'Çark', // <-- DEĞİŞİKLİK BURADA! Kaynağı 'Çark' olarak belirtiyoruz.
-         multiplier: 1, 
-         cards: shuffleArray([...cardValues]), 
-         selection: null, 
-         result: null, 
-         timestamp: firebase.database.ServerValue.TIMESTAMP
-     });
-     const snap = await sessionRef.once('value');
-     const serverTimestamp = snap.val().timestamp;
-     await sessionRef.update({ expirationTimestamp: serverTimestamp + 60000 });
-     openCardSelectionModal(currentUser);
-     message = "Vay canına! Çarktan Sürpriz Kutu çıktı! Şimdi bir kart seç.";
-     break;
+            case 'surpriseBox':
+                 const sessionRef = db.ref('surprise_box_session');
+                 await sessionRef.set({ 
+                     active: true, user: currentUser, boxId: 'Çark', 
+                     multiplier: 1, cards: shuffleArray([...cardValues]), 
+                     selection: null, result: null, 
+                     timestamp: firebase.database.ServerValue.TIMESTAMP
+                 });
+                 const snap = await sessionRef.once('value');
+                 const serverTimestamp = snap.val().timestamp;
+                 await sessionRef.update({ expirationTimestamp: serverTimestamp + 60000 });
+                 openCardSelectionModal(currentUser);
+                 message = "Vay canına! Çarktan Sürpriz Kutu çıktı! Şimdi bir kart seç.";
+                 break;
             case 'pas':
                 message = "Bu seferlik pas! Bir dahaki sefere daha şanslı olabilirsin.";
                 break;
@@ -6823,27 +6873,6 @@ case 'surpriseBox':
             value: winningSegment.value !== undefined ? winningSegment.value : null,
             timestamp: firebase.database.ServerValue.TIMESTAMP
         });
-        // --- BURAYA EKLENECEK YENİ KOD ---
-const historyRef = db.ref('wheelHistory');
-historyRef.orderByChild('timestamp').once('value', (snapshot) => {
-    const totalCount = snapshot.numChildren();
-    const limit = 10; // İstenen limit
-
-    if (totalCount > limit) {
-        let itemsToDeleteCount = totalCount - limit;
-        snapshot.forEach((childSnapshot) => {
-            // Silinmesi gereken kadar öğe silindiyse döngüden çık
-            if (itemsToDeleteCount <= 0) {
-                return true; 
-            }
-            
-            // En eski kaydı sil
-            childSnapshot.ref.remove();
-            itemsToDeleteCount--;
-        });
-    }
-});
-// --- YENİ KOD BİTİŞİ ---
 
         if (winningSegment.type !== 'surpriseBox') {
             const logDetails = {
@@ -8273,13 +8302,19 @@ function logActivity(type, username, details = {}) {
     });
 }
 
-// --- MEVCUT getActivityIcon FONKSİYONUNU SİL, BUNU YAPIŞTIR ---
-
 function getActivityIcon(type, details = {}) {
     let icon = '🔔';
     let bgColor = 'bg-gray-500';
 
     switch (type) {
+        case 'dailyRewardConverted': // YENİ EKLENDİ
+            icon = '🔄️';
+            bgColor = 'bg-lime-500';
+            break;
+        case 'multiplierChoice':
+            icon = '❎';
+            bgColor = 'bg-cyan-500';
+            break;
         case 'openBox':
             icon = '💰';
             bgColor = 'bg-green-500';
@@ -8289,39 +8324,22 @@ function getActivityIcon(type, details = {}) {
             bgColor = 'bg-yellow-500';
             break;
         case 'iflas':
-            if (details.shieldUsed) {
-                icon = '🛡️';
-                bgColor = 'bg-blue-500';
-            } else if (details.multiplier && details.multiplier > 1) {
-                icon = '❌'; 
-                bgColor = 'bg-red-800';
-            } else {
-                icon = '💣';
-                bgColor = 'bg-red-600';
-            }
+            icon = details.shieldUsed ? '🛡️' : '💣';
+            bgColor = details.shieldUsed ? 'bg-blue-500' : 'bg-red-600';
             break;
         case 'multiplierFound':
         case 'multiplierRefund':
             icon = '✖️';
             bgColor = 'bg-purple-500';
             break;
-            
-        // --- İSTEĞİNİ KARŞILAYAN DÜZELTME BURADA ---
         case 'newItemFound':
-            const itemType = details.itemType; // itemType'ı direkt kullanıyoruz (örn: 'wheelTicket')
-            if (itemType === 'iflasShield') {
-                icon = '🛡️';
-            } else if (itemType === 'wheelTicket') {
-                icon = '🎫'; // Şans Çarkı Bileti için doğru ikon
-            } else if (itemType === 'clickCatchTicket') {
-                icon = '🎟️'; // Tıkla-Yakala Bileti için doğru ikon
-            } else {
-                icon = '📦'; // Diğer tüm eşyalar için varsayılan
-            }
-            bgColor = 'bg-cyan-500';
+            const itemType = details.itemType;
+            if (itemType === 'iflasShield') icon = '🛡️';
+            else if (itemType === 'wheelTicket') icon = '🎫';
+            else if (itemType === 'clickCatchTicket') icon = '🎟️';
+            else icon = '📦';
+            bgColor = 'bg-teal-500';
             break;
-        // --- DÜZELTME SONU ---
-            
         case 'buyItem':
             icon = '🛒';
             bgColor = 'bg-indigo-500';
@@ -8339,10 +8357,6 @@ function getActivityIcon(type, details = {}) {
             icon = '📅';
             bgColor = 'bg-teal-500';
             break;
-        case 'surpriseBoxTimeout':
-            icon = '⏰';
-            bgColor = 'bg-gray-600';
-            break;
     }
 
     return `
@@ -8351,8 +8365,6 @@ function getActivityIcon(type, details = {}) {
         </div>
     `;
 }
-
-// --- MEVCUT renderActivityFeed FONKSİYONUNU SİL, BUNU YAPIŞTIR ---
 
 function renderActivityFeed(activities) {
     const activityFeedList = document.getElementById('activityFeedList');
@@ -8397,6 +8409,16 @@ function renderActivityFeed(activities) {
             const userHtml = `<b class="text-yellow-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${activity.username}')">${activity.username}</b>`;
 
             switch (activity.type) {
+                case 'dailyRewardConverted':
+                    message = `${userHtml}, günlük ödül olan "<b>${details.originalRewardName}</b>" ödülünü <span class="text-green-300 font-bold">+${details.boxRightsGained} Kutu Hakkı'na</span> dönüştürdü.`;
+                    break;
+                case 'multiplierChoice':
+                    if (details.choice === 'swap') {
+                        message = `${userHtml}, <b>${details.boxId}</b> numaralı kutuyu açtı ve mevcut <b>${details.oldMultiplier}x</b> çarpanını yeni <b>${details.newMultiplier}x</b> çarpanına <b>yükseltmeyi</b> seçerek telafi olarak <span class="text-green-300 font-bold">+${details.compensation} Kutu Hakkı</span> kazandı.`;
+                    } else { // 'convert'
+                        message = `${userHtml}, <b>${details.boxId}</b> numaralı kutuyu açtı ve mevcut <b>${details.oldMultiplier}x</b> çarpanını <b>korumayı</b> seçerek yeni <b>${details.newMultiplier}x</b> çarpanını <span class="text-green-300 font-bold">+${details.boxRightsGained} Kutu Hakkı'na</span> dönüştürdü.`;
+                    }
+                    break;
                 case 'openBox':
                     let openBoxMultiplierText = (details.multiplier && details.multiplier > 1)
                         ? ` <span class="text-xs text-purple-400">(${details.multiplier}x çarpan kullandı)</span>`
@@ -8430,8 +8452,6 @@ function renderActivityFeed(activities) {
                         : ` <span class="text-xs text-gray-500">(Çarpan kullanılmadı)</span>`;
                     message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-cyan-300 font-bold">${details.itemName}</span> buldu${newItemMultiplierText}.`;
                     break;
-                
-                // --- İSTEĞİNİ KARŞILAYAN GÜNCELLEME BURADA ---
                 case 'buyItem':
                     let purchasedItemText = '';
                     if (details.itemType === 'tempMultiplier') {
@@ -8444,8 +8464,6 @@ function renderActivityFeed(activities) {
                     }
                     message = `${userHtml}, <span class="text-red-400 font-bold">-${details.itemCost} Puan</span> harcayarak mağazadan ${purchasedItemText} aldı.`;
                     break;
-                // --- GÜNCELLEME SONU ---
-
                 case 'spinWheel':
                     let prizeText = '';
                     const prizeType = details.type;
@@ -8454,32 +8472,26 @@ function renderActivityFeed(activities) {
                     if (prizeType === 'pas') {
                         message = `${userHtml}, çarkı çevirdi ve <span class="text-gray-400 font-bold">Pas</span> geçti.`;
                     } else {
-                        if (prizeType === 'points') {
-                            prizeText = `+${prizeValue} Puan`;
-                        } else if (prizeType === 'tempMultiplier') {
-                            prizeText = `${prizeValue}x Çarpan`;
-                        } else {
-                            prizeText = `+${prizeValue} ${typeToName[prizeType] || prizeType}`;
-                        }
+                        if (prizeType === 'points') prizeText = `+${prizeValue} Puan`;
+                        else if (prizeType === 'tempMultiplier') prizeText = `${prizeValue}x Çarpan`;
+                        else prizeText = `+${prizeValue} ${typeToName[prizeType] || prizeType}`;
                         message = `${userHtml}, çarkı çevirerek <span class="text-pink-300 font-bold">${prizeText}</span> kazandı.`;
                     }
                     break;
-                // ...VE BUNUNLA DEĞİŞTİR
-case 'clickCatchSolo':
-    if (details.score > 0) {
-        message = `${userHtml}, Tıkla-Yakala oynadı ve <span class="text-green-300 font-bold">+${details.score} Skor</span> topladı.`;
-    } else if (details.score < 0) {
-        message = `${userHtml}, Tıkla-Yakala oynadı ve <span class="text-red-400 font-bold">${details.score} Skor</span> kaybetti.`;
-    } else {
-        message = `${userHtml}, Tıkla-Yakala oynadı ancak skor toplayamadı.`;
-    }
-
-    if (details.specialItems && details.specialItems.length > 0) {
-        message += ` Ayrıca, <span class="text-cyan-300 font-bold">${details.specialItems.join(', ')}</span> kazandı.`;
-    } else {
-        message += ` <span class="text-xs text-gray-500">(Özel eşya yakalanmadı)</span>`;
-    }
-    break;;
+                case 'clickCatchSolo':
+                    if (details.score > 0) {
+                        message = `${userHtml}, Tıkla-Yakala oynadı ve <span class="text-green-300 font-bold">+${details.score} Skor</span> topladı.`;
+                    } else if (details.score < 0) {
+                        message = `${userHtml}, Tıkla-Yakala oynadı ve <span class="text-red-400 font-bold">${details.score} Skor</span> kaybetti.`;
+                    } else {
+                        message = `${userHtml}, Tıkla-Yakala oynadı ancak skor toplayamadı.`;
+                    }
+                    if (details.specialItems && details.specialItems.length > 0) {
+                        message += ` Ayrıca, <span class="text-cyan-300 font-bold">${details.specialItems.join(', ')}</span> kazandı.`;
+                    } else {
+                        message += ` <span class="text-xs text-gray-500">(Özel eşya yakalanmadı)</span>`;
+                    }
+                    break;
                 case 'clickCatchLobby':
                     message = `${userHtml}, lobi oyununu kazanarak <span class="text-yellow-300 font-bold">+${details.prize} Puan</span> ödül aldı!`;
                     break;
@@ -8488,13 +8500,9 @@ case 'clickCatchSolo':
                     const rewardType = details.rewardType;
                     const rewardValue = details.rewardValue;
 
-                    if (rewardType === 'points') {
-                        rewardText = `+${rewardValue} Puan`;
-                    } else if (rewardType === 'tempMultiplier') {
-                        rewardText = `${details.rewardUses} adet ${rewardValue}x Çarpan`;
-                    } else {
-                        rewardText = `+${rewardValue} ${typeToName[rewardType] || details.rewardName}`;
-                    }
+                    if (rewardType === 'points') rewardText = `+${rewardValue} Puan`;
+                    else if (rewardType === 'tempMultiplier') rewardText = `${details.rewardUses} adet ${rewardValue}x Çarpan`;
+                    else rewardText = `+${rewardValue} ${typeToName[rewardType] || details.rewardName}`;
                     message = `${userHtml}, günlük ödül olarak <span class="text-teal-300 font-bold">${rewardText}</span> aldı.`;
                     break;
                 case 'surpriseBoxTimeout':
