@@ -1071,7 +1071,7 @@ body.modal-open .modal-content {
   </div>
 </div>
 
-<div id="publicUserDetailModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-50 hidden" onclick="closeModalOnClickOutside(event)">
+<div id="publicUserDetailModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-[10001] hidden" onclick="closeModalOnClickOutside(event)">
   <div class="modal-content bg-gray-900/95 backdrop-blur-sm p-6 rounded-2xl shadow-2xl border border-yellow-500 w-11/12 max-w-2xl text-center relative max-h-[90vh] overflow-y-auto scrollable-list">
     <button class="modal-close-button absolute top-4 right-4 text-gray-400 hover:text-white text-4xl transition-colors" onclick="closePublicUserDetailModal()">&times;</button>
 
@@ -8409,6 +8409,8 @@ function renderActivityFeed(activities) {
             let message = '';
             const timeAgo = formatRelativeTime(activity.timestamp);
             const deleteButtonHtml = isAdmin ? `<button onclick="deleteActivity('${activity.id}')" class="ml-2 p-1 rounded-full text-gray-500 hover:text-red-500 hover:bg-white/10 transition-colors" title="Bu Eylemi Sil"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1-1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>` : '';
+            
+            // --- DÜZELTİLEN SATIR BURASI ---
             const userHtml = `<b class="text-yellow-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${activity.username}')">${activity.username}</b>`;
 
             switch (activity.type) {
