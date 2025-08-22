@@ -462,10 +462,10 @@ body.modal-open .modal-content {
     <p class="text-gray-400 mb-6">Buradaki araçları kullanarak oyunda oluşabilecek genel sorunları çözebilirsiniz.</p>
     <div class="space-y-4">
         <button onclick="manualUnlockGame()" class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-md">
-            Oyun Kilidini Manuel Aç
+            Kutu açmaya devam et.
         </button>
         <button onclick="manualResetAfterSurprise()" class="w-full py-3 bg-green-700 hover:bg-green-600 text-white font-bold rounded-lg shadow-md">
-            Oyunu Manuel Sıfırla (Sürpriz Sonrası)
+            Oyunu baştan başlat (Sürpriz Kutu Sonrası)
         </button>
     </div>
   </div>
@@ -3800,7 +3800,7 @@ async function deleteUserAvatar(username, avatarId) {
 
 async function openBox(index) {
     if (isGameLocked) {
-        displayMessage("Başka bir kullanıcı şu anda bir kutu açıyor. Lütfen 3 saniye sonra tekrar deneyin.");
+        displayMessage("Kutular 3 saniye arayla açılmaktadır. Sürpriz kutu bulunduğu zaman sorunları çöz menüsünden kutuları açmaya devam edebilir veya oyunu baştan başlatabilirsin.");
         return;
     }
     if (boxes[index].opened) return;
