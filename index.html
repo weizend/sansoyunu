@@ -403,8 +403,6 @@ body.modal-open .modal-content {
 
       <div id="boxContainer" class="grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-2 w-full mx-auto mb-8 p-2">
       </div>
-      <div id="lastSurpriseInfoContainer" class="hidden w-full max-w-2xl mx-auto mt-6 bg-gray-800 p-4 rounded-xl shadow-lg border-2 border-yellow-500 glowing-border text-center">
-    </div>
       <div id="tablesWrapper" class="flex flex-wrap justify-center gap-6 mb-8">
         <div class="tableBox bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700 w-full md:flex-1 min-w-[280px] md:max-w-md">
             <h3 class="text-yellow-400 text-xl font-bold border-b border-gray-600 pb-3 mb-4">KULLANICI PUAN SIRALAMASI 🥇</h3>
@@ -423,6 +421,9 @@ body.modal-open .modal-content {
         </div>
       </div>
     </div>
+    
+    <div id="lastSurpriseFinderPanel" class="hidden w-full max-w-2xl mx-auto mt-6 bg-gray-800 p-6 rounded-xl shadow-lg border-2 border-amber-400 text-center space-y-3">
+        </div>
 
         <div id="chanceWheelContent" class="w-full hidden">
     <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700 text-center">
@@ -2439,7 +2440,8 @@ async function executeWeeklyReset() {
     console.log("Haftalık sıfırlama başarıyla tamamlandı.");
 }
 
-  async function afterLogin() {
+  // MEVCUT afterLogin FONKSİYONUNU SİL VE BUNUNLA DEĞİŞTİR
+async function afterLogin() {
     document.getElementById("loginContainer").style.display = "none";
     document.getElementById("gameDiv").style.display = "block";
     
@@ -2480,8 +2482,9 @@ async function executeWeeklyReset() {
     listenForLobbyChanges();
     listenForWeeklyWinner(); 
     listenForSeasonCountdown();
-    listenForWeeklyCountdown(); // YENİ HAFTALIK SAYAÇ LİSTENER'I BURADA ÇAĞIRILIYOR
+    listenForWeeklyCountdown();
     listenForPersistentAnnouncement();
+    listenForLastSurpriseFinderPanel(); // Bu satır eklendi
     
     if (!isAdmin) {
         listenForAdminNotifications();
@@ -3804,8 +3807,7 @@ async function deleteUserAvatar(username, avatarId) {
       }); 
   }
 
-// MEVCUT openBox FONKSİYONUNU SİLİP BUNUNLA DEĞİŞTİRİN
-
+// MEVCUT openBox FONKSİYONUNU SİL VE BUNUNLA DEĞİŞTİR
 async function openBox(index) {
     if (isGameLocked) {
         displayMessage("Başka bir kullanıcı şu anda bir kutu açıyor. Lütfen 3 saniye sonra tekrar deneyin.");
@@ -3941,7 +3943,6 @@ async function openBox(index) {
             boxUpdate.finalPoints = pointsGained;
             boxOpenInfo.basePoints = box.value;
             boxOpenInfo.finalPoints = pointsGained;
-            // --- DEĞİŞİKLİK: Log kaydına yeni bakiye bilgisini ekliyoruz. ---
             logActivity('openBox', currentUser, { 
                 boxId: box.id, 
                 points: pointsGained, 
@@ -3976,11 +3977,16 @@ async function openBox(index) {
         }
         else if (box.content === 'surpriz') {
             updates['surpriseBoxesOpened'] = (user.surpriseBoxesOpened || 0) + 1;
+            
+            const statsSnap = await db.ref(`gameStats/boxesOpenedByUsers/${currentUser}`).once('value');
+            const boxesOpenedThisRound = statsSnap.val() || 0;
+
             const sessionRef = db.ref('surprise_box_session');
             await sessionRef.set({
                 active: true, user: currentUser, boxId: box.id, multiplier: finalMultiplier,
                 cards: shuffleArray([...cardValues]), selection: null, result: null,
-                timestamp: firebase.database.ServerValue.TIMESTAMP
+                timestamp: firebase.database.ServerValue.TIMESTAMP,
+                boxesOpenedThisRound: boxesOpenedThisRound
             });
             const snap = await sessionRef.once('value');
             await sessionRef.update({ expirationTimestamp: snap.val().timestamp + 60000 });
@@ -4255,40 +4261,6 @@ function openCardSelectionModal(userId) {
     });
 }
 
-// YEPYENİ FONKSİYON - BU KOD BLOĞUNU OLDUĞU GİBİ EKLE
-function updateLastSurpriseInfoDisplay(info) {
-    const container = document.getElementById('lastSurpriseInfoContainer');
-    if (!info) {
-        container.classList.add('hidden');
-        return;
-    }
-
-    let multiplierText = '';
-    if (info.timedOut) {
-        multiplierText = '<span class="text-red-400 font-bold">Süre doldu, kart seçilmedi.</span>';
-    } else if (info.multiplier && info.multiplier > 1) {
-        multiplierText = `Çarpan: <b class="text-white">${info.multiplier}x</b>`;
-    } else {
-        multiplierText = `Çarpan: <b class="text-white">Kullanılmadı</b>`;
-    }
-
-    const sourceText = info.boxId === 'Çark' ? 'Şans Çarkı' : `${info.boxId} No'lu Kutu`;
-
-    container.innerHTML = `
-        <h4 class="text-yellow-300 text-xl font-bold mb-3">👑 Son Sürpriz Kutu Bulan 👑</h4>
-        <div class="flex flex-wrap justify-center items-center gap-x-4 gap-y-2 text-gray-300">
-            <span>Bulan: <b class="text-white">${info.finder}</b></span>
-            <span>Kaynak: <b class="text-white">${sourceText}</b></span>
-            <span>Kazanç: <b class="text-white">${info.points} Puan</b></span>
-            <span>${multiplierText}</span>
-        </div>
-        <p class="mt-3 text-sm text-yellow-500 bg-gray-900/50 p-2 rounded-md">
-            Oyunun sıfırlanması için bir oyuncunun <b>"Sorunları Çöz"</b> menüsünden oyunu manuel olarak sıfırlaması gerekiyor.
-        </p>
-    `;
-    container.classList.remove('hidden');
-}
-
 // MEVCUT selectCard FONKSİYONUNU SİLİP BUNUNLA DEĞİŞTİRİN
 
 async function selectCard(selectedCardDiv, userId) { 
@@ -4319,8 +4291,7 @@ async function selectCard(selectedCardDiv, userId) {
     await sessionRef.child('result').set({ points: points, newBalance: newBalance });
 }
 
-// MEVCUT listenForSurpriseBox FONKSİYONUNU SİLİP BUNUNLA DEĞİŞTİRİN
-// (Sadece logActivity çağrısı güncellendi)
+// MEVCUT listenForSurpriseBox FONKSİYONUNU SİL VE BUNUNLA DEĞİŞTİR
 
 let isProcessingSurpriseResult = false;
 let spectatorViewingResult = false;
@@ -4373,17 +4344,23 @@ function listenForSurpriseBox() {
                     } else if (committed) {
                         const finalSessionData = snapshot.val();
 
-                        const surpriseInfo = {
-                            finder: finalSessionData.user,
-                            boxId: finalSessionData.boxId,
-                            points: finalSessionData.result.points,
-                            multiplier: finalSessionData.multiplier,
-                            timedOut: false,
-                            timestamp: firebase.database.ServerValue.TIMESTAMP
-                        };
-                        db.ref('gameStats/lastSurpriseInfo').set(surpriseInfo);
-
-                        // --- DEĞİŞİKLİK: Log kaydına yeni bakiye bilgisini ekliyoruz. ---
+                        // --- YENİ EKLENEN KONTROL BAŞLANGICI ---
+                        // Sadece kutudan geldiyse özel paneli tetikle ve sıfırlama moduna geç.
+                        if (finalSessionData.boxId !== 'Çark') {
+                            const surpriseInfo = {
+                                finder: finalSessionData.user,
+                                boxId: finalSessionData.boxId,
+                                points: finalSessionData.result.points,
+                                newBalance: finalSessionData.result.newBalance,
+                                boxesOpenedThisRound: finalSessionData.boxesOpenedThisRound || null,
+                                resettledBy: null,
+                                timestamp: firebase.database.ServerValue.TIMESTAMP
+                            };
+                            db.ref('gameStats/lastSurpriseInfo').set(surpriseInfo);
+                        }
+                        // --- YENİ EKLENEN KONTROL SONU ---
+                        
+                        // Bu log her durumda çalışır, böylece eylem panelinde her zaman görünür.
                         logActivity('surpriseBox', finalSessionData.user, { 
                             boxId: finalSessionData.boxId,
                             points: finalSessionData.result.points, 
@@ -5566,13 +5543,11 @@ async function openUserManagementModal(username) {
   let globalCountdownInterval = null;
     let spectatorCountdownInterval = null;
 
-  // MEVCUT listenForGameChanges FONKSİYONUNU BU BLOK İLE DEĞİŞTİRİN
+  // MEVCUT listenForGameChanges FONKSİYONUNU SİL VE BUNUNLA DEĞİŞTİR
 function listenForGameChanges() {
-    // gameLock dinleyicisi aynı kalıyor
     const gameLockRef = db.ref('gameLock');
     const gameLockCallback = snap => {
         isGameLocked = snap.val() === true;
-        // YENİ EKLENEN SATIR: Kilit butonunun metnini günceller
         const toggleBtn = document.getElementById('toggleGameLockBtn');
         if (toggleBtn) {
             if (isGameLocked) {
@@ -5589,7 +5564,6 @@ function listenForGameChanges() {
     activeListeners.gameLock = { ref: gameLockRef, event: 'value', callback: gameLockCallback };
     gameLockRef.on('value', gameLockCallback);
 
-    // lastOpenedBox dinleyicisi aynı kalıyor
     const lastOpenedBoxRef = db.ref('lastOpenedBox');
     const lastOpenedBoxCallback = snap => {
         const info = snap.val();
@@ -5601,14 +5575,6 @@ function listenForGameChanges() {
     };
     activeListeners.lastOpenedBox = { ref: lastOpenedBoxRef, event: 'value', callback: lastOpenedBoxCallback };
     lastOpenedBoxRef.on('value', lastOpenedBoxCallback);
-
-    // --- YENİ EKLENEN DİNLEYİCİ ---
-    const lastSurpriseRef = db.ref('gameStats/lastSurpriseInfo');
-    const lastSurpriseCallback = snap => {
-        updateLastSurpriseInfoDisplay(snap.val());
-    };
-    activeListeners.lastSurprise = { ref: lastSurpriseRef, event: 'value', callback: lastSurpriseCallback };
-    lastSurpriseRef.on('value', lastSurpriseCallback);
 }
 
 // --- SORUNLARI ÇÖZ MODALI İÇİN YENİ FONKSİYONLAR ---
@@ -5633,17 +5599,70 @@ async function manualUnlockGame() {
     closeSolveProblemsModal();
 }
 
+// MEVCUT manualResetAfterSurprise FONKSİYONUNU SİL VE BUNUNLA DEĞİŞTİR
 async function manualResetAfterSurprise() {
     const surpriseInfoRef = db.ref('gameStats/lastSurpriseInfo');
     const surpriseSnap = await surpriseInfoRef.once('value');
     if (surpriseSnap.exists()) {
-        await resetGameBoard(); // Oyunu sıfırlayan ana fonksiyon
-        await surpriseInfoRef.remove(); // Sıfırlama hakkını tek kullanımlık yapmak için bilgiyi sil
-        displayMessage("Sürpriz kutu bulunduğu için oyun başarıyla sıfırlandı!");
+        await surpriseInfoRef.update({ resettledBy: currentUser });
+        displayMessage("Sıfırlama bilgisi kaydedildi. Lütfen oyunu sıfırlamak için Kutu Ayarları menüsündeki 'Oyunu Sıfırla' butonunu kullanın.");
     } else {
         displayMessage("Bu özellik sadece bir sürpriz kutu bulunduktan sonra kullanılabilir.");
     }
     closeSolveProblemsModal();
+}
+
+// BU YENİ FONKSİYONU SCRIPT BÖLÜMÜNÜN SONLARINA EKLE
+function listenForLastSurpriseFinderPanel() {
+    const ref = db.ref('gameStats/lastSurpriseInfo');
+    const panel = document.getElementById('lastSurpriseFinderPanel');
+
+    const callback = snap => {
+        const data = snap.val();
+        if (!data || !data.finder) {
+            panel.classList.add('hidden');
+            return;
+        }
+
+        let messageHtml = '';
+        const finderHtml = `<b class="text-white text-lg">${data.finder}</b>`;
+
+        if (data.boxId === 'Çark') {
+            messageHtml = `
+                <h4 class="text-amber-300 text-xl font-bold">🎡 SON SÜRPRİZ ÇARKTAN GELDİ! 🎡</h4>
+                <p>${finderHtml}, çarkı çevirdi ve bir Sürpriz Kutu buldu!</p>
+                <p>Kart seçiminden <b class="text-green-400">+${data.points} Puan</b> kazandı. <span class="text-gray-400">(Mevcut Puan: ${data.newBalance})</span></p>
+            `;
+        } 
+        else {
+            messageHtml = `
+                <h4 class="text-amber-300 text-xl font-bold">🎉 SON SÜRPRİZ KUTUSU BULUNDU! 🎉</h4>
+                <p>${finderHtml}, bu tur <b class="text-white">${data.boxesOpenedThisRound} adet</b> kutu açtıktan sonra <b class="text-white">${data.boxId} numaralı</b> kutudan Sürpriz Kutu buldu!</p>
+                <p>Kart seçiminden <b class="text-green-400">+${data.points} Puan</b> kazandı. <span class="text-gray-400">(Mevcut Puan: ${data.newBalance})</span></p>
+            `;
+        }
+
+        if (data.resettledBy) {
+            messageHtml += `
+                <hr class="border-gray-600 my-2">
+                <p class="text-sm text-lime-400">Kutuları <b class="text-white">${data.resettledBy}</b> sıfırladı ve oyun yeniden başladı.</p>
+            `;
+        } else {
+             messageHtml += `
+                <hr class="border-gray-600 my-2">
+                <p class="text-sm text-yellow-400 animate-pulse">Oyunun yeniden başlaması için bir oyuncunun 'Sorunları Çöz' menüsünden kutuları sıfırlaması gerekiyor.</p>
+            `;
+        }
+
+        panel.innerHTML = messageHtml;
+        panel.classList.remove('hidden');
+    };
+    
+    if (activeListeners.surprisePanel) {
+        activeListeners.surprisePanel.ref.off('value', activeListeners.surprisePanel.callback);
+    }
+    activeListeners.surprisePanel = { ref, event: 'value', callback };
+    ref.on('value', callback);
 }
 
 // YEPYENİ FONKSİYON - BU KOD BLOĞUNU OLDUĞU GİBİ EKLE
