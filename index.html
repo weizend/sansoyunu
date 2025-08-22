@@ -4624,7 +4624,7 @@ function renderStoreItems(items) {
     }
 }
 
-// MEVCUT buyItem FONKSİYONUNU SİLİP TAMAMEN BUNUNLA DEĞİŞTİRİN
+// MEVCUT buyItem FONKSİYONUNU SİLİP BUNUNLA DEĞİŞTİRİN
 
 async function buyItem(itemId) {
     if (isAdmin) {
@@ -4640,7 +4640,6 @@ async function buyItem(itemId) {
     if (!user || !item) return;
 
     if (item.type === 'tempMultiplier') {
-        // --- GÜVENLİK GÜNCELLEMESİ: Eksik ürün bilgisine karşı koruma eklendi ---
         if (typeof item.value !== 'number' || typeof item.duration !== 'number') {
             displayMessage("Mağaza Hatası: Bu çarpan ürününde eksik bilgi var. Lütfen yönetici ile iletişime geçin.");
             return;
@@ -4655,37 +4654,19 @@ async function buyItem(itemId) {
                 }
                 const confirmedStack = await customConfirm(`Zaten ${user.activeMultiplier}x çarpanın var. Bu alım, mevcut çarpanına <b>+${item.duration} kullanım hakkı</b> ekleyecek ve toplamda <b>${(user.multiplierRemainingUses || 0) + item.duration} kullanım hakkın</b> olacak. Onaylıyor musun?`);
                 if (confirmedStack) {
-                    
-                    // --- HATA AYIKLAMA VE KESİN ÇÖZÜM ---
-                    // Değişkenleri log'lamadan önce ayrı ayrı tanımlayıp kontrol ediyoruz.
-                    const cost = item.cost;
-                    const multiplierValue = item.value;
-                    const usesAdded = item.duration;
-                    const currentUses = user.multiplierRemainingUses || 0;
-                    const newTotalUses = currentUses + usesAdded;
-                    const newBalance = user.balance - cost;
-
-                    // Güvenlik kontrolü: Eğer herhangi bir değer hala tanımsız veya sayı değilse, işlemi durdur.
-                    if (isNaN(multiplierValue) || isNaN(usesAdded) || isNaN(newTotalUses)) {
-                        console.error("KRİTİK HATA: Çarpan birleştirme verileri hatalı.", { multiplierValue, usesAdded, newTotalUses });
-                        displayMessage("Kritik bir hata oluştu. Lütfen yöneticiye bildirin. (Hata Kodu: BS-101)");
-                        return;
-                    }
-
                     logActivity('multiplierStackedFromStore', currentUser, { 
-                        cost: cost,
-                        multiplierValue: multiplierValue,
-                        usesAdded: usesAdded,
-                        newTotalUses: newTotalUses,
-                        newBalance: newBalance
+                        cost: item.cost,
+                        multiplierValue: item.value,
+                        usesAdded: item.duration,
+                        newTotalUses: (user.multiplierRemainingUses || 0) + item.duration,
+                        newBalance: user.balance - item.cost
                     });
                     
                     await userRef.update({
-                        balance: newBalance,
-                        totalSpentPoints: (user.totalSpentPoints || 0) + cost,
-                        multiplierRemainingUses: newTotalUses
+                        balance: user.balance - item.cost,
+                        totalSpentPoints: (user.totalSpentPoints || 0) + item.cost,
+                        multiplierRemainingUses: (user.multiplierRemainingUses || 0) + item.duration
                     });
-
                     await itemRef.transaction(currentItem => {
                         if (currentItem) {
                             if (currentItem.stock !== undefined && currentItem.stock !== null) {
@@ -4695,7 +4676,7 @@ async function buyItem(itemId) {
                         }
                         return currentItem;
                     });
-                    displayMessage(`Başarılı! ${multiplierValue}x çarpanına +${usesAdded} kullanım hakkı eklendi.`);
+                    displayMessage(`Başarılı! ${user.activeMultiplier}x çarpanına +${item.duration} kullanım hakkı eklendi.`);
                     return;
                 } else {
                     return;
@@ -4709,10 +4690,13 @@ async function buyItem(itemId) {
                 const kutuHakkiDonusum = user.multiplierRemainingUses || 0;
                 const confirmedUpgrade = await customConfirm(`Mevcut ${user.activeMultiplier}x çarpanını daha yüksek olan <b>${item.value}x</b> ile değiştirmek üzeresin. Mevcut çarpanının kalan <b>${user.multiplierRemainingUses} kullanım hakkı</b>, envanterine <b>+${kutuHakkiDonusum} Kutu Hakkı</b> olarak eklenecek. Onaylıyor musun?`);
                 if (confirmedUpgrade) {
-                    logActivity('multiplierUpgraded', currentUser, { 
+                    // --- DEĞİŞİKLİK: newBalance hesaplaması düzeltildi ---
+                    logActivity('multiplierUpgradedFromStore', currentUser, { 
                         oldValue: user.activeMultiplier, 
                         newValue: item.value, 
-                        boxRights: kutuHakkiDonusum 
+                        boxRights: kutuHakkiDonusum,
+                        cost: item.cost,
+                        newBalance: user.balance - item.cost 
                     });
                     await userRef.update({
                         balance: user.balance - item.cost,
@@ -8349,7 +8333,8 @@ function getActivityIcon(type, details = {}) {
             icon = '✖️';
             bgColor = 'bg-purple-500';
             break;
-        // DEĞİŞİKLİK: Yeni log türümüz için ikon ve renk belirliyoruz.
+        // --- DEĞİŞİKLİK: Mağazadan yapılan işlemler için ikonları grupluyoruz ---
+        case 'multiplierUpgradedFromStore':
         case 'multiplierStackedFromStore':
         case 'buyItem':
             icon = '🛒';
@@ -8375,6 +8360,10 @@ function getActivityIcon(type, details = {}) {
         case 'spinWheel':
             icon = '🎡';
             bgColor = 'bg-pink-500';
+            break;
+        case 'lobbyJoined':
+            icon = '🎮';
+            bgColor = 'bg-blue-600';
             break;
         case 'clickCatchSolo':
         case 'clickCatchLobby':
@@ -8446,11 +8435,9 @@ function renderActivityFeed(activities) {
                 ? ` <span class="text-gray-400">(Mevcut Puan: ${details.newBalance})</span>`
                 : '';
             
-            // --- YENİ EKLENEN KISIM ---
             const weeklyScoreText = (details.newWeeklyScore !== undefined && details.newWeeklyScore !== null)
                 ? ` <span class="text-gray-400">(Mevcut Haftalık Skor: ${details.newWeeklyScore})</span>`
                 : '';
-            // --- YENİ EKLENEN KISIM SONU ---
 
             switch (activity.type) {
                 case 'multiplierStackedFromStore':
@@ -8458,6 +8445,10 @@ function renderActivityFeed(activities) {
                     break;
                 case 'multiplierStacked':
                     message = `${userHtml}, mevcut <b>${details.value}x</b> çarpanına <span class="text-green-300 font-bold">+${details.uses} kullanım hakkı</span> ekledi.`;
+                    break;
+                // --- DEĞİŞEN CASE BLOĞU ---
+                case 'multiplierUpgradedFromStore':
+                    message = `${userHtml}, mağazadan mevcut <b>${details.boxRights} adet ${details.oldValue}x</b> çarpanı varken <span class="text-red-400 font-bold">-${details.cost} Puan</span> harcayarak <b>${details.newValue}x çarpan</b> satın aldı ve mevcut çarpanını <span class="text-cyan-300 font-bold">${details.boxRights} Kutu Hakkı'na</span> dönüştürdü. <span class="text-gray-400">(Hesabında ${details.newBalance} puanı kaldı.)</span>`;
                     break;
                 case 'multiplierUpgraded':
                     message = `${userHtml}, eski ${details.oldValue}x çarpanını <span class="text-cyan-300 font-bold">${details.boxRights} Kutu Hakkı'na</span> dönüştürerek kutudan çıkan daha güçlü <b>${details.newValue}x</b> çarpanına geçti!`;
