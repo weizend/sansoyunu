@@ -6251,48 +6251,14 @@ async function claimDailyReward(rewardId) {
             return;
         }
 
-        // --- YENİ ÇARPAN MANTIĞI BAŞLANGICI ---
-        if (reward.type === 'tempMultiplier') {
-            if (user.multiplierSource && user.multiplierSource !== 'none') {
-                
-                if (reward.value === user.activeMultiplier) { // Stackleme
-                    const confirmedStack = await customConfirm(`Zaten ${user.activeMultiplier}x çarpanın var. Bu ödül, mevcut çarpanına <b>+${reward.uses} kullanım hakkı</b> ekleyecek. Onaylıyor musun?`);
-                    if (!confirmedStack) {
-                        if (claimButton) { claimButton.disabled = false; claimButton.textContent = 'Ödülü Al'; }
-                        return;
-                    }
-                    await userRef.update({ multiplierRemainingUses: (user.multiplierRemainingUses || 0) + reward.uses });
-                } 
-                else if (reward.value > user.activeMultiplier) { // Yükseltme
-                    const kutuHakkiDonusum = user.multiplierRemainingUses || 0;
-                    const confirmedUpgrade = await customConfirm(`Mevcut ${user.activeMultiplier}x çarpanını daha yüksek olan <b>${reward.value}x</b> ile değiştirmek üzeresin. Mevcut çarpanının kalan <b>${user.multiplierRemainingUses} kullanım hakkı</b>, envanterine <b>+${kutuHakkiDonusum} Kutu Hakkı</b> olarak eklenecek. Onaylıyor musun?`);
-                    if (!confirmedUpgrade) {
-                        if (claimButton) { claimButton.disabled = false; claimButton.textContent = 'Ödülü Al'; }
-                        return;
-                    }
-                    await userRef.update({
-                        kutuHakki: (user.kutuHakki || 0) + kutuHakkiDonusum,
-                        activeMultiplier: reward.value,
-                        multiplierRemainingUses: reward.uses,
-                        multiplierSource: 'store'
-                    });
-                } 
-                else { // Düşürme
-                    displayMessage(`Mevcut çarpanın (${user.activeMultiplier}x) zaten bu ödülden (${reward.value}x) daha güçlü. Daha düşük bir çarpan alamazsın.`);
-                    if (claimButton) { claimButton.disabled = false; claimButton.textContent = 'Ödülü Al'; }
-                    return;
-                }
-                
-                // Eğer buraya geldiyse, çarpan işlemi (stack veya upgrade) başarılı olmuştur.
-                await db.ref(`users/${currentUser}/dailyRewardsClaimed/${rewardId}`).set(firebase.database.ServerValue.TIMESTAMP);
-                displayMessage(`Başarılı! Çarpanın güncellendi.`);
-                closeDailyRewardModal();
-                checkAvailableDailyRewards();
-                return; // İşlemi burada bitir.
+        if (reward.type === 'tempMultiplier' && user.multiplierSource !== 'none') {
+            displayMessage("Mevcut bir çarpanınız varken çarpan ödülü alamazsınız. Lütfen önce mevcut çarpanınızı kullanın.");
+            if (claimButton) {
+                claimButton.disabled = false;
+                claimButton.textContent = 'Ödülü Al';
             }
+            return;
         }
-        // --- YENİ ÇARPAN MANTIĞI SONU ---
-
 
         let updates = {};
         let message = `Tebrikler! Günlük ödül olarak <b>${reward.name}</b> kazandın.`;
@@ -6330,6 +6296,10 @@ async function claimDailyReward(rewardId) {
         };
         if (reward.type === 'tempMultiplier') {
             logDetails.rewardUses = reward.uses;
+        }
+        // --- DEĞİŞİKLİK: Eğer ödül puansa, yeni bakiyeyi log'a ekliyoruz ---
+        if (reward.type === 'points') {
+            logDetails.newBalance = updates.balance;
         }
         logActivity('dailyReward', currentUser, logDetails);
         
@@ -8477,7 +8447,6 @@ function renderActivityFeed(activities) {
             const deleteButtonHtml = isAdmin ? `<button onclick="deleteActivity('${activity.id}')" class="ml-2 p-1 rounded-full text-gray-500 hover:text-red-500 hover:bg-white/10 transition-colors" title="Bu Eylemi Sil"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1-1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>` : '';
             const userHtml = `<b class="text-yellow-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${activity.username}')">${activity.username}</b>`;
 
-            // --- DEĞİŞİKLİK: Kalan puan metnini oluşturmak için yardımcı bir değişken ---
             const remainingBalanceText = (details.newBalance !== undefined && details.newBalance !== null) 
                 ? ` <span class="text-gray-400">(Mevcut Puan: ${details.newBalance})</span>`
                 : '';
@@ -8591,7 +8560,8 @@ function renderActivityFeed(activities) {
                     } else {
                         rewardText = `+${rewardValue} ${typeToName[rewardType] || details.rewardName}`;
                     }
-                    message = `${userHtml}, günlük ödül olarak <span class="text-teal-300 font-bold">${rewardText}</span> aldı.`;
+                    // --- DEĞİŞEN SATIR: Kalan puan metni eklendi. ---
+                    message = `${userHtml}, günlük ödül olarak <span class="text-teal-300 font-bold">${rewardText}</span> aldı.${remainingBalanceText}`;
                     break;
                 case 'surpriseBoxTimeout':
                     message = `${userHtml}, Sürpriz Kutu şansını süre dolduğu için kaçırdı.`;
