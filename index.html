@@ -3796,11 +3796,11 @@ async function deleteUserAvatar(username, avatarId) {
       }); 
   }
 
-// MEVCUT openBox FONKSİYONUNU SİLİP TAMAMEN BUNUNLA DEĞİŞTİRİN
+// MEVCUT openBox FONKSİYONUNU SİLİP BUNUNLA DEĞİŞTİRİN
 
 async function openBox(index) {
     if (isGameLocked) {
-        displayMessage("Kutular 3 saniye arayla açılmaktadır. Sürpriz kutu bulunduğu zaman sorunları çöz menüsünden kutuları açmaya devam edebilir veya oyunu baştan başlatabilirsin.");
+        displayMessage("Başka bir kullanıcı şu anda bir kutu açıyor. Lütfen 3 saniye sonra tekrar deneyin.");
         return;
     }
     if (boxes[index].opened) return;
@@ -3875,29 +3875,43 @@ async function openBox(index) {
         boxUpdate.multiplierApplied = finalMultiplier;
         boxOpenInfo.multiplierUsed = finalMultiplier;
     }
-     if (box.content === 'multiplier') {
+    
+    // --- YENİ ÇARPAN MANTIĞI BAŞLANGICI ---
+    if (box.content === 'multiplier') {
         updates['multiplierFoundCount'] = (user.multiplierFoundCount || 0) + 1;
-        if (useMultiplier && originalMultiplierSource === 'store') {
-            message = `VAY CANINA! 🤩<br>Mağaza çarpanıyla açtığın kutudan <b>yeni bir ${box.value}x Çarpan</b> daha buldun! <br>Bu tur harcadığın kullanım hakkın iade edildi ve mağaza çarpanını korudun.`;
-            logActivity('multiplierRefund', currentUser, { boxId: box.id, newMultiplier: box.value, refundedMultiplier: user.activeMultiplier });
-            boxUpdate.refundOccurred = true;
-            boxUpdate.refundedMultiplier = user.activeMultiplier;
-            boxOpenInfo.refundOccurred = true;
-            boxOpenInfo.refundedMultiplier = user.activeMultiplier;
-            updates['multiplierRemainingUses'] = (user.multiplierRemainingUses || 0);
+        
+        // Eğer kullanıcının zaten bir çarpanı varsa...
+        if (user.multiplierSource && user.multiplierSource !== 'none') {
             
-            // --- HATA DÜZELTMESİ: Yeni bulunan çarpan burada aktif ediliyor ---
-            updates['activeMultiplier'] = box.value;
-            updates['multiplierSource'] = 'box';
-            // --- HATA DÜZELTMESİ SONU ---
+            // 1. Durum: Kutudan çıkan çarpan mevcutla aynı değere sahip (Otomatik Stackleme)
+            if (box.value === user.activeMultiplier) {
+                updates['multiplierRemainingUses'] = (user.multiplierRemainingUses || 0) + 1; // +1 kullanım hakkı ekle
+                message = `Tebrikler! Mevcut <b>${user.activeMultiplier}x</b> çarpanınla aynı türde bir çarpan daha buldun. Kullanım hakkın <b>+1</b> arttı!`;
+            } 
+            // 2. Durum: Kutudan çıkan çarpan daha yüksek (Otomatik Yükseltme ve Dönüşüm)
+            else if (box.value > user.activeMultiplier) {
+                const kutuHakkiDonusum = user.multiplierRemainingUses || 0;
+                updates['kutuHakki'] = (updates['kutuHakki'] || user.kutuHakki) + kutuHakkiDonusum; // Önceki hakkı iade et, sonra dönüştürülenleri ekle
+                updates['activeMultiplier'] = box.value;
+                updates['multiplierSource'] = 'box';
+                updates['multiplierRemainingUses'] = 0; // Kutu çarpanlarının süresi olmaz
+                message = `İNANILMAZ! Mevcut ${user.activeMultiplier}x çarpanın, kutudan çıkan daha güçlü <b>${box.value}x çarpan</b> ile değiştirildi. Eski çarpanının kalan ${user.multiplierRemainingUses} hakkı, envanterine <b>+${kutuHakkiDonusum} Kutu Hakkı</b> olarak eklendi!`;
+            }
+            // 3. Durum: Kutudan çıkan çarpan daha düşük
+            else {
+                message = `Kutudan ${box.value}x çarpan buldun ama mevcut <b>${user.activeMultiplier}x çarpanın</b> daha güçlü olduğu için korundu.`;
+                // Hiçbir şey yapma, kullanıcı güçlü çarpanını korur.
+            }
 
         } else {
+            // Kullanıcının hiç çarpanı yoksa normal şekilde ekle
             message = `Tebrikler! <b>${box.value}x Çarpan</b> buldun! Bu çarpan, bir sonraki kutu açılışında otomatik olarak kullanılacak.`;
             updates['activeMultiplier'] = box.value;
             updates['multiplierSource'] = 'box';
             logActivity('multiplierFound', currentUser, { boxId: box.id, value: box.value });
         }
     }
+    // --- YENİ ÇARPAN MANTIĞI SONU ---
     else {
         if (useMultiplier && box.content !== 'surpriz') {
             if (originalMultiplierSource === 'box') {
@@ -4490,6 +4504,8 @@ function renderStoreItems(items) {
     }
 }
 
+// MEVCUT buyItem FONKSİYONUNU SİLİP BUNUNLA DEĞİŞTİRİN
+
 async function buyItem(itemId) {
     if (isAdmin) {
         displayMessage("Adminler alışveriş yapamaz.");
@@ -4503,10 +4519,71 @@ async function buyItem(itemId) {
     
     if (!user || !item) return;
 
-    if (item.type === 'tempMultiplier' && (user.multiplierSource === 'store' || user.multiplierSource === 'box')) {
-        displayMessage("Mevcut bir çarpanınız varken yenisini alamazsınız.");
-        return;
+    // --- YENİ ÇARPAN MANTIĞI BAŞLANGICI ---
+    if (item.type === 'tempMultiplier') {
+        // Eğer kullanıcının zaten bir çarpanı varsa...
+        if (user.multiplierSource && user.multiplierSource !== 'none') {
+            
+            // 1. Durum: Alınan çarpan mevcutla aynı değere sahip (Stackleme)
+            if (item.value === user.activeMultiplier) {
+                const confirmedStack = await customConfirm(`Zaten ${user.activeMultiplier}x çarpanın var. Bu alım, mevcut çarpanına <b>+${item.duration} kullanım hakkı</b> ekleyecek ve toplamda <b>${(user.multiplierRemainingUses || 0) + item.duration} kullanım hakkın</b> olacak. Onaylıyor musun?`);
+                if (confirmedStack) {
+                    await userRef.update({
+                        balance: user.balance - item.cost,
+                        totalSpentPoints: (user.totalSpentPoints || 0) + item.cost,
+                        multiplierRemainingUses: (user.multiplierRemainingUses || 0) + item.duration
+                    });
+                    await itemRef.transaction(currentItem => {
+                        if (currentItem) {
+                            if (currentItem.stock !== undefined && currentItem.stock !== null) {
+                                currentItem.stock--;
+                            }
+                            currentItem.purchaseCount = (currentItem.purchaseCount || 0) + 1;
+                        }
+                        return currentItem;
+                    });
+                    displayMessage(`Başarılı! ${user.activeMultiplier}x çarpanına +${item.duration} kullanım hakkı eklendi.`);
+                    return; // İşlemi burada bitir.
+                } else {
+                    return; // Kullanıcı iptal etti.
+                }
+            }
+            // 2. Durum: Alınan çarpan daha yüksek (Yükseltme)
+            else if (item.value > user.activeMultiplier) {
+                const kutuHakkiDonusum = user.multiplierRemainingUses || 0;
+                const confirmedUpgrade = await customConfirm(`Mevcut ${user.activeMultiplier}x çarpanını daha yüksek olan <b>${item.value}x</b> ile değiştirmek üzeresin. Mevcut çarpanının kalan <b>${user.multiplierRemainingUses} kullanım hakkı</b>, envanterine <b>+${kutuHakkiDonusum} Kutu Hakkı</b> olarak eklenecek. Onaylıyor musun?`);
+                if (confirmedUpgrade) {
+                    await userRef.update({
+                        balance: user.balance - item.cost,
+                        totalSpentPoints: (user.totalSpentPoints || 0) + item.cost,
+                        kutuHakki: (user.kutuHakki || 0) + kutuHakkiDonusum,
+                        activeMultiplier: item.value,
+                        multiplierRemainingUses: item.duration,
+                        multiplierSource: 'store'
+                    });
+                     await itemRef.transaction(currentItem => {
+                        if (currentItem) {
+                            if (currentItem.stock !== undefined && currentItem.stock !== null) {
+                                currentItem.stock--;
+                            }
+                            currentItem.purchaseCount = (currentItem.purchaseCount || 0) + 1;
+                        }
+                        return currentItem;
+                    });
+                    displayMessage(`Yükseltme başarılı! Envanterine +${kutuHakkiDonusum} Kutu Hakkı eklendi ve yeni ${item.value}x çarpanın aktif!`);
+                    return; // İşlemi burada bitir.
+                } else {
+                    return; // Kullanıcı iptal etti.
+                }
+            }
+            // 3. Durum: Alınan çarpan daha düşük
+            else {
+                displayMessage(`Mevcut çarpanın (${user.activeMultiplier}x) zaten bu üründen (${item.value}x) daha güçlü. Daha düşük bir çarpan alamazsın.`);
+                return;
+            }
+        }
     }
+    // --- YENİ ÇARPAN MANTIĞI SONU ---
     
     if (item.type === 'avatar' && user.avatars && user.avatars[itemId]) {
         displayMessage("Bu avatara zaten sahipsin!");
@@ -4539,7 +4616,6 @@ async function buyItem(itemId) {
         };
         let message = 'Satın alma başarılı!';
         
-        // --- GÜVENLİK KONTROLLERİ EKLENDİ ---
         const itemValue = parseInt(item.value) || 0;
         const itemDuration = parseInt(item.duration) || 0;
 
@@ -5975,7 +6051,7 @@ async function openDailyRewardModal() {
     }
 }
 
-// MEVCUT claimDailyReward FONKSİYONUNU BUNUNLA DEĞİŞTİR
+// MEVCUT claimDailyReward FONKSİYONUNU SİLİP BUNUNLA DEĞİŞTİRİN
 
 async function claimDailyReward(rewardId) {
     if (isAdmin) return;
@@ -6013,14 +6089,48 @@ async function claimDailyReward(rewardId) {
             return;
         }
 
-        if (reward.type === 'tempMultiplier' && user.multiplierSource !== 'none') {
-            displayMessage("Mevcut bir çarpanınız varken çarpan ödülü alamazsınız. Lütfen önce mevcut çarpanınızı kullanın.");
-            if (claimButton) {
-                claimButton.disabled = false;
-                claimButton.textContent = 'Ödülü Al';
+        // --- YENİ ÇARPAN MANTIĞI BAŞLANGICI ---
+        if (reward.type === 'tempMultiplier') {
+            if (user.multiplierSource && user.multiplierSource !== 'none') {
+                
+                if (reward.value === user.activeMultiplier) { // Stackleme
+                    const confirmedStack = await customConfirm(`Zaten ${user.activeMultiplier}x çarpanın var. Bu ödül, mevcut çarpanına <b>+${reward.uses} kullanım hakkı</b> ekleyecek. Onaylıyor musun?`);
+                    if (!confirmedStack) {
+                        if (claimButton) { claimButton.disabled = false; claimButton.textContent = 'Ödülü Al'; }
+                        return;
+                    }
+                    await userRef.update({ multiplierRemainingUses: (user.multiplierRemainingUses || 0) + reward.uses });
+                } 
+                else if (reward.value > user.activeMultiplier) { // Yükseltme
+                    const kutuHakkiDonusum = user.multiplierRemainingUses || 0;
+                    const confirmedUpgrade = await customConfirm(`Mevcut ${user.activeMultiplier}x çarpanını daha yüksek olan <b>${reward.value}x</b> ile değiştirmek üzeresin. Mevcut çarpanının kalan <b>${user.multiplierRemainingUses} kullanım hakkı</b>, envanterine <b>+${kutuHakkiDonusum} Kutu Hakkı</b> olarak eklenecek. Onaylıyor musun?`);
+                    if (!confirmedUpgrade) {
+                        if (claimButton) { claimButton.disabled = false; claimButton.textContent = 'Ödülü Al'; }
+                        return;
+                    }
+                    await userRef.update({
+                        kutuHakki: (user.kutuHakki || 0) + kutuHakkiDonusum,
+                        activeMultiplier: reward.value,
+                        multiplierRemainingUses: reward.uses,
+                        multiplierSource: 'store'
+                    });
+                } 
+                else { // Düşürme
+                    displayMessage(`Mevcut çarpanın (${user.activeMultiplier}x) zaten bu ödülden (${reward.value}x) daha güçlü. Daha düşük bir çarpan alamazsın.`);
+                    if (claimButton) { claimButton.disabled = false; claimButton.textContent = 'Ödülü Al'; }
+                    return;
+                }
+                
+                // Eğer buraya geldiyse, çarpan işlemi (stack veya upgrade) başarılı olmuştur.
+                await db.ref(`users/${currentUser}/dailyRewardsClaimed/${rewardId}`).set(firebase.database.ServerValue.TIMESTAMP);
+                displayMessage(`Başarılı! Çarpanın güncellendi.`);
+                closeDailyRewardModal();
+                checkAvailableDailyRewards();
+                return; // İşlemi burada bitir.
             }
-            return;
         }
+        // --- YENİ ÇARPAN MANTIĞI SONU ---
+
 
         let updates = {};
         let message = `Tebrikler! Günlük ödül olarak <b>${reward.name}</b> kazandın.`;
@@ -6051,14 +6161,13 @@ async function claimDailyReward(rewardId) {
                 break;
         }
 
-        // *** DEĞİŞEN KISIM BURASI: Çarpan ise kullanım hakkını da logluyoruz ***
         const logDetails = { 
             rewardName: reward.name, 
             rewardType: reward.type, 
             rewardValue: reward.value 
         };
         if (reward.type === 'tempMultiplier') {
-            logDetails.rewardUses = reward.uses; // Kullanım hakkını ekle
+            logDetails.rewardUses = reward.uses;
         }
         logActivity('dailyReward', currentUser, logDetails);
         
