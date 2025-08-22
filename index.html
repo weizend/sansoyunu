@@ -1721,11 +1721,19 @@ body.modal-open .modal-content {
             <h5 class="text-xl font-bold text-yellow-300 mb-2">Sezon Bittiğinde Ne Olur?</h5>
             <ul class="list-disc list-inside space-y-2 pl-2">
                 <li><strong>Ödüller Dağıtılır:</strong>
-                    <ul class="list-circle list-inside pl-4 mt-1">
-                        <li>Şampiyonlar dahil, oyundaki <strong>tüm oyunculara</strong> admin tarafından belirlenen bir <strong>hediye paketi</strong> (Kutu Hakkı, Biletler, Kalkan vb.) gönderilir.</li>
-                         <div id="seasonGiftPackageDetails" class="mt-3 bg-gray-900/50 p-4 rounded-lg border border-gray-600">
-                            <p class="text-gray-400">Ödül detayları yükleniyor...</p>
-                        </div>
+                    <ul class="list-circle list-inside pl-4 mt-1 space-y-2">
+                        <li>
+                            <p>Şampiyonlar dahil, oyundaki <strong>tüm oyunculara</strong> admin tarafından belirlenen bir <strong>hediye paketi</strong> gönderilir.</p>
+                            <div id="seasonGiftPackageDetails" class="mt-3 bg-gray-900/50 p-4 rounded-lg border border-gray-600">
+                                <p class="text-gray-400">Ödül detayları yükleniyor...</p>
+                            </div>
+                        </li>
+                        <li>
+                            <p>Ayrıca sıralamalarda 1. olan şampiyonlara özel ödüller verilir.</p>
+                             <div id="seasonChampionPrizes" class="mt-3 bg-gray-900/50 p-4 rounded-lg border border-yellow-600">
+                                <p class="text-gray-400">Şampiyon ödülleri yükleniyor...</p>
+                            </div>
+                        </li>
                         </ul>
                 </li>
                 <li><strong>Her Şey Sıfırlanır:</strong>
@@ -9735,52 +9743,64 @@ async function getTopBadgeHolder(allUsersData, leaders) {
     return topUser;
 }
 
-    // --- YENİ EKLENECEK SEZON BİLGİ FONKSİYONLARI ---
-
-// --- ESKİ openSeasonInfoModal FONKSİYONUNU SİL VE BUNU YAPIŞTIR ---
+    // MEVCUT openSeasonInfoModal FONKSİYONUNU SİLİP BUNUNLA DEĞİŞTİRİN
 
 async function openSeasonInfoModal() {
     document.body.classList.add('modal-open');
-    const detailsContainer = document.getElementById('seasonGiftPackageDetails');
-    detailsContainer.innerHTML = '<p class="text-gray-400">Ödül detayları yükleniyor...</p>';
+    const giftDetailsContainer = document.getElementById('seasonGiftPackageDetails');
+    const championPrizesContainer = document.getElementById('seasonChampionPrizes');
+    
+    giftDetailsContainer.innerHTML = '<p class="text-gray-400">Genel ödül paketi yükleniyor...</p>';
+    championPrizesContainer.innerHTML = '<p class="text-gray-400">Şampiyon ödülleri yükleniyor...</p>';
 
     try {
-        const settingsSnap = await db.ref('gameConfig/seasonSettings/rewards/general').once('value');
+        const settingsSnap = await db.ref('gameConfig/seasonSettings/rewards').once('value');
         
-        let rewardsHtml = '<strong class="text-yellow-200 block mb-2">Bu Sezonun Hediye Paketi:</strong><ul class="list-disc list-inside space-y-1 text-gray-300">';
+        // Genel Hediye Paketi Kısmı
+        let rewardsHtml = '<strong class="text-yellow-200 block mb-2">Tüm Katılımcılar İçin Hediye Paketi:</strong><ul class="list-disc list-inside space-y-1 text-gray-300">';
         let hasRewards = false;
-
-        if (settingsSnap.exists()) {
-            const rewards = settingsSnap.val();
-            
-            if (rewards.kutuHakki > 0) {
-                rewardsHtml += `<li>🎁 ${rewards.kutuHakki} Adet Kutu Hakkı</li>`;
-                hasRewards = true;
-            }
-            if (rewards.carkBileti > 0) {
-                rewardsHtml += `<li>🎡 ${rewards.carkBileti} Adet Çark Bileti</li>`;
-                hasRewards = true;
-            }
-            if (rewards.clickCatchTickets > 0) {
-                rewardsHtml += `<li>🎯 ${rewards.clickCatchTickets} Adet Tıkla-Yakala Bileti</li>`;
-                hasRewards = true;
-            }
-            if (rewards.iflasShieldUses > 0) {
-                rewardsHtml += `<li>🛡️ ${rewards.iflasShieldUses} Adet İflas Kalkanı</li>`;
-                hasRewards = true;
-            }
+        
+        const generalRewards = settingsSnap.exists() ? settingsSnap.val().general : null;
+        if (generalRewards) {
+            if (generalRewards.kutuHakki > 0) { rewardsHtml += `<li>🎁 ${generalRewards.kutuHakki} Adet Kutu Hakkı</li>`; hasRewards = true; }
+            if (generalRewards.carkBileti > 0) { rewardsHtml += `<li>🎡 ${generalRewards.carkBileti} Adet Çark Bileti</li>`; hasRewards = true; }
+            if (generalRewards.clickCatchTickets > 0) { rewardsHtml += `<li>🎯 ${generalRewards.clickCatchTickets} Adet Tıkla-Yakala Bileti</li>`; hasRewards = true; }
+            if (generalRewards.iflasShieldUses > 0) { rewardsHtml += `<li>🛡️ ${generalRewards.iflasShieldUses} Adet İflas Kalkanı</li>`; hasRewards = true; }
         }
-
         if (!hasRewards) {
             rewardsHtml += '<li>Bu sezon için henüz genel bir ödül paketi belirlenmedi.</li>';
         }
-
         rewardsHtml += '</ul>';
-        detailsContainer.innerHTML = rewardsHtml;
+        giftDetailsContainer.innerHTML = rewardsHtml;
+
+        // Şampiyon Ödülleri Kısmı
+        let championPrizesHtml = '<strong class="text-yellow-300 block mb-2">Sıralama Liderleri İçin Özel Ödüller:</strong><ul class="list-disc list-inside space-y-1 text-gray-300">';
+        let hasChampionPrizes = false;
+
+        const championRewards = settingsSnap.val();
+        if (championRewards) {
+            if (championRewards.puanLeaderAvatarUrl) {
+                // --- DEĞİŞEN SATIR: Profile işleneceği bilgisi eklendi ---
+                championPrizesHtml += `<li>🥇 Kullanıcı Puan Sıralaması 1.'si <b class="text-white">Özel Şampiyon Avatarı</b> kazanacak ve bu başarı profiline kalıcı olarak işlenecektir.</li>`;
+                hasChampionPrizes = true;
+            }
+            if (championRewards.rozetLeaderAvatarUrl) {
+                // --- DEĞİŞEN SATIR: Profile işleneceği bilgisi eklendi ---
+                championPrizesHtml += `<li>👑 Liderler Sıralaması 1.'si <b class="text-white">Özel Şampiyon Avatarı</b> kazanacak ve bu başarı profiline kalıcı olarak işlenecektir.</li>`;
+                hasChampionPrizes = true;
+            }
+        }
+
+        if (!hasChampionPrizes) {
+            championPrizesHtml += '<li>Bu sezon için henüz özel bir şampiyon ödülü belirlenmedi.</li>';
+        }
+        championPrizesHtml += '</ul>';
+        championPrizesContainer.innerHTML = championPrizesHtml;
 
     } catch (error) {
         console.error("Sezon ödülleri alınırken hata:", error);
-        detailsContainer.innerHTML = '<p class="text-red-500">Ödül bilgileri yüklenemedi.</p>';
+        giftDetailsContainer.innerHTML = '<p class="text-red-500">Genel ödül bilgileri yüklenemedi.</p>';
+        championPrizesContainer.innerHTML = '<p class="text-red-500">Şampiyon ödül bilgileri yüklenemedi.</p>';
     }
 
     document.getElementById('seasonInfoModal').style.display = 'flex';
