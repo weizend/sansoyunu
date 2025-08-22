@@ -1557,7 +1557,13 @@ body.modal-open .modal-content {
                   <option value="clickCatchTicket">Tıkla-Yakala Bileti</option>
                   <option value="iflasShield">İflas Kalkanı</option>
                   <option value="tempMultiplier">Çarpan</option>
+                  <option value="avatar">Avatar</option>
               </select>
+              
+              <div id="dailyRewardAvatarFields" class="hidden space-y-2">
+                  <input type="text" id="dailyRewardAvatarName" placeholder="Avatarın Adı" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
+                  <input type="text" id="dailyRewardAvatarImageUrl" placeholder="Avatarın Resim URL'si" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
+              </div>
               <input type="number" id="dailyRewardValue" placeholder="Değer (Puan/Hak Adedi/Kalkan)" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
               <input type="number" id="dailyRewardMultiplierUses" placeholder="Çarpan Kullanım Hakkı" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white hidden">
               
@@ -1569,7 +1575,7 @@ body.modal-open .modal-content {
                   <input type="number" id="dailyRewardCooldownSeconds" placeholder="Saniye" min="0" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
               </div>
               
-              <input type="text" id="dailyRewardImageUrl" placeholder="Resim URL (Opsiyonel)" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
+              <input type="text" id="dailyRewardImageUrl" placeholder="Ödül Kartı Resim URL (Opsiyonel)" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
           </div>
           <button onclick="saveDailyReward()" id="saveDailyRewardBtn" class="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg">GÜNLÜK ÖDÜL OLUŞTUR</button>
           <button onclick="resetDailyRewardForm()" class="w-full py-2 mt-2 bg-gray-600 hover:bg-gray-500 text-white font-bold rounded-lg shadow-md hover:-translate-y-1 transition duration-300">Formu Temizle</button>
@@ -6094,7 +6100,6 @@ function closeDailyRewardModal() {
     
 async function openDailyRewardModal() {
     const dailyRewardModal = document.getElementById('dailyRewardModal');
-    // YENİ GÜVENLİK KONTROLÜ: Elementin var olduğundan emin ol
     if (!dailyRewardModal) {
         console.error("HATA: 'dailyRewardModal' elementi HTML'de bulunamadı!");
         displayMessage("Günlük ödül penceresi açılamadı. Lütfen sayfayı yenileyin.");
@@ -6136,7 +6141,21 @@ async function openDailyRewardModal() {
             const lastClaim = userClaims[rewardId] || 0;
             const cooldown = reward.cooldownMs || 0;
             const nextAvailableTime = lastClaim + cooldown;
-            const canClaim = isAdmin ? false : (Date.now() > nextAvailableTime);
+
+            // --- DEĞİŞTİRİLEN KONTROL MANTIĞI BAŞLANGICI ---
+            let canClaim = false;
+            if (!isAdmin) {
+                // Eğer bekleme süresi 0 ise (tek seferlik) VE daha önce alınmamışsa (lastClaim === 0), alınabilir.
+                if (cooldown === 0) {
+                    canClaim = (lastClaim === 0);
+                } 
+                // Eğer bekleme süresi varsa, normal zaman kontrolü yapılır.
+                else {
+                    canClaim = (Date.now() > nextAvailableTime);
+                }
+            }
+            // --- DEĞİŞTİRİLEN KONTROL MANTIĞI SONU ---
+
 
             const card = document.createElement('div');
             card.className = 'relative bg-gray-900 p-4 rounded-xl shadow-lg border border-yellow-600 text-center flex flex-col justify-between';
@@ -6154,8 +6173,7 @@ async function openDailyRewardModal() {
                       <button onclick="reorderDailyRewardItem('${rewardId}', ${index + 1})" ${rightArrowDisabled} title="Sağa Taşı" class="p-1 rounded-full hover:bg-gray-700 disabled:cursor-not-allowed"><svg class="w-5 h-5 fill-current text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/></svg></button>
                   </div>`;
             }
-
-            // DÜZELTME: Butona benzersiz bir ID eklendi.
+            
             let buttonHTML = '<button id="claim-reward-btn-' + rewardId + '" onclick="claimDailyReward(\'' + rewardId + '\')" class="w-full py-2 mt-auto bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg transition duration-300">Ödülü Al</button>';
             let cooldownHTML = '<div class="text-sm text-gray-500 font-bold mb-3 h-5">Süre: ' + (reward.cooldownText || 'Tek Seferlik') + '</div>';
 
@@ -6178,16 +6196,20 @@ async function openDailyRewardModal() {
                         }
 
                         if (timeLeft <= 0) {
-                            el.innerHTML = '<span class="text-green-400">Şimdi Alınabilir!</span>';
-                            // DÜZELTME: Süre dolduğunda butonun ID'sini de ekliyoruz.
-                            const claimButton = el.closest('.relative').querySelector('button');
-                            if (claimButton) {
-                                claimButton.id = 'claim-reward-btn-' + rewardId; // ID'yi yeniden ata
-                                claimButton.disabled = false;
-                                claimButton.onclick = () => claimDailyReward(rewardId);
-                                claimButton.classList.replace('bg-gray-600', 'bg-green-600');
-                                claimButton.classList.add('hover:bg-green-500');
-                                claimButton.textContent = 'Ödülü Al';
+                            // DEĞİŞTİRİLEN KISIM: Tek seferlik ödüller için bu blok çalışmamalı.
+                            if(cooldown > 0){
+                                el.innerHTML = '<span class="text-green-400">Şimdi Alınabilir!</span>';
+                                const claimButton = el.closest('.relative').querySelector('button');
+                                if (claimButton) {
+                                    claimButton.id = 'claim-reward-btn-' + rewardId;
+                                    claimButton.disabled = false;
+                                    claimButton.onclick = () => claimDailyReward(rewardId);
+                                    claimButton.classList.replace('bg-gray-600', 'bg-green-600');
+                                    claimButton.classList.add('hover:bg-green-500');
+                                    claimButton.textContent = 'Ödülü Al';
+                                }
+                            } else {
+                                el.innerHTML = '<span class="text-red-400">Bu ödül zaten alındı.</span>';
                             }
                             clearInterval(timerId);
                         } else {
@@ -6227,8 +6249,6 @@ async function openDailyRewardModal() {
     }
 }
 
-// MEVCUT claimDailyReward FONKSİYONUNU SİL VE BUNUNLA DEĞİŞTİR
-
 async function claimDailyReward(rewardId) {
     if (isAdmin) return;
 
@@ -6256,6 +6276,14 @@ async function claimDailyReward(rewardId) {
         const lastClaim = (user.dailyRewardsClaimed && user.dailyRewardsClaimed[rewardId]) || 0;
         const cooldown = reward.cooldownMs || 0;
 
+        if (cooldown === 0 && lastClaim > 0) {
+            displayMessage("Bu tek seferlik ödülü zaten aldınız.");
+            if (claimButton) {
+                claimButton.textContent = 'Alındı';
+            }
+            return;
+        }
+
         if (Date.now() < lastClaim + cooldown) {
             displayMessage("Bu ödül için bekleme süresi henüz dolmadı.");
             if (claimButton) {
@@ -6267,8 +6295,7 @@ async function claimDailyReward(rewardId) {
 
         if (reward.type === 'tempMultiplier') {
             if (user.multiplierSource && user.multiplierSource !== 'none') {
-                
-                if (reward.value === user.activeMultiplier) { // Stackleme
+                if (reward.value === user.activeMultiplier) {
                     const confirmedStack = await customConfirm(`Zaten ${user.activeMultiplier}x çarpanın var. Bu ödül, mevcut çarpanına <b>+${reward.uses} kullanım hakkı</b> ekleyecek. Onaylıyor musun?`);
                     if (!confirmedStack) {
                         if (claimButton) { claimButton.disabled = false; claimButton.textContent = 'Ödülü Al'; }
@@ -6276,7 +6303,7 @@ async function claimDailyReward(rewardId) {
                     }
                     await userRef.update({ multiplierRemainingUses: (user.multiplierRemainingUses || 0) + reward.uses });
                 } 
-                else if (reward.value > user.activeMultiplier) { // Yükseltme
+                else if (reward.value > user.activeMultiplier) {
                     const kutuHakkiDonusum = user.multiplierRemainingUses || 0;
                     const confirmedUpgrade = await customConfirm(`Mevcut ${user.activeMultiplier}x çarpanını daha yüksek olan <b>${reward.value}x</b> ile değiştirmek üzeresin. Mevcut çarpanının kalan <b>${user.multiplierRemainingUses} kullanım hakkı</b>, envanterine <b>+${kutuHakkiDonusum} Kutu Hakkı</b> olarak eklenecek. Onaylıyor musun?`);
                     if (!confirmedUpgrade) {
@@ -6299,7 +6326,6 @@ async function claimDailyReward(rewardId) {
                         return;
                     }
 
-                    // --- DEĞİŞEN SATIR: Korunan çarpanın değeri log'a eklendi ---
                     logActivity('multiplierConvertedToBoxRights', currentUser, {
                         rewardValue: reward.value,
                         boxRights: kutuHakkiDonusum,
@@ -6346,12 +6372,23 @@ async function claimDailyReward(rewardId) {
                 updates['multiplierRemainingUses'] = reward.uses;
                 updates['multiplierSource'] = 'store';
                 break;
+            // --- YENİ EKLENEN CASE BAŞLANGICI ---
+            case 'avatar':
+                const newAvatarId = db.ref().push().key; // Benzersiz bir ID oluştur
+                updates[`avatars/${newAvatarId}`] = {
+                    id: newAvatarId,
+                    name: reward.avatarName,
+                    imageUrl: reward.avatarImageUrl
+                };
+                message = `Tebrikler! <b>${reward.avatarName}</b> avatarı koleksiyonuna eklendi!`;
+                break;
+            // --- YENİ EKLENEN CASE SONU ---
         }
 
         const logDetails = { 
             rewardName: reward.name, 
             rewardType: reward.type, 
-            rewardValue: reward.value 
+            rewardValue: reward.type !== 'avatar' ? reward.value : reward.avatarName
         };
         if (reward.type === 'tempMultiplier') {
             logDetails.rewardUses = reward.uses;
@@ -6378,86 +6415,130 @@ async function claimDailyReward(rewardId) {
     }
 }
 
-    function resetDailyRewardForm() {
-      document.getElementById('dailyRewardName').value = '';
-      document.getElementById('dailyRewardDescription').value = '';
-      document.getElementById('dailyRewardType').value = '';
-      document.getElementById('dailyRewardValue').value = '';
-      document.getElementById('dailyRewardMultiplierUses').value = '';
-      document.getElementById('dailyRewardCooldownDays').value = '';
-      document.getElementById('dailyRewardCooldownHours').value = '';
-      document.getElementById('dailyRewardCooldownMinutes').value = '';
-      document.getElementById('dailyRewardCooldownSeconds').value = '';
-      document.getElementById('dailyRewardImageUrl').value = '';
-      document.getElementById('saveDailyRewardBtn').textContent = 'GÜNLÜK ÖDÜL OLUŞTUR';
-      document.getElementById('dailyRewardMultiplierUses').classList.add('hidden');
-      editingDailyRewardId = null;
+function handleDailyRewardTypeChange() {
+    const type = document.getElementById('dailyRewardType').value;
+    const valueInput = document.getElementById('dailyRewardValue');
+    const usesInput = document.getElementById('dailyRewardMultiplierUses');
+    const avatarFields = document.getElementById('dailyRewardAvatarFields');
+
+    // Önce tüm özel alanları gizle
+    valueInput.classList.remove('hidden');
+    usesInput.classList.add('hidden');
+    avatarFields.classList.add('hidden');
+
+    if (type === 'tempMultiplier') {
+        usesInput.classList.remove('hidden');
+    } else if (type === 'avatar') {
+        valueInput.classList.add('hidden'); // Avatar için "Değer" alanı gereksiz
+        avatarFields.classList.remove('hidden');
     }
+}
+// Bu event listener'ı script'in en altına veya uygun bir yere ekleyin.
+document.getElementById('dailyRewardType').addEventListener('change', handleDailyRewardTypeChange);
+
+    function resetDailyRewardForm() {
+    document.getElementById('dailyRewardName').value = '';
+    document.getElementById('dailyRewardDescription').value = '';
+    document.getElementById('dailyRewardType').value = '';
+    document.getElementById('dailyRewardValue').value = '';
+    document.getElementById('dailyRewardMultiplierUses').value = '';
+    document.getElementById('dailyRewardCooldownDays').value = '';
+    document.getElementById('dailyRewardCooldownHours').value = '';
+    document.getElementById('dailyRewardCooldownMinutes').value = '';
+    document.getElementById('dailyRewardCooldownSeconds').value = '';
+    document.getElementById('dailyRewardImageUrl').value = '';
+    
+    // YENİ EKLENEN SATIRLAR
+    document.getElementById('dailyRewardAvatarName').value = '';
+    document.getElementById('dailyRewardAvatarImageUrl').value = '';
+    
+    document.getElementById('saveDailyRewardBtn').textContent = 'GÜNLÜK ÖDÜL OLUŞTUR';
+    editingDailyRewardId = null;
+    
+    // Formun görsel durumunu da sıfırla
+    handleDailyRewardTypeChange();
+}
 
     async function saveDailyReward() {
-        if (!isAdmin) return;
-        
-        const name = document.getElementById('dailyRewardName').value.trim();
-        const type = document.getElementById('dailyRewardType').value;
-        const value = parseInt(document.getElementById('dailyRewardValue').value);
-        const description = document.getElementById('dailyRewardDescription').value.trim();
-        const imageUrl = document.getElementById('dailyRewardImageUrl').value.trim();
-        
-        const days = parseInt(document.getElementById('dailyRewardCooldownDays').value) || 0;
-        const hours = parseInt(document.getElementById('dailyRewardCooldownHours').value) || 0;
-        const minutes = parseInt(document.getElementById('dailyRewardCooldownMinutes').value) || 0;
-        const seconds = parseInt(document.getElementById('dailyRewardCooldownSeconds').value) || 0;
+    if (!isAdmin) return;
+    
+    const name = document.getElementById('dailyRewardName').value.trim();
+    const type = document.getElementById('dailyRewardType').value;
+    const value = parseInt(document.getElementById('dailyRewardValue').value);
+    const description = document.getElementById('dailyRewardDescription').value.trim();
+    const imageUrl = document.getElementById('dailyRewardImageUrl').value.trim();
+    
+    const days = parseInt(document.getElementById('dailyRewardCooldownDays').value) || 0;
+    const hours = parseInt(document.getElementById('dailyRewardCooldownHours').value) || 0;
+    const minutes = parseInt(document.getElementById('dailyRewardCooldownMinutes').value) || 0;
+    const seconds = parseInt(document.getElementById('dailyRewardCooldownSeconds').value) || 0;
 
-        if (!name || !type || isNaN(value) || value <= 0 || !description) {
-            displayMessage("Lütfen ödül için tüm zorunlu alanları (Ad, Tip, Değer, Açıklama) geçerli bir şekilde doldurun.");
+    if (!name || !type || !description) {
+        displayMessage("Lütfen ödül için tüm zorunlu alanları (Ad, Tip, Açıklama) doldurun.");
+        return;
+    }
+
+    const cooldownMs = (days * 24 * 3600 + hours * 3600 + minutes * 60 + seconds) * 1000;
+    let cooldownText = '';
+    if(days > 0) cooldownText += `${days}g `;
+    if(hours > 0) cooldownText += `${hours}s `;
+    if(minutes > 0) cooldownText += `${minutes}d `;
+    if(seconds > 0) cooldownText += `${seconds}sn`;
+    if (cooldownText === '') cooldownText = 'Tek Seferlik';
+
+    const rewardData = { name, type, description, cooldownMs, cooldownText, imageUrl: imageUrl || 'https://via.placeholder.com/150' };
+
+    if (editingDailyRewardId) {
+        const existingRewardSnap = await db.ref('dailyRewardOptions/' + editingDailyRewardId).once('value');
+        const existingReward = existingRewardSnap.val();
+        rewardData.order = existingReward.order;
+    } else {
+        const maxOrderSnap = await db.ref('dailyRewardOptions').orderByChild('order').limitToLast(1).once('value');
+        let maxOrder = -1;
+        if(maxOrderSnap.exists()){
+            maxOrder = Object.values(maxOrderSnap.val())[0].order || 0;
+        }
+        rewardData.order = maxOrder + 1;
+    }
+
+    // TİPE GÖRE ÖZEL VERİLERİ EKLEME
+    if (type === 'tempMultiplier') {
+        const uses = parseInt(document.getElementById('dailyRewardMultiplierUses').value);
+        if (isNaN(uses) || uses <= 0) {
+            displayMessage("Çarpan için geçerli bir kullanım hakkı sayısı girin.");
             return;
         }
-
-        const cooldownMs = (days * 24 * 3600 + hours * 3600 + minutes * 60 + seconds) * 1000;
-        let cooldownText = '';
-        if(days > 0) cooldownText += `${days}g `;
-        if(hours > 0) cooldownText += `${hours}s `;
-        if(minutes > 0) cooldownText += `${minutes}d `;
-        if(seconds > 0) cooldownText += `${seconds}sn`;
-        if (cooldownText === '') cooldownText = 'Tek Seferlik';
-
-
-        const rewardData = { name, type, value, description, cooldownMs, cooldownText, imageUrl: imageUrl || 'https://via.placeholder.com/150' };
-
-        if (editingDailyRewardId) {
-            const existingRewardSnap = await db.ref('dailyRewardOptions/' + editingDailyRewardId).once('value');
-            const existingReward = existingRewardSnap.val();
-            rewardData.order = existingReward.order;
-        } else {
-            const maxOrderSnap = await db.ref('dailyRewardOptions').orderByChild('order').limitToLast(1).once('value');
-            let maxOrder = -1;
-            if(maxOrderSnap.exists()){
-                maxOrder = Object.values(maxOrderSnap.val())[0].order || 0;
-            }
-            rewardData.order = maxOrder + 1;
+        rewardData.uses = uses;
+        rewardData.value = value;
+    } else if (type === 'avatar') {
+        const avatarName = document.getElementById('dailyRewardAvatarName').value.trim();
+        const avatarImageUrl = document.getElementById('dailyRewardAvatarImageUrl').value.trim();
+        if (!avatarName || !avatarImageUrl) {
+            displayMessage("Avatar ödülü için Avatar Adı ve Resim URL'si zorunludur.");
+            return;
         }
-
-        if (type === 'tempMultiplier') {
-            const uses = parseInt(document.getElementById('dailyRewardMultiplierUses').value);
-            if (isNaN(uses) || uses <= 0) {
-                displayMessage("Çarpan için geçerli bir kullanım hakkı sayısı girin.");
-                return;
-            }
-            rewardData.uses = uses;
+        rewardData.avatarName = avatarName;
+        rewardData.avatarImageUrl = avatarImageUrl;
+    } else {
+        if (isNaN(value) || value <= 0) {
+            displayMessage("Bu ödül tipi için geçerli bir 'Değer' girmelisiniz.");
+            return;
         }
-        
-        if (editingDailyRewardId) {
-            await db.ref('dailyRewardOptions/' + editingDailyRewardId).update(rewardData);
-            displayMessage("Günlük ödül başarıyla güncellendi.");
-        } else {
-            await db.ref('dailyRewardOptions').push(rewardData);
-            displayMessage("Yeni günlük ödül başarıyla oluşturuldu.");
-        }
-        
-        resetDailyRewardForm();
-        closeAdminDailyRewardModal();
-        openDailyRewardModal();
+        rewardData.value = value;
     }
+    
+    if (editingDailyRewardId) {
+        await db.ref('dailyRewardOptions/' + editingDailyRewardId).update(rewardData);
+        displayMessage("Günlük ödül başarıyla güncellendi.");
+    } else {
+        await db.ref('dailyRewardOptions').push(rewardData);
+        displayMessage("Yeni günlük ödül başarıyla oluşturuldu.");
+    }
+    
+    resetDailyRewardForm();
+    closeAdminDailyRewardModal();
+    openDailyRewardModal();
+}
     
     // DEĞİŞTİRİLECEK FONKSİYON
 async function reorderDailyRewardItem(rewardId, newIndex) {
@@ -6486,46 +6567,49 @@ async function reorderDailyRewardItem(rewardId, newIndex) {
 }
 
     async function editDailyReward(rewardId) {
-        if (!isAdmin) return;
-        
-        const rewardSnap = await db.ref('dailyRewardOptions/' + rewardId).once('value');
-        const reward = rewardSnap.val();
-        if (!reward) {
-            displayMessage("Düzenlenecek ödül bulunamadı.");
-            return;
-        }
-        
-        document.getElementById('dailyRewardName').value = reward.name;
-        document.getElementById('dailyRewardDescription').value = reward.description;
-        document.getElementById('dailyRewardType').value = reward.type;
-        document.getElementById('dailyRewardValue').value = reward.value;
-        document.getElementById('dailyRewardImageUrl').value = reward.imageUrl || '';
-        
-        const cooldownMs = reward.cooldownMs || 0;
-        const days = Math.floor(cooldownMs / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((cooldownMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((cooldownMs % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((cooldownMs % (1000 * 60)) / 1000);
-
-        document.getElementById('dailyRewardCooldownDays').value = days;
-        document.getElementById('dailyRewardCooldownHours').value = hours;
-        document.getElementById('dailyRewardCooldownMinutes').value = minutes;
-        document.getElementById('dailyRewardCooldownSeconds').value = seconds;
-
-        const usesInput = document.getElementById('dailyRewardMultiplierUses');
-        if (reward.type === 'tempMultiplier') {
-            usesInput.classList.remove('hidden');
-            usesInput.value = reward.uses || '';
-        } else {
-            usesInput.classList.add('hidden');
-        }
-
-        document.getElementById('saveDailyRewardBtn').textContent = 'ÖDÜLÜ GÜNCELLE';
-        editingDailyRewardId = rewardId;
-        
-        openAdminDailyRewardModal(); 
-        document.querySelector('#adminDailyRewardModal .modal-content').scrollTop = 0;
+    if (!isAdmin) return;
+    
+    const rewardSnap = await db.ref('dailyRewardOptions/' + rewardId).once('value');
+    const reward = rewardSnap.val();
+    if (!reward) {
+        displayMessage("Düzenlenecek ödül bulunamadı.");
+        return;
     }
+    
+    document.getElementById('dailyRewardName').value = reward.name;
+    document.getElementById('dailyRewardDescription').value = reward.description;
+    document.getElementById('dailyRewardType').value = reward.type;
+    document.getElementById('dailyRewardImageUrl').value = reward.imageUrl || '';
+    
+    const cooldownMs = reward.cooldownMs || 0;
+    const days = Math.floor(cooldownMs / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((cooldownMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((cooldownMs % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((cooldownMs % (1000 * 60)) / 1000);
+
+    document.getElementById('dailyRewardCooldownDays').value = days;
+    document.getElementById('dailyRewardCooldownHours').value = hours;
+    document.getElementById('dailyRewardCooldownMinutes').value = minutes;
+    document.getElementById('dailyRewardCooldownSeconds').value = seconds;
+
+    // TİPE GÖRE ÖZEL ALANLARI DOLDUR
+    if (reward.type === 'tempMultiplier') {
+        document.getElementById('dailyRewardValue').value = reward.value || '';
+        document.getElementById('dailyRewardMultiplierUses').value = reward.uses || '';
+    } else if (reward.type === 'avatar') {
+        document.getElementById('dailyRewardAvatarName').value = reward.avatarName || '';
+        document.getElementById('dailyRewardAvatarImageUrl').value = reward.avatarImageUrl || '';
+    } else {
+        document.getElementById('dailyRewardValue').value = reward.value || '';
+    }
+
+    document.getElementById('saveDailyRewardBtn').textContent = 'ÖDÜLÜ GÜNCELLE';
+    editingDailyRewardId = rewardId;
+    
+    handleDailyRewardTypeChange(); // Formun görsel durumunu güncelle
+    openAdminDailyRewardModal(); 
+    document.querySelector('#adminDailyRewardModal .modal-content').scrollTop = 0;
+}
 
     async function removeDailyReward(rewardId) {
         if (!isAdmin) return;
