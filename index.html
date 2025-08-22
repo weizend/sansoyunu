@@ -6235,15 +6235,63 @@ async function claimDailyReward(rewardId) {
             return;
         }
 
-        if (reward.type === 'tempMultiplier' && user.multiplierSource !== 'none') {
-            displayMessage("Mevcut bir çarpanınız varken çarpan ödülü alamazsınız. Lütfen önce mevcut çarpanınızı kullanın.");
-            if (claimButton) {
-                claimButton.disabled = false;
-                claimButton.textContent = 'Ödülü Al';
-            }
-            return;
-        }
+        if (reward.type === 'tempMultiplier') {
+            if (user.multiplierSource && user.multiplierSource !== 'none') {
+                
+                if (reward.value === user.activeMultiplier) { // Stackleme
+                    const confirmedStack = await customConfirm(`Zaten ${user.activeMultiplier}x çarpanın var. Bu ödül, mevcut çarpanına <b>+${reward.uses} kullanım hakkı</b> ekleyecek. Onaylıyor musun?`);
+                    if (!confirmedStack) {
+                        if (claimButton) { claimButton.disabled = false; claimButton.textContent = 'Ödülü Al'; }
+                        return;
+                    }
+                    await userRef.update({ multiplierRemainingUses: (user.multiplierRemainingUses || 0) + reward.uses });
+                } 
+                else if (reward.value > user.activeMultiplier) { // Yükseltme
+                    const kutuHakkiDonusum = user.multiplierRemainingUses || 0;
+                    const confirmedUpgrade = await customConfirm(`Mevcut ${user.activeMultiplier}x çarpanını daha yüksek olan <b>${reward.value}x</b> ile değiştirmek üzeresin. Mevcut çarpanının kalan <b>${user.multiplierRemainingUses} kullanım hakkı</b>, envanterine <b>+${kutuHakkiDonusum} Kutu Hakkı</b> olarak eklenecek. Onaylıyor musun?`);
+                    if (!confirmedUpgrade) {
+                        if (claimButton) { claimButton.disabled = false; claimButton.textContent = 'Ödülü Al'; }
+                        return;
+                    }
+                    await userRef.update({
+                        kutuHakki: (user.kutuHakki || 0) + kutuHakkiDonusum,
+                        activeMultiplier: reward.value,
+                        multiplierRemainingUses: reward.uses,
+                        multiplierSource: 'store'
+                    });
+                } 
+                // --- DEĞİŞEN KISIM BAŞLANGICI: Düşük çarpanı kutu hakkına dönüştürme ---
+                else { 
+                    const kutuHakkiDonusum = reward.uses || 0;
+                    const confirmedConvert = await customConfirm(`Mevcut <b>${user.activeMultiplier}x</b> çarpanın bu <b>${reward.value}x</b> ödülünden daha güçlü. Bu ödülü alırsan, çarpanın değişmeyecek ancak ödülün <b>${kutuHakkiDonusum} kullanım hakkı</b>, envanterine <b>+${kutuHakkiDonusum} Kutu Hakkı</b> olarak eklenecek. Onaylıyor musun?`);
+                    
+                    if (!confirmedConvert) {
+                        if (claimButton) { claimButton.disabled = false; claimButton.textContent = 'Ödülü Al'; }
+                        return;
+                    }
 
+                    // Yeni eylem türü ile log'luyoruz
+                    logActivity('multiplierConvertedToBoxRights', currentUser, {
+                        rewardValue: reward.value,
+                        boxRights: kutuHakkiDonusum
+                    });
+
+                    // Sadece kutu hakkını güncelliyoruz
+                    await userRef.update({
+                        kutuHakki: (user.kutuHakki || 0) + kutuHakkiDonusum
+                    });
+
+                    // Ödülü alındı olarak işaretle ve işlemi bitir
+                    await db.ref(`users/${currentUser}/dailyRewardsClaimed/${rewardId}`).set(firebase.database.ServerValue.TIMESTAMP);
+                    displayMessage(`Başarılı! ${reward.name} ödülü, envanterinize +${kutuHakkiDonusum} Kutu Hakkı olarak eklendi.`);
+                    closeDailyRewardModal();
+                    checkAvailableDailyRewards();
+                    return;
+                }
+                // --- DEĞİŞEN KISIM SONU ---
+            }
+        }
+        
         let updates = {};
         let message = `Tebrikler! Günlük ödül olarak <b>${reward.name}</b> kazandın.`;
 
@@ -6281,7 +6329,6 @@ async function claimDailyReward(rewardId) {
         if (reward.type === 'tempMultiplier') {
             logDetails.rewardUses = reward.uses;
         }
-        // --- DEĞİŞİKLİK: Eğer ödül puansa, yeni bakiyeyi log'a ekliyoruz ---
         if (reward.type === 'points') {
             logDetails.newBalance = updates.balance;
         }
@@ -8333,7 +8380,6 @@ function getActivityIcon(type, details = {}) {
             icon = '✖️';
             bgColor = 'bg-purple-500';
             break;
-        // --- DEĞİŞİKLİK: Mağazadan yapılan işlemler için ikonları grupluyoruz ---
         case 'multiplierUpgradedFromStore':
         case 'multiplierStackedFromStore':
         case 'buyItem':
@@ -8344,6 +8390,12 @@ function getActivityIcon(type, details = {}) {
             icon = '❎';
             bgColor = 'bg-gray-600';
             break;
+        // --- YENİ EKLENEN CASE ---
+        case 'multiplierConvertedToBoxRights':
+            icon = '♻️';
+            bgColor = 'bg-lime-600';
+            break;
+        // --- YENİ EKLENEN CASE SONU ---
         case 'newItemFound':
             const itemType = details.itemType;
             if (itemType === 'iflasShield') {
@@ -8440,15 +8492,18 @@ function renderActivityFeed(activities) {
                 : '';
 
             switch (activity.type) {
+                // --- YENİ EKLENEN CASE BLOĞU ---
+                case 'multiplierConvertedToBoxRights':
+                    message = `${userHtml}, mevcut güçlü çarpanını koruyarak, günlük ödülden gelen ${details.rewardValue}x çarpanını <span class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı'na</span> dönüştürdü.`;
+                    break;
                 case 'multiplierStackedFromStore':
                     message = `${userHtml}, mağazadan <span class="text-red-400 font-bold">-${details.cost} Puan</span> harcayarak <b>${details.multiplierValue}x çarpanına</b> <span class="text-green-300 font-bold">+${details.usesAdded} kullanım hakkı</span> ekledi ve toplam <span class="text-green-300 font-bold">${details.newTotalUses} kullanım hakkı</span> oldu. <span class="text-gray-400">(Hesabında ${details.newBalance} puanı kaldı.)</span>`;
                     break;
                 case 'multiplierStacked':
                     message = `${userHtml}, mevcut <b>${details.value}x</b> çarpanına <span class="text-green-300 font-bold">+${details.uses} kullanım hakkı</span> ekledi.`;
                     break;
-                // --- DEĞİŞEN CASE BLOĞU ---
                 case 'multiplierUpgradedFromStore':
-                    message = `${userHtml}, mağazadan mevcut <b>${details.boxRights} adet ${details.oldValue}x</b> çarpanı varken <span class="text-red-400 font-bold">-${details.cost} Puan</span> harcayarak <b>${details.newValue}x çarpan</b> satın aldı ve mevcut çarpanını <span class="text-cyan-300 font-bold">${details.boxRights} Kutu Hakkı'na</span> dönüştürdü. <span class="text-gray-400">(Hesabında ${details.newBalance} puanı kaldı.)</span>`;
+                    message = `${userHtml}, mağazadan yaptığı alımla eski ${details.oldValue}x çarpanını <span class="text-cyan-300 font-bold">${details.boxRights} Kutu Hakkı'na</span> dönüştürdü ve yeni <b>${details.newValue}x</b> çarpanına geçti.`;
                     break;
                 case 'multiplierUpgraded':
                     message = `${userHtml}, eski ${details.oldValue}x çarpanını <span class="text-cyan-300 font-bold">${details.boxRights} Kutu Hakkı'na</span> dönüştürerek kutudan çıkan daha güçlü <b>${details.newValue}x</b> çarpanına geçti!`;
