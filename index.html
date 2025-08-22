@@ -8008,7 +8008,6 @@ async function startSoloClickCatchGame() {
     showGameCountdown(_actuallyStartSoloGame);
 }
 
-// ... VE YERİNE BU YENİ VERSİYONU YAPIŞTIR
 async function endSoloClickCatchGame() {
     clickCatchGameActive = false;
     clearInterval(clickCatchTimerInterval);
@@ -8030,40 +8029,36 @@ async function endSoloClickCatchGame() {
     if (collectedIflasShields > 0) specialItemsWonLog.push(`+${collectedIflasShields} İflas Kalkanı`);
     if (collectedWheelTickets > 0) specialItemsWonLog.push(`+${collectedWheelTickets} Çark Bileti`);
 
-    // --- DEĞİŞİKLİK 1: Mesajdan bilet iadesi yazısını kaldırdım ---
     let endMessage = `Oyun bitti! Bu turdaki skorun: <b>${clickCatchScore}</b>.`;
     if (specialItemsWonLog.length > 0) {
         endMessage += `<br>Ayrıca, <b>${specialItemsWonLog.join(', ')}</b> kazandın!`;
     }
     displayMessage(endMessage);
 
+    const weeklyScoreRef = db.ref(`clickCatchWeeklyScores/${currentUser}`);
+    const userRef = db.ref('users/' + currentUser);
+
+    const [weeklyScoreSnap, userSnap] = await Promise.all([weeklyScoreRef.once('value'), userRef.once('value')]);
+    
+    const currentWeeklyScore = weeklyScoreSnap.val() || 0;
+    const newTotalWeeklyScore = currentWeeklyScore + Math.max(0, clickCatchScore);
+    const user = userSnap.val();
+
     logActivity('clickCatchSolo', currentUser, {
         score: clickCatchScore,
-        specialItems: specialItemsWonLog
+        specialItems: specialItemsWonLog,
+        newWeeklyScore: newTotalWeeklyScore // Yeni haftalık skoru log'a ekliyoruz
     });
     
-    const userRef = db.ref('users/' + currentUser);
-    const weeklyScoreRef = db.ref(`clickCatchWeeklyScores/${currentUser}`);
+    // Veritabanı güncellemelerini tek bir işlemde birleştiriyoruz
+    const updates = {};
+    updates[`clickCatchWeeklyScores/${currentUser}`] = newTotalWeeklyScore;
+    updates[`users/${currentUser}/clickCatchHighestScore`] = newTotalWeeklyScore;
+    updates[`users/${currentUser}/kutuHakki`] = (user.kutuHakki || 0) + collectedBoxRights;
+    updates[`users/${currentUser}/iflasShieldUses`] = (user.iflasShieldUses || 0) + collectedIflasShields;
+    updates[`users/${currentUser}/carkBileti`] = (user.carkBileti || 0) + collectedWheelTickets;
 
-    await weeklyScoreRef.transaction(currentWeeklyScore => {
-        return (currentWeeklyScore || 0) + Math.max(0, clickCatchScore);
-    });
-
-    await userRef.transaction(user => {
-        if (user) {
-            const newTotalWeeklyScore = (user.clickCatchHighestScore || 0) + Math.max(0, clickCatchScore);
-            user.clickCatchHighestScore = newTotalWeeklyScore;
-
-            // --- DEĞİŞİKLİK 2: Hesaba bilet iadesi yapan satırı kaldırdım ---
-            // user.clickCatchTickets = (user.clickCatchTickets || 0) + 1; // BU SATIR SİLİNDİ
-
-            // Kazanılan diğer ödüller eklenmeye devam ediyor
-            user.kutuHakki = (user.kutuHakki || 0) + collectedBoxRights;
-            user.iflasShieldUses = (user.iflasShieldUses || 0) + collectedIflasShields;
-            user.carkBileti = (user.carkBileti || 0) + collectedWheelTickets;
-        }
-        return user;
-    });
+    await db.ref().update(updates);
 }
 
   // ... VE YERİNE BU YENİ VERSİYONU YAPIŞTIR
@@ -8450,6 +8445,12 @@ function renderActivityFeed(activities) {
             const remainingBalanceText = (details.newBalance !== undefined && details.newBalance !== null) 
                 ? ` <span class="text-gray-400">(Mevcut Puan: ${details.newBalance})</span>`
                 : '';
+            
+            // --- YENİ EKLENEN KISIM ---
+            const weeklyScoreText = (details.newWeeklyScore !== undefined && details.newWeeklyScore !== null)
+                ? ` <span class="text-gray-400">(Mevcut Haftalık Skor: ${details.newWeeklyScore})</span>`
+                : '';
+            // --- YENİ EKLENEN KISIM SONU ---
 
             switch (activity.type) {
                 case 'multiplierStackedFromStore':
@@ -8532,17 +8533,15 @@ function renderActivityFeed(activities) {
                     break;
                 case 'clickCatchSolo':
                     if (details.score > 0) {
-                        message = `${userHtml}, Tıkla-Yakala oynadı ve <span class="text-green-300 font-bold">+${details.score} Skor</span> topladı.`;
+                        message = `${userHtml}, Tıkla-Yakala oynadı ve <span class="text-green-300 font-bold">+${details.score} Skor</span> topladı.${weeklyScoreText}`;
                     } else if (details.score < 0) {
-                        message = `${userHtml}, Tıkla-Yakala oynadı ve <span class="text-red-400 font-bold">${details.score} Skor</span> kaybetti.`;
+                        message = `${userHtml}, Tıkla-Yakala oynadı ve <span class="text-red-400 font-bold">${details.score} Skor</span> kaybetti.${weeklyScoreText}`;
                     } else {
-                        message = `${userHtml}, Tıkla-Yakala oynadı ancak skor toplayamadı.`;
+                        message = `${userHtml}, Tıkla-Yakala oynadı ancak skor toplayamadı.${weeklyScoreText}`;
                     }
 
                     if (details.specialItems && details.specialItems.length > 0) {
                         message += ` Ayrıca, <span class="text-cyan-300 font-bold">${details.specialItems.join(', ')}</span> kazandı.`;
-                    } else {
-                        message += ` <span class="text-xs text-gray-500">(Özel eşya yakalanmadı)</span>`;
                     }
                     break;
                 case 'clickCatchLobby':
@@ -8560,7 +8559,6 @@ function renderActivityFeed(activities) {
                     } else {
                         rewardText = `+${rewardValue} ${typeToName[rewardType] || details.rewardName}`;
                     }
-                    // --- DEĞİŞEN SATIR: Kalan puan metni eklendi. ---
                     message = `${userHtml}, günlük ödül olarak <span class="text-teal-300 font-bold">${rewardText}</span> aldı.${remainingBalanceText}`;
                     break;
                 case 'surpriseBoxTimeout':
