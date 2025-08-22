@@ -3804,8 +3804,7 @@ async function deleteUserAvatar(username, avatarId) {
       }); 
   }
 
-// openBox fonksiyonunun sadece iflas (bomba) ile ilgili kısmını güncelliyoruz.
-// Kolaylık olması için fonksiyonun tamamını tekrar paylaşıyorum.
+// MEVCUT openBox FONKSİYONUNU SİLİP BUNUNLA DEĞİŞTİRİN
 
 async function openBox(index) {
     if (isGameLocked) {
@@ -3942,7 +3941,13 @@ async function openBox(index) {
             boxUpdate.finalPoints = pointsGained;
             boxOpenInfo.basePoints = box.value;
             boxOpenInfo.finalPoints = pointsGained;
-            logActivity('openBox', currentUser, { boxId: box.id, points: pointsGained, multiplier: finalMultiplier });
+            // --- DEĞİŞİKLİK: Log kaydına yeni bakiye bilgisini ekliyoruz. ---
+            logActivity('openBox', currentUser, { 
+                boxId: box.id, 
+                points: pointsGained, 
+                multiplier: finalMultiplier, 
+                newBalance: updates['balance'] 
+            });
         }
         else if (box.content === 'iflas') {
             let shieldWasUsed = false;
@@ -3961,7 +3966,6 @@ async function openBox(index) {
             boxUpdate.lostPoints = shieldWasUsed ? 0 : lostPoints;
             boxOpenInfo.shieldUsed = shieldWasUsed;
             boxOpenInfo.lostPoints = shieldWasUsed ? 0 : lostPoints;
-            // DEĞİŞİKLİK: Log kaydına yeni bakiye bilgisini ekliyoruz.
             logActivity('iflas', currentUser, { 
                 shieldUsed: shieldWasUsed, 
                 lostPoints: shieldWasUsed ? 0 : lostPoints, 
@@ -4285,13 +4289,11 @@ function updateLastSurpriseInfoDisplay(info) {
     container.classList.remove('hidden');
 }
 
+// MEVCUT selectCard FONKSİYONUNU SİLİP BUNUNLA DEĞİŞTİRİN
+
 async function selectCard(selectedCardDiv, userId) { 
     if (countdownInterval) clearInterval(countdownInterval);
     if (selectedCardDiv.classList.contains('opened')) return; 
-
-    // ----- DEBUG İÇİN EKLENDİ -----
-    console.log("2. ADIM: Kart seçildi! Firebase'e sonuç yazılıyor...");
-    // -----------------------------
 
     const cardIndex = selectedCardDiv.dataset.index;
     const sessionRef = db.ref('surprise_box_session');
@@ -4301,16 +4303,120 @@ async function selectCard(selectedCardDiv, userId) {
     const snap = await sessionRef.once('value');
     const sessionData = snap.val();
     let points = parseInt(selectedCardDiv.dataset.value) * sessionData.multiplier;
-    await sessionRef.child('result').set({ points: points });
-
+    
     const userRef = db.ref('users/' + userId); 
     const userSnap = await userRef.once('value'); 
     let user = userSnap.val(); 
+    let newBalance = 0;
     if (user) { 
-      user.balance = (user.balance || 0) + points; 
-      if (user.balance > (user.highestBalanceEver || 0)) user.highestBalanceEver = user.balance; 
-      await userRef.update({ balance: user.balance, highestBalanceEver: user.highestBalanceEver }); 
+      newBalance = (user.balance || 0) + points; 
+      let newHighest = user.highestBalanceEver || 0;
+      if (newBalance > newHighest) newHighest = newBalance; 
+      await userRef.update({ balance: newBalance, highestBalanceEver: newHighest }); 
     } 
+
+    // --- DEĞİŞİKLİK: Sonucu ve yeni bakiyeyi birlikte kaydediyoruz ---
+    await sessionRef.child('result').set({ points: points, newBalance: newBalance });
+}
+
+// MEVCUT listenForSurpriseBox FONKSİYONUNU SİLİP BUNUNLA DEĞİŞTİRİN
+// (Sadece logActivity çağrısı güncellendi)
+
+let isProcessingSurpriseResult = false;
+let spectatorViewingResult = false;
+
+function listenForSurpriseBox() {
+    const sessionRef = db.ref('surprise_box_session');
+    
+    if (activeListeners.surpriseBox) {
+        activeListeners.surpriseBox.ref.off(activeListeners.surpriseBox.event, activeListeners.surpriseBox.callback);
+    }
+
+    const callback = snap => {
+        const sessionData = snap.val();
+
+        if (sessionData && sessionData.active && !sessionData.result) {
+            const sessionAge = getSyncedTime() - sessionData.timestamp;
+            if (sessionAge > 70000) {
+                console.log("Zaman aşımına uğramış Sürpriz Kutu oturumu tespit edildi ve temizleniyor...");
+                sessionRef.remove();
+                return; 
+            }
+        }
+
+        if (sessionData && sessionData.active) {
+            if (sessionData.user === currentUser && !sessionData.result && cardSelectionModal.style.display !== 'flex') {
+                openCardSelectionModal(currentUser);
+            }
+            
+            if (sessionData.selection && sessionData.result && spectatorModal.style.display === 'flex') {
+                updateSpectatorView(sessionData);
+            }
+
+            if (sessionData.user !== currentUser && !sessionData.result && sessionData.expirationTimestamp && spectatorModal.style.display !== 'flex' && !isProcessingSurpriseResult) {
+                openSpectatorModal(sessionData);
+            }
+
+            if (sessionData.result && !sessionData.logged && !isProcessingSurpriseResult) {
+                isProcessingSurpriseResult = true; 
+
+                sessionRef.transaction(currentData => {
+                    if (currentData && currentData.result && !currentData.logged) {
+                        currentData.logged = true; 
+                        return currentData;
+                    }
+                    return; 
+                }, (error, committed, snapshot) => {
+                    if (error) {
+                        console.error('Sürpriz kutu işlemi sırasında transaction hatası: ', error);
+                        isProcessingSurpriseResult = false;
+                    } else if (committed) {
+                        const finalSessionData = snapshot.val();
+
+                        const surpriseInfo = {
+                            finder: finalSessionData.user,
+                            boxId: finalSessionData.boxId,
+                            points: finalSessionData.result.points,
+                            multiplier: finalSessionData.multiplier,
+                            timedOut: false,
+                            timestamp: firebase.database.ServerValue.TIMESTAMP
+                        };
+                        db.ref('gameStats/lastSurpriseInfo').set(surpriseInfo);
+
+                        // --- DEĞİŞİKLİK: Log kaydına yeni bakiye bilgisini ekliyoruz. ---
+                        logActivity('surpriseBox', finalSessionData.user, { 
+                            boxId: finalSessionData.boxId,
+                            points: finalSessionData.result.points, 
+                            multiplier: finalSessionData.multiplier,
+                            newBalance: finalSessionData.result.newBalance
+                        });
+                        
+                        if (finalSessionData.user === currentUser) {
+                            closeCardSelectionModal();
+                            displayMessage(`Sürpriz kutudan tebrikler! Toplam ${finalSessionData.result.points} puan kazandınız!`);
+                        } else {
+                            showGlobalSurpriseBoxNotification(finalSessionData);
+                        }
+                        
+                        setTimeout(() => {
+                            closeGlobalSurpriseBoxModal(); 
+                            handleSurpriseBoxCleanup(finalSessionData);
+                            isProcessingSurpriseResult = false;
+                        }, 4000);
+                    } else {
+                        isProcessingSurpriseResult = false;
+                    }
+                });
+            }
+        } else {
+            if (!spectatorViewingResult) {
+                closeSpectatorModal();
+            }
+        }
+    };
+
+    activeListeners.surpriseBox = { ref: sessionRef, event: 'value', callback };
+    sessionRef.on('value', callback);
 }
 
   function closeCardSelectionModal() { 
@@ -6450,107 +6556,7 @@ async function reorderDailyRewardItem(rewardId, newIndex) {
     }
 
     let surpriseSessionListener = null;
-    // listenForSurpriseBox FONKSİYONUNU BU YENİ HALİYLE DEĞİŞTİR
 
-// MEVCUT listenForSurpriseBox FONKSİYONUNU BU BLOK İLE DEĞİŞTİRİN
-let isProcessingSurpriseResult = false;
-let spectatorViewingResult = false;
-
-function listenForSurpriseBox() {
-    const sessionRef = db.ref('surprise_box_session');
-    
-    if (activeListeners.surpriseBox) {
-        activeListeners.surpriseBox.ref.off(activeListeners.surpriseBox.event, activeListeners.surpriseBox.callback);
-    }
-
-    const callback = snap => {
-        const sessionData = snap.val();
-
-        if (sessionData && sessionData.active && !sessionData.result) {
-            const sessionAge = getSyncedTime() - sessionData.timestamp;
-            if (sessionAge > 70000) {
-                console.log("Zaman aşımına uğramış Sürpriz Kutu oturumu tespit edildi ve temizleniyor...");
-                sessionRef.remove();
-                return; 
-            }
-        }
-
-        if (sessionData && sessionData.active) {
-            if (sessionData.user === currentUser && !sessionData.result && cardSelectionModal.style.display !== 'flex') {
-                openCardSelectionModal(currentUser);
-            }
-            
-            if (sessionData.selection && sessionData.result && spectatorModal.style.display === 'flex') {
-                updateSpectatorView(sessionData);
-            }
-
-            if (sessionData.user !== currentUser && !sessionData.result && sessionData.expirationTimestamp && spectatorModal.style.display !== 'flex' && !isProcessingSurpriseResult) {
-                openSpectatorModal(sessionData);
-            }
-
-            if (sessionData.result && !sessionData.logged && !isProcessingSurpriseResult) {
-                isProcessingSurpriseResult = true; 
-
-                sessionRef.transaction(currentData => {
-                    if (currentData && currentData.result && !currentData.logged) {
-                        currentData.logged = true; 
-                        return currentData;
-                    }
-                    return; 
-                }, (error, committed, snapshot) => {
-                    if (error) {
-                        console.error('Sürpriz kutu işlemi sırasında transaction hatası: ', error);
-                        isProcessingSurpriseResult = false;
-                    } else if (committed) {
-                        const finalSessionData = snapshot.val();
-
-                        // --- YENİ EKLENEN KISIM BAŞLANGICI ---
-                        const surpriseInfo = {
-                            finder: finalSessionData.user,
-                            boxId: finalSessionData.boxId,
-                            points: finalSessionData.result.points,
-                            multiplier: finalSessionData.multiplier,
-                            timedOut: false, // Kart seçtiği için zaman aşımı false
-                            timestamp: firebase.database.ServerValue.TIMESTAMP
-                        };
-                        db.ref('gameStats/lastSurpriseInfo').set(surpriseInfo);
-                        // --- YENİ EKLENEN KISIM SONU ---
-
-                        logActivity('surpriseBox', finalSessionData.user, { 
-                            boxId: finalSessionData.boxId,
-                            points: finalSessionData.result.points, 
-                            multiplier: finalSessionData.multiplier 
-                        });
-                        
-                        if (finalSessionData.user === currentUser) {
-                            closeCardSelectionModal();
-                            displayMessage(`Sürpriz kutudan tebrikler! Toplam ${finalSessionData.result.points} puan kazandınız!`);
-                        } else {
-                            showGlobalSurpriseBoxNotification(finalSessionData);
-                        }
-                        
-                        setTimeout(() => {
-                            closeGlobalSurpriseBoxModal(); 
-                            handleSurpriseBoxCleanup(finalSessionData);
-                            isProcessingSurpriseResult = false;
-                        }, 4000);
-                    } else {
-                        isProcessingSurpriseResult = false;
-                    }
-                });
-            }
-        } else {
-            if (!spectatorViewingResult) {
-                closeSpectatorModal();
-            }
-        }
-    };
-
-    activeListeners.surpriseBox = { ref: sessionRef, event: 'value', callback };
-    sessionRef.on('value', callback);
-}
-
-// MEVCUT openSpectatorModal FONKSİYONUNU BU BLOK İLE DEĞİŞTİRİN
 function openSpectatorModal(sessionData) {
     if (spectatorCountdownInterval) clearInterval(spectatorCountdownInterval);
 
@@ -6768,6 +6774,8 @@ function renderWheel() {
     wheelElement.style.background = `conic-gradient(${gradientParts.join(', ')})`;
 }
     
+// MEVCUT spinWheel FONKSİYONUNU SİLİP BUNUNLA DEĞİŞTİRİN
+
 async function spinWheel() {
     if (isWheelSpinning) return;
     if (isAdmin) {
@@ -6892,34 +6900,32 @@ async function spinWheel() {
             value: winningSegment.value !== undefined ? winningSegment.value : null,
             timestamp: firebase.database.ServerValue.TIMESTAMP
         });
-        // --- BURAYA EKLENECEK YENİ KOD ---
-const historyRef = db.ref('wheelHistory');
-historyRef.orderByChild('timestamp').once('value', (snapshot) => {
-    const totalCount = snapshot.numChildren();
-    const limit = 10; // İstenen limit
 
-    if (totalCount > limit) {
-        let itemsToDeleteCount = totalCount - limit;
-        snapshot.forEach((childSnapshot) => {
-            // Silinmesi gereken kadar öğe silindiyse döngüden çık
-            if (itemsToDeleteCount <= 0) {
-                return true; 
+        const historyRef = db.ref('wheelHistory');
+        historyRef.orderByChild('timestamp').once('value', (snapshot) => {
+            const totalCount = snapshot.numChildren();
+            const limit = 10;
+            if (totalCount > limit) {
+                let itemsToDeleteCount = totalCount - limit;
+                snapshot.forEach((childSnapshot) => {
+                    if (itemsToDeleteCount <= 0) return true; 
+                    childSnapshot.ref.remove();
+                    itemsToDeleteCount--;
+                });
             }
-            
-            // En eski kaydı sil
-            childSnapshot.ref.remove();
-            itemsToDeleteCount--;
         });
-    }
-});
-// --- YENİ KOD BİTİŞİ ---
 
+        const logDetails = {
+            result: winningSegment.label,
+            type: winningSegment.type,
+            value: winningSegment.value !== undefined ? winningSegment.value : null
+        };
+        // --- DEĞİŞİKLİK: Log kaydına yeni bakiye bilgisini ekliyoruz. ---
+        if (winningSegment.type === 'points') {
+            logDetails.newBalance = updates.balance;
+        }
+        
         if (winningSegment.type !== 'surpriseBox') {
-            const logDetails = {
-                result: winningSegment.label,
-                type: winningSegment.type,
-                value: winningSegment.value !== undefined ? winningSegment.value : null
-            };
             logActivity('spinWheel', currentUser, logDetails);
         }
         
@@ -6932,6 +6938,67 @@ historyRef.orderByChild('timestamp').once('value', (snapshot) => {
         wheel.style.transform = `rotate(${normalizedRotation}deg)`;
 
     }, 5100);
+}
+
+// MEVCUT setWinner FONKSİYONUNU SİLİP BUNUNLA DEĞİŞTİRİN
+
+async function setWinner(username) {
+    const lobbyRef = db.ref('clickCatchLobby');
+    const lobbySnap = await lobbyRef.once('value');
+    const lobbyData = lobbySnap.val();
+    if (!lobbyData || lobbyData.state !== 'active') return;
+
+    const gameSummary = {
+        winner: username,
+        prize: lobbyData.prize,
+        target: lobbyData.target,
+        startTimestamp: lobbyData.startTimestamp || null,
+        endTimestamp: firebase.database.ServerValue.TIMESTAMP,
+        players: lobbyData.players || {}
+    };
+    
+    // --- DEĞİŞİKLİK: Log'lamadan önce kazananın yeni bakiyesini hesaplıyoruz ---
+    const winnerRefBefore = await db.ref(`users/${username}`).once('value');
+    const winnerDataBefore = winnerRefBefore.val();
+    const finalPrize = lobbyData.prize + (lobbyData.entryTickets > 0 ? 0 : lobbyData.entryFee);
+    const winnerNewBalance = (winnerDataBefore.balance || 0) + finalPrize;
+
+    logActivity('clickCatchLobby', currentUser, { 
+        prize: lobbyData.prize,
+        newBalance: winnerNewBalance // Yeni bakiyeyi log'luyoruz
+    });
+    
+    await db.ref('clickCatchLobbyLastGameSummary').set(gameSummary);
+    
+    const updates = {
+        state: 'finished',
+        winner: username
+    };
+    await lobbyRef.update(updates);
+    
+    const winnerRef = db.ref(`users/${username}`);
+    await winnerRef.transaction(user => {
+        if (user) {
+            let finalPrize = lobbyData.prize;
+            if (lobbyData.prize === 500) {
+                if (lobbyData.entryTickets > 0) {
+                    user.clickCatchTickets = (user.clickCatchTickets || 0) + lobbyData.entryTickets;
+                } 
+                else {
+                    finalPrize += lobbyData.entryFee;
+                }
+            }
+            user.balance = (user.balance || 0) + finalPrize;
+            if (user.balance > (user.highestBalanceEver || 0)) {
+                user.highestBalanceEver = user.balance;
+            }
+        }
+        return user;
+    });
+
+    setTimeout(() => {
+        db.ref('clickCatchLobby').remove();
+    }, 5000);
 }
 
 function closeSoloGameSettingsModal() {
@@ -7802,67 +7869,6 @@ function _actuallyStartSoloGame() {
     clickCatchItemInterval = setInterval(() => createCatchItem('solo'), soloGameSettings.itemInterval);
 }
 
-// ESKİ setWinner FONKSİYONUNU SİLİP, YENİ ÖDÜL MANTIĞI İÇEREN BUNU YAPIŞTIR
-
-async function setWinner(username) {
-    const lobbyRef = db.ref('clickCatchLobby');
-    const lobbySnap = await lobbyRef.once('value');
-    const lobbyData = lobbySnap.val();
-    if (!lobbyData || lobbyData.state !== 'active') return;
-
-    const gameSummary = {
-        winner: username,
-        prize: lobbyData.prize,
-        target: lobbyData.target,
-        startTimestamp: lobbyData.startTimestamp || null,
-        endTimestamp: firebase.database.ServerValue.TIMESTAMP,
-        players: lobbyData.players || {}
-    };
-    
-    logActivity('clickCatchLobby', username, { prize: lobbyData.prize });
-    
-    await db.ref('clickCatchLobbyLastGameSummary').set(gameSummary);
-    
-    const updates = {
-        state: 'finished',
-        winner: username
-    };
-    await lobbyRef.update(updates);
-    
-    const winnerRef = db.ref(`users/${username}`);
-    await winnerRef.transaction(user => {
-        if (user) {
-            // ================== YENİ ÖDÜL MANTIĞI BURADA ==================
-            let finalPrize = lobbyData.prize;
-
-            // Eğer admin ödülü 500 olarak ayarladıysa...
-            if (lobbyData.prize === 500) {
-                // Eğer oyuna biletle girildiyse, biletleri iade et.
-                if (lobbyData.entryTickets > 0) {
-                    user.clickCatchTickets = (user.clickCatchTickets || 0) + lobbyData.entryTickets;
-                } 
-                // Eğer puanla girildiyse, giriş puanını da ödüle ekle.
-                else {
-                    finalPrize += lobbyData.entryFee;
-                }
-            }
-            // =============================================================
-
-            // Toplam ödülü kullanıcının bakiyesine ekle.
-            user.balance = (user.balance || 0) + finalPrize;
-            if (user.balance > (user.highestBalanceEver || 0)) {
-                user.highestBalanceEver = user.balance;
-            }
-        }
-        return user;
-    });
-
-    // 5 saniye sonra lobi verisini temizle
-    setTimeout(() => {
-        db.ref('clickCatchLobby').remove();
-    }, 5000);
-}
-
 let weeklyCountdownInterval = null
 
   async function openSoloGameSettingsModal() {
@@ -8471,8 +8477,12 @@ function renderActivityFeed(activities) {
             const deleteButtonHtml = isAdmin ? `<button onclick="deleteActivity('${activity.id}')" class="ml-2 p-1 rounded-full text-gray-500 hover:text-red-500 hover:bg-white/10 transition-colors" title="Bu Eylemi Sil"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1-1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>` : '';
             const userHtml = `<b class="text-yellow-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${activity.username}')">${activity.username}</b>`;
 
+            // --- DEĞİŞİKLİK: Kalan puan metnini oluşturmak için yardımcı bir değişken ---
+            const remainingBalanceText = (details.newBalance !== undefined && details.newBalance !== null) 
+                ? ` <span class="text-gray-400">(Mevcut Puan: ${details.newBalance})</span>`
+                : '';
+
             switch (activity.type) {
-                // --- HATA DÜZELTMESİ: Mesaj formatı güncellendi ---
                 case 'multiplierStackedFromStore':
                     message = `${userHtml}, mağazadan <span class="text-red-400 font-bold">-${details.cost} Puan</span> harcayarak <b>${details.multiplierValue}x çarpanına</b> <span class="text-green-300 font-bold">+${details.usesAdded} kullanım hakkı</span> ekledi ve toplam <span class="text-green-300 font-bold">${details.newTotalUses} kullanım hakkı</span> oldu. <span class="text-gray-400">(Hesabında ${details.newBalance} puanı kaldı.)</span>`;
                     break;
@@ -8488,8 +8498,8 @@ function renderActivityFeed(activities) {
                 case 'openBox':
                     let openBoxMultiplierText = (details.multiplier && details.multiplier > 1)
                         ? ` <span class="text-xs text-purple-400">(${details.multiplier}x çarpan kullandı)</span>`
-                        : ` <span class="text-xs text-gray-500">(Çarpan kullanılmadı)</span>`;
-                    message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-green-300 font-bold">+${details.points} Puan</span> kazandı${openBoxMultiplierText}.`;
+                        : ``;
+                    message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-green-300 font-bold">+${details.points} Puan</span> kazandı${openBoxMultiplierText}.${remainingBalanceText}`;
                     break;
                 case 'iflas':
                     let iflasMultiplierText = (details.multiplier && details.multiplier > 1)
@@ -8497,14 +8507,14 @@ function renderActivityFeed(activities) {
                         : ``;
                     message = details.shieldUsed 
                         ? `${userHtml}, <b>${details.boxId}</b> numaralı kutudan bomba buldu ama kalkanı korudu${iflasMultiplierText}.`
-                        : `${userHtml}, <b>${details.boxId}</b> numaralı kutudan bomba buldu ve <span class="text-red-400 font-bold">-${details.lostPoints} Puan</span> kaybetti${iflasMultiplierText} ve <span class="text-yellow-200">${details.newBalance} puanı</span> kaldı.`;
+                        : `${userHtml}, <b>${details.boxId}</b> numaralı kutudan bomba buldu ve <span class="text-red-400 font-bold">-${details.lostPoints} Puan</span> kaybetti${iflasMultiplierText}.${remainingBalanceText}`;
                     break;
                 case 'surpriseBox':
                     let surpriseMultiplierText = (details.multiplier && details.multiplier > 1)
                         ? ` <span class="text-xs text-purple-400">(${details.multiplier}x çarpan kullandı)</span>`
-                        : ` <span class="text-xs text-gray-500">(Çarpan kullanılmadı)</span>`;
+                        : ``;
                     const source = details.boxId === 'Çark' ? 'Şans Çarkı\'ndan' : `<b>${details.boxId}</b> numaralı kutudan`;
-                    message = `${userHtml}, ${source} Sürpriz Kutu buldu ve <span class="text-green-300 font-bold">+${details.points} Puan</span> kazandı${surpriseMultiplierText}!`;
+                    message = `${userHtml}, ${source} Sürpriz Kutu buldu ve <span class="text-green-300 font-bold">+${details.points} Puan</span> kazandı${surpriseMultiplierText}!${remainingBalanceText}`;
                     break;
                 case 'multiplierFound':
                     message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-purple-300 font-bold">${details.value}x Çarpan</span> buldu.`;
@@ -8515,7 +8525,7 @@ function renderActivityFeed(activities) {
                 case 'newItemFound':
                      let newItemMultiplierText = (details.multiplier && details.multiplier > 1)
                         ? ` <span class="text-xs text-purple-400">(${details.multiplier}x çarpan kullandı)</span>`
-                        : ` <span class="text-xs text-gray-500">(Çarpan kullanılmadı)</span>`;
+                        : ``;
                     message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-cyan-300 font-bold">${details.itemName}</span> buldu${newItemMultiplierText}.`;
                     break;
                 case 'buyItem':
@@ -8528,7 +8538,10 @@ function renderActivityFeed(activities) {
                     } else {
                         purchasedItemText = `<span class="text-indigo-300 font-bold">${details.itemName}</span>`;
                     }
-                    message = `${userHtml}, mağazadan <span class="text-red-400 font-bold">-${details.itemCost} Puan</span> harcayarak ${purchasedItemText} aldı ve <span class="text-yellow-200">${details.newBalance} puanı</span> kaldı.`;
+                    message = `${userHtml}, mağazadan <span class="text-red-400 font-bold">-${details.itemCost} Puan</span> harcayarak ${purchasedItemText} aldı.${remainingBalanceText}`;
+                    break;
+                case 'lobbyJoined':
+                    message = `${userHtml}, Tıkla-Yakala lobisine <span class="text-red-400 font-bold">-${details.cost} Puan</span> karşılığında katıldı.${remainingBalanceText}`;
                     break;
                 case 'spinWheel':
                     let prizeText = '';
@@ -8545,7 +8558,7 @@ function renderActivityFeed(activities) {
                         } else {
                             prizeText = `+${prizeValue} ${typeToName[prizeType] || prizeType}`;
                         }
-                        message = `${userHtml}, çarkı çevirerek <span class="text-pink-300 font-bold">${prizeText}</span> kazandı.`;
+                        message = `${userHtml}, çarkı çevirerek <span class="text-pink-300 font-bold">${prizeText}</span> kazandı.${remainingBalanceText}`;
                     }
                     break;
                 case 'clickCatchSolo':
@@ -8564,7 +8577,7 @@ function renderActivityFeed(activities) {
                     }
                     break;
                 case 'clickCatchLobby':
-                    message = `${userHtml}, lobi oyununu kazanarak <span class="text-yellow-300 font-bold">+${details.prize} Puan</span> ödül aldı!`;
+                    message = `${userHtml}, lobi oyununu kazanarak <span class="text-yellow-300 font-bold">+${details.prize} Puan</span> ödül aldı!${remainingBalanceText}`;
                     break;
                 case 'dailyReward':
                     let rewardText = '';
