@@ -3800,7 +3800,7 @@ async function deleteUserAvatar(username, avatarId) {
 
 async function openBox(index) {
     if (isGameLocked) {
-        displayMessage("Kutular 3 saniye arayla açılmaktadır, ütfen tekrar deneyin.");
+        displayMessage("Başka bir kullanıcı şu anda bir kutu açıyor. Lütfen 3 saniye sonra tekrar deneyin.");
         return;
     }
     if (boxes[index].opened) return;
@@ -3828,15 +3828,10 @@ async function openBox(index) {
     const initialConfirm = await customConfirm(`<b>${boxes[index].id}</b> numaralı kutuyu açmak istediğinize emin misiniz?`);
     if (!initialConfirm) return;
 
-    // SİLİNEN SATIR: Kilit artık burada DEĞİL, açma işleminin sonuna taşındı.
-    // await db.ref('gameLock').set(true);
-
     const boxRef = db.ref('boxes/' + index);
     let latestBoxSnap = await boxRef.once('value');
     if (latestBoxSnap.val().opened) {
         displayMessage(`Seçtiğiniz kutu <b>${latestBoxSnap.val().opener}</b> tarafından açıldı. Geç kaldınız!`);
-        // SİLİNEN SATIR: Kilit henüz ayarlanmadığı için bu satıra gerek kalmadı.
-        // await db.ref('gameLock').set(false);
         return;
     }
     userSnap = await userRef.once('value');
@@ -3890,9 +3885,13 @@ async function openBox(index) {
             boxOpenInfo.refundOccurred = true;
             boxOpenInfo.refundedMultiplier = user.activeMultiplier;
             updates['multiplierRemainingUses'] = (user.multiplierRemainingUses || 0);
-             }
-             
-          else {
+            
+            // --- HATA DÜZELTMESİ: Yeni bulunan çarpan burada aktif ediliyor ---
+            updates['activeMultiplier'] = box.value;
+            updates['multiplierSource'] = 'box';
+            // --- HATA DÜZELTMESİ SONU ---
+
+        } else {
             message = `Tebrikler! <b>${box.value}x Çarpan</b> buldun! Bu çarpan, bir sonraki kutu açılışında otomatik olarak kullanılacak.`;
             updates['activeMultiplier'] = box.value;
             updates['multiplierSource'] = 'box';
@@ -3979,9 +3978,6 @@ async function openBox(index) {
         displayMessage(message);
     }
     
-    // YENİ EKLENEN KISIM: Kutu başarıyla açıldıktan HEMEN SONRA oyun 3 saniyeliğine kilitleniyor.
-    // Diğer kullanıcıların listener'ları bu değişikliği algılayıp `showGlobalOpenedBoxInfo` fonksiyonunu tetikleyecek
-    // ve o fonksiyon da 3 saniye sonra kilidi geri açacak.
     await db.ref('gameLock').set(true);
 }
 
