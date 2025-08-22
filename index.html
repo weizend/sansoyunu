@@ -6227,7 +6227,7 @@ async function openDailyRewardModal() {
     }
 }
 
-// MEVCUT claimDailyReward FONKSİYONUNU SİLİP BUNUNLA DEĞİŞTİRİN
+// MEVCUT claimDailyReward FONKSİYONUNU SİL VE BUNUNLA DEĞİŞTİR
 
 async function claimDailyReward(rewardId) {
     if (isAdmin) return;
@@ -6290,7 +6290,6 @@ async function claimDailyReward(rewardId) {
                         multiplierSource: 'store'
                     });
                 } 
-                // --- DEĞİŞEN KISIM BAŞLANGICI: Düşük çarpanı kutu hakkına dönüştürme ---
                 else { 
                     const kutuHakkiDonusum = reward.uses || 0;
                     const confirmedConvert = await customConfirm(`Mevcut <b>${user.activeMultiplier}x</b> çarpanın bu <b>${reward.value}x</b> ödülünden daha güçlü. Bu ödülü alırsan, çarpanın değişmeyecek ancak ödülün <b>${kutuHakkiDonusum} kullanım hakkı</b>, envanterine <b>+${kutuHakkiDonusum} Kutu Hakkı</b> olarak eklenecek. Onaylıyor musun?`);
@@ -6300,25 +6299,23 @@ async function claimDailyReward(rewardId) {
                         return;
                     }
 
-                    // Yeni eylem türü ile log'luyoruz
+                    // --- DEĞİŞEN SATIR: Korunan çarpanın değeri log'a eklendi ---
                     logActivity('multiplierConvertedToBoxRights', currentUser, {
                         rewardValue: reward.value,
-                        boxRights: kutuHakkiDonusum
+                        boxRights: kutuHakkiDonusum,
+                        keptMultiplierValue: user.activeMultiplier 
                     });
 
-                    // Sadece kutu hakkını güncelliyoruz
                     await userRef.update({
                         kutuHakki: (user.kutuHakki || 0) + kutuHakkiDonusum
                     });
 
-                    // Ödülü alındı olarak işaretle ve işlemi bitir
                     await db.ref(`users/${currentUser}/dailyRewardsClaimed/${rewardId}`).set(firebase.database.ServerValue.TIMESTAMP);
                     displayMessage(`Başarılı! ${reward.name} ödülü, envanterinize +${kutuHakkiDonusum} Kutu Hakkı olarak eklendi.`);
                     closeDailyRewardModal();
                     checkAvailableDailyRewards();
                     return;
                 }
-                // --- DEĞİŞEN KISIM SONU ---
             }
         }
         
@@ -8496,7 +8493,7 @@ function getActivityIcon(type, details = {}) {
     `;
 }
 
-// MEVCUT renderActivityFeed FONKSİYONUNU SİLİP BUNUNLA DEĞİŞTİRİN
+// MEVCUT renderActivityFeed FONKSİYONUNU SİL VE BUNUNLA DEĞİŞTİR
 
 function renderActivityFeed(activities) {
     const activityFeedList = document.getElementById('activityFeedList');
@@ -8549,9 +8546,9 @@ function renderActivityFeed(activities) {
                 : '';
 
             switch (activity.type) {
-                // --- YENİ EKLENEN CASE BLOĞU ---
+                // --- DEĞİŞEN CASE BLOĞU ---
                 case 'multiplierConvertedToBoxRights':
-                    message = `${userHtml}, mevcut güçlü çarpanını koruyarak, günlük ödülden gelen ${details.rewardValue}x çarpanını <span class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı'na</span> dönüştürdü.`;
+                    message = `${userHtml}, mevcut <b>${details.keptMultiplierValue}x çarpanını</b> koruyarak, günlük ödülden gelen ${details.rewardValue}x çarpanını <span class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı'na</span> dönüştürdü.`;
                     break;
                 case 'multiplierStackedFromStore':
                     message = `${userHtml}, mağazadan <span class="text-red-400 font-bold">-${details.cost} Puan</span> harcayarak <b>${details.multiplierValue}x çarpanına</b> <span class="text-green-300 font-bold">+${details.usesAdded} kullanım hakkı</span> ekledi ve toplam <span class="text-green-300 font-bold">${details.newTotalUses} kullanım hakkı</span> oldu. <span class="text-gray-400">(Hesabında ${details.newBalance} puanı kaldı.)</span>`;
