@@ -1068,7 +1068,7 @@ body.modal-open .modal-content {
   </div>
 </div>
 
-<div id="publicUserDetailModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-50 hidden" onclick="closeModalOnClickOutside(event)">
+<div id="publicUserDetailModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-10001 hidden" onclick="closeModalOnClickOutside(event)">
   <div class="modal-content bg-gray-900/95 backdrop-blur-sm p-6 rounded-2xl shadow-2xl border border-yellow-500 w-11/12 max-w-2xl text-center relative max-h-[90vh] overflow-y-auto scrollable-list">
     <button class="modal-close-button absolute top-4 right-4 text-gray-400 hover:text-white text-4xl transition-colors" onclick="closePublicUserDetailModal()">&times;</button>
 
@@ -3804,7 +3804,8 @@ async function deleteUserAvatar(username, avatarId) {
       }); 
   }
 
-// MEVCUT openBox FONKSİYONUNU SİLİP BUNUNLA DEĞİŞTİRİN
+// openBox fonksiyonunun sadece iflas (bomba) ile ilgili kısmını güncelliyoruz.
+// Kolaylık olması için fonksiyonun tamamını tekrar paylaşıyorum.
 
 async function openBox(index) {
     if (isGameLocked) {
@@ -3908,7 +3909,6 @@ async function openBox(index) {
             }
             else {
                 message = `Kutudan ${box.value}x çarpan buldun ama mevcut <b>${user.activeMultiplier}x çarpanın</b> daha güçlü olduğu için korundu.`;
-                // --- YENİ EKLENEN SATIR: Bu özel durumu log'luyoruz ---
                 logActivity('multiplierDiscarded', currentUser, { discardedValue: box.value, keptValue: user.activeMultiplier });
             }
 
@@ -3961,7 +3961,14 @@ async function openBox(index) {
             boxUpdate.lostPoints = shieldWasUsed ? 0 : lostPoints;
             boxOpenInfo.shieldUsed = shieldWasUsed;
             boxOpenInfo.lostPoints = shieldWasUsed ? 0 : lostPoints;
-            logActivity('iflas', currentUser, { shieldUsed: shieldWasUsed, lostPoints: shieldWasUsed ? 0 : lostPoints, boxId: box.id, multiplier: finalMultiplier });
+            // DEĞİŞİKLİK: Log kaydına yeni bakiye bilgisini ekliyoruz.
+            logActivity('iflas', currentUser, { 
+                shieldUsed: shieldWasUsed, 
+                lostPoints: shieldWasUsed ? 0 : lostPoints, 
+                boxId: box.id, 
+                multiplier: finalMultiplier,
+                newBalance: updates['balance']
+            });
         }
         else if (box.content === 'surpriz') {
             updates['surpriseBoxesOpened'] = (user.surpriseBoxesOpened || 0) + 1;
@@ -4511,7 +4518,7 @@ function renderStoreItems(items) {
     }
 }
 
-// MEVCUT buyItem FONKSİYONUNU SİLİP TAMAMEN BUNUNLA DEĞİŞTİRİN
+// MEVCUT buyItem FONKSİYONUNU SİLİP BUNUNLA DEĞİŞTİRİN
 
 async function buyItem(itemId) {
     if (isAdmin) {
@@ -4530,14 +4537,20 @@ async function buyItem(itemId) {
         if (user.multiplierSource && user.multiplierSource !== 'none') {
             
             if (item.value === user.activeMultiplier) {
-                // ACİL DÜZELTME: Yetersiz puan kontrolü eklendi
                 if ((user.balance || 0) < item.cost) {
                     displayMessage("Yetersiz Puan!");
                     return;
                 }
                 const confirmedStack = await customConfirm(`Zaten ${user.activeMultiplier}x çarpanın var. Bu alım, mevcut çarpanına <b>+${item.duration} kullanım hakkı</b> ekleyecek ve toplamda <b>${(user.multiplierRemainingUses || 0) + item.duration} kullanım hakkın</b> olacak. Onaylıyor musun?`);
                 if (confirmedStack) {
-                    logActivity('multiplierStacked', currentUser, { value: item.value, uses: item.duration });
+                    // DEĞİŞİKLİK: Yeni ve daha spesifik bir log türü kullanıyoruz.
+                    logActivity('multiplierStackedFromStore', currentUser, { 
+                        cost: item.cost,
+                        itemName: item.name,
+                        newValue: (user.multiplierRemainingUses || 0) + item.duration,
+                        newBalance: user.balance - item.cost
+                    });
+                    
                     await userRef.update({
                         balance: user.balance - item.cost,
                         totalSpentPoints: (user.totalSpentPoints || 0) + item.cost,
@@ -4559,7 +4572,6 @@ async function buyItem(itemId) {
                 }
             }
             else if (item.value > user.activeMultiplier) {
-                // ACİL DÜZELTME: Yetersiz puan kontrolü eklendi
                 if ((user.balance || 0) < item.cost) {
                     displayMessage("Yetersiz Puan!");
                     return;
@@ -4607,7 +4619,6 @@ async function buyItem(itemId) {
         return;
     }
 
-    // Bu kontrol, ilk defa çarpan alanlar veya diğer ürünler için çalışmaya devam ediyor.
     if ((user.balance || 0) < item.cost) {
         displayMessage("Yetersiz Puan!");
         return;
@@ -4619,12 +4630,14 @@ async function buyItem(itemId) {
     const confirmed = await customConfirm(`${item.name} ürününü ${item.cost} puana almak istiyor musunuz?`);
     if (confirmed) {
       
+        // DEĞİŞİKLİK: Log kaydına yeni bakiye bilgisini ekliyoruz.
         logActivity('buyItem', currentUser, { 
             itemName: item.name, 
             itemCost: item.cost,
             itemType: item.type,
             itemValue: item.value || null,
-            itemDuration: item.duration || null
+            itemDuration: item.duration || null,
+            newBalance: user.balance - item.cost
         });
         
         let updates = {
@@ -5083,9 +5096,12 @@ async function deletePurchase(purchaseId) {
   function openBadgeInfoModal() { badgeInfoModal.style.display = 'flex'; }
   function closeBadgeInfoModal() { badgeInfoModal.style.display = 'none'; }
 
-// --- ESKİ openPublicUserDetailModal FONKSİYONUNU SİL VE BUNU YAPIŞTIR ---
+// MEVCUT openPublicUserDetailModal FONKSİYONUNU SİLİP BUNUNLA DEĞİŞTİRİN
 
 async function openPublicUserDetailModal(username) {
+    // YENİ EKLENEN SATIR: Profile bakarken eylem panelini otomatik kapatır.
+    closeActivityFeed(); 
+    
     document.body.classList.add('modal-open');
     if (activeBlockedUserTimers[username]) {
         clearInterval(activeBlockedUserTimers[username]);
@@ -5102,7 +5118,6 @@ async function openPublicUserDetailModal(username) {
             return;
         }
 
-        // --- YENİ EKLENEN KOD BAŞLANGICI ---
         const championshipsDiv = document.getElementById('publicUserChampionships');
         let championshipsHtml = '';
 
@@ -8331,18 +8346,21 @@ function getActivityIcon(type, details = {}) {
                 bgColor = 'bg-red-600';
             }
             break;
-        // --- DEĞİŞEN KISIM BAŞLANGICI ---
-        case 'multiplierUpgraded': // Yükseltme durumu için özel ikon ve renk
+        case 'multiplierUpgraded':
             icon = '❎';
             bgColor = 'bg-teal-500';
             break;
-        case 'multiplierStacked':
         case 'multiplierFound':
         case 'multiplierRefund':
-            icon = '✖️'; // Diğer tüm çarpan durumları için standart ikon
+            icon = '✖️';
             bgColor = 'bg-purple-500';
             break;
-        // --- DEĞİŞEN KISIM SONU ---
+        // DEĞİŞİKLİK: Yeni log türümüz için ikon ve renk belirliyoruz.
+        case 'multiplierStackedFromStore':
+        case 'buyItem':
+            icon = '🛒';
+            bgColor = 'bg-indigo-500';
+            break;
         case 'multiplierDiscarded':
             icon = '❎';
             bgColor = 'bg-gray-600';
@@ -8359,10 +8377,6 @@ function getActivityIcon(type, details = {}) {
                 icon = '📦';
             }
             bgColor = 'bg-cyan-500';
-            break;
-        case 'buyItem':
-            icon = '🛒';
-            bgColor = 'bg-indigo-500';
             break;
         case 'spinWheel':
             icon = '🎡';
@@ -8435,14 +8449,16 @@ function renderActivityFeed(activities) {
             const userHtml = `<b class="text-yellow-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${activity.username}')">${activity.username}</b>`;
 
             switch (activity.type) {
+                // YENİ EKLENEN CASE BLOĞU
+                case 'multiplierStackedFromStore':
+                    message = `${userHtml}, mağazadan <span class="text-red-400 font-bold">-${details.cost} Puan</span> harcayarak çarpanının kullanım hakkını <span class="text-green-300 font-bold">${details.newValue}'a</span> yükseltti ve <span class="text-yellow-200">${details.newBalance} puanı</span> kaldı.`;
+                    break;
                 case 'multiplierStacked':
                     message = `${userHtml}, mevcut <b>${details.value}x</b> çarpanına <span class="text-green-300 font-bold">+${details.uses} kullanım hakkı</span> ekledi.`;
                     break;
-                // --- DEĞİŞEN KISIM ---
                 case 'multiplierUpgraded':
                     message = `${userHtml}, eski ${details.oldValue}x çarpanını <span class="text-cyan-300 font-bold">${details.boxRights} Kutu Hakkı'na</span> dönüştürerek kutudan çıkan daha güçlü <b>${details.newValue}x</b> çarpanına geçti!`;
                     break;
-                // --- DEĞİŞEN KISIM SONU ---
                 case 'multiplierDiscarded':
                     message = `${userHtml}, kutudan ${details.discardedValue}x çarpan buldu ancak mevcut <b>${details.keptValue}x</b> çarpanı daha güçlü olduğu için korundu.`;
                     break;
@@ -8456,9 +8472,10 @@ function renderActivityFeed(activities) {
                     let iflasMultiplierText = (details.multiplier && details.multiplier > 1)
                         ? ` <span class="text-xs text-purple-400">(${details.multiplier}x çarpan kullanıldı)</span>`
                         : ``;
+                    // DEĞİŞİKLİK: Kalan puan bilgisi eklendi
                     message = details.shieldUsed 
                         ? `${userHtml}, <b>${details.boxId}</b> numaralı kutudan bomba buldu ama kalkanı korudu${iflasMultiplierText}.`
-                        : `${userHtml}, <b>${details.boxId}</b> numaralı kutudan bomba buldu ve <span class="text-red-400 font-bold">-${details.lostPoints} Puan</span> kaybetti${iflasMultiplierText}.`;
+                        : `${userHtml}, <b>${details.boxId}</b> numaralı kutudan bomba buldu ve <span class="text-red-400 font-bold">-${details.lostPoints} Puan</span> kaybetti${iflasMultiplierText} ve <span class="text-yellow-200">${details.newBalance} puanı</span> kaldı.`;
                     break;
                 case 'surpriseBox':
                     let surpriseMultiplierText = (details.multiplier && details.multiplier > 1)
@@ -8489,7 +8506,8 @@ function renderActivityFeed(activities) {
                     } else {
                         purchasedItemText = `<span class="text-indigo-300 font-bold">${details.itemName}</span>`;
                     }
-                    message = `${userHtml}, <span class="text-red-400 font-bold">-${details.itemCost} Puan</span> harcayarak mağazadan ${purchasedItemText} aldı.`;
+                    // DEĞİŞİKLİK: Kalan puan bilgisi eklendi
+                    message = `${userHtml}, mağazadan <span class="text-red-400 font-bold">-${details.itemCost} Puan</span> harcayarak ${purchasedItemText} aldı ve <span class="text-yellow-200">${details.newBalance} puanı</span> kaldı.`;
                     break;
                 case 'spinWheel':
                     let prizeText = '';
