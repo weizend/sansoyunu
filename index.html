@@ -3796,9 +3796,11 @@ async function deleteUserAvatar(username, avatarId) {
       }); 
   }
 
+// MEVCUT openBox FONKSİYONUNU SİLİP TAMAMEN BUNUNLA DEĞİŞTİRİN
+
 async function openBox(index) {
     if (isGameLocked) {
-        displayMessage("Bir kullanıcı kutu açarken bağlantı sorunu yaşadığı için kutular kilitlendi. <b>'Sorunları Çöz'</b> menüsünden kilidi açabilirsiniz.");
+        displayMessage("Kutular 3 saniye arayla açılmaktadır, ütfen tekrar deneyin.");
         return;
     }
     if (boxes[index].opened) return;
@@ -3826,13 +3828,15 @@ async function openBox(index) {
     const initialConfirm = await customConfirm(`<b>${boxes[index].id}</b> numaralı kutuyu açmak istediğinize emin misiniz?`);
     if (!initialConfirm) return;
 
-    await db.ref('gameLock').set(true);
+    // SİLİNEN SATIR: Kilit artık burada DEĞİL, açma işleminin sonuna taşındı.
+    // await db.ref('gameLock').set(true);
 
     const boxRef = db.ref('boxes/' + index);
     let latestBoxSnap = await boxRef.once('value');
     if (latestBoxSnap.val().opened) {
         displayMessage(`Seçtiğiniz kutu <b>${latestBoxSnap.val().opener}</b> tarafından açıldı. Geç kaldınız!`);
-        await db.ref('gameLock').set(false);
+        // SİLİNEN SATIR: Kilit henüz ayarlanmadığı için bu satıra gerek kalmadı.
+        // await db.ref('gameLock').set(false);
         return;
     }
     userSnap = await userRef.once('value');
@@ -3851,7 +3855,6 @@ async function openBox(index) {
             latestBoxSnap = await boxRef.once('value');
             if (latestBoxSnap.val().opened) {
                 displayMessage(`Siz çarpanı onaylayana kadar bu kutu <b>${latestBoxSnap.val().opener}</b> tarafından açıldı. Haklarınız ve çarpanınız kullanılmadı.`);
-                await db.ref('gameLock').set(false);
                 return;
             }
             finalMultiplier = user.activeMultiplier;
@@ -3975,6 +3978,11 @@ async function openBox(index) {
         await db.ref('lastOpenedBox').set(boxOpenInfo);
         displayMessage(message);
     }
+    
+    // YENİ EKLENEN KISIM: Kutu başarıyla açıldıktan HEMEN SONRA oyun 3 saniyeliğine kilitleniyor.
+    // Diğer kullanıcıların listener'ları bu değişikliği algılayıp `showGlobalOpenedBoxInfo` fonksiyonunu tetikleyecek
+    // ve o fonksiyon da 3 saniye sonra kilidi geri açacak.
+    await db.ref('gameLock').set(true);
 }
 
   async function revealAll() { const confirmed = await customConfirm("Tüm kutuları açmak istiyor musunuz?"); if(confirmed) { boxes.forEach(b => { if (!b.opened) { b.opened = true; b.opener = 'Admin'; } }); db.ref('boxes').set(boxes).then(() => displayMessage("Tüm kutular başarıyla açıldı.")) } }
@@ -5430,63 +5438,36 @@ async function toggleGameLock() {
     displayMessage(`Oyun kilidi başarıyla ${!isCurrentlyLocked ? 'aktif edildi' : 'kaldırıldı'}.`);
 }
 
-  function showGlobalOpenedBoxInfo(info) {
+  // MEVCUT showGlobalOpenedBoxInfo FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
+
+function showGlobalOpenedBoxInfo(info) {
     const isPlayingClickCatch = clickCatchGameActive || (lobbyGameSettings && lobbyGameSettings.state === 'active');
     if (isPlayingClickCatch) return;
 
-    let contentDisplay = '';
-    const itemNames = {
-        wheelTicket: 'Şans Çarkı Bileti',
-        clickCatchTicket: 'Tıkla-Yakala Bileti',
-        iflasShield: 'İflas Kalkanı'
-    };
+    // YENİ EKLENEN KISIM: Modal yerine üstte çıkan bildirim bandını kullanacağız.
+    const notificationMessage = `${info.opener}, ${info.boxId} numaralı kutuyu açtı.`;
+    displayGlobalNotification(notificationMessage);
 
-    if (info.content === 'points') {
-        let multiplierText = `(Çarpan kullanılmadı)`;
-        if (info.multiplierUsed && info.multiplierUsed > 1) {
-            multiplierText = `(${info.basePoints} Puan x ${info.multiplierUsed} Çarpan)`;
-        }
-        contentDisplay = `<b>+${info.finalPoints} Puan</b> kazandı!<br><span class="text-sm text-gray-400">${multiplierText}</span>`;
-    }
-    else if (info.content === 'iflas') {
-        contentDisplay = info.shieldUsed
-            ? 'İflas etti! 💣<br><span class="text-blue-400">ama Kalkanı tarafından korundu!</span>'
-            : `İflas etti! 💣<br><span class="text-red-400">ve ${info.lostPoints} puan kaybetti!</span>`;
-    }
-     else if (info.content === 'multiplier' && info.refundOccurred) {
-        contentDisplay = `<b>${info.value}x Çarpan</b> buldu ve<br><span class="text-blue-300">${info.refundedMultiplier}x mağaza çarpanı iade edildi!</span>`;
-    }
-    else if (info.content === 'multiplier') {
-        contentDisplay = `<b>${info.value}X Çarpan</b> buldu!`;
-    }
-    else if (itemNames[info.content]) { // Bilet veya Kalkan ise
-        const itemName = itemNames[info.content];
-        const finalValue = info.finalValue || info.value || 1;
-        contentDisplay = `<b>+${finalValue} Adet ${itemName}</b> buldu!`;
-        if (info.multiplierUsed && info.multiplierUsed > 1) {
-            const baseValue = info.baseValue || 1;
-            contentDisplay += `<br><span class="text-sm text-gray-400">(${baseValue} Adet x ${info.multiplierUsed} Çarpan)</span>`;
-        }
-    }
+    // SİLİNEN KISIM: Artık modalı göstermeyeceğimiz için bu satırları siliyoruz.
+    // document.getElementById('globalOpenedBoxInfoContent').innerHTML = contentHtml;
+    // globalOpenedBoxInfoModal.style.display = 'flex';
 
-    const contentHtml = `<div class="text-3xl font-bold mb-3"><span class="text-green-400">${info.opener}</span></div><p class="text-lg text-gray-300"><b>${info.boxId}</b> numaralı kutuyu açtı ve...</p><p class="text-2xl font-semibold mt-2 text-yellow-300">${contentDisplay}</p>`;
-    document.getElementById('globalOpenedBoxInfoContent').innerHTML = contentHtml;
-    globalOpenedBoxInfoModal.style.display = 'flex';
+    // DEĞİŞEN SATIR: Zamanlayıcı 3 saniyeye düşürüldü.
+    let countdown = 3; 
 
-    // --- KİLİT MEKANİZMASI 4. ADIM: Bu global pencere artık oyun kilidini yönetiyor ---
-    let countdown = 5;
-    const countdownEl = document.getElementById('globalOpenedBoxCountdown');
-    countdownEl.textContent = `(Sıradaki kutu ${countdown} saniye içinde açılabilir)`;
+    // Geri kalan zamanlayıcı mantığı aynı kalıyor, çünkü oyun kilidini bu yönetiyor.
+    const countdownEl = document.getElementById('globalOpenedBoxCountdown'); // Bu element artık görünmese de sayaç çalışmaya devam eder.
 
     if(globalCountdownInterval) clearInterval(globalCountdownInterval);
 
     globalCountdownInterval = setInterval(() => {
         countdown--;
-        countdownEl.textContent = `(Sıradaki kutu ${countdown} saniye içinde açılabilir)`;
         if (countdown <= 0) {
             clearInterval(globalCountdownInterval);
-            globalOpenedBoxInfoModal.style.display = 'none';
-            // Süre dolduğunda oyunu HERKES için aç
+            // SİLİNEN SATIR: Modal artık olmadığı için kapatmaya gerek yok.
+            // globalOpenedBoxInfoModal.style.display = 'none';
+            
+            // En önemli kısım: Süre dolduğunda oyun kilidini açar.
             db.ref('gameLock').set(false);
         }
     }, 1000);
