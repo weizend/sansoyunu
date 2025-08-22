@@ -448,7 +448,10 @@ body.modal-open .modal-content {
         <button id="spinWheelBtn" onclick="spinWheel()" class="py-3 px-10 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
             Çarkı Çevir!
         </button>
-
+        
+        <div id="lastWheelSurprisePanel" class="hidden w-full max-w-lg mx-auto mt-6 bg-gray-900/50 p-4 rounded-xl shadow-lg border-2 border-amber-400 text-center space-y-2">
+            </div>
+            
         <div class="mt-8 bg-gray-900/50 p-4 rounded-lg border border-gray-700 max-w-lg mx-auto">
             <h4 class="text-yellow-300 text-lg font-semibold mb-3">Son Kazananlar</h4>
             <div id="wheelHistoryList" class="scrollable-list max-h-40 overflow-y-auto text-left">
@@ -2484,7 +2487,8 @@ async function afterLogin() {
     listenForSeasonCountdown();
     listenForWeeklyCountdown();
     listenForPersistentAnnouncement();
-    listenForLastSurpriseFinderPanel(); // Bu satır eklendi
+    listenForLastSurpriseFinderPanel();
+    listenForLastWheelSurprisePanel(); // Yeni dinleyici eklendi
     
     if (!isAdmin) {
         listenForAdminNotifications();
@@ -5600,12 +5604,19 @@ async function manualUnlockGame() {
 }
 
 // MEVCUT manualResetAfterSurprise FONKSİYONUNU SİL VE BUNUNLA DEĞİŞTİR
+
 async function manualResetAfterSurprise() {
     const surpriseInfoRef = db.ref('gameStats/lastSurpriseInfo');
     const surpriseSnap = await surpriseInfoRef.once('value');
     if (surpriseSnap.exists()) {
+        // 1. Önce kimin sıfırladığını kaydediyoruz.
         await surpriseInfoRef.update({ resettledBy: currentUser });
-        displayMessage("Sıfırlama bilgisi kaydedildi. Lütfen oyunu sıfırlamak için Kutu Ayarları menüsündeki 'Oyunu Sıfırla' butonunu kullanın.");
+
+        // 2. Ardından oyun tahtasını sıfırlıyoruz.
+        await resetGameBoard();
+
+        // 3. Kullanıcıya bilgi veriyoruz.
+        displayMessage("Sürpriz kutu bulunduğu için oyun senin tarafından sıfırlandı!");
     } else {
         displayMessage("Bu özellik sadece bir sürpriz kutu bulunduktan sonra kullanılabilir.");
     }
@@ -6793,8 +6804,35 @@ function renderWheel() {
 
     wheelElement.style.background = `conic-gradient(${gradientParts.join(', ')})`;
 }
+    // BU YENİ FONKSİYONU SCRIPT BÖLÜMÜNÜN SONLARINA EKLEYİN
+function listenForLastWheelSurprisePanel() {
+    const ref = db.ref('gameStats/lastWheelSurpriseInfo');
+    const panel = document.getElementById('lastWheelSurprisePanel');
+
+    const callback = snap => {
+        const data = snap.val();
+        if (!data || !data.finder) {
+            panel.classList.add('hidden');
+            return;
+        }
+
+        const finderHtml = `<b class="text-white">${data.finder}</b>`;
+        const messageHtml = `
+            <h4 class="text-amber-300 text-lg font-bold">🎡 ÇARKTAN SON ÇIKAN SÜRPRİZ! 🎡</h4>
+            <p>${finderHtml}, çarktan Sürpriz Kutu kazandı!</p>
+            <p>Kart seçiminden <b class="text-green-400">+${data.points} Puan</b> elde etti. <span class="text-gray-400">(Mevcut Puan: ${data.newBalance})</span></p>
+        `;
+
+        panel.innerHTML = messageHtml;
+        panel.classList.remove('hidden');
+    };
     
-// MEVCUT spinWheel FONKSİYONUNU SİLİP BUNUNLA DEĞİŞTİRİN
+    if (activeListeners.wheelSurprisePanel) {
+        activeListeners.wheelSurprisePanel.ref.off('value', activeListeners.wheelSurprisePanel.callback);
+    }
+    activeListeners.wheelSurprisePanel = { ref, event: 'value', callback };
+    ref.on('value', callback);
+}
 
 async function spinWheel() {
     if (isWheelSpinning) return;
