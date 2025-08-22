@@ -4511,7 +4511,7 @@ function renderStoreItems(items) {
     }
 }
 
-// MEVCUT buyItem FONKSİYONUNU SİLİP BUNUNLA DEĞİŞTİRİN
+// MEVCUT buyItem FONKSİYONUNU SİLİP TAMAMEN BUNUNLA DEĞİŞTİRİN
 
 async function buyItem(itemId) {
     if (isAdmin) {
@@ -4526,15 +4526,18 @@ async function buyItem(itemId) {
     
     if (!user || !item) return;
 
-    // --- YENİ ÇARPAN MANTIĞI BAŞLANGICI ---
     if (item.type === 'tempMultiplier') {
-        // Eğer kullanıcının zaten bir çarpanı varsa...
         if (user.multiplierSource && user.multiplierSource !== 'none') {
             
-            // 1. Durum: Alınan çarpan mevcutla aynı değere sahip (Stackleme)
             if (item.value === user.activeMultiplier) {
+                // ACİL DÜZELTME: Yetersiz puan kontrolü eklendi
+                if ((user.balance || 0) < item.cost) {
+                    displayMessage("Yetersiz Puan!");
+                    return;
+                }
                 const confirmedStack = await customConfirm(`Zaten ${user.activeMultiplier}x çarpanın var. Bu alım, mevcut çarpanına <b>+${item.duration} kullanım hakkı</b> ekleyecek ve toplamda <b>${(user.multiplierRemainingUses || 0) + item.duration} kullanım hakkın</b> olacak. Onaylıyor musun?`);
                 if (confirmedStack) {
+                    logActivity('multiplierStacked', currentUser, { value: item.value, uses: item.duration });
                     await userRef.update({
                         balance: user.balance - item.cost,
                         totalSpentPoints: (user.totalSpentPoints || 0) + item.cost,
@@ -4550,16 +4553,25 @@ async function buyItem(itemId) {
                         return currentItem;
                     });
                     displayMessage(`Başarılı! ${user.activeMultiplier}x çarpanına +${item.duration} kullanım hakkı eklendi.`);
-                    return; // İşlemi burada bitir.
+                    return;
                 } else {
-                    return; // Kullanıcı iptal etti.
+                    return;
                 }
             }
-            // 2. Durum: Alınan çarpan daha yüksek (Yükseltme)
             else if (item.value > user.activeMultiplier) {
+                // ACİL DÜZELTME: Yetersiz puan kontrolü eklendi
+                if ((user.balance || 0) < item.cost) {
+                    displayMessage("Yetersiz Puan!");
+                    return;
+                }
                 const kutuHakkiDonusum = user.multiplierRemainingUses || 0;
                 const confirmedUpgrade = await customConfirm(`Mevcut ${user.activeMultiplier}x çarpanını daha yüksek olan <b>${item.value}x</b> ile değiştirmek üzeresin. Mevcut çarpanının kalan <b>${user.multiplierRemainingUses} kullanım hakkı</b>, envanterine <b>+${kutuHakkiDonusum} Kutu Hakkı</b> olarak eklenecek. Onaylıyor musun?`);
                 if (confirmedUpgrade) {
+                    logActivity('multiplierUpgraded', currentUser, { 
+                        oldValue: user.activeMultiplier, 
+                        newValue: item.value, 
+                        boxRights: kutuHakkiDonusum 
+                    });
                     await userRef.update({
                         balance: user.balance - item.cost,
                         totalSpentPoints: (user.totalSpentPoints || 0) + item.cost,
@@ -4578,25 +4590,24 @@ async function buyItem(itemId) {
                         return currentItem;
                     });
                     displayMessage(`Yükseltme başarılı! Envanterine +${kutuHakkiDonusum} Kutu Hakkı eklendi ve yeni ${item.value}x çarpanın aktif!`);
-                    return; // İşlemi burada bitir.
+                    return;
                 } else {
-                    return; // Kullanıcı iptal etti.
+                    return;
                 }
             }
-            // 3. Durum: Alınan çarpan daha düşük
             else {
                 displayMessage(`Mevcut çarpanın (${user.activeMultiplier}x) zaten bu üründen (${item.value}x) daha güçlü. Daha düşük bir çarpan alamazsın.`);
                 return;
             }
         }
     }
-    // --- YENİ ÇARPAN MANTIĞI SONU ---
     
     if (item.type === 'avatar' && user.avatars && user.avatars[itemId]) {
         displayMessage("Bu avatara zaten sahipsin!");
         return;
     }
 
+    // Bu kontrol, ilk defa çarpan alanlar veya diğer ürünler için çalışmaya devam ediyor.
     if ((user.balance || 0) < item.cost) {
         displayMessage("Yetersiz Puan!");
         return;
