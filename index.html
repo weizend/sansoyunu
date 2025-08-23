@@ -6996,7 +6996,7 @@ async function spinWheel() {
     
     const userRef = db.ref('users/' + currentUser);
     const userSnap = await userRef.once('value');
-    let userData = userSnap.val();
+    const userData = userSnap.val();
 
     if (!userData || (userData.carkBileti || 0) < 1) {
         displayMessage("Çarkı çevirmek için yeterli biletiniz yok.");
@@ -7012,183 +7012,146 @@ async function spinWheel() {
     spinBtn.disabled = true;
     spinBtn.textContent = 'Dönüyor...';
 
-    // Önce bileti ve çevirme sayısını güncelle
     await userRef.update({
         carkBileti: userData.carkBileti - 1,
         wheelSpinsCount: (userData.wheelSpinsCount || 0) + 1
     });
 
-    // Çarkın dönmesi 5 saniye sürdüğü için sonucu 5 saniye sonra işle
+    const totalWeight = wheelSegments.reduce((sum, seg) => sum + (seg.weight || 1), 0);
+    let randomWeight = Math.random() * totalWeight;
+    let winningIndex = -1;
+    for (let i = 0; i < wheelSegments.length; i++) {
+        randomWeight -= (wheelSegments[i].weight || 1);
+        if (randomWeight < 0) {
+            winningIndex = i;
+            break;
+        }
+    }
+    if (winningIndex === -1) winningIndex = 0;
+    const winningSegment = wheelSegments[winningIndex];
+    
+    const totalSegments = wheelSegments.length;
+    const degreesPerSegment = 360 / totalSegments;
+    const winningAngle = (winningIndex * degreesPerSegment) + (degreesPerSegment / 2);
+
+    const spinCycles = 5 + Math.floor(Math.random() * 3);
+    const finalRotation = (spinCycles * 360) + 270 - winningAngle;
+
+    wheel.style.transition = 'transform 5s cubic-bezier(0.25, 0.1, 0.25, 1)';
+    wheel.style.transform = `rotate(${finalRotation}deg)`;
+    
     setTimeout(async () => {
-        // --- YENİ EKLENEN KONTROL BLOGU BAŞLANGICI ---
-        const sessionRef = db.ref('surprise_box_session');
-        const sessionSnap = await sessionRef.once('value');
+        isWheelSpinning = false;
+        spinBtn.disabled = false;
+        spinBtn.textContent = 'Çarkı Çevir!';
 
-        // Eğer çark durduğu anda başka birinin aktif sürpriz seansı varsa
-        if (sessionSnap.exists()) {
-            // Kullanıcının güncel verilerini tekrar çek
-            const currentUserDataSnap = await userRef.once('value');
-            const currentUserData = currentUserDataSnap.val();
+        const currentUserDataSnap = await userRef.once('value');
+        const currentUserData = currentUserDataSnap.val();
 
-            // Bileti ve çevirme sayısını iade et
-            await userRef.update({
-                carkBileti: (currentUserData.carkBileti || 0) + 1,
-                wheelSpinsCount: (currentUserData.wheelSpinsCount || 1) - 1
-            });
-            
-            // Kullanıcıyı bilgilendir
-            displayMessage("Başka bir oyuncu Sürpriz Kutu bulduğu için çark çevirme işlemin iptal edildi. Biletin iade edildi, lütfen tekrar dene.");
-            
-            // Butonları sıfırla ve işlemi bitir
-            isWheelSpinning = false;
-            spinBtn.disabled = false;
-            spinBtn.textContent = 'Çarkı Çevir!';
-            
-            // Orijinal dönüş animasyonunu sıfırla
-            const finalRotation = parseInt(wheel.style.transform.replace('rotate(', '').replace('deg)', ''));
-            const normalizedRotation = finalRotation % 360;
-            wheel.style.transition = 'none';
-            wheel.style.transform = `rotate(${normalizedRotation}deg)`;
-            return; // Fonksiyonun geri kalanını çalıştırmayı durdur
+        if (!currentUserData) {
+            console.error("Çark sonucu işlenirken kullanıcı verisi bulunamadı!");
+            displayMessage("Bir hata oluştu, ödülünüz işlenemedi. Lütfen sayfayı yenileyin.");
+            return;
         }
-        // --- YENİ EKLENEN KONTROL BLOGU SONU ---
 
-        // Eğer bir çakışma yoksa, normal ödül verme işlemine devam et...
-        const totalWeight = wheelSegments.reduce((sum, seg) => sum + (seg.weight || 1), 0);
-        let randomWeight = Math.random() * totalWeight;
-        let winningIndex = -1;
-        for (let i = 0; i < wheelSegments.length; i++) {
-            randomWeight -= (wheelSegments[i].weight || 1);
-            if (randomWeight < 0) {
-                winningIndex = i;
+        let message = '';
+        let updates = {};
+        
+        switch(winningSegment.type) {
+            case 'points':
+                message = `Tebrikler, çarktan <b>+${winningSegment.value} Puan</b> kazandın!`;
+                updates.balance = (currentUserData.balance || 0) + winningSegment.value;
+                if(updates.balance > (currentUserData.highestBalanceEver || 0)) updates.highestBalanceEver = updates.balance;
                 break;
-            }
+            case 'boxRights':
+                message = `Tebrikler, çarktan <b>+${winningSegment.value} Kutu Hakkı</b> kazandın!`;
+                updates.kutuHakki = (currentUserData.kutuHakki || 0) + winningSegment.value;
+                break;
+            case 'iflasShield':
+                message = `Tebrikler, çarktan <b>+${winningSegment.value} İflas Kalkanı</b> kazandın!`;
+                updates.iflasShieldUses = (currentUserData.iflasShieldUses || 0) + winningSegment.value;
+                break;
+            case 'clickCatchTicket':
+                 message = `Tebrikler, çarktan <b>+${winningSegment.value} Tıkla-Yakala Bileti</b> kazandın!`;
+                updates.clickCatchTickets = (currentUserData.clickCatchTickets || 0) + winningSegment.value;
+                break;
+            case 'wheelTicket':
+                 message = `Tebrikler, çarktan <b>+${winningSegment.value} Çark Bileti</b> kazandın!`;
+                 updates.carkBileti = (currentUserData.carkBileti || 0) + winningSegment.value;
+                break;
+            case 'tempMultiplier':
+                message = `Tebrikler, çarktan <b>${winningSegment.value}X Çarpan</b> kazandın!`;
+                updates.activeMultiplier = winningSegment.value;
+                updates.multiplierSource = 'store';
+                updates.multiplierRemainingUses = winningSegment.duration;
+                break;
+            case 'surpriseBox':
+                 const sessionRef = db.ref('surprise_box_session');
+                 await sessionRef.set({ 
+                     active: true, user: currentUser, boxId: 'Çark', 
+                     multiplier: 1, cards: shuffleArray([...cardValues]), 
+                     selection: null, result: null, 
+                     timestamp: firebase.database.ServerValue.TIMESTAMP
+                 });
+                 const snap = await sessionRef.once('value');
+                 const serverTimestamp = snap.val().timestamp;
+                 await sessionRef.update({ expirationTimestamp: serverTimestamp + 60000 });
+                 openCardSelectionModal(currentUser);
+                 message = "Vay canına! Çarktan Sürpriz Kutu çıktı! Şimdi bir kart seç.";
+                 break;
+            case 'pas':
+                message = "Bu seferlik pas! Bir dahaki sefere daha şanslı olabilirsin.";
+                break;
         }
-        if (winningIndex === -1) winningIndex = 0;
-        const winningSegment = wheelSegments[winningIndex];
+
+        db.ref('wheelHistory').push().set({
+            username: currentUser, 
+            prize: winningSegment.label, 
+            type: winningSegment.type,
+            value: winningSegment.value !== undefined ? winningSegment.value : null,
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        const historyRef = db.ref('wheelHistory');
+        historyRef.orderByChild('timestamp').once('value', (snapshot) => {
+            const totalCount = snapshot.numChildren();
+            const limit = 10;
+            if (totalCount > limit) {
+                let itemsToDeleteCount = totalCount - limit;
+                snapshot.forEach((childSnapshot) => {
+                    if (itemsToDeleteCount <= 0) return true; 
+                    childSnapshot.ref.remove();
+                    itemsToDeleteCount--;
+                });
+            }
+        });
+
+        const logDetails = {
+            result: winningSegment.label,
+            type: winningSegment.type,
+            value: winningSegment.value !== undefined ? winningSegment.value : null
+        };
+        // --- DEĞİŞİKLİK: Log kaydına yeni bakiye bilgisini ekliyoruz. ---
+        if (winningSegment.type === 'points') {
+            logDetails.newBalance = updates.balance;
+        }
         
-        const totalSegments = wheelSegments.length;
-        const degreesPerSegment = 360 / totalSegments;
-        const winningAngle = (winningIndex * degreesPerSegment) + (degreesPerSegment / 2);
-
-        const spinCycles = 5 + Math.floor(Math.random() * 3);
-        const finalRotation = (spinCycles * 360) + 270 - winningAngle;
-
-        wheel.style.transition = 'transform 5s cubic-bezier(0.25, 0.1, 0.25, 1)';
-        wheel.style.transform = `rotate(${finalRotation}deg)`;
+        if (winningSegment.type !== 'surpriseBox') {
+            logActivity('spinWheel', currentUser, logDetails);
+        }
         
-        // Bu timeout, dönüş animasyonunun bitmesini bekler
-        setTimeout(async () => {
-            isWheelSpinning = false;
-            spinBtn.disabled = false;
-            spinBtn.textContent = 'Çarkı Çevir!';
+        if(Object.keys(updates).length > 0) await userRef.update(updates);
+        
+        displayMessage(message);
+        
+        const normalizedRotation = finalRotation % 360;
+        wheel.style.transition = 'none';
+        wheel.style.transform = `rotate(${normalizedRotation}deg)`;
 
-            const currentUserDataSnap = await userRef.once('value');
-            const currentUserData = currentUserDataSnap.val();
-
-            if (!currentUserData) {
-                console.error("Çark sonucu işlenirken kullanıcı verisi bulunamadı!");
-                displayMessage("Bir hata oluştu, ödülünüz işlenemedi. Lütfen sayfayı yenileyin.");
-                return;
-            }
-
-            let message = '';
-            let updates = {};
-            
-            // ... (ödül verme switch case bloğu burada değişmeden kalıyor) ...
-            switch(winningSegment.type) {
-                case 'points':
-                    message = `Tebrikler, çarktan <b>+${winningSegment.value} Puan</b> kazandın!`;
-                    updates.balance = (currentUserData.balance || 0) + winningSegment.value;
-                    if(updates.balance > (currentUserData.highestBalanceEver || 0)) updates.highestBalanceEver = updates.balance;
-                    break;
-                case 'boxRights':
-                    message = `Tebrikler, çarktan <b>+${winningSegment.value} Kutu Hakkı</b> kazandın!`;
-                    updates.kutuHakki = (currentUserData.kutuHakki || 0) + winningSegment.value;
-                    break;
-                case 'iflasShield':
-                    message = `Tebrikler, çarktan <b>+${winningSegment.value} İflas Kalkanı</b> kazandın!`;
-                    updates.iflasShieldUses = (currentUserData.iflasShieldUses || 0) + winningSegment.value;
-                    break;
-                case 'clickCatchTicket':
-                     message = `Tebrikler, çarktan <b>+${winningSegment.value} Tıkla-Yakala Bileti</b> kazandın!`;
-                    updates.clickCatchTickets = (currentUserData.clickCatchTickets || 0) + winningSegment.value;
-                    break;
-                case 'wheelTicket':
-                     message = `Tebrikler, çarktan <b>+${winningSegment.value} Çark Bileti</b> kazandın!`;
-                     updates.carkBileti = (currentUserData.carkBileti || 0) + winningSegment.value;
-                    break;
-                case 'tempMultiplier':
-                    message = `Tebrikler, çarktan <b>${winningSegment.value}X Çarpan</b> kazandın!`;
-                    updates.activeMultiplier = winningSegment.value;
-                    updates.multiplierSource = 'store';
-                    updates.multiplierRemainingUses = winningSegment.duration;
-                    break;
-                case 'surpriseBox':
-                     const newSessionRef = db.ref('surprise_box_session');
-                     await newSessionRef.set({ 
-                         active: true, user: currentUser, boxId: 'Çark', 
-                         multiplier: 1, cards: shuffleArray([...cardValues]), 
-                         selection: null, result: null, 
-                         timestamp: firebase.database.ServerValue.TIMESTAMP
-                     });
-                     const snap = await newSessionRef.once('value');
-                     const serverTimestamp = snap.val().timestamp;
-                     await newSessionRef.update({ expirationTimestamp: serverTimestamp + 60000 });
-                     openCardSelectionModal(currentUser);
-                     message = "Vay canına! Çarktan Sürpriz Kutu çıktı! Şimdi bir kart seç.";
-                     break;
-                case 'pas':
-                    message = "Bu seferlik pas! Bir dahaki sefere daha şanslı olabilirsin.";
-                    break;
-            }
-
-            db.ref('wheelHistory').push().set({
-                username: currentUser, 
-                prize: winningSegment.label, 
-                type: winningSegment.type,
-                value: winningSegment.value !== undefined ? winningSegment.value : null,
-                timestamp: firebase.database.ServerValue.TIMESTAMP
-            });
-
-            const historyRef = db.ref('wheelHistory');
-            historyRef.orderByChild('timestamp').once('value', (snapshot) => {
-                const totalCount = snapshot.numChildren();
-                const limit = 10;
-                if (totalCount > limit) {
-                    let itemsToDeleteCount = totalCount - limit;
-                    snapshot.forEach((childSnapshot) => {
-                        if (itemsToDeleteCount <= 0) return true; 
-                        childSnapshot.ref.remove();
-                        itemsToDeleteCount--;
-                    });
-                }
-            });
-
-            const logDetails = {
-                result: winningSegment.label,
-                type: winningSegment.type,
-                value: winningSegment.value !== undefined ? winningSegment.value : null
-            };
-            if (winningSegment.type === 'points') {
-                logDetails.newBalance = updates.balance;
-            }
-            
-            if (winningSegment.type !== 'surpriseBox') {
-                logActivity('spinWheel', currentUser, logDetails);
-            }
-            
-            if(Object.keys(updates).length > 0) await userRef.update(updates);
-            
-            displayMessage(message);
-            
-            const normalizedRotation = finalRotation % 360;
-            wheel.style.transition = 'none';
-            wheel.style.transform = `rotate(${normalizedRotation}deg)`;
-
-        }, 5100); // 5 saniye animasyon + 100ms
-    }, 100); // Kullanıcı butona bastıktan 100ms sonra işlem başlar
+    }, 5100);
 }
+
+// MEVCUT setWinner FONKSİYONUNU SİLİP BUNUNLA DEĞİŞTİRİN
 
 async function setWinner(username) {
     const lobbyRef = db.ref('clickCatchLobby');
