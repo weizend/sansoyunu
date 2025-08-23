@@ -4063,9 +4063,8 @@ async function openBox(index) {
   async function resetGameBoard() {
       console.log("resetGameBoard fonksiyonu çalıştı! Oyun sıfırlanıyor...");
       await createBoxes();
-      // ----- EKLENEN SATIR BURASI -----
-      // Oyunu sıfırlarken, "kim kaç kutu açtı" istatistiklerini de temizliyoruz.
-      await db.ref('gameStats/boxesOpenedByUsers').remove(); 
+      // Oyunu sıfırlarken, SADECE "kim kaç kutu açtı" istatistiğini temizliyoruz.
+      await db.ref('gameStats/boxesOpenedByUsers').remove();
       // ---------------------------------
       await db.ref('lastOpenedBox').remove();
       await db.ref('gameLock').set(false);
@@ -4396,6 +4395,7 @@ function listenForSurpriseBox() {
                         } else {
                             surpriseInfo.boxesOpenedThisRound = finalSessionData.boxesOpenedThisRound || null;
                             surpriseInfo.resettledBy = null;
+                            surpriseInfo.resettled = false; // YENİ EKLENEN SATIR: Sıfırlama hakkı doğdu
                             db.ref('gameStats/lastSurpriseInfo').set(surpriseInfo);
                         }
                         
@@ -5637,21 +5637,29 @@ async function manualUnlockGame() {
     closeSolveProblemsModal();
 }
 
-// MEVCUT manualResetAfterSurprise FONKSİYONUNU SİL VE BUNUNLA DEĞİŞTİR
-
 async function manualResetAfterSurprise() {
     const surpriseInfoRef = db.ref('gameStats/lastSurpriseInfo');
     const surpriseSnap = await surpriseInfoRef.once('value');
-    if (surpriseSnap.exists()) {
-        // 1. Önce kimin sıfırladığını kaydediyoruz.
-        await surpriseInfoRef.update({ resettledBy: currentUser });
+    
+    // YENİ KONTROL: Sadece kayıt varsa VE sıfırlama hakkı kullanılmamışsa çalışır
+    if (surpriseSnap.exists() && surpriseSnap.val().resettled === false) {
+        // Sıfırlama hakkını 'kullanıldı' olarak işaretle ve kimin kullandığını kaydet
+        await surpriseInfoRef.update({ 
+            resettled: true,
+            resettledBy: currentUser 
+        });
 
-        // 2. Ardından oyun tahtasını sıfırlıyoruz.
+        // Oyun tahtasını sıfırla
         await resetGameBoard();
 
-        // 3. Kullanıcıya bilgi veriyoruz.
+        // Kullanıcıya bilgi ver
         displayMessage("Sürpriz kutu bulunduğu için oyun senin tarafından sıfırlandı!");
-    } else {
+    } else if (surpriseSnap.exists() && surpriseSnap.val().resettled === true) {
+        // Eğer hak zaten kullanılmışsa bu uyarıyı göster
+        displayMessage("Oyun bu sürpriz kutu için zaten başka bir kullanıcı tarafından sıfırlandı.");
+    }
+    else {
+        // Eğer hiç sürpriz kutu bulunmamışsa bu uyarıyı göster
         displayMessage("Bu özellik sadece bir sürpriz kutu bulunduktan sonra kullanılabilir.");
     }
     closeSolveProblemsModal();
