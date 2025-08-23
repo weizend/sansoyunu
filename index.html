@@ -403,6 +403,8 @@ body.modal-open .modal-content {
 
       <div id="boxContainer" class="grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-2 w-full mx-auto mb-8 p-2">
       </div>
+      <div id="lastSurpriseFinderPanel" class="hidden w-full max-w-2xl mx-auto mt-6 bg-gray-800 p-6 rounded-xl shadow-lg border-2 border-amber-400 text-center space-y-3">
+        </div>
       <div id="tablesWrapper" class="flex flex-wrap justify-center gap-6 mb-8">
         <div class="tableBox bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700 w-full md:flex-1 min-w-[280px] md:max-w-md">
             <h3 class="text-yellow-400 text-xl font-bold border-b border-gray-600 pb-3 mb-4">KULLANICI PUAN SIRALAMASI 🥇</h3>
@@ -421,9 +423,6 @@ body.modal-open .modal-content {
         </div>
       </div>
     </div>
-    
-    <div id="lastSurpriseFinderPanel" class="hidden w-full max-w-2xl mx-auto mt-6 bg-gray-800 p-6 rounded-xl shadow-lg border-2 border-amber-400 text-center space-y-3">
-        </div>
 
         <div id="chanceWheelContent" class="w-full hidden">
     <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700 text-center">
@@ -448,6 +447,9 @@ body.modal-open .modal-content {
         <button id="spinWheelBtn" onclick="spinWheel()" class="py-3 px-10 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
             Çarkı Çevir!
         </button>
+        
+        <div id="lastWheelSurprisePanel" class="hidden w-full max-w-lg mx-auto mt-6 bg-gray-900/50 p-4 rounded-xl shadow-lg border-2 border-amber-400 text-center space-y-2">
+            </div>
         
         <div id="lastWheelSurprisePanel" class="hidden w-full max-w-lg mx-auto mt-6 bg-gray-900/50 p-4 rounded-xl shadow-lg border-2 border-amber-400 text-center space-y-2">
             </div>
@@ -1377,13 +1379,17 @@ body.modal-open .modal-content {
 
             <div class="bg-gray-900 p-4 rounded-lg border border-gray-700 mt-4">
                 <h5 class="font-semibold text-gray-300 mb-2">Çıkacak Özel Hedef</h5>
-                <div class="grid grid-cols-2 gap-4">
-                    <select id="soloSpecialItemType" class="box-setting-input">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <select id="soloSpecialItemType" class="box-setting-input md:col-span-1">
                         <option value="boxRight">Kutu Hakkı (📦)</option>
                         <option value="iflasShield">İflas Kalkanı (🛡️)</option>
                         <option value="wheelTicket">Çark Bileti (🎫️)</option>
+                        <option value="tempMultiplier">Çarpan (✖️)</option>
                     </select>
-                    <input type="number" id="soloSpecialValue" class="box-setting-input" placeholder="Adet (örn: 1, 5)">
+                    <div id="soloSpecialValueContainer" class="md:col-span-2 grid grid-cols-2 gap-4">
+                        <input type="number" id="soloSpecialValue" class="box-setting-input" placeholder="Adet (örn: 1, 5)">
+                        <input type="number" id="soloSpecialMultiplierUses" class="box-setting-input hidden" placeholder="Kullanım Hakkı">
+                    </div>
                 </div>
             </div>
             
@@ -1799,6 +1805,22 @@ body.modal-open .modal-content {
   </div>
 </div>
   <script>
+      document.addEventListener('DOMContentLoaded', () => {
+    const typeSelect = document.getElementById('soloSpecialItemType');
+    if (typeSelect) {
+        typeSelect.addEventListener('change', () => {
+            const valueInput = document.getElementById('soloSpecialValue');
+            const usesInput = document.getElementById('soloSpecialMultiplierUses');
+            if (typeSelect.value === 'tempMultiplier') {
+                valueInput.placeholder = 'Çarpan Değeri (örn: 2)';
+                usesInput.classList.remove('hidden');
+            } else {
+                valueInput.placeholder = 'Adet (örn: 1, 5)';
+                usesInput.classList.add('hidden');
+            }
+        });
+    }
+});
   // Firebase yapılandırması
   const firebaseConfig = {
     apiKey: "AIzaSyAVuyT2Hb7v9omKSgcwtoj0gzjTbXRtQn8",
@@ -2501,7 +2523,7 @@ async function afterLogin() {
     listenForWeeklyCountdown();
     listenForPersistentAnnouncement();
     listenForLastSurpriseFinderPanel();
-    listenForLastWheelSurprisePanel(); // Yeni dinleyici eklendi
+    listenForLastWheelSurprisePanel();
     
     if (!isAdmin) {
         listenForAdminNotifications();
@@ -4361,23 +4383,22 @@ function listenForSurpriseBox() {
                     } else if (committed) {
                         const finalSessionData = snapshot.val();
 
-                        // --- YENİ EKLENEN KONTROL BAŞLANGICI ---
-                        // Sadece kutudan geldiyse özel paneli tetikle ve sıfırlama moduna geç.
-                        if (finalSessionData.boxId !== 'Çark') {
-                            const surpriseInfo = {
-                                finder: finalSessionData.user,
-                                boxId: finalSessionData.boxId,
-                                points: finalSessionData.result.points,
-                                newBalance: finalSessionData.result.newBalance,
-                                boxesOpenedThisRound: finalSessionData.boxesOpenedThisRound || null,
-                                resettledBy: null,
-                                timestamp: firebase.database.ServerValue.TIMESTAMP
-                            };
+                        const surpriseInfo = {
+                            finder: finalSessionData.user,
+                            boxId: finalSessionData.boxId,
+                            points: finalSessionData.result.points,
+                            newBalance: finalSessionData.result.newBalance,
+                            timestamp: firebase.database.ServerValue.TIMESTAMP
+                        };
+
+                        if (finalSessionData.boxId === 'Çark') {
+                            db.ref('gameStats/lastWheelSurpriseInfo').set(surpriseInfo);
+                        } else {
+                            surpriseInfo.boxesOpenedThisRound = finalSessionData.boxesOpenedThisRound || null;
+                            surpriseInfo.resettledBy = null;
                             db.ref('gameStats/lastSurpriseInfo').set(surpriseInfo);
                         }
-                        // --- YENİ EKLENEN KONTROL SONU ---
                         
-                        // Bu log her durumda çalışır, böylece eylem panelinde her zaman görünür.
                         logActivity('surpriseBox', finalSessionData.user, { 
                             boxId: finalSessionData.boxId,
                             points: finalSessionData.result.points, 
@@ -5636,7 +5657,6 @@ async function manualResetAfterSurprise() {
     closeSolveProblemsModal();
 }
 
-// BU YENİ FONKSİYONU SCRIPT BÖLÜMÜNÜN SONLARINA EKLE
 function listenForLastSurpriseFinderPanel() {
     const ref = db.ref('gameStats/lastSurpriseInfo');
     const panel = document.getElementById('lastSurpriseFinderPanel');
@@ -5651,21 +5671,12 @@ function listenForLastSurpriseFinderPanel() {
         let messageHtml = '';
         const finderHtml = `<b class="text-white text-lg">${data.finder}</b>`;
 
-        if (data.boxId === 'Çark') {
-            messageHtml = `
-                <h4 class="text-amber-300 text-xl font-bold">🎡 SON SÜRPRİZ ÇARKTAN GELDİ! 🎡</h4>
-                <p>${finderHtml}, çarkı çevirdi ve bir Sürpriz Kutu buldu!</p>
-                <p>Kart seçiminden <b class="text-green-400">+${data.points} Puan</b> kazandı. <span class="text-gray-400">(Mevcut Puan: ${data.newBalance})</span></p>
-            `;
-        } 
-        else {
-            messageHtml = `
-                <h4 class="text-amber-300 text-xl font-bold">🎉 SON SÜRPRİZ KUTUSU BULUNDU! 🎉</h4>
-                <p>${finderHtml}, bu tur <b class="text-white">${data.boxesOpenedThisRound} adet</b> kutu açtıktan sonra <b class="text-white">${data.boxId} numaralı</b> kutudan Sürpriz Kutu buldu!</p>
-                <p>Kart seçiminden <b class="text-green-400">+${data.points} Puan</b> kazandı. <span class="text-gray-400">(Mevcut Puan: ${data.newBalance})</span></p>
-            `;
-        }
-
+        messageHtml = `
+            <h4 class="text-amber-300 text-xl font-bold">🎉 SON SÜRPRİZ KUTUSU BULUNDU! 🎉</h4>
+            <p>${finderHtml}, bu tur <b class="text-white">${data.boxesOpenedThisRound} adet</b> kutu açtıktan sonra <b class="text-white">${data.boxId} numaralı</b> kutudan Sürpriz Kutu buldu!</p>
+            <p>Kart seçiminden <b class="text-green-400">+${data.points} Puan</b> kazandı. <span class="text-gray-400">(Mevcut Puan: ${data.newBalance})</span></p>
+        `;
+        
         if (data.resettledBy) {
             messageHtml += `
                 <hr class="border-gray-600 my-2">
@@ -6927,8 +6938,7 @@ function renderWheel() {
 
     wheelElement.style.background = `conic-gradient(${gradientParts.join(', ')})`;
 }
-    // BU YENİ FONKSİYONU SCRIPT BÖLÜMÜNÜN SONLARINA EKLEYİN
-function listenForLastWheelSurprisePanel() {
+    function listenForLastWheelSurprisePanel() {
     const ref = db.ref('gameStats/lastWheelSurpriseInfo');
     const panel = document.getElementById('lastWheelSurprisePanel');
 
@@ -7363,13 +7373,13 @@ async function clearLastWinner() {
     }
 }
   
-  // BU FONKSİYONUN TAMAMI DEĞİŞECEK
-function handleSoloItemClick(event) {
+  function handleSoloItemClick(event) {
     if (!clickCatchGameActive) return;
     
     const item = event.target;
     const type = item.dataset.type;
     const value = parseInt(item.dataset.value);
+    const uses = parseInt(item.dataset.uses);
     const emoji = item.dataset.emoji;
     
     let floatingText = '';
@@ -7385,20 +7395,24 @@ function handleSoloItemClick(event) {
             document.getElementById('clickCatchTimer').textContent = clickCatchTimer;
             floatingText = `+${value} Saniye`;
             break;
-        // DEĞİŞEN KISIM BURASI
         case 'boxRight':
-            collectedBoxRights += value; // Veritabanı yerine geçici değişkene ekle
+            collectedBoxRights += value;
             floatingText = `+${value} Kutu Hakkı`;
             document.getElementById('collectedSpecials').innerHTML += `<span class="text-xl">${emoji}</span>`;
             break;
         case 'iflasShield':
-            collectedIflasShields += value; // Veritabanı yerine geçici değişkene ekle
+            collectedIflasShields += value;
             floatingText = `+${value} İflas Kalkanı`;
             document.getElementById('collectedSpecials').innerHTML += `<span class="text-xl">${emoji}</span>`;
             break;
         case 'wheelTicket':
-            collectedWheelTickets += value; // Veritabanı yerine geçici değişkene ekle
+            collectedWheelTickets += value;
             floatingText = `+${value} Çark Bileti`;
+            document.getElementById('collectedSpecials').innerHTML += `<span class="text-xl">${emoji}</span>`;
+            break;
+        case 'tempMultiplier':
+            collectedMultipliers.push({ value: value, uses: uses });
+            floatingText = `${value}x Çarpan (${uses} kullanım)`;
             document.getElementById('collectedSpecials').innerHTML += `<span class="text-xl">${emoji}</span>`;
             break;
     }
@@ -8111,8 +8125,6 @@ function closeLobbyGameOverScreen() {
     // --- YENİ EKLENEN SATIR SONU ---
 }
 
-// --- ESKİ saveSoloGameSettings FONKSİYONUNU SİL, BUNU YAPIŞTIR ---
-
 async function saveSoloGameSettings() {
     if (!isAdmin) return;
 
@@ -8130,8 +8142,8 @@ async function saveSoloGameSettings() {
         goldValue: parseInt(document.getElementById('soloGoldValue').value) || 100,
         normalValue: parseInt(document.getElementById('soloNormalValue').value) || 50,
         specialItemType: document.getElementById('soloSpecialItemType').value || 'boxRight',
-        // --- YENİ EKLENEN SATIR: Sadece bu ayar ekranı için adet bilgisini kaydeder ---
-        specialValue: parseInt(document.getElementById('soloSpecialValue').value) || 1
+        specialValue: parseInt(document.getElementById('soloSpecialValue').value) || 1,
+        specialMultiplierUses: parseInt(document.getElementById('soloSpecialMultiplierUses').value) || 1
     };
 
     const totalChance = settings.bombChance + settings.timeChance + settings.goldChance + settings.specialChance + settings.normalChance;
@@ -8144,9 +8156,6 @@ async function saveSoloGameSettings() {
         displayMessage("Tekli oyun ayarları başarıyla kaydedildi.");
     }
 }
-
-
-// --- ESKİ loadSoloGameSettings FONKSİYONUNU SİL, BUNU YAPIŞTIR ---
 
 async function loadSoloGameSettings() {
     const settingsSnap = await db.ref('gameSettings/clickCatchSolo').once('value');
@@ -8166,12 +8175,21 @@ async function loadSoloGameSettings() {
     document.getElementById('soloGoldValue').value = soloGameSettings.goldValue || 100;
     document.getElementById('soloNormalValue').value = soloGameSettings.normalValue || 50;
     document.getElementById('soloSpecialItemType').value = soloGameSettings.specialItemType || 'boxRight';
-    // --- YENİ EKLENEN SATIR: Sadece bu ayar ekranı için adet bilgisini yükler ---
     document.getElementById('soloSpecialValue').value = soloGameSettings.specialValue || 1;
+    document.getElementById('soloSpecialMultiplierUses').value = soloGameSettings.specialMultiplierUses || 1;
+    
+    // YENİ EKLENEN KOD: Seçime göre input'ları göster/gizle
+    const typeSelect = document.getElementById('soloSpecialItemType');
+    const valueInput = document.getElementById('soloSpecialValue');
+    const usesInput = document.getElementById('soloSpecialMultiplierUses');
+    if (typeSelect.value === 'tempMultiplier') {
+        valueInput.placeholder = 'Çarpan Değeri (örn: 2)';
+        usesInput.classList.remove('hidden');
+    } else {
+        valueInput.placeholder = 'Adet (örn: 1, 5)';
+        usesInput.classList.add('hidden');
+    }
 }
-
-
-// --- ESKİ startSoloClickCatchGame FONKSİYONUNU SİL, BUNU YAPIŞTIR ---
 
 async function startSoloClickCatchGame() {
     if (lobbyGameSettings && lobbyGameSettings.state && (lobbyGameSettings.state === 'waiting' || lobbyGameSettings.state === 'active')) {
@@ -8195,11 +8213,11 @@ async function startSoloClickCatchGame() {
     if (!confirmed) return;
     await userRef.update({ clickCatchTickets: (userData.clickCatchTickets || 0) - 1 });
     
-    // --- DEĞİŞEN KISIM: Artık ayarlardan "specialValue" yani adet değerini de okuyor ---
     const specialItemMapping = {
       'boxRight': { type: 'boxRight', value: soloGameSettings.specialValue || 1, emoji: '📦' },
       'iflasShield': { type: 'iflasShield', value: soloGameSettings.specialValue || 1, emoji: '🛡️' },
-      'wheelTicket': { type: 'wheelTicket', value: soloGameSettings.specialValue || 1, emoji: '🎫️' }
+      'wheelTicket': { type: 'wheelTicket', value: soloGameSettings.specialValue || 1, emoji: '🎫️' },
+      'tempMultiplier': { type: 'tempMultiplier', value: soloGameSettings.specialValue || 2, uses: soloGameSettings.specialMultiplierUses || 1, emoji: '✖️' }
     };
     specialItemForThisRound = specialItemMapping[soloGameSettings.specialItemType] || specialItemMapping['boxRight'];
     
@@ -8209,6 +8227,8 @@ async function startSoloClickCatchGame() {
     collectedBoxRights = 0;
     collectedIflasShields = 0;
     collectedWheelTickets = 0;
+    collectedMultipliers = []; // Çarpanları tutmak için yeni dizi
+    
     document.getElementById('clickCatchScore').textContent = clickCatchScore;
     document.getElementById('clickCatchTimer').textContent = clickCatchTimer;
     document.getElementById('displayScore').classList.remove('hidden');
@@ -8239,6 +8259,9 @@ async function endSoloClickCatchGame() {
     if (collectedBoxRights > 0) specialItemsWonLog.push(`+${collectedBoxRights} Kutu Hakkı`);
     if (collectedIflasShields > 0) specialItemsWonLog.push(`+${collectedIflasShields} İflas Kalkanı`);
     if (collectedWheelTickets > 0) specialItemsWonLog.push(`+${collectedWheelTickets} Çark Bileti`);
+    if (collectedMultipliers.length > 0) {
+        collectedMultipliers.forEach(m => specialItemsWonLog.push(`${m.value}x Çarpan (${m.uses} kullanım)`));
+    }
 
     let endMessage = `Oyun bitti! Bu turdaki skorun: <b>${clickCatchScore}</b>.`;
     if (specialItemsWonLog.length > 0) {
@@ -8258,16 +8281,42 @@ async function endSoloClickCatchGame() {
     logActivity('clickCatchSolo', currentUser, {
         score: clickCatchScore,
         specialItems: specialItemsWonLog,
-        newWeeklyScore: newTotalWeeklyScore // Yeni haftalık skoru log'a ekliyoruz
+        newWeeklyScore: newTotalWeeklyScore
     });
     
-    // Veritabanı güncellemelerini tek bir işlemde birleştiriyoruz
     const updates = {};
     updates[`clickCatchWeeklyScores/${currentUser}`] = newTotalWeeklyScore;
     updates[`users/${currentUser}/clickCatchHighestScore`] = newTotalWeeklyScore;
     updates[`users/${currentUser}/kutuHakki`] = (user.kutuHakki || 0) + collectedBoxRights;
     updates[`users/${currentUser}/iflasShieldUses`] = (user.iflasShieldUses || 0) + collectedIflasShields;
     updates[`users/${currentUser}/carkBileti`] = (user.carkBileti || 0) + collectedWheelTickets;
+    
+    // Çarpan ödüllerini işle
+    if(collectedMultipliers.length > 0){
+        let currentUserMultiplier = user.activeMultiplier || 1;
+        let currentUserUses = user.multiplierRemainingUses || 0;
+        let currentUserSource = user.multiplierSource || 'none';
+
+        for (const newMultiplier of collectedMultipliers) {
+            if (currentUserSource === 'none') { // Kullanıcının hiç çarpanı yoksa
+                currentUserMultiplier = newMultiplier.value;
+                currentUserUses = newMultiplier.uses;
+                currentUserSource = 'store'; // T-Y'den gelenler mağaza gibi davranır
+            } else if (newMultiplier.value > currentUserMultiplier) { // Gelen çarpan daha güçlüyse
+                updates[`users/${currentUser}/kutuHakki`] = (updates[`users/${currentUser}/kutuHakki`] || user.kutuHakki) + currentUserUses;
+                currentUserMultiplier = newMultiplier.value;
+                currentUserUses = newMultiplier.uses;
+            } else if (newMultiplier.value === currentUserMultiplier) { // Gelen çarpan aynıysa
+                currentUserUses += newMultiplier.uses;
+            } else { // Mevcut çarpan daha güçlüyse
+                updates[`users/${currentUser}/kutuHakki`] = (updates[`users/${currentUser}/kutuHakki`] || user.kutuHakki) + newMultiplier.uses;
+            }
+        }
+        updates[`users/${currentUser}/activeMultiplier`] = currentUserMultiplier;
+        updates[`users/${currentUser}/multiplierRemainingUses`] = currentUserUses;
+        updates[`users/${currentUser}/multiplierSource`] = currentUserSource;
+    }
+
 
     await db.ref().update(updates);
 }
