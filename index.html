@@ -8482,8 +8482,6 @@ function logActivity(type, username, details = {}) {
     });
 }
 
-// MEVCUT getActivityIcon FONKSİYONUNU SİLİP BUNUNLA DEĞİŞTİRİN
-
 function getActivityIcon(type, details = {}) {
     let icon = '🔔';
     let bgColor = 'bg-gray-500';
@@ -8528,12 +8526,10 @@ function getActivityIcon(type, details = {}) {
             icon = '❎';
             bgColor = 'bg-gray-600';
             break;
-        // --- YENİ EKLENEN CASE ---
         case 'multiplierConvertedToBoxRights':
             icon = '♻️';
             bgColor = 'bg-lime-600';
             break;
-        // --- YENİ EKLENEN CASE SONU ---
         case 'newItemFound':
             const itemType = details.itemType;
             if (itemType === 'iflasShield') {
@@ -8561,9 +8557,16 @@ function getActivityIcon(type, details = {}) {
             bgColor = 'bg-orange-500';
             break;
         case 'dailyReward':
-            icon = '📅';
-            bgColor = 'bg-teal-500';
+            // --- YENİ EKLENEN KONTROL ---
+            if (details.rewardType === 'avatar') {
+                icon = '👤'; // Avatar için özel ikon
+                bgColor = 'bg-sky-500'; // Avatar için özel renk
+            } else {
+                icon = '📅'; // Diğer günlük ödüller için standart ikon
+                bgColor = 'bg-teal-500';
+            }
             break;
+        // --- KONTROL SONU ---
         case 'surpriseBoxTimeout':
             icon = '⏰';
             bgColor = 'bg-gray-600';
@@ -8576,8 +8579,6 @@ function getActivityIcon(type, details = {}) {
         </div>
     `;
 }
-
-// MEVCUT renderActivityFeed FONKSİYONUNU SİL VE BUNUNLA DEĞİŞTİR
 
 function renderActivityFeed(activities) {
     const activityFeedList = document.getElementById('activityFeedList');
@@ -8630,7 +8631,6 @@ function renderActivityFeed(activities) {
                 : '';
 
             switch (activity.type) {
-                // --- DEĞİŞEN CASE BLOĞU ---
                 case 'multiplierConvertedToBoxRights':
                     message = `${userHtml}, mevcut <b>${details.keptMultiplierValue}x çarpanını</b> koruyarak, günlük ödülden gelen ${details.rewardValue}x çarpanını <span class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı'na</span> dönüştürdü.`;
                     break;
@@ -8736,14 +8736,22 @@ function renderActivityFeed(activities) {
                     const rewardType = details.rewardType;
                     const rewardValue = details.rewardValue;
 
-                    if (rewardType === 'points') {
-                        rewardText = `+${rewardValue} Puan`;
-                    } else if (rewardType === 'tempMultiplier') {
-                        rewardText = `${details.rewardUses} adet ${rewardValue}x Çarpan`;
-                    } else {
-                        rewardText = `+${rewardValue} ${typeToName[rewardType] || details.rewardName}`;
+                    // --- YENİ EKLENEN KONTROL BAŞLANGICI ---
+                    if (rewardType === 'avatar') {
+                        rewardText = `<span class="text-sky-300 font-bold">'${details.rewardName}' avatarını</span>`;
+                        message = `${userHtml}, günlük ödül olarak ${rewardText} kazandı.`;
+                    } 
+                    // --- YENİ EKLENEN KONTROL SONU ---
+                    else { // Mevcut mantık diğer ödüller için devam ediyor
+                        if (rewardType === 'points') {
+                            rewardText = `+${rewardValue} Puan`;
+                        } else if (rewardType === 'tempMultiplier') {
+                            rewardText = `${details.rewardUses} adet ${rewardValue}x Çarpan`;
+                        } else {
+                            rewardText = `+${rewardValue} ${typeToName[rewardType] || details.rewardName}`;
+                        }
+                        message = `${userHtml}, günlük ödül olarak <span class="text-teal-300 font-bold">${rewardText}</span> aldı.${remainingBalanceText}`;
                     }
-                    message = `${userHtml}, günlük ödül olarak <span class="text-teal-300 font-bold">${rewardText}</span> aldı.${remainingBalanceText}`;
                     break;
                 case 'surpriseBoxTimeout':
                     message = `${userHtml}, Sürpriz Kutu şansını süre dolduğu için kaçırdı.`;
