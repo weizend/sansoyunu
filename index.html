@@ -6317,15 +6317,36 @@ async function claimDailyReward(rewardId) {
 
         if (reward.type === 'tempMultiplier') {
             if (user.multiplierSource && user.multiplierSource !== 'none') {
-                if (reward.value === user.activeMultiplier) {
+                const rewardValue = parseInt(reward.value);
+                const userMultiplierValue = parseInt(user.activeMultiplier);
+
+                if (rewardValue === userMultiplierValue) { // Stackleme (Eşitse)
                     const confirmedStack = await customConfirm(`Zaten ${user.activeMultiplier}x çarpanın var. Bu ödül, mevcut çarpanına <b>+${reward.uses} kullanım hakkı</b> ekleyecek. Onaylıyor musun?`);
                     if (!confirmedStack) {
                         if (claimButton) { claimButton.disabled = false; claimButton.textContent = 'Ödülü Al'; }
                         return;
                     }
-                    await userRef.update({ multiplierRemainingUses: (user.multiplierRemainingUses || 0) + reward.uses });
+                    
+                    // --- YENİ EKLENEN KOD BAŞLANGICI (ÖZEL LOGLAMA) ---
+                    const usesAdded = reward.uses;
+                    const newTotalUses = (user.multiplierRemainingUses || 0) + usesAdded;
+                    
+                    logActivity('dailyRewardMultiplierStacked', currentUser, {
+                        multiplierValue: reward.value,
+                        usesAdded: usesAdded,
+                        newTotalUses: newTotalUses
+                    });
+
+                    await userRef.update({ multiplierRemainingUses: newTotalUses });
+                    await db.ref(`users/${currentUser}/dailyRewardsClaimed/${rewardId}`).set(firebase.database.ServerValue.TIMESTAMP);
+
+                    displayMessage(`Başarılı! ${reward.value}x çarpanına +${usesAdded} kullanım hakkı eklendi.`);
+                    closeDailyRewardModal();
+                    checkAvailableDailyRewards();
+                    return; // Fonksiyonu burada bitirerek genel loglamayı engelle
+                    // --- YENİ EKLENEN KOD SONU ---
                 } 
-                else if (reward.value > user.activeMultiplier) {
+                else if (rewardValue > userMultiplierValue) { // Yükseltme (Yüksekse)
                     const kutuHakkiDonusum = user.multiplierRemainingUses || 0;
                     const confirmedUpgrade = await customConfirm(`Mevcut ${user.activeMultiplier}x çarpanını daha yüksek olan <b>${reward.value}x</b> ile değiştirmek üzeresin. Mevcut çarpanının kalan <b>${user.multiplierRemainingUses} kullanım hakkı</b>, envanterine <b>+${kutuHakkiDonusum} Kutu Hakkı</b> olarak eklenecek. Onaylıyor musun?`);
                     if (!confirmedUpgrade) {
@@ -6339,7 +6360,7 @@ async function claimDailyReward(rewardId) {
                         multiplierSource: 'store'
                     });
                 } 
-                else { 
+                else { // Düşükse Kutu Hakkına Dönüştürme
                     const kutuHakkiDonusum = reward.uses || 0;
                     const confirmedConvert = await customConfirm(`Mevcut <b>${user.activeMultiplier}x</b> çarpanın bu <b>${reward.value}x</b> ödülünden daha güçlü. Bu ödülü alırsan, çarpanın değişmeyecek ancak ödülün <b>${kutuHakkiDonusum} kullanım hakkı</b>, envanterine <b>+${kutuHakkiDonusum} Kutu Hakkı</b> olarak eklenecek. Onaylıyor musun?`);
                     
@@ -6362,6 +6383,7 @@ async function claimDailyReward(rewardId) {
                     displayMessage(`Başarılı! ${reward.name} ödülü, envanterinize +${kutuHakkiDonusum} Kutu Hakkı olarak eklendi.`);
                     closeDailyRewardModal();
                     checkAvailableDailyRewards();
+                    
                     return;
                 }
             }
@@ -6394,9 +6416,8 @@ async function claimDailyReward(rewardId) {
                 updates['multiplierRemainingUses'] = reward.uses;
                 updates['multiplierSource'] = 'store';
                 break;
-            // --- YENİ EKLENEN CASE BAŞLANGICI ---
             case 'avatar':
-                const newAvatarId = db.ref().push().key; // Benzersiz bir ID oluştur
+                const newAvatarId = db.ref().push().key;
                 updates[`avatars/${newAvatarId}`] = {
                     id: newAvatarId,
                     name: reward.avatarName,
@@ -6404,7 +6425,6 @@ async function claimDailyReward(rewardId) {
                 };
                 message = `Tebrikler! <b>${reward.avatarName}</b> avatarı koleksiyonuna eklendi!`;
                 break;
-            // --- YENİ EKLENEN CASE SONU ---
         }
 
         const logDetails = { 
@@ -8578,17 +8598,21 @@ function getActivityIcon(type, details = {}) {
             icon = '🎯';
             bgColor = 'bg-orange-500';
             break;
+        case 'dailyRewardMultiplierStacked':
+            // --- DEĞİŞİKLİK BURADA ---
+            icon = '📅'; // Simgeyi standart günlük ödül simgesiyle değiştirdik.
+            bgColor = 'bg-teal-500'; // Rengi de standart renkle aynı yaptık.
+            break;
+        // --- DEĞİŞİKLİK SONU ---
         case 'dailyReward':
-            // --- YENİ EKLENEN KONTROL ---
             if (details.rewardType === 'avatar') {
-                icon = '👤'; // Avatar için özel ikon
-                bgColor = 'bg-sky-500'; // Avatar için özel renk
+                icon = '👤';
+                bgColor = 'bg-sky-500';
             } else {
-                icon = '📅'; // Diğer günlük ödüller için standart ikon
+                icon = '📅';
                 bgColor = 'bg-teal-500';
             }
             break;
-        // --- KONTROL SONU ---
         case 'surpriseBoxTimeout':
             icon = '⏰';
             bgColor = 'bg-gray-600';
@@ -8653,6 +8677,11 @@ function renderActivityFeed(activities) {
                 : '';
 
             switch (activity.type) {
+                // --- YENİ EKLENEN CASE BAŞLANGICI ---
+                case 'dailyRewardMultiplierStacked':
+                    message = `${userHtml}, mevcut <b>${details.multiplierValue}x çarpanına</b> günlük ödülden <span class="text-green-300 font-bold">+${details.usesAdded} kullanım hakkı</span> ekledi. Yeni toplam: <span class="text-white font-bold">${details.newTotalUses} kullanım</span>.`;
+                    break;
+                // --- YENİ EKLENEN CASE SONU ---
                 case 'multiplierConvertedToBoxRights':
                     message = `${userHtml}, mevcut <b>${details.keptMultiplierValue}x çarpanını</b> koruyarak, günlük ödülden gelen ${details.rewardValue}x çarpanını <span class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı'na</span> dönüştürdü.`;
                     break;
@@ -8757,14 +8786,12 @@ function renderActivityFeed(activities) {
                     let rewardText = '';
                     const rewardType = details.rewardType;
                     const rewardValue = details.rewardValue;
-
-                    // --- YENİ EKLENEN KONTROL BAŞLANGICI ---
+                    
                     if (rewardType === 'avatar') {
                         rewardText = `<span class="text-sky-300 font-bold">'${details.rewardName}' avatarını</span>`;
                         message = `${userHtml}, günlük ödül olarak ${rewardText} kazandı.`;
                     } 
-                    // --- YENİ EKLENEN KONTROL SONU ---
-                    else { // Mevcut mantık diğer ödüller için devam ediyor
+                    else {
                         if (rewardType === 'points') {
                             rewardText = `+${rewardValue} Puan`;
                         } else if (rewardType === 'tempMultiplier') {
