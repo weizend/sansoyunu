@@ -2365,15 +2365,20 @@ function listenForWeeklyCountdown() {
         countdownContainer.classList.remove('hidden');
 
         const updateTimer = () => {
-            const now = getSyncedTime(); // <-- HATA DÜZELTİLDİ
+            const now = getSyncedTime();
             const timeLeft = settings.endDate - now;
 
             if (timeLeft <= 0) {
                 countdownEl.textContent = "HAFTA BİTTİ!";
                 clearInterval(weeklyCountdownInterval);
-                if (isAdmin) { 
-                   executeWeeklyReset();
-                }
+                
+                // --- DEĞİŞİKLİK BURADA ---
+                // Artık sadece adminin değil, herhangi bir kullanıcının tarayıcısı
+                // bu işlemi tetikleyebilir. Ancak sistem, işlemi sadece bir kez
+                // yapacak şekilde ayarlandığı için sorun olmaz.
+                executeWeeklyReset(); 
+                // --- DEĞİŞİKLİK SONA ERDİ ---
+
                 return;
             }
 
@@ -9804,12 +9809,19 @@ function listenForSeasonCountdown() {
         countdownContainer.classList.remove('hidden');
 
         const updateTimer = () => {
-            const now = getSyncedTime(); // <-- HATA DÜZELTİLDİ
+            const now = getSyncedTime();
             const timeLeft = endDateTimestamp - now;
 
             if (timeLeft <= 0) {
                 countdownEl.textContent = "SEZON BİTTİ!";
                 clearInterval(seasonCountdownInterval);
+                
+                // YENİ EKLENEN KOD: Süre dolduğunda sıfırlamayı otomatik tetikle
+                // Bu kodun çalışması için adminin online olmasına gerek YOKTUR.
+                // Herhangi bir kullanıcı online ise tetiklenir.
+                executeSeasonReset();
+                // --- KOD SONU ---
+                
                 return;
             }
 
