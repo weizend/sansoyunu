@@ -3880,6 +3880,7 @@ async function deleteUserAvatar(username, avatarId) {
   }
 
 // MEVCUT openBox fonksiyonunu bununla değiştir
+// MEVCUT openBox fonksiyonunu bununla değiştir
 async function openBox(index) {
     if (isGameLocked) {
         displayMessage("Kutular 3 saniye arayla açılıyor. Lütfen tekrar deneyin. Sorun devam ediyorsa, sorunları çöz menüsüne göz atabilirsin.");
@@ -4010,10 +4011,7 @@ async function openBox(index) {
             const pointsGained = box.value * finalMultiplier;
             updates['balance'] = (user.balance || 0) + pointsGained;
             if (updates['balance'] > (user.highestBalanceEver || 0)) updates['highestBalanceEver'] = updates['balance'];
-            
-            // KARİYER PUANI GÜNCELLEMESİ
             updates['kariyerPuani'] = (user.kariyerPuani || 0) + pointsGained;
-
             message = `+${pointsGained} puan kazandınız!`;
             boxUpdate.basePoints = box.value;
             boxUpdate.finalPoints = pointsGained;
@@ -4030,26 +4028,37 @@ async function openBox(index) {
             let shieldWasUsed = false;
             const lostPoints = user.balance || 0;
             updates['iflasCount'] = (user.iflasCount || 0) + 1;
+            
+            // --- DEĞİŞİKLİK BURADA BAŞLIYOR ---
+            const logDetails = {
+                shieldUsed: false,
+                lostPoints: 0,
+                boxId: box.id,
+                multiplier: finalMultiplier
+            };
+
             if ((user.iflasShieldUses || 0) > 0) {
                 updates['iflasShieldUses'] = (user.iflasShieldUses || 0) - 1;
                 updates['iflasShieldUsedCount'] = (user.iflasShieldUsedCount || 0) + 1; 
                 shieldWasUsed = true;
                 message = `İflas! 🛡️ Kalkanın seni korudu!`;
+                logDetails.shieldUsed = true;
+                // Kalkan kullanıldığında bakiye değişmez, bu yüzden log'a newBalance eklemiyoruz.
             } else {
                 updates['balance'] = 0;
                 message = `İflas! Tüm puanların (${lostPoints} puan) silindi.`;
+                logDetails.lostPoints = lostPoints;
+                logDetails.newBalance = 0; // Bakiye sıfırlandığı için log'a 0 olarak ekliyoruz.
             }
+
             boxUpdate.shieldUsed = shieldWasUsed;
             boxUpdate.lostPoints = shieldWasUsed ? 0 : lostPoints;
             boxOpenInfo.shieldUsed = shieldWasUsed;
             boxOpenInfo.lostPoints = shieldWasUsed ? 0 : lostPoints;
-            logActivity('iflas', currentUser, { 
-                shieldUsed: shieldWasUsed, 
-                lostPoints: shieldWasUsed ? 0 : lostPoints, 
-                boxId: box.id, 
-                multiplier: finalMultiplier,
-                newBalance: updates['balance']
-            });
+            
+            // Loglama işlemini en sonda ve kontrollü bir şekilde yapıyoruz.
+            logActivity('iflas', currentUser, logDetails);
+            // --- DEĞİŞİKLİK BURADA BİTİYOR ---
         }
         else if (box.content === 'surpriz') {
             updates['surpriseBoxesOpened'] = (user.surpriseBoxesOpened || 0) + 1;
@@ -7080,15 +7089,12 @@ async function spinWheel() {
                 message = `Tebrikler, çarktan <b>+${winningSegment.value} Puan</b> kazandın!`;
                 updates.balance = (currentUserData.balance || 0) + winningSegment.value;
                 if(updates.balance > (currentUserData.highestBalanceEver || 0)) updates.highestBalanceEver = updates.balance;
-                
-                // KARİYER PUANI GÜNCELLEMESİ
                 updates.kariyerPuani = (currentUserData.kariyerPuani || 0) + winningSegment.value;
                 break;
             case 'boxRights':
                 message = `Tebrikler, çarktan <b>+${winningSegment.value} Kutu Hakkı</b> kazandın!`;
                 updates.kutuHakki = (currentUserData.kutuHakki || 0) + winningSegment.value;
                 break;
-            // ... diğer case'ler aynı kalacak
             case 'iflasShield':
                 message = `Tebrikler, çarktan <b>+${winningSegment.value} İflas Kalkanı</b> kazandın!`;
                 updates.iflasShieldUses = (currentUserData.iflasShieldUses || 0) + winningSegment.value;
@@ -7148,18 +7154,23 @@ async function spinWheel() {
             }
         });
 
+        // --- DEĞİŞİKLİK BURADA BAŞLIYOR ---
         const logDetails = {
             result: winningSegment.label,
             type: winningSegment.type,
             value: winningSegment.value !== undefined ? winningSegment.value : null
         };
+        
+        // newBalance'ı sadece 'points' durumunda log'a ekliyoruz.
         if (winningSegment.type === 'points') {
             logDetails.newBalance = updates.balance;
         }
         
+        // Sürpriz kutu loglaması kendi özel fonksiyonunda yapıldığı için burada loglamıyoruz.
         if (winningSegment.type !== 'surpriseBox') {
             logActivity('spinWheel', currentUser, logDetails);
         }
+        // --- DEĞİŞİKLİK BURADA BİTİYOR ---
         
         if(Object.keys(updates).length > 0) await userRef.update(updates);
         
@@ -7171,7 +7182,6 @@ async function spinWheel() {
 
     }, 5100);
 }
-
 // MEVCUT setWinner fonksiyonunu bununla değiştir
 async function setWinner(username) {
     const lobbyRef = db.ref('clickCatchLobby');
