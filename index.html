@@ -1044,7 +1044,7 @@ body.modal-open .modal-content {
     <div class="overflow-y-auto px-8 pb-8">
         <div id="managedUserDetails" class="text-left text-gray-300 mb-6 space-y-1">
             <p><span id="managedBadgeBalance" class="inline-block w-6 text-center"></span>Mevcut Puan: <span id="managedUserBalance" class="font-bold text-yellow-300"></span></p>
-            <p><span id="managedBadgeHighest" class="inline-block w-6 text-center"></span>Kariyer Puanı: <span id="managedUserHighestBalance" class="font-bold text-green-400"></span></p>
+            <p><span id="managedBadgeHighest" class="inline-block w-6 text-center"></span>Kariyer Puan: <span id="managedUserHighestBalance" class="font-bold text-green-400"></span></p>
             <p>Kutu Hakkı: <span id="managedUserBoxRight" class="font-bold text-green-400"></span></p>
             <p>Şans Çarkı Bileti: <span id="managedUserWheelTickets" class="font-bold text-yellow-400"></span></p>
             <p>Tıkla-Yakala Bileti: <span id="managedUserClickCatchTickets" class="font-bold text-fuchsia-400"></span></p>
@@ -1115,7 +1115,7 @@ body.modal-open .modal-content {
     <div class="space-y-3 text-gray-300">
         <p class="flex justify-between items-center"><span> Kasa Puanı:</span> <span id="publicUserKasaBalance" class="font-bold text-purple-400 text-lg"></span></p>
         <p class="flex justify-between items-center"><span><span id="publicBadgeBalance" class="inline-block w-6 text-center"></span>Mevcut Puan:</span> <span id="publicUserBalance" class="font-bold text-yellow-300 text-lg"></span></p>
-        <p class="flex justify-between items-center"><span><span id="publicBadgeHighest" class="inline-block w-6 text-center"></span>Kariyer Puanı:</span> <span id="publicUserHighestBalance" class="font-bold text-green-400 text-lg"></span></p>
+        <p class="flex justify-between items-center"><span><span id="publicBadgeHighest" class="inline-block w-6 text-center"></span>Kariyer Puan:</span> <span id="publicUserHighestBalance" class="font-bold text-green-400 text-lg"></span></p>
         <hr class="border-gray-600 !my-2">
                 <p class="flex justify-between items-center"><span> Kutu Hakkı:</span> <span id="publicUserBoxRight" class="font-bold text-green-400 text-lg"></span></p>
                 <p class="flex justify-between items-center"><span> Şans Çarkı Bileti:</span> <span id="publicUserWheelTickets" class="font-bold text-yellow-400 text-lg"></span></p>
@@ -1186,7 +1186,7 @@ body.modal-open .modal-content {
         <div class="flex items-center gap-4">
     <span class="text-3xl w-8 text-center">🏆</span>
     <div>
-        <strong class="text-yellow-200 block text-lg">Kariyer Puanı Lideri</strong>
+        <strong class="text-yellow-200 block text-lg">Kariyer Puan Lideri</strong>
         <p class="text-gray-400">Sezon içinde kazanılan tüm puanların toplamından oluşan Kariyer Puanı'nda lider olan kullanıcıya verilir.</p>
     </div>
 </div>
@@ -1691,7 +1691,7 @@ body.modal-open .modal-content {
         <h5 class="text-lg font-semibold text-yellow-300 mb-3">Şampiyon Avatar Ödülleri</h5>
         <p class="text-xs text-gray-400 mb-3">Bu alanlara URL girilirse, sezon sonunda liderlerin avatarları otomatik olarak bu resimlerle güncellenir.</p>
         <div>
-          <label for="puanLeaderAvatarUrl" class="block text-gray-300 mb-1 text-sm">Kariyer Puanı Sıralaması 1.'sinin Avatar URL'i:</label>
+          <label for="puanLeaderAvatarUrl" class="block text-gray-300 mb-1 text-sm">Kariyer Puan Sıralaması 1.'sinin Avatar URL'i:</label>
           <input type="text" id="puanLeaderAvatarUrl" placeholder="https://ornek.com/resim.png" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
         </div>
         <div class="mt-3">
@@ -2918,7 +2918,7 @@ async function calculateAllLeaders(allUsersData) {
     const currentClickCatchLeader = await getClickCatchLeaderUsername();
     let leaders = {
         highestCurrentBalance: -1, currentBalanceUser: null,
-        highestEverBalance: -1, highEverBalanceUser: null, // Bu satırın anlamı artık "En Yüksek Kariyer Puanı" olacak
+        highestEverBalance: -1, highEverBalanceUser: null, // Bu satırın anlamı artık "En Yüksek Kariyer Puan" olacak
         maxSurpriseBoxes: -1, surpriseBoxUser: null,
         maxBombCount: -1, bombUser: null,
         maxSpentPoints: -1, spentPointsUser: null,
@@ -3045,7 +3045,7 @@ async function renderUserRankings() {
                 <div class="flex flex-col min-w-0 flex-grow">
                     <div class="h-6 min-h-[24px] flex items-center">${userIcons}</div>
                     <p class="font-bold text-lg text-white truncate" title="${u.username}">${u.username}</p>
-                    <p class="text-sm font-semibold text-yellow-400/80">${scoreToShow} (Kariyer Puanı)</p>
+                    <p class="text-sm font-semibold text-yellow-400/80">${scoreToShow} (Kariyer Puan)</p>
                 </div>
             </div>
             ${blockedInfo ? `<div class="text-center mt-2">${blockedInfo}</div>` : ''}
@@ -10174,7 +10174,7 @@ async function openSeasonInfoModal() {
         if (championRewards) {
             if (championRewards.puanLeaderAvatarUrl) {
                 // --- DEĞİŞEN SATIR: Profile işleneceği bilgisi eklendi ---
-                championPrizesHtml += `<li>🏆 Kariyer Puanı Sıralaması 1.'si <b class="text-white">Özel Şampiyon Avatarı</b> kazanacak ve bu başarı profiline kalıcı olarak işlenecektir.</li>`;
+                championPrizesHtml += `<li>🏆 Kariyer Puan Sıralaması 1.'si <b class="text-white">Özel Şampiyon Avatarı</b> kazanacak ve bu başarı profiline kalıcı olarak işlenecektir.</li>`;
                 hasChampionPrizes = true;
             }
             if (championRewards.rozetLeaderAvatarUrl) {
