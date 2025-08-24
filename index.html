@@ -8624,6 +8624,11 @@ function getActivityIcon(type, details = {}) {
                 bgColor = 'bg-red-600';
             }
             break;
+        // YENİ EKLENEN KASA TRANSFERİ SİMGESİ
+        case 'kasaTransfer':
+            icon = '🏦';
+            bgColor = 'bg-purple-600';
+            break;
         case 'multiplierUpgraded':
             icon = '❎';
             bgColor = 'bg-teal-500';
@@ -8674,11 +8679,9 @@ function getActivityIcon(type, details = {}) {
             bgColor = 'bg-orange-500';
             break;
         case 'dailyRewardMultiplierStacked':
-            // --- DEĞİŞİKLİK BURADA ---
-            icon = '📅'; // Simgeyi standart günlük ödül simgesiyle değiştirdik.
-            bgColor = 'bg-teal-500'; // Rengi de standart renkle aynı yaptık.
+            icon = '📅';
+            bgColor = 'bg-teal-500';
             break;
-        // --- DEĞİŞİKLİK SONU ---
         case 'dailyReward':
             if (details.rewardType === 'avatar') {
                 icon = '👤';
@@ -8752,13 +8755,18 @@ function renderActivityFeed(activities) {
                 : '';
 
             switch (activity.type) {
-                // --- YENİ EKLENEN CASE BAŞLANGICI ---
                 case 'dailyRewardMultiplierStacked':
                     message = `${userHtml}, mevcut <b>${details.multiplierValue}x çarpanına</b> günlük ödülden <span class="text-green-300 font-bold">+${details.usesAdded} kullanım hakkı</span> ekledi. Yeni toplam: <span class="text-white font-bold">${details.newTotalUses} kullanım</span>.`;
                     break;
-                // --- YENİ EKLENEN CASE SONU ---
                 case 'multiplierConvertedToBoxRights':
                     message = `${userHtml}, mevcut <b>${details.keptMultiplierValue}x çarpanını</b> koruyarak, günlük ödülden gelen ${details.rewardValue}x çarpanını <span class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı'na</span> dönüştürdü.`;
+                    break;
+                // YENİ EKLENEN KASA TRANSFERİ MESAJI
+                case 'kasaTransfer':
+                    const newKasaBalanceText = (details.newKasaBalance !== undefined && details.newKasaBalance !== null) 
+                        ? ` <span class="text-gray-400">(Yeni Kasa Puanı: ${details.newKasaBalance})</span>`
+                        : '';
+                    message = `${userHtml}, <span class="text-green-300 font-bold">${details.amount} Puan</span>'ı kasasına aktardı.${newKasaBalanceText}`;
                     break;
                 case 'multiplierStackedFromStore':
                     message = `${userHtml}, mağazadan <span class="text-red-400 font-bold">-${details.cost} Puan</span> harcayarak <b>${details.multiplierValue}x çarpanına</b> <span class="text-green-300 font-bold">+${details.usesAdded} kullanım hakkı</span> ekledi ve toplam <span class="text-green-300 font-bold">${details.newTotalUses} kullanım hakkı</span> oldu. <span class="text-gray-400">(Hesabında ${details.newBalance} puanı kaldı.)</span>`;
