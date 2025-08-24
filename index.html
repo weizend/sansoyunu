@@ -412,7 +412,7 @@ body.modal-open .modal-content {
         </div>
       <div id="tablesWrapper" class="flex flex-wrap justify-center gap-6 mb-8">
         <div class="tableBox bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700 w-full md:flex-1 min-w-[280px] md:max-w-md">
-            <h3 class="text-yellow-400 text-xl font-bold border-b border-gray-600 pb-3 mb-4">KULLANICI PUAN SIRALAMASI 🥇</h3>
+            <h3 class="text-yellow-400 text-xl font-bold border-b border-gray-600 pb-3 mb-4">KARİYER PUANI SIRALAMASI 🏆</h3>
             <p class="text-gray-300 mb-3">Toplam Kullanıcı: <span id="totalUsers" class="font-bold text-yellow-400">0</span></p>
             <input type="text" id="searchUserRanking" oninput="renderUserRankings()" placeholder="Sıralamada Kullanıcı Ara..." class="w-full p-3 mb-4 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
             <div id="allUserRankings" class="scrollable-list max-h-80 overflow-y-auto border border-gray-600 rounded-lg p-3 bg-gray-900 text-sm leading-relaxed">Yükleniyor...</div>
@@ -772,8 +772,6 @@ body.modal-open .modal-content {
     <button onclick="openSeasonManagementModal()" class="w-full py-3 bg-green-800 hover:bg-green-700 text-white font-bold rounded-lg">Sezon Ayarlarını Aç</button>
 </div>
 
-<button onclick="veriGuncellemeKariyerPuani()" class="flex-1 py-2 px-3 bg-teal-800 hover:bg-teal-700 text-white font-bold rounded-lg text-sm">Kariyer Puanlarını Güncelle (Tek Seferlik)</button>
-          
             <button onclick="restartSystem()" class="flex-1 py-2 px-3 bg-red-800 hover:bg-red-700 text-white font-bold rounded-lg text-sm">Sistemi Sıfırla</button>
             <button onclick="clearAllTotalSpentPoints()" class="flex-1 py-2 px-3 bg-purple-800 hover:bg-purple-700 text-white font-bold rounded-lg text-sm">Harcanan Puanları Temizle</button>
             <button onclick="clearPurchaseHistory()" class="flex-1 py-2 px-3 bg-pink-800 hover:bg-pink-700 text-white font-bold rounded-lg text-sm">Satın Alma Geçmişini Sil</button>
@@ -1186,12 +1184,12 @@ body.modal-open .modal-content {
             </div>
         </div>
         <div class="flex items-center gap-4">
-            <span class="text-3xl w-8 text-center">🏆</span>
-            <div>
-                <strong class="text-yellow-200 block text-lg">Ulaşılan En Yüksek Puan Lideri</strong>
-                <p class="text-gray-400">Oyun boyunca ulaşılmış en yüksek puana sahip olan kullanıcıya verilir.</p>
-            </div>
-        </div>
+    <span class="text-3xl w-8 text-center">🏆</span>
+    <div>
+        <strong class="text-yellow-200 block text-lg">Kariyer Puanı Lideri</strong>
+        <p class="text-gray-400">Sezon içinde kazanılan tüm puanların toplamından oluşan Kariyer Puanı'nda lider olan kullanıcıya verilir.</p>
+    </div>
+</div>
          <div class="flex items-center gap-4">
             <span class="text-3xl w-8 text-center">🎯</span>
             <div>
@@ -1693,7 +1691,7 @@ body.modal-open .modal-content {
         <h5 class="text-lg font-semibold text-yellow-300 mb-3">Şampiyon Avatar Ödülleri</h5>
         <p class="text-xs text-gray-400 mb-3">Bu alanlara URL girilirse, sezon sonunda liderlerin avatarları otomatik olarak bu resimlerle güncellenir.</p>
         <div>
-          <label for="puanLeaderAvatarUrl" class="block text-gray-300 mb-1 text-sm">Puan Sıralaması 1.'sinin Avatar URL'i:</label>
+          <label for="puanLeaderAvatarUrl" class="block text-gray-300 mb-1 text-sm">Kariyer Puanı Sıralaması 1.'sinin Avatar URL'i:</label>
           <input type="text" id="puanLeaderAvatarUrl" placeholder="https://ornek.com/resim.png" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
         </div>
         <div class="mt-3">
@@ -3010,7 +3008,7 @@ async function renderUserRankings() {
     
     const leaders = await calculateAllLeaders(allUsersData);
 
-    // SIRALAMA Kriteri: 'highestBalanceEver' yerine 'kariyerPuani' oldu.
+    // SIRALAMA Kriteri: 'kariyerPuani' oldu.
     filteredUsers.sort((a, b) => (b.kariyerPuani || 0) - (a.kariyerPuani || 0));
 
     let html = filteredUsers.map((u, i) => {
@@ -3036,7 +3034,7 @@ async function renderUserRankings() {
             blockedInfo = `<div class="text-red-400 font-bold mt-2">Engelli - Kalan Süre: <span id="countdown-${u.username}">--:--</span></div>`;
         }
 
-        // GÖSTERİLEN Puan: 'highestBalanceEver' yerine 'kariyerPuani' oldu.
+        // GÖSTERİLEN Puan: 'kariyerPuani' oldu.
         const scoreToShow = u.kariyerPuani || 0;
 
         return `<div class="relative mb-3 p-3 bg-gray-800 rounded-xl border border-gray-700 cursor-pointer hover:bg-gray-700/70 transition-colors" onclick="openPublicUserDetailModal('${u.username}')">
@@ -3057,45 +3055,6 @@ async function renderUserRankings() {
 
     document.getElementById("allUserRankings").innerHTML = html || "<div class='text-center text-gray-400'>Aramayla eşleşen kullanıcı bulunamadı.</div>";
     document.getElementById("totalUsers").textContent = allUsersCache.length;
-}
-
-async function veriGuncellemeKariyerPuani() {
-    if (!isAdmin) {
-        displayMessage("Bu işlemi sadece adminler yapabilir.");
-        return;
-    }
-
-    const confirmed = await customConfirm("Bu işlem, tüm mevcut kullanıcıların 'Kariyer Puanı'nı, 'En Yüksek Puan' rekorlarına eşitleyecektir. Bu, SADECE BİR KEZ çalıştırılmalıdır. Emin misiniz?");
-    if (!confirmed) return;
-
-    displayMessage("Veri güncellemesi başlatıldı... Lütfen bekleyin.");
-
-    const usersRef = db.ref('users');
-    const usersSnap = await usersRef.once('value');
-    const usersData = usersSnap.val();
-    
-    const updates = {};
-    let updatedCount = 0;
-
-    for (const username in usersData) {
-        if (username.toLowerCase() === 'weizendtv') continue;
-        
-        const user = usersData[username];
-        const kariyerPuani = user.kariyerPuani || 0;
-        const enYuksekPuan = user.highestBalanceEver || 0;
-
-        if (kariyerPuani < enYuksekPuan) {
-            updates[`/users/${username}/kariyerPuani`] = enYuksekPuan;
-            updatedCount++;
-        }
-    }
-
-    if (Object.keys(updates).length > 0) {
-        await db.ref().update(updates);
-        displayMessage(`İşlem tamamlandı! ${updatedCount} kullanıcının Kariyer Puanı başarıyla güncellendi.`);
-    } else {
-        displayMessage("Güncelleme gerektiren kullanıcı bulunamadı. Tüm veriler güncel görünüyor.");
-    }
 }
 
 async function loadLeaderboardRanking() {
@@ -5300,8 +5259,8 @@ async function openPublicUserDetailModal(username) {
         let championshipsHtml = '';
 
         if (userData.puanChampionshipsWon > 0) {
-            championshipsHtml += `<p class="font-semibold text-base">🏆 ${userData.puanChampionshipsWon} kez [KULLANICI PUAN SIRALAMASI] aylık sezon şampiyonu oldu!</p>`;
-        }
+    championshipsHtml += `<p class="font-semibold text-base">🏆 ${userData.puanChampionshipsWon} kez [KARİYER PUANI SIRALAMASI] aylık sezon şampiyonu oldu!</p>`;
+}
         if (userData.rozetChampionshipsWon > 0) {
             championshipsHtml += `<p class="font-semibold text-base">👑 ${userData.rozetChampionshipsWon} kez [LİDERLER SIRALAMASI] aylık sezon şampiyonu oldu!</p>`;
         }
@@ -10002,7 +9961,6 @@ async function executeSeasonReset(isManual = false) {
 
     displayMessage("Sezon sonu işlemleri başlatıldı... Bu işlem birkaç saniye sürebilir. Lütfen bekleyin.");
 
-    // Gerekli tüm verileri topla
     const allUsersSnap = await db.ref('users').once('value');
     const allUsersData = allUsersSnap.val();
     const leaders = await calculateAllLeaders(allUsersData);
@@ -10042,18 +10000,15 @@ async function executeSeasonReset(isManual = false) {
             updates[`${userPath}/puanChampionshipsWon`] = firebase.database.ServerValue.increment(1);
         }
         if (username === rozetLeader) {
-            if(rozetAvatar) updates[`${userPath}/selectedAvatar`] = { id: `sezon_odul_rozet_${Date.now()}`, url: rozetAvatar };
+            if(rozetAvatar) updates[`${userPath}/rozetChampionshipsWon`] = { id: `sezon_odul_rozet_${Date.now()}`, url: rozetAvatar };
             updates[`${userPath}/rozetChampionshipsWon`] = firebase.database.ServerValue.increment(1);
         }
         
         // C) HERKESİN PUAN VE İSTATİSTİKLERİNİ SIFIRLA
+        // KASA PUANI VE AVATARLAR DIŞINDA HER ŞEY SIFIRLANIYOR
         updates[`${userPath}/balance`] = 0;
         updates[`${userPath}/highestBalanceEver`] = 0;
-        
-        // --- DEĞİŞİKLİK BURADA ---
-        // Kariyer Puanı da artık sıfırlanıyor.
-        updates[`${userPath}/kariyerPuani`] = 0; 
-        
+        updates[`${userPath}/kariyerPuani`] = 0; // İsteğin üzerine KARİYER PUANI da sıfırlanıyor
         updates[`${userPath}/totalSpentPoints`] = 0;
         updates[`${userPath}/boxesOpenedCount`] = 0;
         updates[`${userPath}/surpriseBoxesOpened`] = 0;
@@ -10219,7 +10174,7 @@ async function openSeasonInfoModal() {
         if (championRewards) {
             if (championRewards.puanLeaderAvatarUrl) {
                 // --- DEĞİŞEN SATIR: Profile işleneceği bilgisi eklendi ---
-                championPrizesHtml += `<li>🥇 Kullanıcı Puan Sıralaması 1.'si <b class="text-white">Özel Şampiyon Avatarı</b> kazanacak ve bu başarı profiline kalıcı olarak işlenecektir.</li>`;
+                championPrizesHtml += `<li>🏆 Kariyer Puanı Sıralaması 1.'si <b class="text-white">Özel Şampiyon Avatarı</b> kazanacak ve bu başarı profiline kalıcı olarak işlenecektir.</li>`;
                 hasChampionPrizes = true;
             }
             if (championRewards.rozetLeaderAvatarUrl) {
