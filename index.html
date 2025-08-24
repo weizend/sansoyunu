@@ -7442,7 +7442,9 @@ async function clearLastWinner() {
             break;
         case 'tempMultiplier':
             collectedMultipliers.push({ value: value, uses: uses });
+            // --- DÜZELTİLEN SATIR ---
             floatingText = `${value}x Çarpan (${uses} kullanım)`;
+            // --- DÜZELTME SONU ---
             document.getElementById('collectedSpecials').innerHTML += `<span class="text-xl">${emoji}</span>`;
             break;
     }
@@ -8239,6 +8241,16 @@ async function startSoloClickCatchGame() {
         displayMessage("Bu oyunu oynamak için 'Tıkla-Yakala Bileti'ne ihtiyacın var. Mağazadan alabilirsin.");
         return;
     }
+    
+    // --- YENİ EKLENEN UYARI KODU BAŞLANGICI ---
+    if (userData.multiplierSource && userData.multiplierSource !== 'none') {
+        const warningConfirmed = await customConfirm(`Aktif bir <b>${userData.activeMultiplier}x</b> çarpanın bulunuyor. Bu oyunda yeni bir çarpan kazanırsan mevcut çarpanınla etkileşime girebilir. Devam etmek istiyor musun?`);
+        if (!warningConfirmed) {
+            return; // Kullanıcı "Hayır" derse oyunu başlatma.
+        }
+    }
+    // --- YENİ EKLENEN UYARI KODU SONU ---
+
     const confirmed = await customConfirm("Oyuna başlamak için 1 adet 'Tıkla-Yakala Bileti' harcanacaktır. Onaylıyor musun?");
     if (!confirmed) return;
     await userRef.update({ clickCatchTickets: (userData.clickCatchTickets || 0) - 1 });
@@ -8321,7 +8333,7 @@ async function endSoloClickCatchGame() {
     updates[`users/${currentUser}/iflasShieldUses`] = (user.iflasShieldUses || 0) + collectedIflasShields;
     updates[`users/${currentUser}/carkBileti`] = (user.carkBileti || 0) + collectedWheelTickets;
     
-    // Çarpan ödüllerini işle
+    // --- YENİ EKLENEN ÇARPAN İŞLEME MANTIĞI BAŞLANGICI ---
     if(collectedMultipliers.length > 0){
         let currentUserMultiplier = user.activeMultiplier || 1;
         let currentUserUses = user.multiplierRemainingUses || 0;
@@ -8333,24 +8345,28 @@ async function endSoloClickCatchGame() {
                 currentUserUses = newMultiplier.uses;
                 currentUserSource = 'store'; // T-Y'den gelenler mağaza gibi davranır
             } else if (newMultiplier.value > currentUserMultiplier) { // Gelen çarpan daha güçlüyse
-                updates[`users/${currentUser}/kutuHakki`] = (updates[`users/${currentUser}/kutuHakki`] || user.kutuHakki) + currentUserUses;
+                const kutuHakkiDonusum = currentUserUses || 0;
+                updates[`users/${currentUser}/kutuHakki`] = (updates[`users/${currentUser}/kutuHakki`] || user.kutuHakki) + kutuHakkiDonusum;
+                logActivity('multiplierUpgraded', currentUser, { oldValue: currentUserMultiplier, newValue: newMultiplier.value, boxRights: kutuHakkiDonusum });
                 currentUserMultiplier = newMultiplier.value;
                 currentUserUses = newMultiplier.uses;
             } else if (newMultiplier.value === currentUserMultiplier) { // Gelen çarpan aynıysa
                 currentUserUses += newMultiplier.uses;
+                 logActivity('multiplierStacked', currentUser, { value: newMultiplier.value, uses: newMultiplier.uses });
             } else { // Mevcut çarpan daha güçlüyse
-                updates[`users/${currentUser}/kutuHakki`] = (updates[`users/${currentUser}/kutuHakki`] || user.kutuHakki) + newMultiplier.uses;
+                const kutuHakkiDonusum = newMultiplier.uses || 0;
+                updates[`users/${currentUser}/kutuHakki`] = (updates[`users/${currentUser}/kutuHakki`] || user.kutuHakki) + kutuHakkiDonusum;
+                logActivity('multiplierConvertedToBoxRights', currentUser, { rewardValue: newMultiplier.value, boxRights: kutuHakkiDonusum, keptMultiplierValue: currentUserMultiplier });
             }
         }
         updates[`users/${currentUser}/activeMultiplier`] = currentUserMultiplier;
         updates[`users/${currentUser}/multiplierRemainingUses`] = currentUserUses;
         updates[`users/${currentUser}/multiplierSource`] = currentUserSource;
     }
-
+    // --- YENİ EKLENEN ÇARPAN İŞLEME MANTIĞI SONU ---
 
     await db.ref().update(updates);
 }
-
   // ... VE YERİNE BU YENİ VERSİYONU YAPIŞTIR
 async function openSelectWinnerModal() {
     if (!isAdmin) return;
