@@ -601,15 +601,18 @@ body.modal-open .modal-content {
             
         <div id="storeSection" class="w-full hidden">
           <h3 class="text-yellow-400 text-3xl font-bold mb-2 text-center">Mağaza</h3>
-          <div id="storeUserPointInfo" class="text-center mb-6 bg-gray-800 p-3 rounded-lg border border-gray-700 max-w-lg mx-auto flex justify-center items-center gap-4">
-            <div>
-                <span class="text-green-400">Mevcut Puan: <b id="storeCurrentUserBalance">0</b></span> |
-                <span class="text-red-400">Harcanan Puan: <b id="storeCurrentUserSpent">0</b></span>
-            </div>
-            <button onclick="openPurchaseHistoryModal()" class="py-1 px-4 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-lg text-sm">
-                Alışveriş Geçmişim
-            </button>
-          </div>
+          <div id="storeUserPointInfo" class="text-center mb-6 bg-gray-800 p-3 rounded-lg border border-gray-700 max-w-2xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-2 items-center">
+    <div class="text-lg">
+        <span class="text-green-400">Puan: <b id="storeCurrentUserBalance">0</b></span> |
+        <span class="text-red-400">Harcanan: <b id="storeCurrentUserSpent">0</b></span>
+    </div>
+    <div class="text-lg">
+        <span class="text-purple-400"> kasa Kasa Puanı: <b id="storeCurrentUserKasaBalance">0</b></span>
+    </div>
+    <button onclick="openPurchaseHistoryModal()" class="py-1 px-4 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-lg text-sm w-full md:w-auto justify-self-center">
+        Alışveriş Geçmişim
+    </button>
+</div>
           
           <div id="adminStoreManagementButtonContainer" class="text-center mb-6 hidden">
              <button onclick="openNewItemForm()" class="py-2 px-6 bg-green-700 hover:bg-green-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
@@ -621,6 +624,15 @@ body.modal-open .modal-content {
             <button id="gameStoreTabBtn" onclick="switchStoreTab('game')" class="flex-1 py-3 text-lg font-bold border-b-2 border-red-500 text-white transition-colors duration-300">Oyun Mağazası</button>
             <button id="specialStoreTabBtn" onclick="switchStoreTab('special')" class="flex-1 py-3 text-lg font-bold border-b-2 border-transparent text-gray-400 hover:text-white transition-colors duration-300">Özel Ürün Mağazası</button>
           </div>
+          
+          <div id="kasaTransferBolumu" class="bg-gray-900/50 p-6 rounded-xl border-2 border-purple-500 text-center mb-8 max-w-lg mx-auto">
+    <h4 class="text-purple-300 text-2xl font-bold mb-3">Puan Kasası</h4>
+    <p class="text-gray-400 mb-4">Sezon sıfırlamasından etkilenmeyecek puanlarını buraya aktar. Bu puanlar sadece <b class="text-white">Özel Ürün Mağazası'nda</b> kullanılabilir ve sıralamaya etki etmez.</p>
+    <div class="flex items-center gap-4">
+        <input type="number" id="kasaTransferInput" min="1" placeholder="Miktarı Girin" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500">
+        <button onclick="kasaTransferEt()" class="py-3 px-6 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-lg shadow-md whitespace-nowrap">Kasaya Aktar</button>
+    </div>
+</div>
           
           <div id="gameStoreItemsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-4">
             </div>
@@ -1101,6 +1113,7 @@ body.modal-open .modal-content {
         <div class="bg-gray-800/70 p-4 rounded-xl border border-gray-700">
     <h5 class="font-bold text-yellow-200 text-xl mb-3 border-b border-gray-600 pb-2">Puan & Envanter</h5>
     <div class="space-y-3 text-gray-300">
+        <p class="flex justify-between items-center"><span> Kasa Puanı:</span> <span id="publicUserKasaBalance" class="font-bold text-purple-400 text-lg"></span></p>
         <p class="flex justify-between items-center"><span><span id="publicBadgeBalance" class="inline-block w-6 text-center"></span>Mevcut Puan:</span> <span id="publicUserBalance" class="font-bold text-yellow-300 text-lg"></span></p>
         <p class="flex justify-between items-center"><span><span id="publicBadgeHighest" class="inline-block w-6 text-center"></span>Ulaşılan En Yüksek Puan:</span> <span id="publicUserHighestBalance" class="font-bold text-green-400 text-lg"></span></p>
         <hr class="border-gray-600 !my-2">
@@ -2706,7 +2719,7 @@ async function logout() {
     });
 }
 
-// ...VE YERİNE BU YENİ VERSİYONU YAPIŞTIR
+// MEVCUT loadBalanceAndBoxRights fonksiyonunu bununla değiştir
 function loadBalanceAndBoxRights() {
     if (isAdmin) {
         document.getElementById("balance").textContent = "Admin Paneli Aktif";
@@ -2736,9 +2749,10 @@ function loadBalanceAndBoxRights() {
         document.getElementById("balance").textContent = statusText;
         document.getElementById('storeCurrentUserBalance').textContent = userData.balance || 0;
         document.getElementById('storeCurrentUserSpent').textContent = userData.totalSpentPoints || 0;
+        // GÜNCELLENEN SATIR BURADA
+        document.getElementById('storeCurrentUserKasaBalance').textContent = userData.kasaPuani || 0;
         document.getElementById('wheelTicketBalance').textContent = userData.carkBileti || 0;
 
-        // --- ROZET GÜNCELLEME KISMI ---
         const allUsersSnap = await allUsersRef.once('value');
         const leaders = await calculateAllLeaders(allUsersSnap.val());
         const userLeaderStatus = {
@@ -2754,10 +2768,8 @@ function loadBalanceAndBoxRights() {
             isWheelSpinLeader: currentUser === leaders.wheelSpinUser
         };
         const badgesHtml = getInlineBadgesHtmlFromStatus(userLeaderStatus);
-        // Rozetleri yeni açtığımız alana koy, ismin yanından kaldır.
         document.getElementById("currentUserBadges").innerHTML = badgesHtml;
         document.getElementById("currentUser").innerHTML = `${currentUser}`;
-        // --- ROZET GÜNCELLEME BİTİŞ ---
     };
     
     if(activeListeners.balance) activeListeners.balance.ref.off('value', activeListeners.balance.callback);
@@ -4649,8 +4661,6 @@ function renderStoreItems(items) {
     }
 }
 
-// MEVCUT buyItem FONKSİYONUNU SİLİP BUNUNLA DEĞİŞTİRİN
-
 async function buyItem(itemId) {
     if (isAdmin) {
         displayMessage("Adminler alışveriş yapamaz.");
@@ -4661,8 +4671,79 @@ async function buyItem(itemId) {
     const [userSnap, itemSnap] = await Promise.all([userRef.once('value'), itemRef.once('value')]);
     const user = userSnap.val();
     const item = itemSnap.val();
-    
+
     if (!user || !item) return;
+
+    // --- ÖZEL ÜRÜN SATIN ALMA KONTROLÜ (KASA PUANI İLE) ---
+    // DEĞİŞİKLİK BURADA BAŞLIYOR
+    if (item.type === 'special') {
+        // 1. Kasa Puanı'nı kontrol et
+        const kasaPuani = user.kasaPuani || 0;
+        if (kasaPuani < item.cost) {
+            displayMessage(`Bu özel ürünü almak için yeterli Kasa Puanınız yok! (Gereken: ${item.cost} KP, Mevcut: ${kasaPuani} KP)`);
+            return;
+        }
+
+        // 2. Stok kontrolü
+        if (item.stock !== undefined && item.stock <= 0) {
+            displayMessage("Bu ürünün stoğu tükenmiştir.");
+            return;
+        }
+        
+        // 3. Onay al
+        const confirmed = await customConfirm(`'${item.name}' ürününü ${item.cost} Kasa Puanı'na almak istiyor musunuz? Bu puanlar Kasa'nızdan düşülecektir.`);
+        if (!confirmed) return;
+
+        // 4. Admin onayı için talep oluştur
+        const purchaseId = db.ref('pendingSpecialPurchases').push().key;
+        await db.ref(`pendingSpecialPurchases/${purchaseId}`).set({
+            username: currentUser,
+            itemName: item.name,
+            itemCost: item.cost,
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        // 5. Kasa Puanı'nı düş
+        await userRef.update({
+            kasaPuani: kasaPuani - item.cost
+        });
+
+        // 6. Satın alma geçmişine "beklemede" olarak kaydet
+        await db.ref(`purchaseHistory/${purchaseId}`).set({
+            username: currentUser,
+            itemName: item.name,
+            itemCost: item.cost,
+            imageUrl: item.imageUrl,
+            status: 'pending',
+            purchaseType: 'kasaPuani', // Alımın türünü belirtiyoruz
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        // 7. Ürün istatistiklerini güncelle
+        let itemUpdates = {};
+        if (item.stock !== undefined && item.stock !== null) {
+            itemUpdates.stock = item.stock - 1;
+        }
+        itemUpdates.purchaseCount = (item.purchaseCount || 0) + 1;
+        await itemRef.update(itemUpdates);
+
+        // 8. Loglama ve kullanıcı bilgilendirme
+        logActivity('buyItem', currentUser, {
+            itemName: item.name,
+            itemCost: `${item.cost} KP`, // Logda KP olarak belirt
+            itemType: item.type,
+            newKasaBalance: kasaPuani - item.cost
+        });
+        
+        displayMessage(`'${item.name}' talebiniz admine iletildi. Onaylandığında hesabınıza eklenecek. Kasa'nızdan ${item.cost} KP düşüldü.`);
+        return; // İşlem bittiği için fonksiyondan çık
+    }
+    // DEĞİŞİKLİK BURADA BİTİYOR
+    // --- ÖZEL ÜRÜN KONTROLÜ SONU ---
+
+
+    // --- NORMAL ÜRÜN SATIN ALMA (STANDART PUAN İLE) ---
+    // Bu kısım eskisi gibi çalışmaya devam ediyor.
 
     if (item.type === 'tempMultiplier') {
         if (typeof item.value !== 'number' || typeof item.duration !== 'number') {
@@ -4671,88 +4752,38 @@ async function buyItem(itemId) {
         }
 
         if (user.multiplierSource && user.multiplierSource !== 'none') {
-            
             if (item.value === user.activeMultiplier) {
                 if ((user.balance || 0) < item.cost) {
-                    displayMessage("Yetersiz Puan!");
-                    return;
+                    displayMessage("Yetersiz Puan!"); return;
                 }
                 const confirmedStack = await customConfirm(`Zaten ${user.activeMultiplier}x çarpanın var. Bu alım, mevcut çarpanına <b>+${item.duration} kullanım hakkı</b> ekleyecek ve toplamda <b>${(user.multiplierRemainingUses || 0) + item.duration} kullanım hakkın</b> olacak. Onaylıyor musun?`);
                 if (confirmedStack) {
-                    logActivity('multiplierStackedFromStore', currentUser, { 
-                        cost: item.cost,
-                        multiplierValue: item.value,
-                        usesAdded: item.duration,
-                        newTotalUses: (user.multiplierRemainingUses || 0) + item.duration,
-                        newBalance: user.balance - item.cost
-                    });
-                    
-                    await userRef.update({
-                        balance: user.balance - item.cost,
-                        totalSpentPoints: (user.totalSpentPoints || 0) + item.cost,
-                        multiplierRemainingUses: (user.multiplierRemainingUses || 0) + item.duration
-                    });
-                    await itemRef.transaction(currentItem => {
-                        if (currentItem) {
-                            if (currentItem.stock !== undefined && currentItem.stock !== null) {
-                                currentItem.stock--;
-                            }
-                            currentItem.purchaseCount = (currentItem.purchaseCount || 0) + 1;
-                        }
-                        return currentItem;
-                    });
+                    logActivity('multiplierStackedFromStore', currentUser, { cost: item.cost, multiplierValue: item.value, usesAdded: item.duration, newTotalUses: (user.multiplierRemainingUses || 0) + item.duration, newBalance: user.balance - item.cost });
+                    await userRef.update({ balance: user.balance - item.cost, totalSpentPoints: (user.totalSpentPoints || 0) + item.cost, multiplierRemainingUses: (user.multiplierRemainingUses || 0) + item.duration });
+                    await itemRef.transaction(currentItem => { if (currentItem) { if (currentItem.stock !== undefined && currentItem.stock !== null) { currentItem.stock--; } currentItem.purchaseCount = (currentItem.purchaseCount || 0) + 1; } return currentItem; });
                     displayMessage(`Başarılı! ${user.activeMultiplier}x çarpanına +${item.duration} kullanım hakkı eklendi.`);
                     return;
-                } else {
-                    return;
-                }
-            }
-            else if (item.value > user.activeMultiplier) {
+                } else { return; }
+            } else if (item.value > user.activeMultiplier) {
                 if ((user.balance || 0) < item.cost) {
-                    displayMessage("Yetersiz Puan!");
-                    return;
+                    displayMessage("Yetersiz Puan!"); return;
                 }
                 const kutuHakkiDonusum = user.multiplierRemainingUses || 0;
                 const confirmedUpgrade = await customConfirm(`Mevcut ${user.activeMultiplier}x çarpanını daha yüksek olan <b>${item.value}x</b> ile değiştirmek üzeresin. Mevcut çarpanının kalan <b>${user.multiplierRemainingUses} kullanım hakkı</b>, envanterine <b>+${kutuHakkiDonusum} Kutu Hakkı</b> olarak eklenecek. Onaylıyor musun?`);
                 if (confirmedUpgrade) {
-                    // --- DEĞİŞİKLİK: newBalance hesaplaması düzeltildi ---
-                    logActivity('multiplierUpgradedFromStore', currentUser, { 
-                        oldValue: user.activeMultiplier, 
-                        newValue: item.value, 
-                        boxRights: kutuHakkiDonusum,
-                        cost: item.cost,
-                        newBalance: user.balance - item.cost 
-                    });
-                    await userRef.update({
-                        balance: user.balance - item.cost,
-                        totalSpentPoints: (user.totalSpentPoints || 0) + item.cost,
-                        kutuHakki: (user.kutuHakki || 0) + kutuHakkiDonusum,
-                        activeMultiplier: item.value,
-                        multiplierRemainingUses: item.duration,
-                        multiplierSource: 'store'
-                    });
-                     await itemRef.transaction(currentItem => {
-                        if (currentItem) {
-                            if (currentItem.stock !== undefined && currentItem.stock !== null) {
-                                currentItem.stock--;
-                            }
-                            currentItem.purchaseCount = (currentItem.purchaseCount || 0) + 1;
-                        }
-                        return currentItem;
-                    });
+                    logActivity('multiplierUpgradedFromStore', currentUser, { oldValue: user.activeMultiplier, newValue: item.value, boxRights: kutuHakkiDonusum, cost: item.cost, newBalance: user.balance - item.cost });
+                    await userRef.update({ balance: user.balance - item.cost, totalSpentPoints: (user.totalSpentPoints || 0) + item.cost, kutuHakki: (user.kutuHakki || 0) + kutuHakkiDonusum, activeMultiplier: item.value, multiplierRemainingUses: item.duration, multiplierSource: 'store' });
+                    await itemRef.transaction(currentItem => { if (currentItem) { if (currentItem.stock !== undefined && currentItem.stock !== null) { currentItem.stock--; } currentItem.purchaseCount = (currentItem.purchaseCount || 0) + 1; } return currentItem; });
                     displayMessage(`Yükseltme başarılı! Envanterine +${kutuHakkiDonusum} Kutu Hakkı eklendi ve yeni ${item.value}x çarpanın aktif!`);
                     return;
-                } else {
-                    return;
-                }
-            }
-            else {
+                } else { return; }
+            } else {
                 displayMessage(`Mevcut çarpanın (${user.activeMultiplier}x) zaten bu üründen (${item.value}x) daha güçlü. Daha düşük bir çarpan alamazsın.`);
                 return;
             }
         }
     }
-    
+
     if (item.type === 'avatar' && user.avatars && user.avatars[itemId]) {
         displayMessage("Bu avatara zaten sahipsin!");
         return;
@@ -4768,26 +4799,11 @@ async function buyItem(itemId) {
     }
     const confirmed = await customConfirm(`${item.name} ürününü ${item.cost} puana almak istiyor musunuz?`);
     if (confirmed) {
-      
-        logActivity('buyItem', currentUser, { 
-            itemName: item.name, 
-            itemCost: item.cost,
-            itemType: item.type,
-            itemValue: item.value || null,
-            itemDuration: item.duration || null,
-            newBalance: user.balance - item.cost
-        });
-        
-        let updates = {
-            balance: user.balance - item.cost,
-            totalSpentPoints: (user.totalSpentPoints || 0) + item.cost,
-            storePurchasesCount: (user.storePurchasesCount || 0) + 1
-        };
+        logActivity('buyItem', currentUser, { itemName: item.name, itemCost: item.cost, itemType: item.type, itemValue: item.value || null, itemDuration: item.duration || null, newBalance: user.balance - item.cost });
+        let updates = { balance: user.balance - item.cost, totalSpentPoints: (user.totalSpentPoints || 0) + item.cost, storePurchasesCount: (user.storePurchasesCount || 0) + 1 };
         let message = 'Satın alma başarılı!';
-        
         const itemValue = parseInt(item.value) || 0;
         const itemDuration = parseInt(item.duration) || 0;
-
         if (item.type === 'boxRights') {
             if (itemValue <= 0) { displayMessage("Ürün hatası: Geçersiz Kutu Hakkı değeri."); return; }
             updates.kutuHakki = (user.kutuHakki || 0) + itemValue;
@@ -4803,39 +4819,15 @@ async function buyItem(itemId) {
             updates.activeMultiplier = itemValue;
             updates.multiplierSource = 'store';
             updates.multiplierRemainingUses = itemDuration;
-            updates.activeStoreMultiplierItemId = itemId; 
+            updates.activeStoreMultiplierItemId = itemId;
         } else if (item.type === 'iflasShield') {
             if (itemValue <= 0) { displayMessage("Ürün hatası: Geçersiz Kalkan değeri."); return; }
             updates.iflasShieldUses = (user.iflasShieldUses || 0) + itemValue;
-        } 
-        else if (item.type === 'avatar') {
-            const newAvatar = {
-                id: itemId,
-                name: item.name,
-                imageUrl: item.imageUrl
-            };
+        } else if (item.type === 'avatar') {
+            const newAvatar = { id: itemId, name: item.name, imageUrl: item.imageUrl };
             updates[`avatars/${itemId}`] = newAvatar;
             message = `'${item.name}' avatarı koleksiyonuna eklendi!`;
-        } 
-        else if (item.type === 'special') {
-            const purchaseId = db.ref('pendingSpecialPurchases').push().key;
-            db.ref(`pendingSpecialPurchases/${purchaseId}`).set({
-                username: currentUser,
-                itemName: item.name,
-                itemCost: item.cost,
-                timestamp: firebase.database.ServerValue.TIMESTAMP
-            });
-            db.ref(`purchaseHistory/${purchaseId}`).set({
-                username: currentUser,
-                itemName: item.name,
-                itemCost: item.cost,
-                imageUrl: item.imageUrl,
-                status: 'pending',
-                timestamp: firebase.database.ServerValue.TIMESTAMP
-            });
-            message = `'${item.name}' adlı özel ürün talebiniz admine iletildi. Onaylandığında hesabınıza eklenecektir.`;
         }
-        
         let itemUpdates = {};
         if (item.stock !== undefined && item.stock !== null) {
             itemUpdates.stock = item.stock - 1;
@@ -4843,19 +4835,8 @@ async function buyItem(itemId) {
         itemUpdates.purchaseCount = (item.purchaseCount || 0) + 1;
         await itemRef.update(itemUpdates);
         await userRef.update(updates);
-        
-        if(item.type !== 'special') {
-            const purchaseId = db.ref('purchaseHistory').push().key;
-            db.ref(`purchaseHistory/${purchaseId}`).set({
-                username: currentUser,
-                itemName: item.name,
-                itemCost: item.cost,
-                imageUrl: item.imageUrl,
-                status: 'completed',
-                timestamp: firebase.database.ServerValue.TIMESTAMP
-            });
-        }
-        
+        const purchaseId = db.ref('purchaseHistory').push().key;
+        db.ref(`purchaseHistory/${purchaseId}`).set({ username: currentUser, itemName: item.name, itemCost: item.cost, imageUrl: item.imageUrl, status: 'completed', timestamp: firebase.database.ServerValue.TIMESTAMP });
         displayMessage(message);
     }
 }
@@ -5234,10 +5215,8 @@ async function deletePurchase(purchaseId) {
   function openBadgeInfoModal() { badgeInfoModal.style.display = 'flex'; }
   function closeBadgeInfoModal() { badgeInfoModal.style.display = 'none'; }
 
-// MEVCUT openPublicUserDetailModal FONKSİYONUNU SİLİP BUNUNLA DEĞİŞTİRİN
-
+// MEVCUT openPublicUserDetailModal fonksiyonunu bununla değiştir
 async function openPublicUserDetailModal(username) {
-    // YENİ EKLENEN SATIR: Profile bakarken eylem panelini otomatik kapatır.
     closeActivityFeed(); 
     
     document.body.classList.add('modal-open');
@@ -5295,6 +5274,8 @@ async function openPublicUserDetailModal(username) {
         document.getElementById('publicUserName').textContent = username;
         document.getElementById('publicUserBalance').textContent = userData.balance || 0;
         document.getElementById('publicUserHighestBalance').textContent = userData.highestBalanceEver || 0;
+        // GÜNCELLENEN SATIR BURADA
+        document.getElementById('publicUserKasaBalance').textContent = userData.kasaPuani || 0;
         document.getElementById('publicUserBoxRight').textContent = userData.kutuHakki || 0;
         document.getElementById('publicUserWheelTickets').textContent = userData.carkBileti || 0;
         document.getElementById('publicUserClickCatchTickets').textContent = userData.clickCatchTickets || 0;
@@ -5338,7 +5319,7 @@ async function openPublicUserDetailModal(username) {
     activeUserProfileListener = { ref: userRef, callback: userProfileCallback };
 }
   
-  // YENİ VE DÜZELTİLMİŞ FONKSİYON
+  // MEVCUT openUserManagementModal fonksiyonunu bununla değiştir
 async function openUserManagementModal(username) {
     if (activeBlockedUserTimers[username]) {
         clearInterval(activeBlockedUserTimers[username]);
@@ -5356,7 +5337,6 @@ async function openUserManagementModal(username) {
 
     const leaders = await calculateAllLeaders(allUsersSnap.val());
 
-    // Yönetilen kullanıcıya özel liderlik durumlarını belirle
     const userLeaderStatus = {
         isCurrentLeader: username === leaders.currentBalanceUser,
         isHighLeader: username === leaders.highEverBalanceUser,
@@ -5369,7 +5349,6 @@ async function openUserManagementModal(username) {
         isClickCatchLeader: username === leaders.clickCatchLeaderUser,
         isWheelSpinLeader: username === leaders.wheelSpinUser
     };
-  // YENİ EKLENEN KISIM: Admin panelindeki satır başı rozetlerini de dinamik hale getirir.
     document.getElementById('managedBadgeBalance').innerHTML = userLeaderStatus.isCurrentLeader ? '🥇' : '';
     document.getElementById('managedBadgeHighest').innerHTML = userLeaderStatus.isHighLeader ? '🏆' : '';
 
@@ -5378,6 +5357,8 @@ async function openUserManagementModal(username) {
     document.getElementById('managedUserName').textContent = username;
     document.getElementById('managedUserBalance').textContent = userData.balance || 0;
     document.getElementById('managedUserHighestBalance').textContent = userData.highestBalanceEver || 0;
+    // GÜNCELLENEN SATIR BURADA
+    document.getElementById('managedUserKasaBalance').textContent = userData.kasaPuani || 0;
     document.getElementById('managedUserBoxRight').textContent = userData.kutuHakki || 0;
     document.getElementById('managedUserWheelTickets').textContent = userData.carkBileti || 0;
     document.getElementById('managedUserClickCatchTickets').textContent = userData.clickCatchTickets || 0;
@@ -5424,7 +5405,6 @@ async function openUserManagementModal(username) {
     document.getElementById('managedUserClickCatchScore').textContent = userData.clickCatchHighestScore || 0;
     document.getElementById('managedUserWheelSpins').textContent = userData.wheelSpinsCount || 0;
 
-    // Yönetim panelindeki liderlik rozetlerini göster
     ['managedBadgeWheel', 'managedBadgeBox', 'managedBadgeSurprise', 'managedBadgeBomb', 'managedBadgeMultiplier', 'managedBadgeStore', 'managedBadgeShield', 'managedBadgeClickCatch'].forEach(id => {
         const el = document.getElementById(id);
         if(el) el.innerHTML = '';
@@ -9932,6 +9912,7 @@ async function saveAutomaticResetSettings() {
 async function executeSeasonReset(isManual = false) {
     if (!isAdmin) return;
     
+    // 1. Onay Al
     const confirmationText = isManual 
         ? "Sezonu ŞİMDİ MANUEL olarak bitirmek üzeresiniz. Tüm puanlar ve istatistikler sıfırlanacak, ödüller dağıtılacak. Bu işlem geri alınamaz. Emin misiniz?"
         : "Sezon sonu için SON ONAY. Sıfırlama işlemi başlayacak ve geri alınamayacak. Onaylıyor musunuz?";
@@ -9941,13 +9922,14 @@ async function executeSeasonReset(isManual = false) {
 
     displayMessage("Sezon sonu işlemleri başlatıldı... Bu işlem birkaç saniye sürebilir. Lütfen bekleyin.");
 
-    // 1. Gerekli tüm verileri topla
+    // 2. Gerekli Tüm Verileri Topla
     const allUsersSnap = await db.ref('users').once('value');
     const allUsersData = allUsersSnap.val();
     const leaders = await calculateAllLeaders(allUsersData);
     const settingsSnap = await db.ref('gameConfig/seasonSettings').once('value');
     const seasonSettings = settingsSnap.val();
 
+    // Liderleri ve Ödülleri Belirle
     const puanLeader = leaders.currentBalanceUser;
     const rozetLeader = (await getTopBadgeHolder(allUsersData, leaders)).username;
     
@@ -9961,7 +9943,7 @@ async function executeSeasonReset(isManual = false) {
         iflasShieldUses: parseInt(document.getElementById('rewardIflasShields').value) || 0
     };
 
-    // 2. Ödülleri ve sıfırlamaları hazırla
+    // 3. Veritabanı İçin Toplu Güncelleme Objesini Hazırla
     const updates = {};
     
     for (const username in allUsersData) {
@@ -9970,28 +9952,28 @@ async function executeSeasonReset(isManual = false) {
         const userPath = `users/${username}`;
         const userData = allUsersData[username];
 
-        // HERKESE HEDİYE PAKETİNİ VER
+        // A) HERKESE HEDİYE PAKETİNİ VER
         updates[`${userPath}/kutuHakki`] = (userData.kutuHakki || 0) + giftPackage.kutuHakki;
         updates[`${userPath}/carkBileti`] = (userData.carkBileti || 0) + giftPackage.carkBileti;
         updates[`${userPath}/clickCatchTickets`] = (userData.clickCatchTickets || 0) + giftPackage.clickCatchTickets;
         updates[`${userPath}/iflasShieldUses`] = (userData.iflasShieldUses || 0) + giftPackage.iflasShieldUses;
 
-        // ŞAMPİYONLARA ÖZEL AVATAR ÖDÜLÜNÜ VE ŞAMPİYONLUK SAYACINI GÜNCELLE
+        // B) ŞAMPİYONLARA ÖZEL ÖDÜLLERİ VER VE ŞAMPİYONLUK SAYACINI GÜNCELLE
         if (username === puanLeader) {
             if(puanAvatar) updates[`${userPath}/selectedAvatar`] = { id: `sezon_odul_puan_${Date.now()}`, url: puanAvatar };
-            // YENİ: Puan şampiyonluğu sayacını 1 artır. Eğer sayaç yoksa 1'den başlar.
+            // Puan şampiyonluğu sayacını 1 artır. Eğer sayaç yoksa 1'den başlar.
             updates[`${userPath}/puanChampionshipsWon`] = firebase.database.ServerValue.increment(1);
         }
         if (username === rozetLeader) {
             if(rozetAvatar) updates[`${userPath}/selectedAvatar`] = { id: `sezon_odul_rozet_${Date.now()}`, url: rozetAvatar };
-            // YENİ: Rozet şampiyonluğu sayacını 1 artır. Eğer sayaç yoksa 1'den başlar.
+            // Rozet şampiyonluğu sayacını 1 artır. Eğer sayaç yoksa 1'den başlar.
             updates[`${userPath}/rozetChampionshipsWon`] = firebase.database.ServerValue.increment(1);
         }
         
-        // HERKESİN PUAN VE İSTATİSTİKLERİNİ SIFIRLA
+        // C) HERKESİN PUAN VE İSTATİSTİKLERİNİ SIFIRLA
+        // *** ÖNEMLİ: kasaPuani alanına DOKUNULMUYOR! ***
         updates[`${userPath}/balance`] = 0;
         updates[`${userPath}/highestBalanceEver`] = 0;
-        // ... (diğer sıfırlama kodları aynı kalacak)
         updates[`${userPath}/totalSpentPoints`] = 0;
         updates[`${userPath}/boxesOpenedCount`] = 0;
         updates[`${userPath}/surpriseBoxesOpened`] = 0;
@@ -10002,11 +9984,12 @@ async function executeSeasonReset(isManual = false) {
         updates[`${userPath}/clickCatchHighestScore`] = 0;
     }
 
-    // Mağaza ve geçmiş verilerini sıfırla
+    // D) GENEL OYUN VERİLERİNİ SIFIRLA
     updates['purchaseHistory'] = null;
     updates['clickCatchWeeklyScores'] = null;
     updates['gameStats'] = null;
 
+    // Mağazadaki ürünlerin satın alınma sayılarını sıfırla
     const storeItemsSnap = await db.ref('storeItems').once('value');
     if (storeItemsSnap.exists()) {
         storeItemsSnap.forEach(itemSnap => {
@@ -10014,7 +9997,7 @@ async function executeSeasonReset(isManual = false) {
         });
     }
 
-    // 3. Kalıcı Duyuruyu Oluştur
+    // 4. Kalıcı Sezon Sonu Duyurusunu Oluştur
     const seasonName = new Date().toLocaleString('tr-TR', { month: 'long', year: 'numeric' }) + " Sezonu";
     updates[`seasonAnnouncements/${Date.now()}`] = {
         title: `${seasonName} Sona Erdi!`,
@@ -10022,17 +10005,18 @@ async function executeSeasonReset(isManual = false) {
         timestamp: firebase.database.ServerValue.TIMESTAMP
     };
 
-    // 4. Tüm işlemleri tek seferde uygula ve oyunu yeniden kur
+    // 5. Tüm işlemleri tek seferde uygula ve oyunu yeniden kur
     await db.ref().update(updates);
     await createBoxes();
     
-    // 5. Sezon ayarlarını temizle
+    // 6. Sezon ayarlarını temizle
     await db.ref('gameConfig/seasonSettings').remove();
     await db.ref('gameConfig/seasonEndDate').remove();
 
     displayMessage("SEZON BAŞARIYLA SIFIRLANDI! Ödüller dağıtıldı ve yeni sezon başladı.");
     closeSeasonManagementModal();
 }
+
 async function stopSeasonCountdown() {
     if (!isAdmin) return; // Sadece adminin kullanabildiğinden emin ol.
 
@@ -10219,6 +10203,43 @@ async function openWeeklyResetInfoModal() {
 function closeWeeklyResetInfoModal() {
     document.body.classList.remove('modal-open');
     document.getElementById('weeklyResetInfoModal').style.display = 'none';
+}
+
+async function kasaTransferEt() {
+    if (isAdmin) {
+        displayMessage("Adminler bu işlemi yapamaz.");
+        return;
+    }
+    const miktar = parseInt(document.getElementById('kasaTransferInput').value);
+    if (isNaN(miktar) || miktar <= 0) {
+        displayMessage("Lütfen geçerli bir miktar girin.");
+        return;
+    }
+
+    const userRef = db.ref('users/' + currentUser);
+    const userSnap = await userRef.once('value');
+    const userData = userSnap.val();
+    const mevcutPuan = userData.balance || 0;
+
+    if (miktar > mevcutPuan) {
+        displayMessage("Kasaya aktarmak için yeterli puanınız yok.");
+        return;
+    }
+
+    const confirmed = await customConfirm(`<b>${miktar}</b> Puan, Kasa'ya aktarılacak. Bu işlem geri alınamaz ve Kasa Puanları sadece Özel Ürün Mağazası'nda kullanılabilir. Onaylıyor musunuz?`);
+    if (!confirmed) return;
+
+    const yeniPuan = mevcutPuan - miktar;
+    const yeniKasaPuani = (userData.kasaPuani || 0) + miktar;
+
+    await userRef.update({
+        balance: yeniPuan,
+        kasaPuani: yeniKasaPuani
+    });
+
+    logActivity('kasaTransfer', currentUser, { amount: miktar, newKasaBalance: yeniKasaPuani });
+    displayMessage(`Başarılı! <b>${miktar} Puan</b>, Kasa'ya aktarıldı.`);
+    document.getElementById('kasaTransferInput').value = '';
 }
   // YENİ EKLENECEK KOD SONU
     
