@@ -412,7 +412,7 @@ body.modal-open .modal-content {
         </div>
       <div id="tablesWrapper" class="flex flex-wrap justify-center gap-6 mb-8">
         <div class="tableBox bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700 w-full md:flex-1 min-w-[280px] md:max-w-md">
-            <h3 class="text-yellow-400 text-xl font-bold border-b border-gray-600 pb-3 mb-4">KARİYER PUAN SIRALAMASI 🏆</h3>
+            <h3 class="text-yellow-400 text-xl font-bold border-b border-gray-600 pb-3 mb-4">KARİYER PUANI SIRALAMASI 🏆</h3>
             <p class="text-gray-300 mb-3">Toplam Kullanıcı: <span id="totalUsers" class="font-bold text-yellow-400">0</span></p>
             <input type="text" id="searchUserRanking" oninput="renderUserRankings()" placeholder="Sıralamada Kullanıcı Ara..." class="w-full p-3 mb-4 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
             <div id="allUserRankings" class="scrollable-list max-h-80 overflow-y-auto border border-gray-600 rounded-lg p-3 bg-gray-900 text-sm leading-relaxed">Yükleniyor...</div>
@@ -1786,7 +1786,7 @@ body.modal-open .modal-content {
                 </li>
                  <li><strong>Neler Kalır?</strong>
                     <ul class="list-circle list-inside pl-4 mt-1 text-green-400">
-                        <li>Kullanıcı hesaplarınız, şifreleriniz ve PIN'leriniz.</li>
+                        <li>Kullanıcı hesaplarınız, şifreleriniz ve PIN'leriniz. Kasaya aktarılan puanlar.</li>
                         <li>Mağazadan satın aldığınız <strong>Avatarlar</strong> gibi kalıcı kozmetikler.</li>
                         <li>Sezon sonunda hediye edilen envanter eşyaları (Kutu Hakları, Biletler vb.) yeni sezona aktarılır.</li>
                     </ul>
@@ -3880,7 +3880,6 @@ async function deleteUserAvatar(username, avatarId) {
   }
 
 // MEVCUT openBox fonksiyonunu bununla değiştir
-// MEVCUT openBox fonksiyonunu bununla değiştir
 async function openBox(index) {
     if (isGameLocked) {
         displayMessage("Kutular 3 saniye arayla açılıyor. Lütfen tekrar deneyin. Sorun devam ediyorsa, sorunları çöz menüsüne göz atabilirsin.");
@@ -4011,7 +4010,10 @@ async function openBox(index) {
             const pointsGained = box.value * finalMultiplier;
             updates['balance'] = (user.balance || 0) + pointsGained;
             if (updates['balance'] > (user.highestBalanceEver || 0)) updates['highestBalanceEver'] = updates['balance'];
+            
+            // KARİYER PUANI GÜNCELLEMESİ
             updates['kariyerPuani'] = (user.kariyerPuani || 0) + pointsGained;
+
             message = `+${pointsGained} puan kazandınız!`;
             boxUpdate.basePoints = box.value;
             boxUpdate.finalPoints = pointsGained;
@@ -4028,37 +4030,26 @@ async function openBox(index) {
             let shieldWasUsed = false;
             const lostPoints = user.balance || 0;
             updates['iflasCount'] = (user.iflasCount || 0) + 1;
-            
-            // --- DEĞİŞİKLİK BURADA BAŞLIYOR ---
-            const logDetails = {
-                shieldUsed: false,
-                lostPoints: 0,
-                boxId: box.id,
-                multiplier: finalMultiplier
-            };
-
             if ((user.iflasShieldUses || 0) > 0) {
                 updates['iflasShieldUses'] = (user.iflasShieldUses || 0) - 1;
                 updates['iflasShieldUsedCount'] = (user.iflasShieldUsedCount || 0) + 1; 
                 shieldWasUsed = true;
                 message = `İflas! 🛡️ Kalkanın seni korudu!`;
-                logDetails.shieldUsed = true;
-                // Kalkan kullanıldığında bakiye değişmez, bu yüzden log'a newBalance eklemiyoruz.
             } else {
                 updates['balance'] = 0;
                 message = `İflas! Tüm puanların (${lostPoints} puan) silindi.`;
-                logDetails.lostPoints = lostPoints;
-                logDetails.newBalance = 0; // Bakiye sıfırlandığı için log'a 0 olarak ekliyoruz.
             }
-
             boxUpdate.shieldUsed = shieldWasUsed;
             boxUpdate.lostPoints = shieldWasUsed ? 0 : lostPoints;
             boxOpenInfo.shieldUsed = shieldWasUsed;
             boxOpenInfo.lostPoints = shieldWasUsed ? 0 : lostPoints;
-            
-            // Loglama işlemini en sonda ve kontrollü bir şekilde yapıyoruz.
-            logActivity('iflas', currentUser, logDetails);
-            // --- DEĞİŞİKLİK BURADA BİTİYOR ---
+            logActivity('iflas', currentUser, { 
+                shieldUsed: shieldWasUsed, 
+                lostPoints: shieldWasUsed ? 0 : lostPoints, 
+                boxId: box.id, 
+                multiplier: finalMultiplier,
+                newBalance: updates['balance']
+            });
         }
         else if (box.content === 'surpriz') {
             updates['surpriseBoxesOpened'] = (user.surpriseBoxesOpened || 0) + 1;
@@ -5716,7 +5707,7 @@ function listenForLastSurpriseFinderPanel() {
 
         messageHtml = `
             <h4 class="text-amber-300 text-xl font-bold">🎉 SON SÜRPRİZ KUTUSU BULUNDU! 🎉</h4>
-            <p>${finderHtml}, bu tur <b class="text-white">${data.boxesOpenedThisRound} adet</b> kutu açtıktan sonra <b class="text-white">${data.boxId} numaralı</b> kutudan Sürpriz Kutu buldu!</p>
+            <p>${finderHtml}, bu tur <b class="text-white">${data.boxesOpenedThisRound} adet</b> kutu açtıktan sonra <b class="text-white">${data.boxId} numaralı</b> kutudan Sürprriz Kutu buldu!</p>
             <p>Kart seçiminden <b class="text-green-400">+${data.points} Puan</b> kazandı. <span class="text-gray-400">(Mevcut Puanı: ${data.newBalance})</span></p>
             ${multiplierHtml}
         `;
@@ -7089,12 +7080,15 @@ async function spinWheel() {
                 message = `Tebrikler, çarktan <b>+${winningSegment.value} Puan</b> kazandın!`;
                 updates.balance = (currentUserData.balance || 0) + winningSegment.value;
                 if(updates.balance > (currentUserData.highestBalanceEver || 0)) updates.highestBalanceEver = updates.balance;
+                
+                // KARİYER PUANI GÜNCELLEMESİ
                 updates.kariyerPuani = (currentUserData.kariyerPuani || 0) + winningSegment.value;
                 break;
             case 'boxRights':
                 message = `Tebrikler, çarktan <b>+${winningSegment.value} Kutu Hakkı</b> kazandın!`;
                 updates.kutuHakki = (currentUserData.kutuHakki || 0) + winningSegment.value;
                 break;
+            // ... diğer case'ler aynı kalacak
             case 'iflasShield':
                 message = `Tebrikler, çarktan <b>+${winningSegment.value} İflas Kalkanı</b> kazandın!`;
                 updates.iflasShieldUses = (currentUserData.iflasShieldUses || 0) + winningSegment.value;
@@ -7154,23 +7148,18 @@ async function spinWheel() {
             }
         });
 
-        // --- DEĞİŞİKLİK BURADA BAŞLIYOR ---
         const logDetails = {
             result: winningSegment.label,
             type: winningSegment.type,
             value: winningSegment.value !== undefined ? winningSegment.value : null
         };
-        
-        // newBalance'ı sadece 'points' durumunda log'a ekliyoruz.
         if (winningSegment.type === 'points') {
             logDetails.newBalance = updates.balance;
         }
         
-        // Sürpriz kutu loglaması kendi özel fonksiyonunda yapıldığı için burada loglamıyoruz.
         if (winningSegment.type !== 'surpriseBox') {
             logActivity('spinWheel', currentUser, logDetails);
         }
-        // --- DEĞİŞİKLİK BURADA BİTİYOR ---
         
         if(Object.keys(updates).length > 0) await userRef.update(updates);
         
@@ -7182,6 +7171,7 @@ async function spinWheel() {
 
     }, 5100);
 }
+
 // MEVCUT setWinner fonksiyonunu bununla değiştir
 async function setWinner(username) {
     const lobbyRef = db.ref('clickCatchLobby');
