@@ -848,7 +848,7 @@ body.modal-open .modal-content {
     <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-red-700 w-11/12 max-w-md text-center relative">
       <button class="modal-close-button" onclick="closePointAdjustmentModal()">&times;</button>
       <h4 class="text-yellow-400 text-2xl font-bold mb-6">Kullanıcı Puan Ayarı: <span id="adjUserName"></span></h4>
-      <p class="text-lg text-gray-300 mb-4">Mevcut Puan: <span id="adjUserBalance" class="font-bold"></span></p>
+      <p class="text-lg text-gray-300 mb-4">Mevcut Puanı: <span id="adjUserBalance" class="font-bold"></span></p>
       <input type="number" id="adjAmount" placeholder="Puan Miktarı" min="1" class="w-full p-3 mb-6 bg-gray-700 border border-gray-600 rounded-lg text-white" /><br>
       <div class="flex gap-4 justify-center">
         <button onclick="adjustUserPoints(true)" class="flex-1 py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg">Puan Ekle</button>
@@ -1043,8 +1043,8 @@ body.modal-open .modal-content {
 
     <div class="overflow-y-auto px-8 pb-8">
         <div id="managedUserDetails" class="text-left text-gray-300 mb-6 space-y-1">
-            <p><span id="managedBadgeBalance" class="inline-block w-6 text-center"></span>Mevcut Puan: <span id="managedUserBalance" class="font-bold text-yellow-300"></span></p>
-            <p><span id="managedBadgeHighest" class="inline-block w-6 text-center"></span>Kariyer Puan: <span id="managedUserHighestBalance" class="font-bold text-green-400"></span></p>
+            <p><span id="managedBadgeBalance" class="inline-block w-6 text-center"></span>Mevcut Puanı: <span id="managedUserBalance" class="font-bold text-yellow-300"></span></p>
+            <p><span id="managedBadgeHighest" class="inline-block w-6 text-center"></span>Kariyer Puanı: <span id="managedUserHighestBalance" class="font-bold text-green-400"></span></p>
             <p>Kutu Hakkı: <span id="managedUserBoxRight" class="font-bold text-green-400"></span></p>
             <p>Şans Çarkı Bileti: <span id="managedUserWheelTickets" class="font-bold text-yellow-400"></span></p>
             <p>Tıkla-Yakala Bileti: <span id="managedUserClickCatchTickets" class="font-bold text-fuchsia-400"></span></p>
@@ -1114,8 +1114,8 @@ body.modal-open .modal-content {
     <h5 class="font-bold text-yellow-200 text-xl mb-3 border-b border-gray-600 pb-2">Puan & Envanter</h5>
     <div class="space-y-3 text-gray-300">
         <p class="flex justify-between items-center"><span> Kasa Puanı:</span> <span id="publicUserKasaBalance" class="font-bold text-purple-400 text-lg"></span></p>
-        <p class="flex justify-between items-center"><span><span id="publicBadgeBalance" class="inline-block w-6 text-center"></span>Mevcut Puan:</span> <span id="publicUserBalance" class="font-bold text-yellow-300 text-lg"></span></p>
-        <p class="flex justify-between items-center"><span><span id="publicBadgeHighest" class="inline-block w-6 text-center"></span>Kariyer Puan:</span> <span id="publicUserHighestBalance" class="font-bold text-green-400 text-lg"></span></p>
+        <p class="flex justify-between items-center"><span><span id="publicBadgeBalance" class="inline-block w-6 text-center"></span>Mevcut Puanı:</span> <span id="publicUserBalance" class="font-bold text-yellow-300 text-lg"></span></p>
+        <p class="flex justify-between items-center"><span><span id="publicBadgeHighest" class="inline-block w-6 text-center"></span>Kariyer Puanı:</span> <span id="publicUserHighestBalance" class="font-bold text-green-400 text-lg"></span></p>
         <hr class="border-gray-600 !my-2">
                 <p class="flex justify-between items-center"><span> Kutu Hakkı:</span> <span id="publicUserBoxRight" class="font-bold text-green-400 text-lg"></span></p>
                 <p class="flex justify-between items-center"><span> Şans Çarkı Bileti:</span> <span id="publicUserWheelTickets" class="font-bold text-yellow-400 text-lg"></span></p>
@@ -2730,7 +2730,7 @@ function loadBalanceAndBoxRights() {
             db.ref('users/' + currentUser).update({ blocked: false, blockedUntil: null });
         }
 
-        let statusText = `Mevcut Puan: ${userData.balance || 0} | Kutu Hakkı: ${userData.kutuHakki || 0}`;
+        let statusText = `Mevcut Puanı: ${userData.balance || 0} | Kutu Hakkı: ${userData.kutuHakki || 0}`;
         if ((userData.carkBileti || 0) > 0) statusText += ` | 🎡 Çark Bileti: ${userData.carkBileti}`;
         if ((userData.clickCatchTickets || 0) > 0) statusText += ` | 🎯 Yakalama Bileti: ${userData.clickCatchTickets}`;
         if (userData.iflasShieldUses > 0) statusText += ` | 🛡️ Kalkan: ${userData.iflasShieldUses}`;
@@ -5708,7 +5708,7 @@ function listenForLastSurpriseFinderPanel() {
         messageHtml = `
             <h4 class="text-amber-300 text-xl font-bold">🎉 SON SÜRPRİZ KUTUSU BULUNDU! 🎉</h4>
             <p>${finderHtml}, bu tur <b class="text-white">${data.boxesOpenedThisRound} adet</b> kutu açtıktan sonra <b class="text-white">${data.boxId} numaralı</b> kutudan Sürprriz Kutu buldu!</p>
-            <p>Kart seçiminden <b class="text-green-400">+${data.points} Puan</b> kazandı. <span class="text-gray-400">(Mevcut Puan: ${data.newBalance})</span></p>
+            <p>Kart seçiminden <b class="text-green-400">+${data.points} Puan</b> kazandı. <span class="text-gray-400">(Mevcut Puanı: ${data.newBalance})</span></p>
             ${multiplierHtml}
         `;
         
@@ -6990,7 +6990,7 @@ function renderWheel() {
         const messageHtml = `
             <h4 class="text-amber-300 text-lg font-bold">🎡 ÇARKTAN SON ÇIKAN SÜRPRİZ! 🎡</h4>
             <p>${finderHtml}, çarktan Sürpriz Kutu kazandı!</p>
-            <p>Kart seçiminden <b class="text-green-400">+${data.points} Puan</b> elde etti. <span class="text-gray-400">(Mevcut Puan: ${data.newBalance})</span></p>
+            <p>Kart seçiminden <b class="text-green-400">+${data.points} Puan</b> elde etti. <span class="text-gray-400">(Mevcut Puanı: ${data.newBalance})</span></p>
         `;
 
         panel.innerHTML = messageHtml;
@@ -8778,7 +8778,7 @@ function renderActivityFeed(activities) {
             const userHtml = `<b class="text-yellow-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${activity.username}')">${activity.username}</b>`;
 
             const remainingBalanceText = (details.newBalance !== undefined && details.newBalance !== null) 
-                ? ` <span class="text-gray-400">(Mevcut Puan: ${details.newBalance})</span>`
+                ? ` <span class="text-gray-400">(Mevcut Puanı: ${details.newBalance})</span>`
                 : '';
             
             const weeklyScoreText = (details.newWeeklyScore !== undefined && details.newWeeklyScore !== null)
