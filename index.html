@@ -3001,8 +3001,7 @@ async function calculateAllLeaders(allUsersData) {
     return leaders;
 }
 
-  // BU FONKSİYONU BUL VE AŞAĞIDAKİ KOD İLE DEĞİŞTİR
-
+  // MEVCUT renderUserRankings fonksiyonunu KOMPLE BUNUNLA DEĞİŞTİR
 async function renderUserRankings() {
     const searchTerm = document.getElementById('searchUserRanking').value.trim().toLowerCase();
     
@@ -3016,7 +3015,7 @@ async function renderUserRankings() {
     
     const leaders = await calculateAllLeaders(allUsersData);
 
-    filteredUsers.sort((a, b) => (b.balance || 0) - (a.balance || 0));
+    filteredUsers.sort((a, b) => (b.highestBalanceEver || 0) - (a.highestBalanceEver || 0));
 
     let html = filteredUsers.map((u, i) => {
         const userLeaderStatus = {
@@ -3041,26 +3040,31 @@ async function renderUserRankings() {
             blockedInfo = `<div class="text-red-400 font-bold mt-2">Engelli - Kalan Süre: <span id="countdown-${u.username}">--:--</span></div>`;
         }
 
-        return `<div class="mb-3 p-3 bg-gray-800 rounded-md border border-gray-700 cursor-pointer hover:bg-gray-700" onclick="openPublicUserDetailModal('${u.username}')">
-            <div class="text-center">${userIcons}</div>
-            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-1 gap-2">
-                <div class="flex items-center text-left">
-                    <span class="font-semibold text-base sm:text-lg text-yellow-300 mr-3 w-8 text-center">${i + 1}.</span>
-                    <img src="${avatarUrl}" class="w-10 h-10 sm:w-12 sm:h-12 rounded-md mr-3 object-contain">
-                    <span class="font-semibold text-base sm:text-lg">${u.username}</span>
+        const scoreToShow = u.highestBalanceEver || 0;
+
+        // --- PUANIN KULLANICI ADININ ALTINA ALINDIĞI FİNAL TASARIM ---
+        return `<div class="relative mb-3 p-3 bg-gray-800 rounded-xl border border-gray-700 cursor-pointer hover:bg-gray-700/70 transition-colors" onclick="openPublicUserDetailModal('${u.username}')">
+            <div class="flex items-center w-full gap-3">
+                
+                <span class="font-bold text-xl text-gray-400 w-8 text-center flex-shrink-0">${i + 1}.</span>
+                <img src="${avatarUrl}" class="w-14 h-14 rounded-full object-cover flex-shrink-0 border-2 border-gray-600">
+                
+                <div class="flex flex-col min-w-0 flex-grow">
+                    <div class="h-6 min-h-[24px] flex items-center">${userIcons}</div>
+                    <p class="font-bold text-lg text-white truncate" title="${u.username}">${u.username}</p>
+                    <p class="text-sm font-semibold text-yellow-400/80">${scoreToShow} (En Yüksek Puan)</p>
                 </div>
-                <span class="text-yellow-400 font-bold text-base sm:text-lg w-full sm:w-auto text-right pr-2 sm:pr-0">${u.balance || 0} Puan</span>
+
             </div>
-            ${blockedInfo}
+            ${blockedInfo ? `<div class="text-center mt-2">${blockedInfo}</div>` : ''}
         </div>`;
+        // --- FİNAL TASARIM SONU ---
+
     }).join("");
 
     document.getElementById("allUserRankings").innerHTML = html || "<div class='text-center text-gray-400'>Aramayla eşleşen kullanıcı bulunamadı.</div>";
     document.getElementById("totalUsers").textContent = allUsersCache.length;
 }
-
-
-// BU FONKSİYONU DA BUL VE AŞAĞIDAKİ KOD İLE DEĞİŞTİR
 
 async function loadLeaderboardRanking() {
     const ref = db.ref('users');
