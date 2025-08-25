@@ -725,6 +725,7 @@ body.modal-open .modal-content {
       </div>
       <div class="text-right">
           <p class="text-lg text-white">Tamamlanan: <span id="collectionProgress" class="font-bold text-green-400">0/0</span></p>
+          <p id="wildcardIndicator" class="text-lg text-purple-400 hidden">Joker Kart: <span id="wildcardCount" class="font-bold text-white">0</span> 🃏</p>
           <button onclick="openTradeMarket()" class="mt-2 py-2 px-4 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm font-bold">Takas Pazarı</button>
       </div>
     </div>
@@ -11136,8 +11137,6 @@ async function loadCollectionAlbum() {
     albumContainer.classList.remove('hidden');
     
     const progressSpan = document.getElementById('collectionProgress');
-    const wildcardIndicator = document.getElementById('wildcardIndicator');
-    const wildcardCountSpan = document.getElementById('wildcardCount');
     albumContainer.innerHTML = '<p class="text-center col-span-full text-gray-400">Koleksiyon yükleniyor...</p>';
 
     const masterListRef = db.ref('gameConfig/cardCollection');
@@ -11155,16 +11154,21 @@ async function loadCollectionAlbum() {
     const userSnap = await userRef.once('value');
     const userData = userSnap.val() || {};
     const userCards = userData.cardCollection || {};
-    const userWildcards = userData.wildcards || 0;
     
-    if (wildcardIndicator) {
-        if (userWildcards > 0 || isAdmin) {
+    // --- JOKER KARTI SAYACINI GÜNCELLEYEN YENİ KOD ---
+    const wildcardIndicator = document.getElementById('wildcardIndicator');
+    const wildcardCountSpan = document.getElementById('wildcardCount');
+    const userWildcards = userData.wildcards || 0;
+
+    if (wildcardIndicator) { // Elementin var olduğundan emin ol
+        if (userWildcards > 0 || isAdmin) { // Eğer kullanıcının kartı varsa VEYA sen adminsen (test için)
             wildcardCountSpan.textContent = userWildcards;
-            wildcardIndicator.style.display = 'flex';
+            wildcardIndicator.classList.remove('hidden'); // Sayacı görünür yap
         } else {
-            wildcardIndicator.style.display = 'none';
+            wildcardIndicator.classList.add('hidden'); // Kartı yoksa gizli kalsın
         }
     }
+    // --- YENİ KOD BİTİŞİ ---
 
     const userOwnedCardCount = Object.keys(userCards).length;
     if(progressSpan) progressSpan.textContent = `${userOwnedCardCount}/${totalCardCount}`;
