@@ -6516,53 +6516,57 @@ async function manualUnlockGame() {
     closeSolveProblemsModal();
 }
 
+// =======================================================
+// YENİ VE DAHA AKILLI SIFIRLAMA FONKSİYONU
+// =======================================================
 async function manualResetAfterSurprise() {
-    const surpriseInfoRef = db.ref('gameStats/lastSurpriseInfo');
-    const surpriseSnap = await surpriseInfoRef.once('value');
-    
-    // YENİ KONTROL: Sadece kayıt varsa VE sıfırlama hakkı kullanılmamışsa çalışır
-    if (surpriseSnap.exists() && surpriseSnap.val().resettled === false) {
-        // Sıfırlama hakkını 'kullanıldı' olarak işaretle ve kimin kullandığını kaydet
-        await surpriseInfoRef.update({ 
-            resettled: true,
-            resettledBy: currentUser 
-        });
+    const boxesRef = db.ref('boxes');
+    const boxesSnap = await boxesRef.once('value');
+    const boxes = boxesSnap.val();
 
-        // Oyun tahtasını sıfırla
-        await resetGameBoard();
-
-        // Kullanıcıya bilgi ver
-        displayMessage("Sürpriz kutu bulunduğu için oyun senin tarafından sıfırlandı!");
-    } else if (surpriseSnap.exists() && surpriseSnap.val().resettled === true) {
-        // Eğer hak zaten kullanılmışsa bu uyarıyı göster
-        displayMessage("Oyun bu sürpriz kutu için zaten başka bir kullanıcı tarafından sıfırlandı.");
+    if (!boxes) {
+        displayMessage("Oyun tahtası yüklenemedi, sıfırlama yapılamıyor.");
+        return;
     }
-    else {
-        // Eğer hiç sürpriz kutu bulunmamışsa bu uyarıyı göster
+
+    // Tahtayı tara: Açılmış, sürpriz içeren VE daha önce sıfırlama için kullanılmamış bir kutu ara.
+    const triggerBoxIndex = boxes.findIndex(box => box && box.opened && box.content === 'surpriz' && box.resetTriggered !== true);
+
+    if (triggerBoxIndex !== -1) {
+        // Sıfırlama için uygun bir kutu bulundu!
+        
+        // 1. Bu kutunun tekrar sıfırlama için kullanılmasını engellemek üzere işaretle.
+        await db.ref(`boxes/${triggerBoxIndex}/resetTriggered`).set(true);
+
+        // 2. Oyun tahtasını sıfırla.
+        await resetGameBoard();
+        
+        // 3. Kullanıcıya bilgi ver.
+        displayMessage("Açılmış sürpriz kutu tespit edildi ve oyun senin tarafından sıfırlandı!");
+
+        // 4. (ÖNEMLİ) Artık sıfırlama yapıldığı için, bir sonraki sürprize kadar panelin görünmesine gerek yok.
+        // Bu yüzden 'lastSurpriseInfo' kaydını temizliyoruz.
+        await db.ref('gameStats/lastSurpriseInfo').remove();
+
+    } else {
+        // Sıfırlama için uygun bir kutu bulunamadı.
         displayMessage("Bu özellik sadece bir sürpriz kutu bulunduktan sonra kullanılabilir.");
     }
+    
     closeSolveProblemsModal();
 }
 
-// =======================================================
-// MANUEL PANEL SİLME FONKSİYONLARI (GÜNCELLENMİŞ VERSİYON)
-// =======================================================
-
-/**
- * "Son Sürpriz Kutusu Bulundu" panelini temizlemeden önce onay sorar.
- */
 async function silSonSurprizKutusu() {
     if (!isAdmin) {
         console.error("Bu işlem sadece adminler tarafından yapılabilir.");
         return;
     }
-    // --- YENİ EKLENEN KOD BAŞLANGICI ---
     const confirmed = await customConfirm("Son Sürpriz Kutu panelini silmek istediğinden emin misin?");
     if (confirmed) {
-    // --- YENİ EKLENEN KOD SONU ---
+        // Artık bu kaydı güvenle silebiliriz çünkü sıfırlama sistemi buraya bakmıyor.
         await db.ref('gameStats/lastSurpriseInfo').remove();
-        console.log("Başarılı: 'Son Sürpriz Kutusu' paneli temizlendi.");
-    } // --- if bloğunu kapatan parantez
+        console.log("Başarılı: 'Son Sürpriz Kutu' paneli temizlendi.");
+    }
 }
 
 /**
