@@ -4669,11 +4669,17 @@ async function openBox(index) {
                 updates['multiplierSource'] = 'box';
                 updates['multiplierRemainingUses'] = 0;
                 message = `İNANILMAZ! Mevcut ${user.activeMultiplier}x çarpanın, kutudan çıkan daha güçlü <b>${box.value}x çarpan</b> ile değiştirildi. Eski çarpanının kalan ${user.multiplierRemainingUses} hakkı, envanterine <b>+${kutuHakkiDonusum} Kutu Hakkı</b> olarak eklendi!`;
+                
+                // --- DEĞİŞİKLİK BURADA: logActivity'e ek bilgiler ekledik ---
                 logActivity('multiplierUpgraded', currentUser, { 
                     oldValue: user.activeMultiplier, 
                     newValue: box.value, 
-                    boxRights: kutuHakkiDonusum 
+                    boxRights: kutuHakkiDonusum,
+                    boxId: box.id,
+                    multiplierUsed: finalMultiplier,
+                    remainingUses: user.multiplierRemainingUses || 0
                 });
+
             }
             else {
                 message = `Kutudan ${box.value}x çarpan buldun ama mevcut <b>${user.activeMultiplier}x çarpanın</b> daha güçlü olduğu için korundu.`;
@@ -4687,6 +4693,7 @@ async function openBox(index) {
             logActivity('multiplierFound', currentUser, { boxId: box.id, value: box.value, multiplier: finalMultiplier });
         }
     }
+    //... (fonksiyonun geri kalanı aynı)
     else {
         if (useMultiplier && box.content !== 'surpriz' && box.content !== 'card_pack') {
             if (originalMultiplierSource === 'box') {
@@ -4752,7 +4759,6 @@ async function openBox(index) {
             shouldLockGame = false;
             shouldDisplayMessage = false;
 
-            // --- DEĞİŞİKLİK BURADA BAŞLIYOR ---
             const openedInTurnSnap = await db.ref(`gameStats/boxesOpenedByUsers/${currentUser}`).once('value');
             const openedBoxesThisRound = openedInTurnSnap.val() || 1; 
 
@@ -4761,9 +4767,8 @@ async function openBox(index) {
                 active: true, user: currentUser, boxId: box.id, multiplier: finalMultiplier,
                 cards: shuffleArray([...cardValues]), selection: null, result: null,
                 timestamp: firebase.database.ServerValue.TIMESTAMP,
-                boxesOpenedThisRound: openedBoxesThisRound // Bu bilgiyi oturuma ekliyoruz
+                boxesOpenedThisRound: openedBoxesThisRound
             });
-            // --- DEĞİŞİKLİK BURADA BİTİYOR ---
 
             const snap = await sessionRef.once('value');
             await sessionRef.update({ expirationTimestamp: snap.val().timestamp + 60000 });
@@ -9737,8 +9742,8 @@ function renderActivityFeed(activities) {
         wheelTicket: 'Çark Bileti',
         clickCatchTicket: 'Tıkla-Yakala Bileti',
         tempMultiplier: 'Çarpan',
-        wildcard: 'Joker Kart', // YENİ EKLENDİ
-        card_pack: 'Kart Paketi' // YENİ EKLENDİ
+        wildcard: 'Joker Kart',
+        card_pack: 'Kart Paketi'
     };
 
     activities.forEach(activity => {
@@ -9763,13 +9768,28 @@ function renderActivityFeed(activities) {
                 : '';
 
             switch (activity.type) {
+                // ... (diğer case'ler aynı kalıyor)
+                
+                case 'multiplierUpgraded':
+                    // --- DEĞİŞİKLİK BURADA: Yeni metin ve koşullu yapı ---
+                    message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <b class="text-yellow-400">${details.newValue}x çarpan</b> buldu ve envanterinde bulunan ${details.remainingUses} adet ${details.oldValue}x çarpan daha düşük olduğu için <b class="text-green-400">+${details.boxRights} kutu hakkına</b> dönüştürüldü.`;
+
+                    let multiplierUsedText = '';
+                    // Sadece 1'den büyük bir çarpan kullanıldıysa metni ekle.
+                    if (details.multiplierUsed && details.multiplierUsed > 1) {
+                        multiplierUsedText = ` <span class="text-gray-400">(${details.multiplierUsed}x çarpan kullanıldı)</span>`;
+                    }
+                    message += multiplierUsedText;
+                    break;
+
+                // ... (diğer case'ler aynı kalıyor)
+
                 case 'dailyRewardMultiplierStacked':
                     message = `${userHtml},  <b>${details.multiplierValue}x çarpanına</b> günlük ödülden <span class="text-green-300 font-bold">+${details.usesAdded} kullanım hakkı</span> ekledi. Yeni toplam: <span class="text-white font-bold">${details.newTotalUses} kullanım</span>.`;
                     break;
                 case 'multiplierConvertedToBoxRights':
                     message = `${userHtml}, mevcut <b>${details.keptMultiplierValue}x çarpanını</b> koruyarak, günlük ödülden gelen ${details.rewardValue}x çarpanını <span class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı'na</span> dönüştürdü.`;
                     break;
-                // YENİ EKLENEN KASA TRANSFERİ MESAJI
                 case 'kasaTransfer':
                     const newKasaBalanceText = (details.newKasaBalance !== undefined && details.newKasaBalance !== null) 
                         ? ` <span class="text-gray-400">(Yeni Kasa Puanı: ${details.newKasaBalance})</span>`
@@ -9784,9 +9804,6 @@ function renderActivityFeed(activities) {
                     break;
                 case 'multiplierUpgradedFromStore':
                     message = `${userHtml}, mağazadan yaptığı alımla eski ${details.oldValue}x çarpanını <span class="text-cyan-300 font-bold">${details.boxRights} Kutu Hakkı'na</span> dönüştürdü ve yeni <b>${details.newValue}x</b> çarpanına geçti.`;
-                    break;
-                case 'multiplierUpgraded':
-                    message = `${userHtml}, eski ${details.oldValue}x çarpanını <span class="text-cyan-300 font-bold">${details.boxRights} Kutu Hakkı'na</span> dönüştürerek kutudan çıkan daha güçlü <b>${details.newValue}x</b> çarpanına geçti!`;
                     break;
                 case 'multiplierDiscarded':
                     message = `${userHtml}, kutudan ${details.discardedValue}x çarpan buldu ancak mevcut <b>${details.keptValue}x</b> çarpanı daha güçlü olduğu için korundu.`;
