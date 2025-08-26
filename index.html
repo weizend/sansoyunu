@@ -2672,7 +2672,6 @@ const defaultWheelSegments = [
     }
   }
   
-  // Giriş
   async function login() {
     const user = document.getElementById("loginUsername").value.trim().toLowerCase();
     const pass = document.getElementById("loginPassword").value.trim();
@@ -2715,14 +2714,18 @@ const defaultWheelSegments = [
             return;
         }
         
+        // --- YENİ EKLENEN SATIR BAŞLANGICI ---
+        // Kullanıcı adı ve şifre doğruysa, tarayıcıya kullanıcı adını kaydet.
+        localStorage.setItem('weizendOyunUser', user);
+        // --- YENİ EKLENEN SATIR SONU ---
+
         checkAndProceedLogin(user, data);
 
     }).catch(error => {
         console.error("Firebase veritabanı okuma hatası: ", error);
         displayMessage("Giriş yaparken bir sorun oluştu.");
     });
-  }
-
+}
   // MEVCUT register fonksiyonunu bununla değiştir
 async function register() {
     const username = document.getElementById("registerUsername").value.trim().toLowerCase();
@@ -2882,56 +2885,44 @@ async function register() {
   }
 
  // BU FONKSİYONU BUL VE AŞAĞIDAKİYLE DEĞİŞTİR
-auth.onAuthStateChanged(user => {
-  if (user) {
-    // Bu kısım aynı kalacak
-    const firebaseAuthUsername = user.email ? user.email.split('@')[0].toLowerCase() : '';
-    if (firebaseAuthUsername === "weizendtv") {
-      currentUser = "WeizendTv";
-      isAdmin = true;
-      afterLogin();
-    }
-  } else {
-    // ÇIKIŞ YAPILDIĞINDA ÇALIŞACAK BLOK (BURASI GÜNCELLENDİ)
-    // Arayüzü sıfırla
-    document.getElementById("loginContainer").style.display = "block";
-    document.getElementById("gameDiv").style.display = "none";
-    
-    // YENİ EKLENEN/DEĞİŞTİRİLEN KOD BAŞLANGICI
-    const activityFeedPanel = document.getElementById('activityFeedPanel');
-    if (activityFeedPanel) {
-        // Paneli hem gizle hem de animasyon için ekran dışına konumlandır
-        activityFeedPanel.classList.add('hidden', 'translate-x-full');
-    }
-    const activityBellContainer = document.getElementById('activityBellContainer');
-    if (activityBellContainer) {
-        activityBellContainer.classList.add('hidden');
-    }
-    // YENİ EKLENEN/DEĞİŞTİRİLEN KOD SONU
-    
-    switchAuthTab('login');
-    
-    // Kullanıcı durumunu sıfırla
-    currentUser = null;
-    isAdmin = false;
-    
-    // Tüm zamanlayıcıları temizle
-    if (countdownInterval) clearInterval(countdownInterval);
-    if (globalCountdownInterval) clearInterval(globalCountdownInterval);
-    if (clickCatchTimerInterval) clearInterval(clickCatchTimerInterval);
-    if (clickCatchItemInterval) clearInterval(clickCatchItemInterval);
-    if (storeCountdownInterval) clearInterval(storeCountdownInterval);
-    if (spectatorCountdownInterval) clearInterval(spectatorCountdownInterval);
-    
-    // Obje olarak tutulan zamanlayıcıları temizle
-    Object.values(activeBlockedUserTimers).forEach(clearInterval);
-    activeBlockedUserTimers = {};
-    Object.values(activeDailyRewardTimers).forEach(clearInterval);
-    activeDailyRewardTimers = {};
-    activeStoreCountdowns = {};
-
-    console.log("Auth state changed to signed out. Cleanup complete.");
-  }
+// Sayfa yüklendiğinde oturum kontrolü yapar.
+document.addEventListener('DOMContentLoaded', () => {
+    auth.onAuthStateChanged(user => {
+        // 1. Önce Admin girişi var mı diye kontrol et (Firebase Auth ile)
+        if (user) {
+            const firebaseAuthUsername = user.email ? user.email.split('@')[0].toLowerCase() : '';
+            if (firebaseAuthUsername === "weizendtv") {
+                currentUser = "WeizendTv";
+                isAdmin = true;
+                afterLogin();
+            }
+        } 
+        // 2. Admin girişi yoksa, normal kullanıcı girişi var mı diye kontrol et (localStorage ile)
+        else {
+            const savedUser = localStorage.getItem('weizendOyunUser');
+            if (savedUser) {
+                // Kayıtlı kullanıcı varsa, veritabanından bilgilerini çekip doğrula
+                db.ref('users/' + savedUser).once('value').then(snap => {
+                    if (snap.exists()) {
+                        // Kullanıcı veritabanında varsa, otomatik giriş yap
+                        checkAndProceedLogin(savedUser, snap.val());
+                    } else {
+                        // Kullanıcı silinmişse, hafızayı temizle ve giriş ekranını göster
+                        localStorage.removeItem('weizendOyunUser');
+                        document.getElementById("loginContainer").style.display = "block";
+                        document.getElementById("gameDiv").style.display = "none";
+                    }
+                });
+            } 
+            // 3. Hiçbir giriş yoksa, giriş ekranını göster
+            else {
+                document.getElementById("loginContainer").style.display = "block";
+                document.getElementById("gameDiv").style.display = "none";
+                switchAuthTab('login');
+                detachAllListeners(); // Güvenlik için tüm dinleyicileri kapat
+            }
+        }
+    });
 });
 
 async function saveWeeklyResetSettings() {
@@ -3312,17 +3303,17 @@ function showSection(sectionId) {
   }
     
 
-// MEVCUT logout FONKSİYONUNU KOMPLE SİLİP BUNU YAPIŞTIR
-
 async function logout() {
     const confirmed = await customConfirm("Çıkış yapmak istediğinize emin misiniz?");
     if (!confirmed) return;
 
-    // 1. Önce tüm veritabanı dinleyicilerini kapatarak olası hataları önle.
+    // --- YENİ EKLENEN SATIR BAŞLANGICI ---
+    // Çıkış yaparken tarayıcı hafızasındaki kullanıcı kaydını sil.
+    localStorage.removeItem('weizendOyunUser');
+    // --- YENİ EKLENEN SATIR SONU ---
+
     detachAllListeners();
     
-    // 2. Arayüzü anında değiştirerek kullanıcıya anlık geri bildirim ver.
-    // Bu, senin eski kodundaki anında çalışan kısımdı.
     document.getElementById("gameDiv").style.display = "none";
     document.getElementById("loginContainer").style.display = "block";
     
@@ -3335,13 +3326,9 @@ async function logout() {
         activityBellContainer.classList.add('hidden');
     }
 
-    // 3. Global değişkenleri anında temizle.
     currentUser = null;
     isAdmin = false;
     
-    // 4. Arka planda Firebase oturumunu güvenli bir şekilde kapat.
-    // Bu komut, onAuthStateChanged dinleyicisini tetikleyerek kalan
-    // teknik temizliği de yapacaktır.
     auth.signOut().catch((error) => {
         console.error("Çıkış yapılırken hata oluştu: ", error);
         displayMessage("Çıkış yapılırken bir hata oluştu.");
