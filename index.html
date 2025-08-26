@@ -4660,14 +4660,17 @@ async function openBox(index) {
         else if (box.content === 'iflas') {
             let shieldWasUsed = false;
             const lostPoints = user.balance || 0;
+            let newBalanceForLog = user.balance || 0; // <<< DÜZELTME 1: Log için yeni bakiye değişkeni tanımlandı.
             updates['iflasCount'] = (user.iflasCount || 0) + 1;
             if ((user.iflasShieldUses || 0) > 0) {
                 updates['iflasShieldUses'] = (user.iflasShieldUses || 0) - 1;
                 updates['iflasShieldUsedCount'] = (user.iflasShieldUsedCount || 0) + 1; 
                 shieldWasUsed = true;
                 message = `İflas! 🛡️ Kalkanın seni korudu!`;
+                // Bakiye değişmediği için newBalanceForLog doğru değeri (mevcut bakiye) tutuyor.
             } else {
                 updates['balance'] = 0;
+                newBalanceForLog = 0; // <<< DÜZELTME 2: Kalkan kullanılmadıysa log için yeni bakiye 0 olarak ayarlandı.
                 message = `İflas! Tüm puanların (${lostPoints} puan) silindi.`;
             }
             boxUpdate.shieldUsed = shieldWasUsed;
@@ -4679,7 +4682,7 @@ async function openBox(index) {
                 lostPoints: shieldWasUsed ? 0 : lostPoints, 
                 boxId: box.id, 
                 multiplier: finalMultiplier,
-                newBalance: updates['balance']
+                newBalance: newBalanceForLog // <<< DÜZELTME 3: Log fonksiyonuna her zaman doğru değeri gönder.
             });
         }
         else if (box.content === 'surpriz') {
