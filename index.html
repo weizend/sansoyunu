@@ -7998,6 +7998,7 @@ async function spinWheel() {
                  message = "Vay canına! Çarktan Sürpriz Kutu çıktı! Şimdi bir kart seç.";
                  shouldLogActivity = false;
                  break;
+            // YENİ EKLENEN KOD BAŞLANGICI
             case 'wildcard':
                 const userSnapForCheckWC = await userRef.once('value');
                 const userForCheckWC = userSnapForCheckWC.val();
@@ -8016,6 +8017,7 @@ async function spinWheel() {
                 startCardPackOpening(packsToOpen, 'Şans Çarkı', 1);
                 shouldLogActivity = false;
                 break;
+            // YENİ EKLENEN KOD SONU
             case 'pas':
                 message = "Bu seferlik pas! Bir dahaki sefere daha şanslı olabilirsin.";
                 break;
@@ -10157,7 +10159,7 @@ function loadWheelHistory() {
         history.reverse();
 
         history.forEach(item => {
-            const timeAgo = formatRelativeTime(item.timestamp);
+            const timeAgo = formatTimeAgo(item.timestamp);
             
             let icon = '❓';
             let prizeText = item.prize;
@@ -10189,6 +10191,14 @@ function loadWheelHistory() {
             } else if (prizeType === 'iflasShield') {
                 icon = '🛡️';
                 prizeText = `+${prizeValue} İflas Kalkanı`;
+            // YENİ EKLENEN KOD BAŞLANGICI
+            } else if (prizeType === 'wildcard') {
+                icon = '🃏';
+                prizeText = `+${prizeValue} Joker Kart`;
+            } else if (prizeType === 'card_pack') {
+                icon = '🎴';
+                prizeText = `+${prizeValue} Kart Paketi`;
+            // YENİ EKLENEN KOD SONU
             } else if (prizeType === 'pas') {
                 icon = '☠️';
                 prizeText = 'PAS';
@@ -10224,9 +10234,11 @@ function loadWheelHistory() {
     activeListeners.wheelHistory = { ref: historyRef, event: 'value', callback };
     historyRef.on('value', callback);
 }
+
   function openHelpModal() {
   helpModal.style.display = 'flex';
 }
+
 function closeHelpModal() {
   helpModal.style.display = 'none';
 }
