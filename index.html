@@ -60,7 +60,48 @@
     transform: scale(1.1);
     background-color: #2563eb; /* bg-blue-700 */
 }
-/* MEVCUT .wildcard ve .card_pack STİLLERİNİ SİLİP BUNLARI YAPIŞTIR */
+/* --- YENİ KART PAKETİ STİLLERİ --- */
+
+/* Normal (Bronz) Kart Paketi içeren açılmış kutu stili */
+.box.opened.card_pack_normal {
+    background: linear-gradient(145deg, #a16207, #854d0e); /* amber-700 to amber-800 */
+    border-color: #fcd34d; /* amber-300 */
+}
+.box.opened.card_pack_normal .box-content::before {
+    content: '🥉';
+    font-size: 2.5rem;
+}
+
+/* Gümüş Kart Paketi içeren açılmış kutu stili */
+.box.opened.card_pack_gumus {
+    background: linear-gradient(145deg, #71717a, #52525b); /* zinc-600 to zinc-700 */
+    border-color: #e5e7eb; /* gray-200 */
+}
+.box.opened.card_pack_gumus .box-content::before {
+    content: '🥈';
+    font-size: 2.5rem;
+}
+
+/* Altın Kart Paketi içeren açılmış kutu stili */
+.box.opened.card_pack_altin {
+    background: linear-gradient(145deg, #f59e0b, #d97706); /* amber-500 to amber-600 */
+    border-color: #fde047; /* yellow-300 */
+}
+.box.opened.card_pack_altin .box-content::before {
+    content: '🥇';
+    font-size: 2.5rem;
+}
+
+/* Efsanevi Kart Paketi içeren açılmış kutu stili */
+.box.opened.card_pack_efsanevi {
+    background: linear-gradient(145deg, #7e22ce, #6b21a8); /* purple-700 to purple-800 */
+    border-color: #d8b4fe; /* purple-300 */
+    animation: glow 2s ease-in-out infinite; /* Efsanevi ışıltısı */
+}
+.box.opened.card_pack_efsanevi .box-content::before {
+    content: '🏆';
+    font-size: 2.5rem;
+}
 
 /* Joker Kart içeren açılmış kutu stili */
 .box.opened.wildcard {
@@ -110,17 +151,95 @@
     border-radius: 12px;
 }
 
-/* Kapalı Kartın Görünümü (Arka Yüzü) */
+/* --- YENİ: KAPALI KART PAKETİ ÖN YÜZ STİLLERİ --- */
+
+/* Tüm kapalı paket ön yüzleri için temel stil */
 .card-front {
-    background: linear-gradient(145deg, #4f46e5, #7c3aed);
-    border: 4px solid #a78bfa;
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden; /* Efsanevi animasyonu için önemli */
+}
+
+.pack-icon {
     font-size: 5rem;
-    font-weight: bold;
+    opacity: 0.8;
+    filter: drop-shadow(0 0 10px rgba(0,0,0,0.7));
+}
+
+/* Standart Paket Ön Yüzü (Mor/Gizemli) */
+.pack-front-standart {
+    background: linear-gradient(145deg, #4c1d95, #3730a3); /* Koyu Mor */
+    border: 4px solid #a78bfa;
+}
+.pack-front-standart .pack-icon {
     color: #c4b5fd;
-    text-shadow: 0 0 10px rgba(255,255,255,0.5);
+}
+
+/* Bronz Paket Ön Yüzü */
+.pack-front-normal {
+    background: linear-gradient(145deg, #4a2c0f, #3a1e0b);
+    border: 4px solid;
+    border-image: linear-gradient(145deg, #d3a17c, #b37e5c, #d3a17c) 1;
+}
+.pack-front-normal .pack-icon {
+    color: #d3a17c;
+}
+
+/* Gümüş Paket Ön Yüzü */
+.pack-front-gumus {
+    background: linear-gradient(145deg, #4a5568, #2d3748);
+    border: 4px solid;
+    border-image: linear-gradient(145deg, #e5e7eb, #9ca3af, #e5e7eb) 1;
+}
+.pack-front-gumus .pack-icon {
+    color: #e5e7eb;
+}
+
+/* Altın Paket Ön Yüzü */
+.pack-front-altin {
+    background: linear-gradient(145deg, #6a4f2b, #4a371e);
+    border: 4px solid;
+    border-image: linear-gradient(145deg, #ffee00, #ffd700, #ffb300) 1;
+    box-shadow: 0 0 15px #ffd700;
+}
+.pack-front-altin .pack-icon {
+    color: #ffee00;
+}
+
+/* Efsanevi Paket Ön Yüzü (Animasyonlu) */
+.pack-front-efsanevi {
+    position: relative;
+    z-index: 1;
+    background: #111;
+}
+.pack-front-efsanevi::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    z-index: 1;
+    background: conic-gradient(#ff1b1b, #ff7f00, #ffee00, #ff7f00, #ff1b1b);
+    animation: spin-around 4s linear infinite;
+}
+.pack-front-efsanevi::after {
+    content: '';
+    position: absolute;
+    top: 4px; left: 4px; right: 4px; bottom: 4px;
+    border-radius: 8px; /* İç çerçeve için daha az yuvarlaklık */
+    z-index: 2;
+    background: linear-gradient(145deg, #e43642, #b11f29);
+    animation: breathing-bg 3s infinite ease-in-out;
+}
+.pack-front-efsanevi > * {
+    position: relative;
+    z-index: 3;
+}
+.pack-front-efsanevi .pack-icon {
+    color: #ffee00;
+    animation: badge-pulse 2s infinite ease-in-out;
 }
 
 /* Açılmış Kartın Görünümü (Ön Yüzü) */
@@ -1091,12 +1210,43 @@ body.modal-open .modal-content {
           </div>
           
           <div id="kasaTransferBolumu" class="bg-gray-900/50 p-6 rounded-xl border-2 border-purple-500 text-center mb-8 max-w-lg mx-auto">
-    <h4 class="text-purple-300 text-2xl font-bold mb-3">Puan Kasası</h4>
+    <div class="flex justify-center items-center gap-4 mb-3">
+        <h4 class="text-purple-300 text-2xl font-bold">Puan Kasası</h4>
+        <button id="kasaSettingsBtn" onclick="openKasaSettingsModal()" class="hidden py-1 px-3 text-sm bg-gray-600 hover:bg-gray-500 rounded-lg">Ayarlar</button>
+    </div>
     <p class="text-gray-400 mb-4">Sezon sıfırlamasından etkilenmeyecek puanlarını buraya aktar. Bu puanlar sadece <b class="text-white">Özel Ürün Mağazası'nda</b> kullanılabilir ve sıralamaya etki etmez.</p>
     <div class="flex items-center gap-4">
         <input type="number" id="kasaTransferInput" min="1" placeholder="Miktarı Girin" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500">
         <button onclick="kasaTransferEt()" class="py-3 px-6 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-lg shadow-md whitespace-nowrap">Kasaya Aktar</button>
     </div>
+</div>
+
+<div id="kasaSettingsModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[9999] hidden">
+  <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-purple-500 w-11/12 max-w-md text-center relative">
+    <button class="modal-close-button" onclick="closeKasaSettingsModal()">&times;</button>
+    <h4 class="text-purple-300 text-2xl font-bold mb-6">Kasa Transfer Ayarları</h4>
+    <div>
+      <label for="minKasaTransferInput" class="block text-sm font-medium text-gray-300 mb-2">Minimum Transfer Tutarı</label>
+      <input type="number" id="minKasaTransferInput" placeholder="Örn: 1000 (0 yazılırsa limit olmaz)" class="box-setting-input">
+      <p class="text-xs text-gray-500 mt-1">Bu tutarın altındaki transferlere izin verilmez.</p>
+    </div>
+    <div class="mt-6">
+      <button onclick="saveKasaSettings()" class="w-full py-3 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-lg shadow-md">Ayarları Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<div id="multiplierChoiceModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[9999] hidden">
+  <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-yellow-500 w-11/12 max-w-lg text-center relative">
+    <h4 class="text-yellow-400 text-2xl font-bold mb-4">⚡ Çarpan Yükseltmesi! ⚡</h4>
+    <p class="text-gray-300 mb-6" id="multiplierChoiceInfo">Yükleniyor...</p>
+    <div class="flex flex-col sm:flex-row gap-4">
+        <button id="choiceConvertBtn" class="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-md">
+            </button>
+        <button id="choiceCombineBtn" class="flex-1 py-3 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-lg shadow-md">
+            </button>
+    </div>
+  </div>
 </div>
           
           <div id="gameStoreItemsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-4">
@@ -1137,13 +1287,18 @@ body.modal-open .modal-content {
             <input type="number" id="newItemStock" placeholder="Stok Durumu (Opsiyonel, boş bırakılırsa sınırsız)" min="0" class="w-full p-2 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
             <select id="newItemType" class="w-full p-2 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500">
   <option value="">Ürün Tipi Seçin</option>
-  <option value="boxRights">Kutu Hakkı</option>
-  <option value="wheelTicket">Çark Bileti</option>
-  <option value="clickCatchTicket">Tıkla-Yakala Bileti</option>
-  <option value="tempMultiplier">Geçici Çarpan</option>
-  <option value="iflasShield">İflas Kalkanı</option>
-  <option value="wildcard">Joker Kart</option>      <option value="card_pack">Kart Paketi</option>
-  <option value="special">Özel Ürün (Onay Gerektirir)</option>
+  <option value="boxRights">📦 Kutu Hakkı</option>
+  <option value="wheelTicket">️🎫 Çark Bileti</option>
+  <option value="clickCatchTicket">🎟️ Tıkla-Yakala Bileti</option>
+  <option value="tempMultiplier">✖️ Geçici Çarpan</option>
+  <option value="iflasShield">🛡️ İflas Kalkanı</option>
+  <option value="wildcard">🃏 Joker Kart</option>
+  <option value="card_pack">🎴 Standart Kart Paketi</option>
+  <option value="card_pack_normal">🥉 Bronz Kart Paketi</option>
+  <option value="card_pack_gumus">🥈 Gümüş Kart Paketi</option>
+  <option value="card_pack_altin">🥇 Altın Kart Paketi</option>
+  <option value="card_pack_efsanevi">🏆 Efsanevi Kart Paketi</option>
+  <option value="special">🚀 Özel Ürün (Onay Gerektirir)</option>
 </select>
             <input type="number" id="newItemValue" placeholder="Değer (Kutu Hakkı Adedi / Çarpan Değeri / Kalkan Sayısı)" class="w-full p-2 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
             <input type="number" id="newItemMultiplierDuration" placeholder="Çarpan Süresi (Kutu Sayısı)" min="1" class="w-full p-2 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white hidden focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
@@ -1724,66 +1879,142 @@ body.modal-open .modal-content {
 </div>
 
 <div id="helpModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 hidden">
-  <div class="modal-content bg-gray-800 rounded-xl shadow-2xl border border-red-700 w-11/12 max-w-2xl text-left relative max-h-[90vh] flex flex-col">
+  <div class="modal-content bg-gray-800 rounded-xl shadow-2xl border border-red-700 w-11/12 max-w-3xl text-left relative max-h-[90vh] flex flex-col">
       
       <div class="flex-shrink-0 p-6 border-b border-gray-700 relative">
-          <h3 class="text-yellow-400 text-3xl font-bold text-center">Yardım / Nasıl Oynanır?</h3>
+          <h3 class="text-yellow-400 text-3xl font-bold text-center">Weizend Oyun Dünyası Rehberi</h3>
           <button class="modal-close-button" onclick="closeHelpModal()">&times;</button>
       </div>
+      
       <div class="overflow-y-auto scrollable-list p-6">
-        <div class="space-y-6 text-gray-300">
+        <div class="space-y-8 text-gray-300">
+            
             <div>
-                <h4 class="text-xl font-bold text-yellow-300 mb-2">Oyunun Amacı</h4>
-                <p>Oyunun temel amacı puan toplayarak liderlik sıralamasında yükselmek ve mini oyunlarda en yüksek skorları elde etmektir. Asıl büyük hedef ise, sezon boyunca tüm koleksiyon kartlarını toplayarak albümü tamamlamak ve büyük ödülleri kazanmaktır.</p>
+                <h4 class="text-2xl font-bold text-yellow-300 mb-3">👋 Oyuna Hoş Geldin!</h4>
+                <p>Weizend Oyun Dünyası'na hoş geldin! Bu rehber, oyundaki tüm özellikleri anlaman ve en iyi stratejileri geliştirmen için hazırlandı. Temel amacın puan toplayarak liderlik sıralamalarında yükselmek, mini oyunlarda en iyi skorları yapmak ve sezonun şampiyonu olmaktır.</p>
             </div>
 
+            <hr class="border-gray-700">
+
             <div>
-                <h4 class="text-xl font-bold text-yellow-300 mb-2">Nasıl Kutu Hakkı Kazanırım?</h4>
-                <ul class="list-disc list-inside mt-2 space-y-1 pl-4">
-                    <li>Mağazadan puanlarınızla "Kutu Hakkı" satın alabilirsiniz.</li>
-                    <li>Günlük ödüllerinizi toplayarak kazanabilirsiniz.</li>
-                    <li>Şans Çarkı'nı çevirerek elde edebilirsiniz.</li>
-                    <li>Tıkla-Yakala oyununda özel hedefleri yakalayarak kazanabilirsiniz.</li>
-                </ul>
-            </div>
-            
-            <div>
-                <h4 class="text-xl font-bold text-yellow-300 mb-2">Kutu İçerikleri</h4>
-                <ul class="list-disc list-inside mt-2 space-y-1 pl-4">
-                    <li><strong class="text-green-400">Puan:</strong> Farklı miktarlarda puanlar içerir.</li>
-                    <li><strong class="text-red-500">İflas (Bomba 💣):</strong> Tüm puanlarınızı sıfırlar!</li>
-                    <li><strong class="text-yellow-400">Sürpriz Kutu 🎉:</strong> İçinden yüksek puanlar çıkan özel bir kart seçme oyunu başlatır.</li>
-                    <li><strong class="text-blue-400">Çarpan ✖️:</strong> Bir sonraki açacağınız kutudan çıkacak puanı veya eşyayı katlar.</li>
-                    <li><strong class="text-purple-400">Kart Paketi 🎴:</strong> Koleksiyon albümün için rastgele bir kart çıkarır.</li>
-                    <li><strong class="text-fuchsia-400">Joker Kart 🃏:</strong> Çok nadirdir! Koleksiyonundaki herhangi bir eksik kartın yerine kullanabilirsin.</li>
-                    <li><strong class="text-cyan-400">İflas Kalkanı 🛡️:</strong> Bomba bulduğunda puanlarını korur. Tek kullanımlıktır.</li>
-                    <li><strong class="text-pink-400">Çark Bileti 🎟️:</strong> Şans Çarkı'nı çevirmen için bilet verir.</li>
-                    <li><strong class="text-orange-400">Tıkla-Yakala Bileti 🎫:</strong> Tıkla-Yakala oyununu oynaman için bilet verir.</li>
-                </ul>
-            </div>
-            
-            <div>
-                <h4 class="text-xl font-bold text-yellow-300 mb-2">Kart Koleksiyonu ve Takas</h4>
-                <p>Oyunun en önemli parçasıdır. Amacın, tüm kartları toplayarak koleksiyonu tamamlamaktır. Albümü tamamlayan herkes büyük ödülü kazanır!</p>
-                <ul class="list-disc list-inside mt-2 space-y-1 pl-4">
-                    <li><b>Kart Paketleri (🎴):</b> Kartlar doğrudan bulunmaz. Kutu, Çark ve Mağaza'dan "Kart Paketi" elde edersin. Her paket sana rastgele bir kart verir.</li>
-                    <li><b>Fazla Kartlar ve Takas Pazarı (⇄):</b> Aynı karttan birden fazla kazandığında, bu kartları "Takas Pazarı"nda diğer oyuncularla takas ederek eksiklerini tamamlayabilirsin.</li>
-                    <li><b>Joker Kart (🃏):</b> Bu özel kart, koleksiyonundaki herhangi bir eksik kartın yerine geçer. Eksik bir kartın üzerine tıklayarak Joker'i kullanabilirsin.</li>
+                <h4 class="text-2xl font-bold text-yellow-300 mb-3">🏆 Oyunun Temel Amacı</h4>
+                <p class="mb-2">Oyunda iki ana hedef bulunur:</p>
+                <ul class="list-disc list-inside mt-2 space-y-2 pl-4">
+                    <li><b class="text-green-400">Liderlik Tabloları:</b> "Kariyer Puanı" ve "Tıkla-Yakala Skoru" gibi farklı kategorilerde en tepeye tırmanarak sezonun en iyisi olduğunu kanıtla.</li>
+                    <li><b class="text-purple-400">Kart Koleksiyonu Albümü:</b> Oyunun en büyük ve en prestijli hedefi! Sezon bitmeden tüm kartları toplayan herkes, admin tarafından belirlenen büyük ödülleri kazanır.</li>
                 </ul>
             </div>
 
+            <hr class="border-gray-700">
+
             <div>
-                <h4 class="text-xl font-bold text-yellow-300 mb-2">Puan Kasası ve Sezon Sıfırlaması</h4>
-                <p>Oyun, rekabeti taze tutmak için aylık sezonlara ayrılmıştır. Sezon sonunda birçok ilerleme sıfırlanır.</p>
-                <ul class="list-disc list-inside mt-2 space-y-1 pl-4">
-                    <li><strong class="text-purple-400">Puan Kasası:</strong> Sezon sıfırlamasından etkilenmeyen puanlarını buraya aktarabilirsin. Kasa puanları sadece "Özel Ürün Mağazası"nda geçerlidir ve liderlik sıralamasını etkilemez.</li>
-                    <li><strong class="text-red-400">Neler Sıfırlanır?:</strong> Sezon sonunda tüm oyuncuların Puanları, Kariyer Puanları, istatistikleri ve Kart Koleksiyonu ilerlemeleri sıfırlanır.</li>
-                    <li><strong class="text-green-400">Neler Kalır?:</strong> Kasa Puanların, satın aldığın avatarlar ve kazandığın Şampiyonluk unvanları kalıcıdır.</li>
+                <h4 class="text-2xl font-bold text-yellow-300 mb-3">🏦 Puan Sistemi ve Ekonomi</h4>
+                <p class="mb-2">Oyunda stratejini belirleyecek 3 farklı puan türü vardır:</p>
+                 <ul class="list-disc list-inside mt-2 space-y-2 pl-4">
+                    <li><b class="text-green-400">Mevcut Puan:</b> Bu, senin <b class="text-white">harcanabilir</b> puanındır. Mağazadan bir şey satın aldığında veya lobi oyunlarına giriş ücreti ödediğinde bu puan düşer. Kutu oyunundan kazandığın ana puan türüdür.</li>
+                    <li><b class="text-yellow-200">Kariyer Puanı:</b> Bu, senin <b class="text-white">sıralama</b> puanındır. Sezon boyunca kazandığın tüm puanların toplamını gösterir ve mağazada harcama yapsan bile <b class="text-red-400">asla düşmez</b>. Ana liderlik tablosu bu puana göre sıralanır.</li>
+                    <li><b class="text-purple-300">Kasa Puanı:</b> Sezon sıfırlamasından etkilenmeyen özel bir "banka" hesabıdır. Puanlarını buraya aktararak bir sonraki sezona taşıyabilirsin. Kasa puanları sadece "Özel Ürün Mağazası"nda kullanılabilir ve sıralamaya etki etmez.</li>
                 </ul>
             </div>
+
+            <hr class="border-gray-700">
+
+            <div>
+                <h4 class="text-2xl font-bold text-yellow-300 mb-3">🎲 Oyun Modları Detaylı Anlatım</h4>
+                <div class="space-y-6">
+                    <div>
+                        <h5 class="text-xl font-semibold text-red-400 mb-2">🎁 Kutu Oyunu</h5>
+                        <p class="mb-2">Oyunun kalbi ve ana kaynak motorudur. "Kutu Hakları" kullanarak kutuları açar ve içlerindeki sürprizleri keşfedersin. Puan, bilet, kalkan, çarpan ve en önemlisi <b class="text-purple-400">kart paketleri</b> buradan çıkar.</p>
+                    </div>
+                    
+                    <div>
+                        <h5 class="text-xl font-semibold text-purple-400 mb-2">🃏 Kart Koleksiyonu & Takas Pazarı</h5>
+                        <p class="mb-2">Koleksiyonu tamamlamak için kartları doğrudan bulmazsın; oyun içinden kazandığın <b class="text-white">Kart Paketlerini</b> açarak kart elde edersin.</p>
+                        <ul class="list-disc list-inside mt-2 space-y-2 pl-4">
+                            <li><b>Fazla Kartlar:</b> Aynı karttan birden fazla kazandığında, bunlar "fazla" olarak birikir. Fazla kartlarını <b class="text-green-400">Takas Pazarı</b>'nda diğer oyuncularla takas ederek eksiklerini tamamlayabilirsin.</li>
+                             <li><b>Joker Kart:</b> Çok nadirdir! Koleksiyon albümünde eksik olan bir kartın üzerine tıklayarak Joker Kart'ını kullanabilir ve o kartı anında envanterine ekleyebilirsin.</li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h5 class="text-xl font-semibold text-teal-400 mb-2">🎡 Şans Çarkı</h5>
+                        <p>"Çark Biletleri" kullanarak çarkı çevir ve birçok farklı ödülden birini anında kazanma şansı yakala!</p>
+                    </div>
+
+                    <div>
+                        <h5 class="text-xl font-semibold text-orange-400 mb-2">🎯 Tıkla-Yakala</h5>
+                        <p class="mb-2">İki modu vardır: <b class="text-white">Tekli Oyun</b> modunda haftalık liderlik için yarışırsın. <b class="text-white">Lobi Oyunu</b> modunda ise admin tarafından kurulan anlık bir yarışa katılarak büyük ödülü kazanmaya çalışırsın.</p>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="border-gray-700">
+
+            <div>
+                <h4 class="text-2xl font-bold text-yellow-300 mb-3">⭐ Çarpan Sistemi: Strateji Rehberi</h4>
+                <p class="mb-2">Çarpanlar, oyundaki en stratejik öğelerden biridir. İki ana türü vardır:</p>
+                <ul class="list-disc list-inside mt-2 space-y-4 pl-4">
+                    <li>
+                        <b class="text-white">Tek Kullanımlık Çarpan (Kutudan Gelen):</b>
+                        <ul class="list-circle list-inside ml-4 mt-1">
+                            <li>Bir sonraki kutu açılışında <b class="text-green-400">otomatik olarak</b> kullanılır.</li>
+                            <li>Eğer tek kullanımlık bir çarpanın varken kutudan yeni bir tane daha bulursan, ikisinin değerleri <b class="text-teal-300">otomatik olarak birleşir!</b> (Örn: 2x varken 3x bulursan, yeni çarpanın tek kullanımlık 5x olur).</li>
+                        </ul>
+                    </li>
+                    <li>
+                        <b class="text-white">Kalıcı Çarpan (Mağaza, Ödül vb.):</b>
+                        <ul class="list-circle list-inside ml-4 mt-1 space-y-1">
+                            <li>Birden çok kullanım hakkı vardır ve kutu açarken kullanıp kullanmamayı <b class="text-yellow-400">sen seçersin.</b></li>
+                            <li>Kalıcı bir çarpanın varken kutudan yeni bir çarpan bulduğunda bir seçim ekranı çıkar:
+                                <ul class="list-disc list-inside ml-6 mt-1 text-gray-400">
+                                    <li>Eğer yeni çarpan <b class="text-green-400">daha güçlüyse</b>, eskisini Kutu Hakkı'na çevirip yenisine geçebilirsin.</li>
+                                    <li>Eğer yeni çarpan <b class="text-red-400">daha zayıfsa</b>, eskisini koruyup yenisini Kutu Hakkı'na çevirebilirsin.</li>
+                                    <li>Eğer yeni çarpan <b class="text-blue-400">aynı değerdeyse</b>, mevcut çarpanının kullanım hakkı otomatik olarak +1 artar.</li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+            
+            <hr class="border-gray-700">
+
+            <div>
+                <h4 class="text-2xl font-bold text-yellow-300 mb-3">📅 Sezonluk Sıfırlama</h4>
+                <p class="mb-2">Rekabeti taze tutmak için her ay oyun sıfırlanır. Ana ekrandaki geri sayım bittiğinde yeni sezon başlar.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div class="bg-red-900/50 p-4 rounded-lg">
+                        <h5 class="font-bold text-red-300">Neler Sıfırlanır? ❌</h5>
+                        <ul class="list-disc list-inside text-sm mt-2">
+                            <li>Mevcut Puan ve Kariyer Puanı</li>
+                            <li>Kart Koleksiyonu Albümü ve Joker Kartlar</li>
+                            <li>Tüm oyun istatistikleri (kutu sayısı vb.)</li>
+                            <li>Tüm liderlik tabloları</li>
+                        </ul>
+                    </div>
+                    <div class="bg-green-900/50 p-4 rounded-lg">
+                        <h5 class="font-bold text-green-300">Neler Kalıcıdır? ✅</h5>
+                         <ul class="list-disc list-inside text-sm mt-2">
+                            <li>Kullanıcı hesapların</li>
+                            <li><b class="text-purple-300">Kasa'ya</b> aktardığın puanlar</li>
+                            <li>Mağazadan alınan <b class="text-white">Avatarlar</b></li>
+                            <li>Kazanılan <b class="text-yellow-200">Şampiyonluk Unvanları</b> (Profilde görünür)</li>
+                            <li>Sezon sonunda hediye edilen envanter</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="border-gray-700">
+
+            <div class="text-center">
+                <p class="text-lg">Unutma, oyunun en önemli amacı eğlenmek! Liderlik tablolarında tırmanırken ve koleksiyonunu tamamlarken herkese bol şans ve iyi oyunlar dileriz!</p>
+                <p class="text-2xl mt-2">🎉🏆🃏</p>
+            </div>
+
         </div>
       </div>
-      </div>
+  </div>
 </div>
 
 <div id="avatarSelectionModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 hidden">
@@ -1878,11 +2109,17 @@ body.modal-open .modal-content {
                 <h5 class="font-semibold text-gray-300 mb-2">Çıkacak Özel Hedef</h5>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <select id="soloSpecialItemType" class="box-setting-input md:col-span-1">
-                        <option value="boxRight">Kutu Hakkı (📦)</option>
-                        <option value="iflasShield">İflas Kalkanı (🛡️)</option>
-                        <option value="wheelTicket">Çark Bileti (🎫️)</option>
-                        <option value="tempMultiplier">Çarpan (✖️)</option>
-                    </select>
+    <option value="boxRight">📦 Kutu Hakkı</option>
+    <option value="iflasShield">🛡️ İflas Kalkanı)</option>
+    <option value="wheelTicket">🎫 Çark Bileti</option>
+    <option value="tempMultiplier">✖️ Çarpan</option>
+    <option value="wildcard">🃏 Joker Kart</option>
+    <option value="card_pack">🎴 Standart Kart Paketi</option>
+    <option value="card_pack_normal">🥉 Bronz Kart Paketi</option>
+    <option value="card_pack_gumus">🥈 Gümüş Kart Paketi</option>
+    <option value="card_pack_altin">🥇 Altın Kart Paketi</option>
+    <option value="card_pack_efsanevi">🏆 Efsanevi Kart Paketi</option>
+</select>
                     <div id="soloSpecialValueContainer" class="md:col-span-2 grid grid-cols-2 gap-4">
                         <input type="number" id="soloSpecialValue" class="box-setting-input" placeholder="Adet (örn: 1, 5)">
                         <input type="number" id="soloSpecialMultiplierUses" class="box-setting-input hidden" placeholder="Kullanım Hakkı">
@@ -2060,16 +2297,21 @@ body.modal-open .modal-content {
               <input type="text" id="dailyRewardName" placeholder="Ödül Adı (Örn: 100 Puan)" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
               <textarea id="dailyRewardDescription" placeholder="Ödül Açıklaması" rows="2" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white"></textarea>
               <select id="dailyRewardType" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
-                  <option value="">Ödül Tipi Seçin</option>
-                  <option value="points">Puan</option>
-                  <option value="boxRights">Kutu Hakkı</option>
-                  <option value="wheelTicket">Çark Bileti</option>
-                  <option value="clickCatchTicket">Tıkla-Yakala Bileti</option>
-                  <option value="iflasShield">İflas Kalkanı</option>
-                  <option value="tempMultiplier">Çarpan</option>
-                  <option value="avatar">Avatar</option>
-                  <option value="wildcard">Joker Kart</option> <option value="card_pack">Kart Paketi</option> </select>
-              </select>
+    <option value="">Ödül Tipi Seçin</option>
+    <option value="points">💰 Puan</option>
+    <option value="boxRights">📦 Kutu Hakkı</option>
+    <option value="wheelTicket">🎫 Çark Bileti</option>
+    <option value="clickCatchTicket">🎟️ Tıkla-Yakala Bileti</option>
+    <option value="iflasShield">🛡️ İflas Kalkanı</option>
+    <option value="tempMultiplier">✖️ Çarpan</option>
+    <option value="avatar">👤 Avatar</option>
+    <option value="wildcard">🃏 Joker Kart</option>
+    <option value="card_pack">🎴 Standart Kart Paketi</option>
+    <option value="card_pack_normal">🥉 Bronz Kart Paketi</option>
+    <option value="card_pack_gumus">🥈 Gümüş Kart Paketi</option>
+    <option value="card_pack_altin">🥇 Altın Kart Paketi</option>
+    <option value="card_pack_efsanevi">🏆 Efsanevi Kart Paketi</option>
+</select>
               
               <div id="dailyRewardAvatarFields" class="hidden space-y-2">
                   <input type="text" id="dailyRewardAvatarName" placeholder="Avatarın Adı" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
@@ -2140,7 +2382,7 @@ body.modal-open .modal-content {
                 <div class="flex items-center gap-3"><span class="text-2xl w-6 text-center">💰</span><span><strong>Yüksek Skor:</strong> Normal hedeften daha fazla skor kazandırır.</span></div>
                 <div class="flex items-center gap-3"><span class="text-2xl w-6 text-center">💣</span><span><strong>Bomba:</strong> DİKKAT! Tıklanıldığında toplam skorunuzdan -skor düşürür.</span></div>
                 <div class="flex items-center gap-3"><span class="text-2xl w-6 text-center">⏰</span><span><strong>Ekstra Süre:</strong> Kalan oyun sürenize bonus saniyeler ekler.</span></div>
-                <div class="flex items-center gap-3"><span class="text-2xl w-6 text-center">🎁</span><span><strong>Özel Hedef:</strong> Nadiren belirir. Kutu Hakkı (📦) , İflas Kalkanı (🛡️) veya Çark Bilet (🎫️) gibi değerli eşyalar kazandırır.</span></div>
+                <div class="flex items-center gap-3"><span class="text-2xl w-6 text-center">🎁</span><span><strong>Özel Hedef:</strong> Nadiren belirir. Kutu Hakkı (📦), İflas Kalkanı (🛡️), Joker Kart (🃏) veya çeşitli Kart Paketleri (🎴🥉🥈🥇🏆) gibi çok değerli ödüller kazandırır.</span></div>
                 <hr class="border-gray-600">
                 <p class="font-semibold text-green-400">-- Lobi Oyununda Geçerli --</p>
                 <div class="flex items-center gap-3"><span class="text-2xl w-6 text-center">🎯</span><span><strong>Hedef:</strong> Hedef skora ulaşmak için tıklamanız gereken ana hedeftir. (+1 Skor)</span></div>
@@ -2590,28 +2832,29 @@ function getSyncedTime() {
   let isWheelSpinning = false;
   let wheelSegments = []; // Bu artık veritabanından doldurulacak
 
-// MEVCUT defaultWheelSegments DİZİSİNİ SİLİP BU YENİ VERSİYONU YAPIŞTIR
-
 const defaultWheelSegments = [
     // Sık Gelen Ödüller
     { type: 'points', value: 100, label: '🍌', prizeName: '+100 Puan', color: '#fde047', weight: 20 },
     { type: 'boxRights', value: 1, label: '📦', prizeName: '+1 Kutu Hakkı', color: '#8b5cf6', weight: 15 },
+    { type: 'card_pack', value: 1, label: '🎴', prizeName: '+1 Standart Kart Paketi', color: '#14b8a6', weight: 12 }, 
+    { type: 'card_pack_normal', value: 1, label: '🥉', prizeName: '+1 Bronz Kart Paketi', color: '#a16207', weight: 10 },
     { type: 'points', value: 10, label: '🍆', prizeName: '+10 Puan', color: '#9ca3af', weight: 10 },
     { type: 'pas', label: '☠️', prizeName: 'Pas', color: '#6b7280', weight: 10 },
 
     // Orta Seviye Ödüller
-    { type: 'card_pack', value: 1, label: '🎴', prizeName: '+1 Kart Paketi', color: '#14b8a6', weight: 12 }, // YENİ EKLENDİ (İyi Şans Oranı)
+    { type: 'card_pack_gumus', value: 1, label: '🥈', prizeName: '+1 Gümüş Kart Paketi', color: '#71717a', weight: 8 },
     { type: 'points', value: 250, label: '🍐', prizeName: '+250 Puan', color: '#22c55e', weight: 10 },
     { type: 'iflasShield', value: 1, label: '🛡️', prizeName: '+1 İflas Kalkanı', color: '#3b82f6', weight: 8 },
     { type: 'clickCatchTicket', value: 1, label: '🎟️', prizeName: '+1 T-Y Bileti', color: '#ec4899', weight: 8 },
+    { type: 'wheelTicket', value: 1, label: '🎡', prizeName: 'Bedava Çevirme', color: '#f97316', weight: 8 },
     { type: 'pas', label: '☠️', prizeName: 'Pas', color: '#6b7280', weight: 10 },
-
+    
     // Nadir ve Efsanevi Ödüller
-    { type: 'wheelTicket', value: 1, label: '🎡', prizeName: 'Bedava Çevirme', color: '#f97316', weight: 5 },
-    { type: 'boxRights', value: 3, label: '🎁', prizeName: '+3 Kutu Hakkı', color: '#f59e0b', weight: 4 },
-    { type: 'wildcard', value: 1, label: '🃏', prizeName: '+1 Joker Kart', color: '#d946ef', weight: 4 }, // YENİ EKLENDİ (Nadir Ama Mümkün)
+    { type: 'card_pack_altin', value: 1, label: '🥇', prizeName: '+1 Altın Kart Paketi', color: '#f59e0b', weight: 4 },
+    { type: 'wildcard', value: 1, label: '🃏', prizeName: '+1 Joker Kart', color: '#d946ef', weight: 4 },
+    { type: 'tempMultiplier', value: 5, duration: 1, label: '✖️', prizeName: '5X Çarpan', color: '#06b6d4', weight: 2 }, // EKLENEN SATIR
     { type: 'points', value: 1000, label: '🎂', prizeName: '+1000 Puan', color: '#ef4444', weight: 2 },
-    { type: 'tempMultiplier', value: 5, duration: 1, label: '✖️', prizeName: '5X Çarpan', color: '#06b6d4', weight: 1 },
+    { type: 'card_pack_efsanevi', value: 1, label: '🏆', prizeName: '+1 Efsanevi Kart Paketi', color: '#7e22ce', weight: 1 },
     { type: 'surpriseBox', value: 1, label: '🎉', prizeName: 'Sürpriz Kutu', color: '#eab308', weight: 1 }
 ];
   
@@ -2626,6 +2869,7 @@ const defaultWheelSegments = [
   let collectedBoxRights = 0;
   let collectedIflasShields = 0;
   let collectedWheelTickets = 0;
+  let collectedCardPacks = [];
   
   // Haftanın liderini bu değişkende tutacağız. Sıralama güncellendiğinde bu da güncellenir.
   let clickCatchLeader = null; 
@@ -3185,46 +3429,14 @@ async function afterLogin() {
  */
 // MEVCUT showSection FONKSİYONUNU SİLİP BUNU YAPIŞTIR
 function showSection(sectionId) {
-    // Kullanıcı koleksiyon sekmesinden ayrılıyorsa, "yeni" kart listesini temizle
     if (currentActiveSection === 'cardCollection' && sectionId !== 'cardCollection') {
         newlyAcquiredCards.clear();
     }
 
-    const contentIds = [
-        'gameContent', 
-        'storeSection', 
-        'announcementsContent', 
-        'chanceWheelContent', 
-        'clickCatchContent',
-        'cardCollectionContent' // <-- BU SATIRI EKLE
-    ];
-    const tabButtonIds = [
-        'gameTabBtn', 
-        'storeTabBtn', 
-        'announcementsTabBtn', 
-        'chanceWheelTabBtn', 
-        'clickCatchTabBtn',
-        'cardCollectionTabBtn'
-    ];
+    const contentIds = ['gameContent', 'storeSection', 'announcementsContent', 'chanceWheelContent', 'clickCatchContent', 'cardCollectionContent'];
+    const tabButtonIds = ['gameTabBtn', 'storeTabBtn', 'announcementsTabBtn', 'chanceWheelTabBtn', 'clickCatchTabBtn', 'cardCollectionTabBtn'];
 
-    contentIds.forEach(id => {
-        const element = document.getElementById(id);
-        if (element) {
-            element.classList.add('hidden');
-        }
-    });
-
-    document.getElementById('adminStoreManagementButtonContainer').classList.add('hidden');
-    document.getElementById('adminAnnouncementControls').classList.add('hidden');
-    const clickCatchAdminButtonsContainer = document.getElementById('clickCatchAdminButtonsContainer');
-    if (clickCatchAdminButtonsContainer) {
-        clickCatchAdminButtonsContainer.classList.add('hidden');
-    }
-    const cardAdminControls = document.getElementById('adminCardCollectionControls');
-    if (cardAdminControls) {
-        cardAdminControls.classList.add('hidden');
-    }
-
+    contentIds.forEach(id => document.getElementById(id)?.classList.add('hidden'));
     tabButtonIds.forEach(btnId => {
         const btn = document.getElementById(btnId);
         if (btn) {
@@ -3233,10 +3445,8 @@ function showSection(sectionId) {
         }
     });
     
-    const activeContent = document.getElementById(`${sectionId}Content`) || document.getElementById(`${sectionId}Section`);
-    if (activeContent) {
-        activeContent.classList.remove('hidden');
-    }
+    document.getElementById(`${sectionId}Content`)?.classList.remove('hidden');
+    document.getElementById(`${sectionId}Section`)?.classList.remove('hidden');
 
     const activeBtn = document.getElementById(`${sectionId}TabBtn`);
     if (activeBtn) {
@@ -3244,10 +3454,18 @@ function showSection(sectionId) {
         activeBtn.classList.remove('bg-gray-700', 'hover:bg-gray-600');
     }
 
+    // Admin panellerini yönet
+    document.getElementById('adminStoreManagementButtonContainer').classList.add('hidden');
+    document.getElementById('adminAnnouncementControls').classList.add('hidden');
+    document.getElementById('clickCatchAdminButtonsContainer')?.classList.add('hidden');
+    document.getElementById('adminCardCollectionControls')?.classList.add('hidden');
+    document.getElementById('kasaSettingsBtn')?.classList.add('hidden'); // Kasa ayarlarını varsayılan olarak gizle
+
     if (sectionId === 'store') {
         loadStoreItems();
         if (isAdmin) {
             document.getElementById('adminStoreManagementButtonContainer').classList.remove('hidden');
+            document.getElementById('kasaSettingsBtn').classList.remove('hidden'); // Admin için Kasa Ayarlarını göster
         } else {
             document.getElementById('storeIndicator').classList.add('hidden');
             db.ref(`users/${currentUser}/lastSeenStoreTimestamp`).set(latestStoreItemTimestamp);
@@ -4440,75 +4658,78 @@ async function deleteUserAvatar(username, avatarId) {
   }
   
   function renderBoxes() { 
-      const container = document.getElementById("boxContainer"); 
-      container.innerHTML = ''; 
-      boxes.forEach((box, i) => { 
-          let div = document.createElement('div'); 
-          div.className = `box bg-gray-700 border-2 border-red-700 aspect-square flex flex-col items-center justify-center cursor-pointer font-bold text-lg rounded-lg relative transition-all duration-200 shadow-md hover:shadow-lg ${box.opened ? 'opened bg-gray-600 cursor-default border-gray-500 shadow-inner' : ''}`; 
-          let displayContent = `<span class="text-gray-300">${box.id}</span>`; 
-          if (box.opened) { 
-              if (box.content === 'points') { 
-                  // Düzeltme: finalPoints varsa onu, yoksa value'yu göster
-                  displayContent = `<span class="text-green-400 text-xl">+${box.finalPoints || box.value}</span>`; 
-                  div.classList.add('bg-green-700', 'border-green-500', 'animate-pulse'); 
-              } else if (box.content === 'surpriz') { 
-                  displayContent = `<span class="text-yellow-400 text-2xl"> 🎉</span>`; 
-                  div.classList.add('bg-yellow-700', 'border-yellow-500', 'animate-pulse'); 
-              } else if (box.content === 'iflas') { 
-                  displayContent = `<span class="text-red-400 text-2xl">💣</span>`; 
-                  div.classList.add('bg-red-700', 'border-red-500'); 
-              } else if (box.content === 'multiplier') { 
-                  displayContent = `<span class="text-blue-400 text-xl">${box.value}X</span>`; 
-                  div.classList.add('bg-blue-700', 'border-blue-500', 'animate-pulse'); 
-              } 
-              // YENİ EKLENECEK KOD BAŞLANGICI
-              else if (box.content === 'wheelTicket') {
-                  displayContent = `<span class="text-pink-400 text-2xl">🎫️</span>`; 
-                  div.classList.add('bg-pink-700', 'border-pink-500', 'animate-pulse'); 
-              } else if (box.content === 'clickCatchTicket') {
-                  displayContent = `<span class="text-orange-400 text-2xl">🎟️</span>`; 
-                  div.classList.add('bg-orange-700', 'border-orange-500', 'animate-pulse');
-              }
-              else if (box.content === 'iflasShield') {
-                  displayContent = `<span class="text-cyan-400 text-2xl">🛡️</span>`; 
-                  div.classList.add('bg-cyan-700', 'border-cyan-500', 'animate-pulse');
-              }
+    const container = document.getElementById("boxContainer"); 
+    container.innerHTML = ''; 
+    boxes.forEach((box, i) => { 
+        let div = document.createElement('div'); 
+        div.className = `box bg-gray-700 border-2 border-red-700 aspect-square flex flex-col items-center justify-center cursor-pointer font-bold text-lg rounded-lg relative transition-all duration-200 shadow-md hover:shadow-lg`;
+        
+        if (box.opened) {
+            div.classList.add('opened', 'bg-gray-600', 'cursor-default', 'border-gray-500', 'shadow-inner');
             
-              // YENİ EKLENEN KOD SONU
-              if (box.opener) {
-                  let openerDiv = document.createElement('div'); 
-                  openerDiv.className = 'opener absolute bottom-1 left-0 right-0 text-center text-xs text-gray-400 truncate px-1'; 
-                  openerDiv.textContent = box.opener; 
-                  div.appendChild(openerDiv); 
-              }
+            let openedContentHtml = '';
 
-              // --- EKSİK OLAN ÇARPAN İKONU KODU BURAYA EKLENDİ --- //
-              if (box.multiplierApplied && box.multiplierApplied > 1) {
-                  let multiplierIcon = document.createElement('div');
-                  multiplierIcon.className = 'absolute top-0 right-1 text-yellow-300 font-bold text-xs bg-black bg-opacity-50 px-1 rounded-bl';
-                  multiplierIcon.textContent = `✖️${box.multiplierApplied}`;
-                  multiplierIcon.title = `Bu kutu ${box.multiplierApplied}x çarpan ile açıldı.`;
-                  div.appendChild(multiplierIcon);
-              }
-              // --- YENİ KOD SONU --- //
-          } 
-          div.innerHTML += displayContent; 
-          div.onclick = () => { 
-              if (box.opened) { 
-                  showOpenedBoxInfo(box); 
-              } else { 
-                  openBox(i); 
-              } 
-          }; 
-          container.appendChild(div); 
-      }); 
-  }
+            // Kart paketi veya Joker Kart ise, CSS sınıfını ekle (ikon CSS'ten gelecek)
+            if (box.content && (box.content.startsWith('card_pack') || box.content === 'wildcard')) {
+                div.classList.add(box.content);
+                openedContentHtml = `<div class="box-content"></div>`; 
+            }
+            // Diğer içerik türleri için ikonu/yazıyı doğrudan ekle
+            else if (box.content === 'points') { 
+                openedContentHtml = `<span class="box-content text-green-400 text-xl">+${box.finalPoints || box.value}</span>`; 
+                div.classList.add('bg-green-700', 'border-green-500', 'animate-pulse'); 
+            } else if (box.content === 'surpriz') { 
+                openedContentHtml = `<div class="box-content text-yellow-400 text-2xl">🎉</div>`;
+                div.classList.add('bg-yellow-700', 'border-yellow-500', 'animate-pulse'); 
+            } else if (box.content === 'iflas') { 
+                openedContentHtml = `<div class="box-content text-red-400 text-2xl">💣</div>`;
+                div.classList.add('bg-red-700', 'border-red-500'); 
+            } else if (box.content === 'multiplier') { 
+                openedContentHtml = `<span class="box-content text-blue-400 text-xl">${box.value}X</span>`; 
+                div.classList.add('bg-blue-700', 'border-blue-500', 'animate-pulse'); 
+            } else if (box.content === 'wheelTicket') {
+                openedContentHtml = `<div class="box-content text-pink-400 text-2xl">🎫️</div>`;
+                div.classList.add('bg-pink-700', 'border-pink-500', 'animate-pulse'); 
+            } else if (box.content === 'clickCatchTicket') {
+                openedContentHtml = `<div class="box-content text-orange-400 text-2xl">🎟️</div>`;
+                div.classList.add('bg-orange-700', 'border-orange-500', 'animate-pulse');
+            } else if (box.content === 'iflasShield') {
+                openedContentHtml = `<div class="box-content text-cyan-400 text-2xl">🛡️</div>`;
+                div.classList.add('bg-cyan-700', 'border-cyan-500', 'animate-pulse');
+            }
+            
+            div.innerHTML = openedContentHtml;
+          
+            if (box.opener) {
+                let openerDiv = document.createElement('div'); 
+                openerDiv.className = 'opener absolute bottom-1 left-0 right-0 text-center text-xs text-gray-400 truncate px-1'; 
+                openerDiv.textContent = box.opener; 
+                div.appendChild(openerDiv); 
+            }
 
-// =======================================================
-// KUTU SİSTEMİ İÇİN GÜNCEL FONKSİYONLAR BLOKU
-// =======================================================
+            if (box.multiplierApplied && box.multiplierApplied > 1) {
+                let multiplierIcon = document.createElement('div');
+                multiplierIcon.className = 'absolute top-0 right-1 text-yellow-300 font-bold text-xs bg-black bg-opacity-50 px-1 rounded-bl';
+                multiplierIcon.textContent = `✖️${box.multiplierApplied}`;
+                multiplierIcon.title = `Bu kutu ${box.multiplierApplied}x çarpan ile açıldı.`;
+                div.appendChild(multiplierIcon);
+            }
+        } else {
+            // Kutu kapalıysa, sadece numarasını göster
+            div.innerHTML = `<span class="box-content text-gray-300">${box.id}</span>`;
+        }
+        
+        div.onclick = () => { 
+            if (box.opened) { 
+                showOpenedBoxInfo(box); 
+            } else { 
+                openBox(i); 
+            } 
+        }; 
+        container.appendChild(div); 
+    }); 
+}
 
-// 1. Kutu Ayarları için yeni satır ekler (Joker Kart VE Kart Paketi dahil)
 function addBoxSettingRow(item = {}) {
     const container = document.getElementById('boxSettingsRowsContainer');
     const row = document.createElement('div');
@@ -4520,15 +4741,19 @@ function addBoxSettingRow(item = {}) {
 
     row.innerHTML = `
         <select class="setting-type flex-grow bg-gray-700 p-2 rounded-md text-white border border-gray-600" onchange="handleRowTypeChange(this)">
-            <option value="points" ${type === 'points' ? 'selected' : ''}>Puan</option>
-            <option value="iflas" ${type === 'iflas' ? 'selected' : ''}>İflas (Bomba)</option>
-            <option value="surpriz" ${type === 'surpriz' ? 'selected' : ''}>Sürpriz Kutu</option>
-            <option value="multiplier" ${type === 'multiplier' ? 'selected' : ''}>Çarpan</option>
-            <option value="wheelTicket" ${type === 'wheelTicket' ? 'selected' : ''}>Çark Bileti</option>
-            <option value="clickCatchTicket" ${type === 'clickCatchTicket' ? 'selected' : ''}>Tıkla-Yakala Bileti</option>
-            <option value="iflasShield" ${type === 'iflasShield' ? 'selected' : ''}>İflas Kalkanı</option>
-            <option value="wildcard" ${type === 'wildcard' ? 'selected' : ''}>Joker Kart</option>
-            <option value="card_pack" ${type === 'card_pack' ? 'selected' : ''}>Kart Paketi</option>
+            <option value="points" ${type === 'points' ? 'selected' : ''}>💰 Puan</option>
+            <option value="iflas" ${type === 'iflas' ? 'selected' : ''}>💣 İflas (Bomba)</option>
+            <option value="surpriz" ${type === 'surpriz' ? 'selected' : ''}>🎉 Sürpriz Kutu</option>
+            <option value="multiplier" ${type === 'multiplier' ? 'selected' : ''}>✖️ Çarpan</option>
+            <option value="wheelTicket" ${type === 'wheelTicket' ? 'selected' : ''}>🎫 Çark Bileti</option>
+            <option value="clickCatchTicket" ${type === 'clickCatchTicket' ? 'selected' : ''}>🎟️ T-Y Bileti</option>
+            <option value="iflasShield" ${type === 'iflasShield' ? 'selected' : ''}>🛡️ İflas Kalkanı</option>
+            <option value="wildcard" ${type === 'wildcard' ? 'selected' : ''}>🃏 Joker Kart</option>
+            <option value="card_pack" ${type === 'card_pack' ? 'selected' : ''}>🎴 Standart Kart Paketi</option>
+            <option value="card_pack_normal" ${type === 'card_pack_normal' ? 'selected' : ''}>🥉 Bronz Kart Paketi</option>
+            <option value="card_pack_gumus" ${type === 'card_pack_gumus' ? 'selected' : ''}>🥈 Gümüş Kart Paketi</option>
+            <option value="card_pack_altin" ${type === 'card_pack_altin' ? 'selected' : ''}>🥇 Altın Kart Paketi</option>
+            <option value="card_pack_efsanevi" ${type === 'card_pack_efsanevi' ? 'selected' : ''}>🏆 Efsanevi Kart Paketi</option>
         </select>
         <input type="number" value="${value}" class="setting-value w-28 bg-gray-700 p-2 rounded-md text-white border border-gray-600" placeholder="Değer">
         <input type="number" value="${count}" class="setting-count w-28 bg-gray-700 p-2 rounded-md text-white border border-gray-600" placeholder="Adet" oninput="updateTotalBoxCount()">
@@ -4643,46 +4868,63 @@ async function openBox(index) {
     if (box.content === 'multiplier') {
         updates['multiplierFoundCount'] = (user.multiplierFoundCount || 0) + 1;
         
-        if (user.multiplierSource && user.multiplierSource !== 'none') {
+        if (user.multiplierSource === 'store' && user.multiplierRemainingUses > 0) {
             if (box.value === user.activeMultiplier) {
                 updates['multiplierRemainingUses'] = (user.multiplierRemainingUses || 0) + 1;
                 message = `Tebrikler! Mevcut <b>${user.activeMultiplier}x</b> çarpanınla aynı türde bir çarpan daha buldun. Kullanım hakkın <b>+1</b> arttı!`;
                 logActivity('multiplierStacked', currentUser, { value: user.activeMultiplier, uses: 1 });
-            } 
-            else if (box.value > user.activeMultiplier) {
-                const kutuHakkiDonusum = user.multiplierRemainingUses || 0;
-                updates['kutuHakki'] = (updates['kutuHakki'] || user.kutuHakki) + kutuHakkiDonusum;
-                updates['activeMultiplier'] = box.value;
-                updates['multiplierSource'] = 'box';
-                updates['multiplierRemainingUses'] = 0;
-                message = `İNANILMAZ! Mevcut ${user.activeMultiplier}x çarpanın, kutudan çıkan daha güçlü <b>${box.value}x çarpan</b> ile değiştirildi. Eski çarpanının kalan ${user.multiplierRemainingUses} hakkı, envanterine <b>+${kutuHakkiDonusum} Kutu Hakkı</b> olarak eklendi!`;
-                
-                // --- DEĞİŞİKLİK BURADA: logActivity'e ek bilgiler ekledik ---
-                logActivity('multiplierUpgraded', currentUser, { 
-                    oldValue: user.activeMultiplier, 
-                    newValue: box.value, 
-                    boxRights: kutuHakkiDonusum,
-                    boxId: box.id,
-                    multiplierUsed: finalMultiplier,
-                    remainingUses: user.multiplierRemainingUses || 0
-                });
 
-            }
-            else {
-                message = `Kutudan ${box.value}x çarpan buldun ama mevcut <b>${user.activeMultiplier}x çarpanın</b> daha güçlü olduğu için korundu.`;
-                logActivity('multiplierDiscarded', currentUser, { discardedValue: box.value, keptValue: user.activeMultiplier });
+            } else {
+                shouldLockGame = false;
+                shouldDisplayMessage = false;
+                
+                const existingMultiplier = {
+                    value: user.activeMultiplier,
+                    uses: user.multiplierRemainingUses
+                };
+                const foundMultiplier = {
+                    value: box.value,
+                    uses: 1
+                };
+
+                await userRef.update(updates);
+                await boxRef.update(boxUpdate);
+                await db.ref('lastOpenedBox').set(boxOpenInfo);
+                
+                openMultiplierChoiceModal({ hasMultiplier: true, existing: existingMultiplier, found: foundMultiplier });
+                return;
             }
 
         } else {
-            message = `Tebrikler! <b>${box.value}x Çarpan</b> buldun! Bu çarpan, bir sonraki kutu açılışında otomatik olarak kullanılacak.`;
-            updates['activeMultiplier'] = box.value;
-            updates['multiplierSource'] = 'box';
-            logActivity('multiplierFound', currentUser, { boxId: box.id, value: box.value, multiplier: finalMultiplier });
+            if (user.multiplierSource === 'box' && user.activeMultiplier > 1) {
+                const oldValue = user.activeMultiplier;
+                const newValue = box.value;
+                const combinedValue = oldValue + newValue;
+
+                updates['activeMultiplier'] = combinedValue;
+                updates['multiplierSource'] = 'box';
+                updates['multiplierRemainingUses'] = 0;
+                
+                message = `Şanslısın! Mevcut tek kullanımlık <b>${oldValue}x</b> çarpanın, kutudan çıkan <b>${newValue}x</b> ile birleşerek <b>${combinedValue}x</b> gücüne ulaştı!`;
+                
+                logActivity('multiplierCombined', currentUser, {
+                    boxId: box.id,
+                    oldValue: oldValue,
+                    newValue: newValue,
+                    combinedValue: combinedValue
+                });
+
+            } else {
+                message = `Tebrikler! <b>${box.value}x Çarpan</b> buldun! Bu çarpan, bir sonraki kutu açılışında otomatik olarak kullanılacak.`;
+                updates['activeMultiplier'] = box.value;
+                updates['multiplierSource'] = 'box';
+                updates['multiplierRemainingUses'] = 0;
+                logActivity('multiplierFound', currentUser, { boxId: box.id, value: box.value, multiplier: finalMultiplier });
+            }
         }
     }
-    //... (fonksiyonun geri kalanı aynı)
     else {
-        if (useMultiplier && box.content !== 'surpriz' && box.content !== 'card_pack') {
+        if (useMultiplier) {
             if (originalMultiplierSource === 'box') {
                 updates['activeMultiplier'] = 1;
                 updates['multiplierSource'] = 'none';
@@ -4769,7 +5011,7 @@ async function openBox(index) {
             if (userForCheck.completedCollection === true) {
                 const boxRightsToGain = itemsGained * 5;
                 updates['kutuHakki'] = (user.kutuHakki || 0) + boxRightsToGain;
-                message = `Harika! Koleksiyonu zaten tamamladığın için kazandığın ${itemsGained} Joker Kart, hesabına <b class="text-green-400">+${boxRightsToGain} Kutu Hakkı</b> olarak eklendi!`;
+                message = `Harika! Koleksiyonu zaten tamamladığın için kazandığın ${itemsGained} 🃏 Joker Kart, hesabına <b class="text-green-400">+${boxRightsToGain} Kutu Hakkı</b> olarak eklendi!`;
                 logActivity('wildcardConverted', currentUser, { 
                     source: `${box.id} numaralı kutu`,
                     wildcards: itemsGained, 
@@ -4778,21 +5020,41 @@ async function openBox(index) {
                 });
             } else {
                 updates['wildcards'] = (user.wildcards || 0) + itemsGained;
-                message = `İNANILMAZ! Kutudan <b class="text-purple-400">+${itemsGained} JOKER KART</b> kazandın!`;
+                message = `İNANILMAZ! Kutudan <b class="text-purple-400">+${itemsGained} 🃏 Joker Kart</b> kazandın!`;
                 logActivity('newItemFound', currentUser, { itemName: `+${itemsGained} Joker Kart`, itemType: 'wildcard', boxId: box.id, multiplier: finalMultiplier });
             }
         }
-        else if (box.content === 'card_pack') {
+        else if (box.content.startsWith('card_pack')) {
             const packsToOpen = (box.value || 1) * finalMultiplier;
-            message = `Tebrikler! Kutudan ${packsToOpen} adet Kart Paketi buldun!`;
-            logActivity('newItemFound', currentUser, { itemName: `${packsToOpen} Kart Paketi`, itemType: 'card_pack', boxId: box.id, multiplier: finalMultiplier });
             
-            boxUpdate.value = `+${packsToOpen} Kart Paketi`;
-            boxOpenInfo.value = `+${packsToOpen} Kart Paketi`;
+            const packNamesForPopup = {
+                'card_pack': '🎴 Standart Kart Paketi',
+                'card_pack_normal': '🥉 Bronz Kart Paketi',
+                'card_pack_gumus': '🥈 Gümüş Kart Paketi',
+                'card_pack_altin': '🥇 Altın Kart Paketi',
+                'card_pack_efsanevi': '🏆 Efsanevi Kart Paketi'
+            };
+            const packNameForPopup = packNamesForPopup[box.content] || 'Kart Paketi';
+            
+            const packNamesForLog = {
+                'card_pack': 'Standart Kart Paketi',
+                'card_pack_normal': 'Bronz Kart Paketi',
+                'card_pack_gumus': 'Gümüş Kart Paketi',
+                'card_pack_altin': 'Altın Kart Paketi',
+                'card_pack_efsanevi': 'Efsanevi Kart Paketi'
+            };
+            const packNameForLog = packNamesForLog[box.content] || 'Kart Paketi';
+            
+            message = `Tebrikler! Kutudan ${packsToOpen} adet ${packNameForPopup} buldun!`;
+            
+            logActivity('newItemFound', currentUser, { itemName: `+${packsToOpen} ${packNameForLog}`, itemType: box.content, boxId: box.id, multiplier: finalMultiplier });
+            
+            boxUpdate.value = `+${packsToOpen} ${packNameForPopup}`;
+            boxOpenInfo.value = `+${packsToOpen} ${packNameForPopup}`;
 
             shouldLockGame = false; 
             shouldDisplayMessage = true; 
-            startCardPackOpening(packsToOpen, `${box.id} numaralı kutu`, finalMultiplier);
+            startCardPackOpening(packsToOpen, `${box.id} numaralı kutu`, finalMultiplier, box.content);
         }
         else {
             const itemsGained = box.value * finalMultiplier;
@@ -5715,11 +5977,11 @@ async function buyItem(itemId) {
     if (confirmed) {
         const itemValue = parseInt(item.value) || 0;
         
-        if (item.type === 'card_pack') {
+        if (item.type.startsWith('card_pack')) {
             await userRef.update({ balance: user.balance - item.cost, totalSpentPoints: (user.totalSpentPoints || 0) + item.cost });
             await itemRef.transaction(currentItem => { if (currentItem) { if (currentItem.stock !== undefined && currentItem.stock !== null) { currentItem.stock--; } currentItem.purchaseCount = (currentItem.purchaseCount || 0) + 1; } return currentItem; });
             displayMessage(`${item.cost} puan harcandı. Kart paketlerin açılıyor...`);
-            startCardPackOpening(itemValue || 1, 'Mağaza', 1);
+            startCardPackOpening(itemValue || 1, 'Mağaza', 1, item.type);
             return;
         }
 
@@ -6951,13 +7213,11 @@ async function toggleGameLock() {
 
         const remainingContents = {};
 
-        // 1. Başlangıçtaki tüm içerikleri say
         boxConfig.forEach(item => {
             const key = `${item.type}-${item.value}`;
             remainingContents[key] = (remainingContents[key] || 0) + item.count;
         });
 
-        // 2. Açılmış kutuları bu sayıdan düş
         if (currentBoxes) {
             currentBoxes.forEach(box => {
                 if (box.opened) {
@@ -6969,7 +7229,6 @@ async function toggleGameLock() {
             });
         }
         
-        // 3. Sonuçları ekrana yazdır
         listEl.innerHTML = '';
         let html = '';
         Object.entries(remainingContents).forEach(([key, count]) => {
@@ -6985,6 +7244,12 @@ async function toggleGameLock() {
                     case 'iflasShield': label = 'İflas Kalkanı'; icon = '🛡️'; break;
                     case 'wheelTicket': label = 'Çark Bileti'; icon = '️🎫'; break;
                     case 'clickCatchTicket': label = 'Tıkla-Yakala Bileti'; icon = '🎟️'; break;
+                    case 'wildcard': label = 'Joker Kart'; icon = '🃏'; break;
+                    case 'card_pack': label = 'Standart Kart Paketi'; icon = '🎴'; break;
+                    case 'card_pack_normal': label = 'Bronz Kart Paketi'; icon = '🥉'; break;
+                    case 'card_pack_gumus': label = 'Gümüş Kart Paketi'; icon = '🥈'; break;
+                    case 'card_pack_altin': label = 'Altın Kart Paketi'; icon = '🥇'; break;
+                    case 'card_pack_efsanevi': label = 'Efsanevi Kart Paketi'; icon = '🏆'; break;
                 }
                 html += `<p class="flex justify-between items-center p-2 bg-gray-800 rounded mb-2 text-white"><span>${icon} ${label}</span> <span class="font-bold text-yellow-300">${count} Adet</span></p>`;
             }
@@ -7254,7 +7519,6 @@ async function openDailyRewardModal() {
     }
 }
 
-// MEVCUT claimDailyReward fonksiyonunu bununla değiştir
 async function claimDailyReward(rewardId) {
     if (isAdmin) return;
 
@@ -7408,12 +7672,9 @@ async function claimDailyReward(rewardId) {
                 };
                 message = `Tebrikler! <b>${reward.avatarName}</b> avatarı koleksiyonuna eklendi!`;
                 break;
-            
-            // --- YENİ EKLENEN KOD BAŞLANGICI ---
             case 'wildcard':
-                // Eğer kullanıcı koleksiyonu zaten tamamladıysa, Joker Kart yerine Kutu Hakkı ver
                 if (user.completedCollection === true) {
-                    const boxRightsToGain = (reward.value || 1) * 5; // Her joker kart için 5 kutu hakkı
+                    const boxRightsToGain = (reward.value || 1) * 5;
                     updates['kutuHakki'] = (user.kutuHakki || 0) + boxRightsToGain;
                     message = `Harika! Koleksiyonu zaten tamamladığın için kazandığın ${reward.value} Joker Kart, hesabına <b class="text-green-400">+${boxRightsToGain} Kutu Hakkı</b> olarak eklendi!`;
                 } else {
@@ -7421,22 +7682,21 @@ async function claimDailyReward(rewardId) {
                     message = `İNANILMAZ! Günlük ödülden <b class="text-purple-400">+${reward.value} JOKER KART</b> kazandın!`;
                 }
                 break;
-
             case 'card_pack':
-                // Eğer kullanıcı koleksiyonu zaten tamamladıysa, Kart Paketi yerine Puan ver
+            case 'card_pack_normal':
+            case 'card_pack_gumus':
+            case 'card_pack_altin':
+            case 'card_pack_efsanevi':
                 if (user.completedCollection === true) {
-                    const pointsToGain = (reward.value || 1) * 500; // Her kart paketi için 500 puan
+                    const pointsToGain = (reward.value || 1) * 500;
                     updates['balance'] = (user.balance || 0) + pointsToGain;
                     updates['kariyerPuani'] = (user.kariyerPuani || 0) + pointsToGain;
-                    message = `Tebrikler! Koleksiyonu zaten tamamladığın için kazandığın ${reward.value} Kart Paketi, hesabına <b class="text-green-400">+${pointsToGain} Puan</b> olarak eklendi!`;
+                    message = `Tebrikler! Koleksiyonu zaten tamamladığın için kazandığın ${reward.value} ${reward.name}, hesabına <b class="text-green-400">+${pointsToGain} Puan</b> olarak eklendi!`;
                 } else {
-                    // Koleksiyonu tamamlamadıysa, kart paketi açma seremonisini başlat
-                    startCardPackOpening(reward.value || 1, 'Günlük Ödül');
-                    // Bu durumda 'updates' objesine bir şey eklemiyoruz çünkü ödül anında verilmiyor, seremoni sonunda veriliyor.
-                    message = `Tebrikler! Günlük ödülden ${reward.value} adet Kart Paketi kazandın!`;
+                    startCardPackOpening(reward.value || 1, 'Günlük Ödül', 1, reward.type);
+                    message = `Tebrikler! Günlük ödülden ${reward.value} adet ${reward.name} kazandın!`;
                 }
                 break;
-            // --- YENİ EKLENEN KOD SONU ---
         }
 
         const logDetails = { 
@@ -8095,7 +8355,6 @@ async function spinWheel() {
                  message = "Vay canına! Çarktan Sürpriz Kutu çıktı! Şimdi bir kart seç.";
                  shouldLogActivity = false;
                  break;
-            // YENİ EKLENEN KOD BAŞLANGICI
             case 'wildcard':
                 const userSnapForCheckWC = await userRef.once('value');
                 const userForCheckWC = userSnapForCheckWC.val();
@@ -8109,12 +8368,15 @@ async function spinWheel() {
                 }
                 break;
             case 'card_pack':
+            case 'card_pack_normal':
+            case 'card_pack_gumus':
+            case 'card_pack_altin':
+            case 'card_pack_efsanevi':
                 const packsToOpen = winningSegment.value || 1;
-                message = `Tebrikler! Çarktan ${packsToOpen} adet Kart Paketi kazandın!`;
-                startCardPackOpening(packsToOpen, 'Şans Çarkı', 1);
+                message = `Tebrikler! Çarktan ${packsToOpen} adet ${winningSegment.prizeName} kazandın!`;
+                startCardPackOpening(packsToOpen, 'Şans Çarkı', 1, winningSegment.type);
                 shouldLogActivity = false;
                 break;
-            // YENİ EKLENEN KOD SONU
             case 'pas':
                 message = "Bu seferlik pas! Bir dahaki sefere daha şanslı olabilirsin.";
                 break;
@@ -8386,10 +8648,31 @@ async function clearLastWinner() {
             break;
         case 'tempMultiplier':
             collectedMultipliers.push({ value: value, uses: uses });
-            // --- DÜZELTİLEN SATIR ---
             floatingText = `${value}x Çarpan (${uses} kullanım)`;
-            // --- DÜZELTME SONU ---
             document.getElementById('collectedSpecials').innerHTML += `<span class="text-xl">${emoji}</span>`;
+            break;
+        case 'wildcard':
+            // Bu gelecekte eklenebilir, şimdilik diğerleriyle aynı mantıkta çalışsın
+            // collectedWildcards += value;
+            floatingText = `+${value} 🃏 Joker Kart Yakalandı!`;
+            document.getElementById('collectedSpecials').innerHTML += `<span class="text-xl">🎁</span>`;
+            break;
+        case 'card_pack':
+        case 'card_pack_normal':
+        case 'card_pack_gumus':
+        case 'card_pack_altin':
+        case 'card_pack_efsanevi':
+            const packNames = {
+                'card_pack': '🎴 Standart Kart Paketi',
+                'card_pack_normal': '🥉 Bronz Kart Paketi',
+                'card_pack_gumus': '🥈 Gümüş Kart Paketi',
+                'card_pack_altin': '🥇 Altın Kart Paketi',
+                'card_pack_efsanevi': '🏆 Efsanevi Kart Paketi'
+            };
+            const packName = packNames[type];
+            collectedCardPacks.push({ type: type, value: value });
+            floatingText = `+${value} ${packName} Yakalandı!`;
+            document.getElementById('collectedSpecials').innerHTML += `<span class="text-xl">🎁</span>`;
             break;
     }
     
@@ -9186,24 +9469,29 @@ async function startSoloClickCatchGame() {
         return;
     }
     
-    // --- YENİ EKLENEN UYARI KODU BAŞLANGICI ---
     if (userData.multiplierSource && userData.multiplierSource !== 'none') {
         const warningConfirmed = await customConfirm(`Aktif bir <b>${userData.activeMultiplier}x</b> çarpanın bulunuyor. Bu oyunda yeni bir çarpan kazanırsan mevcut çarpanınla etkileşime girebilir. Devam etmek istiyor musun?`);
         if (!warningConfirmed) {
-            return; // Kullanıcı "Hayır" derse oyunu başlatma.
+            return;
         }
     }
-    // --- YENİ EKLENEN UYARI KODU SONU ---
 
     const confirmed = await customConfirm("Oyuna başlamak için 1 adet 'Tıkla-Yakala Bileti' harcanacaktır. Onaylıyor musun?");
     if (!confirmed) return;
     await userRef.update({ clickCatchTickets: (userData.clickCatchTickets || 0) - 1 });
     
+    // YENİ PAKETLERİ TANIYAN GÜNCEL HARİTA
     const specialItemMapping = {
       'boxRight': { type: 'boxRight', value: soloGameSettings.specialValue || 1, emoji: '📦' },
       'iflasShield': { type: 'iflasShield', value: soloGameSettings.specialValue || 1, emoji: '🛡️' },
       'wheelTicket': { type: 'wheelTicket', value: soloGameSettings.specialValue || 1, emoji: '🎫️' },
-      'tempMultiplier': { type: 'tempMultiplier', value: soloGameSettings.specialValue || 2, uses: soloGameSettings.specialMultiplierUses || 1, emoji: '✖️' }
+      'tempMultiplier': { type: 'tempMultiplier', value: soloGameSettings.specialValue || 2, uses: soloGameSettings.specialMultiplierUses || 1, emoji: '✖️' },
+      'wildcard': { type: 'wildcard', value: soloGameSettings.specialValue || 1, emoji: '🃏' },
+      'card_pack_standart': { type: 'card_pack_standart', value: soloGameSettings.specialValue || 1, emoji: '🎴' },
+      'card_pack_bronz': { type: 'card_pack_bronz', value: soloGameSettings.specialValue || 1, emoji: '🥉' },
+      'card_pack_gumus': { type: 'card_pack_gumus', value: soloGameSettings.specialValue || 1, emoji: '🥈' },
+      'card_pack_altin': { type: 'card_pack_altin', value: soloGameSettings.specialValue || 1, emoji: '🥇' },
+      'card_pack_efsanevi': { type: 'card_pack_efsanevi', value: soloGameSettings.specialValue || 1, emoji: '🏆' }
     };
     specialItemForThisRound = specialItemMapping[soloGameSettings.specialItemType] || specialItemMapping['boxRight'];
     
@@ -9213,8 +9501,9 @@ async function startSoloClickCatchGame() {
     collectedBoxRights = 0;
     collectedIflasShields = 0;
     collectedWheelTickets = 0;
-    collectedMultipliers = []; // Çarpanları tutmak için yeni dizi
-    
+    collectedMultipliers = [];
+    collectedCardPacks = []; // YENİ EKLENDİ: Her oyun başında listeyi sıfırla
+
     document.getElementById('clickCatchScore').textContent = clickCatchScore;
     document.getElementById('clickCatchTimer').textContent = clickCatchTimer;
     document.getElementById('displayScore').classList.remove('hidden');
@@ -9568,7 +9857,6 @@ function getActivityIcon(type, details = {}) {
     let bgColor = 'bg-gray-500';
 
     switch (type) {
-        // --- YENİ EKLENEN İKONLAR BAŞLANGICI ---
         case 'tradeOfferCreated':
             icon = '📤';
             bgColor = 'bg-blue-500';
@@ -9577,7 +9865,6 @@ function getActivityIcon(type, details = {}) {
             icon = '🤝';
             bgColor = 'bg-green-600';
             break;
-        // --- YENİ EKLENEN İKONLAR SONU ---
         case 'openBox':
             icon = '💰';
             bgColor = 'bg-green-500';
@@ -9598,7 +9885,6 @@ function getActivityIcon(type, details = {}) {
                 bgColor = 'bg-red-600';
             }
             break;
-        // YENİ EKLENEN KASA TRANSFERİ SİMGESİ
         case 'kasaTransfer':
             icon = '🏦';
             bgColor = 'bg-purple-600';
@@ -9611,6 +9897,10 @@ function getActivityIcon(type, details = {}) {
         case 'multiplierRefund':
             icon = '✖️';
             bgColor = 'bg-purple-500';
+            break;
+        case 'multiplierCombined':
+            icon = '✨';
+            bgColor = 'bg-teal-500';
             break;
         case 'multiplierUpgradedFromStore':
         case 'multiplierStackedFromStore':
@@ -9628,16 +9918,37 @@ function getActivityIcon(type, details = {}) {
             break;
         case 'newItemFound':
             const itemType = details.itemType;
-            if (itemType === 'iflasShield') {
+            if (itemType === 'card_pack_efsanevi') {
+                icon = '🏆';
+                bgColor = 'bg-purple-600';
+            } else if (itemType === 'card_pack_altin') {
+                icon = '🥇';
+                bgColor = 'bg-yellow-500';
+            } else if (itemType === 'card_pack_gumus') {
+                icon = '🥈';
+                bgColor = 'bg-gray-500';
+            } else if (itemType === 'card_pack_normal') {
+                icon = '🥉';
+                bgColor = 'bg-amber-600';
+            } else if (itemType === 'card_pack') {
+                icon = '🎴';
+                bgColor = 'bg-indigo-500';
+            } else if (itemType === 'wildcard') {
+                icon = '🃏';
+                bgColor = 'bg-purple-500';
+            } else if (itemType === 'iflasShield') {
                 icon = '🛡️';
+                bgColor = 'bg-cyan-500';
             } else if (itemType === 'wheelTicket') {
                 icon = '🎫';
+                bgColor = 'bg-cyan-500';
             } else if (itemType === 'clickCatchTicket') {
                 icon = '🎟️';
+                bgColor = 'bg-cyan-500';
             } else {
                 icon = '📦';
+                bgColor = 'bg-cyan-500';
             }
-            bgColor = 'bg-cyan-500';
             break;
         case 'spinWheel':
             icon = '🎡';
@@ -9660,10 +9971,10 @@ function getActivityIcon(type, details = {}) {
             if (details.rewardType === 'avatar') {
                 icon = '👤';
                 bgColor = 'bg-sky-500';
-            } else if (details.rewardType === 'wildcard') { // YENİ EKLENDİ
+            } else if (details.rewardType === 'wildcard') {
                 icon = '🃏';
                 bgColor = 'bg-purple-600';
-            } else if (details.rewardType === 'card_pack') { // YENİ EKLENDİ
+            } else if (details.rewardType === 'card_pack') {
                 icon = '🎴';
                 bgColor = 'bg-indigo-600';
             } else {
@@ -9737,22 +10048,16 @@ function renderActivityFeed(activities) {
                 : '';
 
             switch (activity.type) {
-                // ... (diğer case'ler aynı kalıyor)
-                
                 case 'multiplierUpgraded':
-                    // --- DEĞİŞİKLİK BURADA: Yeni metin ve koşullu yapı ---
                     message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <b class="text-yellow-400">${details.newValue}x çarpan</b> buldu ve envanterinde bulunan ${details.remainingUses} adet ${details.oldValue}x çarpan daha düşük olduğu için <b class="text-green-400">+${details.boxRights} kutu hakkına</b> dönüştürüldü.`;
-
                     let multiplierUsedText = '';
-                    // Sadece 1'den büyük bir çarpan kullanıldıysa metni ekle.
                     if (details.multiplierUsed && details.multiplierUsed > 1) {
                         multiplierUsedText = ` <span class="text-gray-400">(${details.multiplierUsed}x çarpan kullanıldı)</span>`;
+                    } else {
+                        multiplierUsedText = ` <span class="text-gray-400">(çarpan kullanmadı)</span>`;
                     }
                     message += multiplierUsedText;
                     break;
-
-                // ... (diğer case'ler aynı kalıyor)
-
                 case 'dailyRewardMultiplierStacked':
                     message = `${userHtml},  <b>${details.multiplierValue}x çarpanına</b> günlük ödülden <span class="text-green-300 font-bold">+${details.usesAdded} kullanım hakkı</span> ekledi. Yeni toplam: <span class="text-white font-bold">${details.newTotalUses} kullanım</span>.`;
                     break;
@@ -9780,23 +10085,23 @@ function renderActivityFeed(activities) {
                 case 'openBox':
                     let openBoxMultiplierText = (details.multiplier && details.multiplier > 1)
                         ? ` <span class="text-xs text-purple-400">(${details.multiplier}x çarpan kullandı)</span>`
-                        : ``;
-                    message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-green-300 font-bold">+${details.points} Puan</span> kazandı${openBoxMultiplierText}.${remainingBalanceText}`;
+                        : ` <span class="text-xs text-gray-400">(çarpan kullanmadı)</span>`;
+                    message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-green-300 font-bold">+${details.points} Puan</span> kazandı.${openBoxMultiplierText}${remainingBalanceText}`;
                     break;
                 case 'iflas':
                     let iflasMultiplierText = (details.multiplier && details.multiplier > 1)
-                        ? ` <span class="text-xs text-purple-400">(${details.multiplier}x çarpan kullanıldı)</span>`
-                        : ``;
+                        ? ` <span class="text-xs text-purple-400">(${details.multiplier}x çarpan kullandı)</span>`
+                        : ` <span class="text-xs text-gray-400">(çarpan kullanmadı)</span>`;
                     message = details.shieldUsed 
-                        ? `${userHtml}, <b>${details.boxId}</b> numaralı kutudan bomba buldu ama kalkanı korudu${iflasMultiplierText}.`
-                        : `${userHtml}, <b>${details.boxId}</b> numaralı kutudan bomba buldu ve <span class="text-red-400 font-bold">-${details.lostPoints} Puan</span> kaybetti${iflasMultiplierText}.${remainingBalanceText}`;
+                        ? `${userHtml}, <b>${details.boxId}</b> numaralı kutudan bomba buldu ama kalkanı korudu.${iflasMultiplierText}`
+                        : `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-red-400 font-bold">-${details.lostPoints} Puan</span> kaybetti.${iflasMultiplierText}${remainingBalanceText}`;
                     break;
                 case 'surpriseBox':
                     let surpriseMultiplierText = (details.multiplier && details.multiplier > 1)
                         ? ` <span class="text-xs text-purple-400">(${details.multiplier}x çarpan kullandı)</span>`
-                        : ``;
+                        : ` <span class="text-xs text-gray-400">(çarpan kullanmadı)</span>`;
                     const source = details.boxId === 'Çark' ? 'Şans Çarkı\'ndan' : `<b>${details.boxId}</b> numaralı kutudan`;
-                    message = `${userHtml}, ${source} Sürpriz Kutu buldu ve <span class="text-green-300 font-bold">+${details.points} Puan</span> kazandı${surpriseMultiplierText}!${remainingBalanceText}`;
+                    message = `${userHtml}, ${source} Sürpriz Kutu buldu ve <span class="text-green-300 font-bold">+${details.points} Puan</span> kazandı!${surpriseMultiplierText}${remainingBalanceText}`;
                     break;
                 case 'multiplierFound':
                     message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-purple-300 font-bold">${details.value}x Çarpan</span> buldu.`;
@@ -9807,8 +10112,8 @@ function renderActivityFeed(activities) {
                 case 'newItemFound':
                      let newItemMultiplierText = (details.multiplier && details.multiplier > 1)
                         ? ` <span class="text-xs text-purple-400">(${details.multiplier}x çarpan kullandı)</span>`
-                        : ``;
-                    message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-cyan-300 font-bold">${details.itemName}</span> buldu${newItemMultiplierText}.`;
+                        : ` <span class="text-xs text-gray-400">(çarpan kullanmadı)</span>`;
+                    message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-cyan-300 font-bold">${details.itemName}</span> buldu.${newItemMultiplierText}`;
                     break;
                 case 'buyItem':
                     let purchasedItemText = '';
@@ -10149,13 +10454,17 @@ function addWheelSettingRow(item = {}) {
         <select class="setting-type col-span-1 bg-gray-700 p-2 rounded-md text-white border border-gray-600" onchange="handleWheelRowTypeChange(this)">
             <option value="points" ${type === 'points' ? 'selected' : ''}>Puan</option>
             <option value="boxRights" ${type === 'boxRights' ? 'selected' : ''}>Kutu Hakkı</option>
-            <option value="iflasShield" ${type === 'iflasShield' ? 'selected' : ''}>Kalkan</option>
+            <option value="iflasShield" ${type === 'iflasShield' ? 'selected' : ''}>İflas Kalkan</option>
             <option value="tempMultiplier" ${type === 'tempMultiplier' ? 'selected' : ''}>Çarpan</option>
             <option value="surpriseBox" ${type === 'surpriseBox' ? 'selected' : ''}>Sürpriz Kutu</option>
-            <option value="clickCatchTicket" ${type === 'clickCatchTicket' ? 'selected' : ''}>Tıkla-Yakala Bileti</option>
+            <option value="clickCatchTicket" ${type === 'clickCatchTicket' ? 'selected' : ''}>T-Y Bileti</option>
             <option value="wheelTicket" ${type === 'wheelTicket' ? 'selected' : ''}>Çark Bileti</option>
             <option value="wildcard" ${type === 'wildcard' ? 'selected' : ''}>Joker Kart</option>
-            <option value="card_pack" ${type === 'card_pack' ? 'selected' : ''}>Kart Paketi</option>
+            <option value="card_pack" ${type === 'card_pack' ? 'selected' : ''}>Standart Kart Paketi</option>
+            <option value="card_pack_normal" ${type === 'card_pack_normal' ? 'selected' : ''}>Bronz Kart Paketi</option>
+            <option value="card_pack_gumus" ${type === 'card_pack_gumus' ? 'selected' : ''}>Gümüş Kart Paketi</option>
+            <option value="card_pack_altin" ${type === 'card_pack_altin' ? 'selected' : ''}>Altın Kart Paketi</option>
+            <option value="card_pack_efsanevi" ${type === 'card_pack_efsanevi' ? 'selected' : ''}>Efsanevi Kart Paketi</option>
             <option value="pas" ${type === 'pas' ? 'selected' : ''}>Pas</option>
         </select>
         <input type="text" value="${label}" class="setting-label col-span-1 sm:col-span-2 bg-gray-700 p-2 rounded-md text-white" placeholder="Etiket (Örn: JOKER!)">
@@ -10590,18 +10899,22 @@ function openWheelLegendModal() {
     const contentDiv = document.getElementById('wheelLegendContent');
     contentDiv.innerHTML = '';
 
-    // Yeni eklenen Joker Kart ve Kart Paketi ile güncellenmiş ve sıraya konulmuş liste
     const legendData = [
         { icon: '🎉', title: 'SÜRPRİZ KUTU', description: 'En nadir ödül! İçinden çok yüksek puanlar çıkan özel bir kart seçme oyunu başlatır.' },
+        { icon: '🏆', title: 'EFSANEVİ KART PAKETİ', description: 'Çok nadir! İçinden sadece Efsanevi nadirlikte bir koleksiyon kartı çıkar.' },
         { icon: '🃏', title: 'JOKER KART', description: 'Çok nadir! Kart koleksiyonundaki herhangi bir eksik kartı tamamlamanı sağlar.' },
-        { icon: '✖️', title: '5X ÇARPAN', description: 'Çok nadir! Bir sonraki kutu açılışında kazanacağın puanı veya eşyayı 5\'e katlar.' },
+        { icon: '✖️', title: '5X ÇARPAN', description: 'Çok nadir! Bir sonraki kutu açılışında kazanacağın puanı veya eşyayı 5\'e katlar.' }, // EKLENEN BLOK
         { icon: '🎂', title: '1000 PUAN', description: 'Nadir bulunan, yüksek miktarda bir puan ödülüdür.' },
+        { icon: '🥇', title: 'ALTIN KART PAKETİ', description: 'İçinden sadece Altın nadirlikte bir koleksiyon kartı çıkar.' },
         { icon: '🎁', title: '3 KUTU HAKKI', description: 'Değerli bir ödül! Kutu oyununda kullanmak üzere tam 3 adet açma hakkı verir.' },
-        { icon: '🎴', title: 'KART PAKETİ', description: 'İçinden koleksiyonun için rastgele bir kart çıkarır.' },
+        { icon: '🥈', title: 'GÜMÜŞ KART PAKETİ', description: 'İçinden sadece Gümüş nadirlikte bir koleksiyon kartı çıkar.' },
         { icon: '🍐', title: '250 PUAN', description: 'Hesabına anında 250 Puan eklenir.' },
         { icon: '🛡️', title: 'İFLAS KALKANI', description: 'Kutu oyununda "Bomba" bulursan puanlarını bir defaya mahsus korur.' },
         { icon: '🎟️', title: '+1 T-Y BİLETİ', description: 'Tıkla-Yakala mini oyununa bir giriş hakkı kazandırır.' },
         { icon: '🎡', title: 'BEDAVA ÇEVİRME', description: 'Şansını tekrar denemen için +1 Çark Bileti kazandırır.' },
+        { icon: '📦', title: '+1 KUTU HAKKI', description: 'Kutu oyununda kullanmak üzere bir adet kutu açma hakkı kazandırır.' },
+        { icon: '🎴', title: 'STANDART KART PAKETİ', description: 'İçinden herhangi bir nadirlikte rastgele bir kart çıkar.' },
+        { icon: '🥉', title: 'BRONZ KART PAKETİ', description: 'İçinden sadece Normal nadirlikte bir koleksiyon kartı çıkar.' },
         { icon: '🍌', title: '100 PUAN', description: 'Sıkça gelen, güzel bir puan ödülüdür.' },
         { icon: '🍆', title: '10 PUAN', description: 'En küçük teselli puanı ödülüdür.' },
         { icon: '☠️', title: 'PAS', description: 'Şanssızlık! Bu dilimde herhangi bir ödül yoktur.' }
@@ -10709,9 +11022,7 @@ function closeWheelLegendModal() {
       }
   });
 
-    // --- TIKLA-YAKALA BİLGİ FONKSİYONLARI ---
-
-function openClickCatchInfoModal() {
+    function openClickCatchInfoModal() {
     document.body.classList.add('modal-open');
     document.getElementById('clickCatchInfoModal').style.display = 'flex';
 }
@@ -11178,6 +11489,16 @@ async function kasaTransferEt() {
         displayMessage("Lütfen geçerli bir miktar girin.");
         return;
     }
+
+    // YENİ EKLENEN KONTROL MEKANİZMASI
+    const settingsSnap = await db.ref('gameConfig/kasaSettings').once('value');
+    const minAmount = settingsSnap.val()?.minTransferAmount || 0;
+
+    if (minAmount > 0 && miktar < minAmount) {
+        displayMessage(`Kasaya aktarım için minimum tutar ${minAmount} Puandır.`);
+        return;
+    }
+    // KONTROL SONU
 
     const userRef = db.ref('users/' + currentUser);
     const userSnap = await userRef.once('value');
@@ -12052,31 +12373,28 @@ async function cancelTradeOffer(tradeId, asAdmin = false) {
 let packsToReveal = [];
 let packsRevealedCount = 0;
 
-async function startCardPackOpening(packCount, source = 'Bilinmeyen Kaynak', multiplier = 1) {
+async function startCardPackOpening(packCount, source = 'Bilinmeyen Kaynak', multiplier = 1, packType = 'card_pack') {
     if (packCount <= 0) return;
     
-    const userSnap = await db.ref(`users/${currentUser}`).once('value');
-    const userData = userSnap.val();
-    if (userData.completedCollection === true) {
-        const pointsToGain = packCount * 500;
-        const newBalance = (userData.balance || 0) + pointsToGain;
-        const newKariyerPuani = (userData.kariyerPuani || 0) + pointsToGain;
+    if (packType === 'card_pack') {
+        const userSnapCheck = await db.ref(`users/${currentUser}`).once('value');
+        const userDataCheck = userSnapCheck.val();
+        if (userDataCheck.completedCollection === true) {
+            const pointsToGain = packCount * 500;
+            const newBalance = (userDataCheck.balance || 0) + pointsToGain;
+            const newKariyerPuani = (userDataCheck.kariyerPuani || 0) + pointsToGain;
 
-        await db.ref(`users/${currentUser}`).update({
-            balance: newBalance,
-            kariyerPuani: newKariyerPuani
-        });
-
-        logActivity('cardPackConverted', currentUser, { 
-            source: source, 
-            packs: packCount, 
-            points: pointsToGain, 
-            newBalance: newBalance,
-            multiplier: multiplier
-        });
-
-        displayMessage(`Tebrikler! Koleksiyonu zaten tamamladığın için kazandığın ${packCount} Kart Paketi, hesabına <b class="text-green-400">+${pointsToGain} Puan</b> olarak eklendi!`);
-        return;
+            await db.ref(`users/${currentUser}`).update({
+                balance: newBalance,
+                kariyerPuani: newKariyerPuani
+            });
+            logActivity('cardPackConverted', currentUser, { 
+                source: source, packs: packCount, points: pointsToGain, 
+                newBalance: newBalance, multiplier: multiplier
+            });
+            displayMessage(`Tebrikler! Koleksiyonu zaten tamamladığın için kazandığın ${packCount} Kart Paketi, hesabına <b class="text-green-400">+${pointsToGain} Puan</b> olarak eklendi!`);
+            return;
+        }
     }
 
     const masterCardsSnap = await db.ref('gameConfig/cardCollection').once('value');
@@ -12086,15 +12404,46 @@ async function startCardPackOpening(packCount, source = 'Bilinmeyen Kaynak', mul
         return;
     }
 
-    // --- YENİ AĞIRLIKLI ÇEKİLİŞ MANTIĞI BAŞLANGICI ---
+    let cardPool = [];
+    const rarityMap = {
+        'card_pack_efsanevi': 'efsanevi',
+        'card_pack_altin': 'altin',
+        'card_pack_gumus': 'gumus',
+        'card_pack_normal': 'normal'
+    };
+    const targetRarity = rarityMap[packType];
+
+    for (const cardId in masterCards) {
+        const card = { id: cardId, ...masterCards[cardId] };
+        if (targetRarity) {
+            if (card.rarity === targetRarity) {
+                cardPool.push(card);
+            }
+        } else {
+            cardPool.push(card);
+        }
+    }
+    
+    if (cardPool.length === 0) {
+        displayMessage(`Bu paketten kart çıkmadı çünkü oyunda hiç '${targetRarity}' nadirlikte kart tanımlanmamış. Telafi olarak +500 Puan kazandın!`);
+        const userRef = db.ref(`users/${currentUser}`);
+        await userRef.transaction(user => {
+            if (user) {
+                user.balance = (user.balance || 0) + 500;
+                user.kariyerPuani = (user.kariyerPuani || 0) + 500;
+            }
+            return user;
+        });
+        return;
+    }
+
     const weightedCardList = [];
     let totalWeight = 0;
-    for (const cardId in masterCards) {
-        const card = masterCards[cardId];
-        const chance = card.chance || 1; // Eğer bir karta şans atanmamışsa, en düşük ihtimal (1) olarak kabul et
-        weightedCardList.push({ id: cardId, ...card, chance: chance });
+    cardPool.forEach(card => {
+        const chance = card.chance || 1;
+        weightedCardList.push({ ...card, chance: chance });
         totalWeight += chance;
-    }
+    });
 
     if (totalWeight === 0) {
         displayMessage("Kart paketi açılamadı: Kartların şans ağırlıkları toplamı sıfır.");
@@ -12107,7 +12456,6 @@ async function startCardPackOpening(packCount, source = 'Bilinmeyen Kaynak', mul
     for (let i = 0; i < packCount; i++) {
         let randomWeight = Math.random() * totalWeight;
         let chosenCard = null;
-
         for (const card of weightedCardList) {
             randomWeight -= card.chance;
             if (randomWeight <= 0) {
@@ -12115,9 +12463,8 @@ async function startCardPackOpening(packCount, source = 'Bilinmeyen Kaynak', mul
                 break;
             }
         }
-        packsToReveal.push(chosenCard || weightedCardList[weightedCardList.length - 1]); // Nadir bir hata olursa son kartı seç
+        packsToReveal.push(chosenCard || weightedCardList[weightedCardList.length - 1]);
     }
-    // --- YENİ AĞIRLIKLI ÇEKİLİŞ MANTIĞI SONU ---
 
     const modal = document.getElementById('cardPackOpeningModal');
     const area = document.getElementById('cardPackOpeningArea');
@@ -12125,18 +12472,30 @@ async function startCardPackOpening(packCount, source = 'Bilinmeyen Kaynak', mul
     title.textContent = `${packCount} Kart Paketini Aç!`;
     area.innerHTML = '';
 
-    packsToReveal.forEach((card, index) => {
+    // --- YENİ GÖRSEL OLUŞTURMA MANTIĞI BURADA ---
+    const packInfoMap = {
+        'card_pack_efsanevi': { className: 'pack-front-efsanevi', icon: '🏆' },
+        'card_pack_altin': { className: 'pack-front-altin', icon: '🥇' },
+        'card_pack_gumus': { className: 'pack-front-gumus', icon: '🥈' },
+        'card_pack_normal': { className: 'pack-front-normal', icon: '🥉' },
+        'card_pack': { className: 'pack-front-standart', icon: '🎴' }
+    };
+    const packInfo = packInfoMap[packType] || packInfoMap['card_pack'];
+
+    for (let i = 0; i < packCount; i++) {
         const cardHtml = `
-            <div class="card-flip-container" data-index="${index}" onclick="revealCard(this)">
+            <div class="card-flip-container" data-index="${i}" onclick="revealCard(this)">
                 <div class="card-flipper">
-                    <div class="card-front">?</div>
-                    <div class="card-back">
+                    <div class="card-front ${packInfo.className}">
+                        <span class="pack-icon">${packInfo.icon}</span>
                     </div>
+                    <div class="card-back"></div>
                 </div>
             </div>
         `;
         area.innerHTML += cardHtml;
-    });
+    }
+    // --- YENİ GÖRSEL OLUŞTURMA SONU ---
 
     modal.style.display = 'flex';
 }
@@ -12515,6 +12874,173 @@ async function endCurrentSeason() {
         console.error("Sezon bitirilirken hata oluştu:", error);
         displayMessage("Sezon bitirilirken bir hata meydana geldi.");
     }
+}
+
+// Kasa Ayarları penceresini açar ve mevcut ayarı input'a yazar
+async function openKasaSettingsModal() {
+    if (!isAdmin) return;
+    const settingsSnap = await db.ref('gameConfig/kasaSettings').once('value');
+    const minAmount = settingsSnap.val()?.minTransferAmount || 0;
+    document.getElementById('minKasaTransferInput').value = minAmount;
+    document.getElementById('kasaSettingsModal').style.display = 'flex';
+}
+
+// Kasa Ayarları penceresini kapatır
+function closeKasaSettingsModal() {
+    document.getElementById('kasaSettingsModal').style.display = 'none';
+}
+
+// Kasa Ayarlarını Firebase'e kaydeder
+async function saveKasaSettings() {
+    if (!isAdmin) return;
+    const minAmount = parseInt(document.getElementById('minKasaTransferInput').value);
+
+    if (isNaN(minAmount) || minAmount < 0) {
+        displayMessage("Lütfen geçerli bir minimum tutar girin (0 veya daha büyük bir sayı).");
+        return;
+    }
+
+    await db.ref('gameConfig/kasaSettings/minTransferAmount').set(minAmount);
+    displayMessage(`Minimum kasa transfer tutarı başarıyla ${minAmount} olarak ayarlandı.`);
+    closeKasaSettingsModal();
+}
+
+// --- YENİ ÇARPAN SEÇİM SİSTEMİ FONKSİYONLARI ---
+
+// Hangi seçimin beklendiğini tutan global değişken
+let pendingMultiplierChoice = null;
+
+// Seçim penceresini açar ve içini doldurur
+function openMultiplierChoiceModal(existingMultiplier, foundMultiplier, boxId) {
+    const modal = document.getElementById('multiplierChoiceModal');
+    const infoEl = document.getElementById('multiplierChoiceInfo');
+    const convertBtn = document.getElementById('choiceConvertBtn');
+    const combineBtn = document.getElementById('choiceCombineBtn');
+
+    // Bekleyen seçimi global değişkene kaydet
+    pendingMultiplierChoice = {
+        existing: existingMultiplier,
+        found: foundMultiplier,
+        boxId: boxId
+    };
+
+    // Seçeneklerin metinlerini oluştur
+    const convertText = `Yeni ${foundMultiplier.value}x Çarpanı, <b>+${foundMultiplier.value} Kutu Hakkı</b>'na dönüştür. (Mevcut ${existingMultiplier.value}x çarpanın korunur)`;
+    const combineValue = existingMultiplier.value + foundMultiplier.value;
+    const combineText = `İki çarpanı birleştirip <b>1 kullanımlık ${combineValue}x</b> elde et. (Mevcut tüm ${existingMultiplier.value}x hakların gider)`;
+
+    infoEl.innerHTML = `Kutudan <b class="text-yellow-300">${foundMultiplier.value}x Çarpan</b> buldun! Mevcut <b class="text-purple-300">${existingMultiplier.uses} adet ${existingMultiplier.value}x</b> çarpanın var. Ne yapmak istersin?`;
+    convertBtn.innerHTML = convertText;
+    combineBtn.innerHTML = combineText;
+
+    // Butonların onclick olaylarını ayarla
+    convertBtn.onclick = () => resolveMultiplierChoice('convert');
+    combineBtn.onclick = () => resolveMultiplierChoice('combine');
+
+    modal.style.display = 'flex';
+}
+
+// Seçim penceresini açar ve senaryoya göre içini doldurur
+function openMultiplierChoiceModal(context) {
+    const modal = document.getElementById('multiplierChoiceModal');
+    const infoEl = document.getElementById('multiplierChoiceInfo');
+    const convertBtn = document.getElementById('choiceConvertBtn');
+    const combineBtn = document.getElementById('choiceCombineBtn');
+
+    // Bekleyen seçimi global değişkene kaydet
+    pendingMultiplierChoice = context;
+
+    const { hasMultiplier, existing, found } = context;
+
+    if (hasMultiplier) {
+        // Senaryo: Kullanıcının zaten bir çarpanı var ve FARKLI bir tane buldu
+        const boxRightsFromFound = found.value;
+        const convertText = `Yeni ${found.value}x Çarpanı, <b>+${boxRightsFromFound} Kutu Hakkı</b>'na dönüştür. <br><small>(Mevcut ${existing.value}x çarpanın korunur)</small>`;
+        
+        const combineValue = existing.value + found.value;
+        // DÜZENLENEN KISIM: Buton metninden Kutu Hakkı ödülü çıkarıldı ve uyarı eklendi.
+        const acceptNewText = `İki çarpanı birleştirip <b>1 kullanımlık ${combineValue}x</b> elde et. <br><small>(DİKKAT: Mevcut ${existing.uses} adet ${existing.value}x çarpan hakkın kaybolacak!)</small>`;
+
+        infoEl.innerHTML = `Kutudan <b class="text-yellow-300">${found.value}x Çarpan</b> buldun! Mevcut <b class="text-purple-300">${existing.uses} adet ${existing.value}x</b> çarpanın var. Stratejik bir karar ver!`;
+        convertBtn.innerHTML = convertText;
+        combineBtn.innerHTML = acceptNewText;
+        
+        convertBtn.onclick = () => resolveMultiplierChoice('convert_new');
+        combineBtn.onclick = () => resolveMultiplierChoice('combine_and_upgrade');
+
+    } else {
+        // Senaryo: Kullanıcının hiç çarpanı yok ve ilk defa buldu
+        const boxRightsFromFound = found.value;
+        const convertText = `Bulduğun ${found.value}x Çarpanı, <b>+${boxRightsFromFound} Kutu Hakkı</b>'na dönüştür.`;
+        const acceptText = `Bulduğun ${found.value}x Çarpanı <b>1 kullanımlık</b> olarak envanterine ekle.`;
+
+        infoEl.innerHTML = `Kutudan <b class="text-yellow-300">${found.value}x Çarpan</b> buldun! Ne yapmak istersin?`;
+        convertBtn.innerHTML = convertText;
+        combineBtn.innerHTML = acceptText;
+
+        convertBtn.onclick = () => resolveMultiplierChoice('convert_found');
+        combineBtn.onclick = () => resolveMultiplierChoice('accept_found');
+    }
+
+    modal.style.display = 'flex';
+}
+
+// Seçim penceresini kapatır
+function closeMultiplierChoiceModal() {
+    document.getElementById('multiplierChoiceModal').style.display = 'none';
+    pendingMultiplierChoice = null; // Bekleyen seçimi temizle
+}
+
+// Kullanıcının seçimine göre veritabanını güncelleyen ana fonksiyon
+async function resolveMultiplierChoice(choice) {
+    if (!pendingMultiplierChoice) return;
+
+    const { existing, found } = pendingMultiplierChoice;
+    const userRef = db.ref('users/' + currentUser);
+    const updates = {};
+    let message = '';
+    
+    const userSnap = await userRef.once('value');
+    const user = userSnap.val();
+
+    switch (choice) {
+        case 'convert_found': // Çarpanı yoktu, bulduğunu Kutu Hakkı'na çevirdi
+            updates.kutuHakki = (user.kutuHakki || 0) + found.value;
+            message = `Seçimin üzerine, ${found.value}x çarpan <b>+${found.value} Kutu Hakkı</b>'na dönüştürüldü!`;
+            logActivity('multiplierConvertedToBoxRights', currentUser, { rewardValue: found.value, boxRights: found.value });
+            break;
+            
+        case 'accept_found': // Çarpanı yoktu, bulduğunu kabul etti
+            updates.activeMultiplier = found.value;
+            updates.multiplierSource = 'box';
+            updates.multiplierRemainingUses = 0;
+            message = `Yeni <b>${found.value}x</b> çarpanın bir sonraki kutu açılışında kullanılmak üzere envanterine eklendi!`;
+            logActivity('multiplierFound', currentUser, { value: found.value });
+            break;
+
+        case 'convert_new': // Çarpanı vardı, yeni bulduğunu Kutu Hakkı'na çevirdi
+            updates.kutuHakki = (user.kutuHakki || 0) + found.value;
+            message = `Mevcut ${existing.value}x çarpanını korudun ve yeni çıkan ${found.value}x çarpanı <b>+${found.value} Kutu Hakkı</b>'na dönüştürüldü!`;
+            logActivity('multiplierConvertedToBoxRights', currentUser, { rewardValue: found.value, boxRights: found.value, keptMultiplierValue: existing.value });
+            break;
+
+        case 'combine_and_upgrade':
+            // DÜZENLENEN KISIM: Artık Kutu Hakkı eklenmiyor.
+            const combinedValue = existing.value + found.value;
+            updates.activeMultiplier = combinedValue;
+            updates.multiplierSource = 'box';
+            updates.multiplierRemainingUses = 0;
+            
+            message = `Seçim yapıldı! Mevcut çarpan hakların feda edilerek envanterine <b>1 kullanımlık ${combinedValue}x</b> eklendi!`;
+            logActivity('multiplierUpgraded', currentUser, { newValue: combinedValue, oldValue: existing.value, boxRights: 0 }); // boxRights: 0 olarak loglanır.
+            break;
+    }
+
+    await userRef.update(updates);
+
+    displayMessage(message);
+    closeMultiplierChoiceModal();
+    db.ref('gameLock').set(false);
 }
 
 </script>
