@@ -11,6 +11,21 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
 <style>
+#updateOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 999999;
+    text-align: center;
+}
 /* --- SÜRPRİZ KART SEÇİM STİLİ --- */
 #cardSelectionModal .card {
     transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -1391,6 +1406,9 @@ body.modal-open .modal-content {
     <h4 class="text-green-300 text-xl font-semibold mb-4 border-b border-gray-600 pb-2">🏆 Aylık Sezon Yönetimi 👑</h4>
     <button onclick="openSeasonManagementModal()" class="w-full py-3 bg-green-800 hover:bg-green-700 text-white font-bold rounded-lg">Sezon Ayarlarını Aç</button>
 </div>
+<button onclick="forceClientUpdate()" class="w-full py-3 bg-teal-700 hover:bg-teal-600 text-white font-bold rounded-lg text-sm">
+    Tüm Kullanıcılara Güncellemeyi Zorla
+</button>
 
             <button onclick="restartSystem()" class="flex-1 py-2 px-3 bg-red-800 hover:bg-red-700 text-white font-bold rounded-lg text-sm">Sistemi Sıfırla</button>
             <button onclick="clearAllTotalSpentPoints()" class="flex-1 py-2 px-3 bg-purple-800 hover:bg-purple-700 text-white font-bold rounded-lg text-sm">Harcanan Puanları Temizle</button>
@@ -2666,6 +2684,11 @@ body.modal-open .modal-content {
     </div>
   </div>
 </div>
+<div id="updateOverlay" style="display: none;">
+    <h2 class="text-3xl font-bold text-yellow-400 mb-4">Yeni bir güncelleme mevcut!</h2>
+    <p class="text-lg">Oyunun en güncel sürümüne geçiriliyorsunuz...</p>
+    <p class="mt-8 text-4xl animate-spin">⏳</p>
+</div>
   <script>
       document.addEventListener('DOMContentLoaded', () => {
     const typeSelect = document.getElementById('soloSpecialItemType');
@@ -2693,6 +2716,7 @@ body.modal-open .modal-content {
     messagingSenderId: "762409187638",
     appId: "1:762409187638:web:6e9888f4bdacfac017db97"
   };
+  const FIREBASE_APP_VERSION = Date.now(); // Bu satırı script'in en başına ekle
 
   try {
     firebase.initializeApp(firebaseConfig);
@@ -13041,6 +13065,42 @@ async function resolveMultiplierChoice(choice) {
     displayMessage(message);
     closeMultiplierChoiceModal();
     db.ref('gameLock').set(false);
+}
+
+// Bu fonksiyon, veritabanına yeni bir "versiyon" numarası yazar.
+async function forceClientUpdate() {
+    if (!isAdmin) return;
+    const confirmed = await customConfirm("Tüm aktif kullanıcıların sayfayı yenilemesini zorlamak istediğinize emin misiniz? Bu, yayınladığınız son güncellemelerin herkese ulaşmasını sağlar.");
+    if (confirmed) {
+        // Veritabanına o anki zamanı "clientVersion" olarak kaydediyoruz.
+        // Bu bizim için en güncel sürümün kimliği olacak.
+        await db.ref('gameConfig/clientVersion').set(firebase.database.ServerValue.TIMESTAMP);
+        displayMessage("Güncelleme sinyali tüm kullanıcılara gönderildi. Aktif kullanıcılar birkaç saniye içinde en son sürüme güncellenecektir.");
+    }
+}
+
+// Bu fonksiyon, veritabanındaki versiyonu dinler ve kullanıcının versiyonuyla karşılaştırır.
+function listenForVersionChanges() {
+    const localVersion = FIREBASE_APP_VERSION;
+    const versionRef = db.ref('gameConfig/clientVersion');
+
+    versionRef.on('value', (snapshot) => {
+        const remoteVersion = snapshot.val();
+        
+        // Eğer veritabanında bir versiyon varsa ve bu versiyon bizim elimizdeki versiyondan yeniyse...
+        if (remoteVersion && remoteVersion > localVersion) {
+            // ...demek ki kullanıcının sayfası eski kalmış demektir.
+            console.log("Yeni sürüm mevcut! Sayfa yenileniyor...");
+            
+            // Ekranda bir "Güncelleniyor..." yazısı göster
+            document.getElementById('updateOverlay').style.display = 'flex';
+
+            // Sayfayı sunucudan zorla yeniden yükle (önbelleği atlayarak)
+            setTimeout(() => {
+                location.reload(true);
+            }, 2000); // 2 saniye bekleyip yenile
+        }
+    });
 }
 
 </script>
