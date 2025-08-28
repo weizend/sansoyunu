@@ -2710,6 +2710,18 @@ body.modal-open .modal-content {
         </div>
   </div>
 </div>
+
+<div id="forceUpdateModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-90 flex-col justify-center items-center z-[999999] hidden text-center">
+  <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border-4 border-yellow-500 w-11/12 max-w-md relative">
+    <h2 class="text-3xl font-bold text-yellow-400 mb-4">Yeni Güncelleme Mevcut!</h2>
+    <p class="text-lg text-gray-200 mb-8">
+      Oyunun en son sürümüne ve yeni özelliklere erişmek için lütfen sayfayı yenileyin.
+    </p>
+    <button onclick="performForceReload()" class="w-full py-4 bg-green-600 hover:bg-green-500 text-white font-bold text-xl rounded-lg shadow-md animate-pulse">
+      Şimdi Yenile
+    </button>
+  </div>
+</div>
   <script>
       document.addEventListener('DOMContentLoaded', () => {
     const typeSelect = document.getElementById('soloSpecialItemType');
@@ -2737,7 +2749,6 @@ body.modal-open .modal-content {
     messagingSenderId: "762409187638",
     appId: "1:762409187638:web:6e9888f4bdacfac017db97"
   };
-  const FIREBASE_APP_VERSION = 1; // Her büyük güncellemede bu sayıyı manuel olarak artır
 
   try {
     firebase.initializeApp(firebaseConfig);
@@ -3423,6 +3434,7 @@ async function afterLogin() {
     listenForPersistentAnnouncement();
     listenForLastSurpriseFinderPanel();
     listenForLastWheelSurprisePanel();
+    listenForForceUpdateSignal();
     
     if (!isAdmin) {
         listenForAdminNotifications();
@@ -13202,38 +13214,42 @@ async function resolveMultiplierChoice(choice) {
     db.ref('gameLock').set(false);
 }
 
-// Bu fonksiyon, veritabanına yeni bir "versiyon" numarası yazar.
+// ESKİSİNİ SİLİP BUNU YAPIŞTIR
 async function forceClientUpdate() {
     if (!isAdmin) return;
-    const confirmed = await customConfirm("Tüm aktif kullanıcıların sayfayı yenilemesini zorlamak istediğinize emin misiniz? Bu, yayınladığınız son güncellemelerin herkese ulaşmasını sağlar.");
+    const confirmed = await customConfirm("Tüm aktif kullanıcılara 'Güncelleme Mevcut' penceresini göstermek istediğinize emin misiniz?");
     if (confirmed) {
-        // Veritabanına o anki zamanı "clientVersion" olarak kaydediyoruz.
-        // Bu bizim için en güncel sürümün kimliği olacak.
-        await db.ref('gameConfig/clientVersion').set(firebase.database.ServerValue.TIMESTAMP);
-        displayMessage("Güncelleme sinyali tüm kullanıcılara gönderildi. Aktif kullanıcılar birkaç saniye içinde en son sürüme güncellenecektir.");
+        // Veritabanına "güncelleme gerekli" işaretini koyuyoruz.
+        await db.ref('gameConfig/updateRequired').set(true);
+        displayMessage("Güncelleme sinyali tüm kullanıcılara gönderildi.");
     }
 }
 
-// Bu fonksiyon, veritabanındaki versiyonu dinler ve kullanıcının versiyonuyla karşılaştırır.
-function listenForVersionChanges() {
-    const localVersion = FIREBASE_APP_VERSION;
-    const versionRef = db.ref('gameConfig/clientVersion');
+ function performForceReload() {
+    // Sayfayı yenilemeden önce tarayıcının geçici hafızasına bir not bırak
+    sessionStorage.setItem('isReloadingForUpdate', 'true');
+    
+    // Sayfayı, önbelleği atlayacak şekilde yeniden yükle
+    window.location.href = window.location.pathname + '?v=' + Date.now();
+}
 
-    versionRef.on('value', (snapshot) => {
-        const remoteVersion = snapshot.val();
-        
-        // Eğer veritabanında bir versiyon varsa ve bu versiyon bizim elimizdeki versiyondan yeniyse...
-        if (remoteVersion && remoteVersion > localVersion) {
-            // ...demek ki kullanıcının sayfası eski kalmış demektir.
-            console.log("Yeni sürüm mevcut! Sayfa yenileniyor...");
-            
-            // Ekranda bir "Güncelleniyor..." yazısı göster
-            document.getElementById('updateOverlay').style.display = 'flex';
+function listenForForceUpdateSignal() {
+    if (isAdmin) return; // Adminler bu pencereyi görmez
 
-            // Sayfayı sunucudan zorla yeniden yükle (önbelleği atlayarak)
-            setTimeout(() => {
-                location.reload(true);
-            }, 2000); // 2 saniye bekleyip yenile
+    // Sayfa, güncelleme için zorla yenilendiyse, notu kontrol et
+    if (sessionStorage.getItem('isReloadingForUpdate')) {
+        // Notu sil ki bir sonraki normal yenilemede tekrar kontrol edebilsin
+        sessionStorage.removeItem('isReloadingForUpdate');
+        // Pencereyi göstermeden fonksiyonu bitir
+        return;
+    }
+
+    const updateRef = db.ref('gameConfig/updateRequired');
+    updateRef.on('value', (snapshot) => {
+        const isUpdateRequired = snapshot.val();
+        if (isUpdateRequired === true) {
+            // Eğer güncelleme işareti varsa, modalı göster
+            document.getElementById('forceUpdateModal').style.display = 'flex';
         }
     });
 }
