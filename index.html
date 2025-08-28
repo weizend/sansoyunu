@@ -1741,56 +1741,61 @@ body.modal-open .modal-content {
 </div>
 
 <div id="publicUserDetailModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-[10001] hidden" onclick="closeModalOnClickOutside(event)">
-  <div class="modal-content bg-gray-900/95 backdrop-blur-sm p-6 rounded-2xl shadow-2xl border border-yellow-500 w-11/12 max-w-2xl text-center relative max-h-[90vh] overflow-y-auto scrollable-list">
-    <button class="modal-close-button absolute top-4 right-4 text-gray-400 hover:text-white text-4xl transition-colors" onclick="closePublicUserDetailModal()">&times;</button>
-
-    <div class="flex flex-col items-center gap-4 mb-6">
-        <img id="publicUserAvatar" src="" class="w-28 h-28 rounded-full border-4 border-yellow-400 object-cover">
-        <div class="flex flex-col items-center text-center">
-            <div id="publicUserProfileBadges" class="flex items-center justify-center gap-2 h-8 mb-2"></div>
-            <h4 id="publicUserName" class="text-yellow-300 text-3xl font-bold"></h4>
-        </div>
-    </div>
+  <div class="modal-content bg-gray-900/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-yellow-500 w-11/12 max-w-2xl text-center relative max-h-[90vh] flex flex-col">
     
-    <div id="publicUserChampionships" class="hidden w-full max-w-lg mx-auto bg-yellow-900/50 border-2 border-yellow-500 text-yellow-200 p-4 rounded-xl mb-6 space-y-2 text-center shadow-lg">
-        </div>
+    <div class="p-6 pb-4 flex-shrink-0 relative">
+        <button class="modal-close-button absolute top-4 right-4 text-gray-400 hover:text-white text-4xl transition-colors" onclick="closePublicUserDetailModal()">&times;</button>
 
-    <div id="publicUserBlockedInfo" class="hidden bg-red-900/50 border border-red-500 text-red-300 p-3 rounded-lg mb-4">
-        Bu kullanıcı engellidir. Kalan süre: <span id="publicUserBlockedCountdown" class="font-bold"></span>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
-        <div class="bg-gray-800/70 p-4 rounded-xl border border-gray-700">
-            <h5 class="font-bold text-yellow-200 text-xl mb-3 border-b border-gray-600 pb-2">Puan & Envanter</h5>
-            <div class="space-y-3 text-gray-300">
-                <p class="flex justify-between items-center"><span> Kasa Puanı:</span> <span id="publicUserKasaBalance" class="font-bold text-purple-400 text-lg"></span></p>
-                <p class="flex justify-between items-center"><span><span id="publicBadgeBalance" class="inline-block w-6 text-center"></span>Mevcut Puanı:</span> <span id="publicUserBalance" class="font-bold text-yellow-300 text-lg"></span></p>
-                <p class="flex justify-between items-center"><span><span id="publicBadgeHighest" class="inline-block w-6 text-center"></span>Kariyer Puanı:</span> <span id="publicUserHighestBalance" class="font-bold text-green-400 text-lg"></span></p>
-                <hr class="border-gray-600 !my-2">
-                <p class="flex justify-between items-center"><span> Kutu Hakkı:</span> <span id="publicUserBoxRight" class="font-bold text-green-400 text-lg"></span></p>
-                <p class="flex justify-between items-center"><span> Şans Çarkı Bileti:</span> <span id="publicUserWheelTickets" class="font-bold text-yellow-400 text-lg"></span></p>
-                <p class="flex justify-between items-center"><span> Tıkla-Yakala Bileti:</span> <span id="publicUserClickCatchTickets" class="font-bold text-fuchsia-400 text-lg"></span></p>
-                <p class="flex justify-between items-center"><span> İflas Kalkanı:</span> <span id="publicUserIflasShield" class="font-bold text-blue-400 text-lg"></span></p>
-                <p class="flex justify-between items-center"><span> Aktif Çarpan:</span> <span id="publicUserMultiplier" class="font-bold text-purple-400 text-lg text-right"></span></p>
+        <div class="flex flex-col items-center gap-4">
+            <img id="publicUserAvatar" src="" class="w-28 h-28 rounded-full border-4 border-yellow-400 object-cover">
+            <div class="flex flex-col items-center text-center">
+                <div id="publicUserProfileBadges" class="flex items-center justify-center gap-2 h-8 mb-2"></div>
+                <h4 id="publicUserName" class="text-yellow-300 text-3xl font-bold"></h4>
             </div>
         </div>
-
-        <div class="bg-gray-800/70 p-4 rounded-xl border border-gray-700">
-            <h5 class="font-bold text-yellow-200 text-xl mb-3 border-b border-gray-600 pb-2">Oyun İstatistikleri</h5>
-            <div class="space-y-3 text-gray-300">
-                <p class="flex justify-between items-center"><span><span class="inline-block w-6 text-center" id="badge-stat-box"></span>Toplam Açılan Kutu:</span> <span id="publicUserBoxesOpened" class="font-bold text-fuchsia-400 text-lg"></span></p>
-                <p class="flex justify-between items-center"><span><span class="inline-block w-6 text-center" id="badge-stat-wheel"></span>Toplam Çevrilen Çark:</span> <span id="publicUserWheelSpins" class="font-bold text-fuchsia-400 text-lg"></span></p>
-                <p class="flex justify-between items-center"><span><span class="inline-block w-6 text-center" id="badge-stat-clickcatch"></span>Tıkla-Yakala Skoru:</span> <span id="publicUserClickCatchScore" class="font-bold text-fuchsia-400 text-lg"></span></p>
-                <hr class="border-gray-600 !my-2">
-                <p class="flex justify-between items-center"><span><span class="inline-block w-6 text-center" id="badge-stat-surprise"></span>Bulunan Sürpriz Kutu:</span> <span id="publicUserSurpriseBoxes" class="font-bold text-fuchsia-400 text-lg"></span></p>
-                <p class="flex justify-between items-center"><span><span class="inline-block w-6 text-center" id="badge-stat-bomb"></span>Bulunan Bomba Sayısı:</span> <span id="publicUserBombCount" class="font-bold text-fuchsia-400 text-lg"></span></p>
-                <p class="flex justify-between items-center"><span><span class="inline-block w-6 text-center" id="badge-stat-multiplier"></span>Bulunan Çarpan Sayısı:</span> <span id="publicUserMultiplierFoundCount" class="font-bold text-fuchsia-400 text-lg"></span></p>
-                <p class="flex justify-between items-center"><span><span class="inline-block w-6 text-center" id="badge-stat-shield"></span>Kullanılan Kalkan Sayısı:</span> <span id="publicUserShieldUsedCount" class="font-bold text-fuchsia-400 text-lg"></span></p>
-                <p class="flex justify-between items-center"><span><span class="inline-block w-6 text-center" id="badge-stat-store"></span>Mağazada Harcanan Puan:</span> <span id="publicUserTotalSpent" class="font-bold text-fuchsia-400 text-lg"></span></p>
-            </div>
+        
+        <div id="publicUserChampionships" class="hidden w-full max-w-lg mx-auto bg-yellow-900/50 border-2 border-yellow-500 text-yellow-200 p-4 rounded-xl mt-4 space-y-2 text-center shadow-lg">
         </div>
     </div>
-     <button onclick="closePublicUserDetailModal()" class="mt-6 w-full max-w-xs mx-auto py-3 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg transition-colors">Kapat</button>
+
+    <div class="flex-grow overflow-y-auto scrollable-list p-6 pt-2">
+        <div id="publicUserBlockedInfo" class="hidden bg-red-900/50 border border-red-500 text-red-300 p-3 rounded-lg mb-4">
+            Bu kullanıcı engellidir. Kalan süre: <span id="publicUserBlockedCountdown" class="font-bold"></span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+            <div class="bg-gray-800/70 p-4 rounded-xl border border-gray-700">
+                <h5 class="font-bold text-yellow-200 text-xl mb-3 border-b border-gray-600 pb-2">Puan & Envanter</h5>
+                <div class="space-y-3 text-gray-300">
+                    <p class="flex justify-between items-center"><span> Kasa Puanı:</span> <span id="publicUserKasaBalance" class="font-bold text-purple-400 text-lg"></span></p>
+                    <p class="flex justify-between items-center"><span><span id="publicBadgeBalance" class="inline-block w-6 text-center"></span>Mevcut Puanı:</span> <span id="publicUserBalance" class="font-bold text-yellow-300 text-lg"></span></p>
+                    <p class="flex justify-between items-center"><span><span id="publicBadgeHighest" class="inline-block w-6 text-center"></span>Kariyer Puanı:</span> <span id="publicUserHighestBalance" class="font-bold text-green-400 text-lg"></span></p>
+                    <hr class="border-gray-600 !my-2">
+                    <p class="flex justify-between items-center"><span> Kutu Hakkı:</span> <span id="publicUserBoxRight" class="font-bold text-green-400 text-lg"></span></p>
+                    <p class="flex justify-between items-center"><span> Şans Çarkı Bileti:</span> <span id="publicUserWheelTickets" class="font-bold text-yellow-400 text-lg"></span></p>
+                    <p class="flex justify-between items-center"><span> Tıkla-Yakala Bileti:</span> <span id="publicUserClickCatchTickets" class="font-bold text-fuchsia-400 text-lg"></span></p>
+                    <p class="flex justify-between items-center"><span> İflas Kalkanı:</span> <span id="publicUserIflasShield" class="font-bold text-blue-400 text-lg"></span></p>
+                    <p class="flex justify-between items-center"><span> Aktif Çarpan:</span> <span id="publicUserMultiplier" class="font-bold text-purple-400 text-lg text-right"></span></p>
+                </div>
+            </div>
+
+            <div class="bg-gray-800/70 p-4 rounded-xl border border-gray-700">
+                <h5 class="font-bold text-yellow-200 text-xl mb-3 border-b border-gray-600 pb-2">Oyun İstatistikleri</h5>
+                <div class="space-y-3 text-gray-300">
+                    <p class="flex justify-between items-center"><span><span class="inline-block w-6 text-center" id="badge-stat-box"></span>Toplam Açılan Kutu:</span> <span id="publicUserBoxesOpened" class="font-bold text-fuchsia-400 text-lg"></span></p>
+                    <p class="flex justify-between items-center"><span><span class="inline-block w-6 text-center" id="badge-stat-wheel"></span>Toplam Çevrilen Çark:</span> <span id="publicUserWheelSpins" class="font-bold text-fuchsia-400 text-lg"></span></p>
+                    <p class="flex justify-between items-center"><span><span class="inline-block w-6 text-center" id="badge-stat-clickcatch"></span>Tıkla-Yakala Skoru:</span> <span id="publicUserClickCatchScore" class="font-bold text-fuchsia-400 text-lg"></span></p>
+                    <hr class="border-gray-600 !my-2">
+                    <p class="flex justify-between items-center"><span><span class="inline-block w-6 text-center" id="badge-stat-surprise"></span>Bulunan Sürpriz Kutu:</span> <span id="publicUserSurpriseBoxes" class="font-bold text-fuchsia-400 text-lg"></span></p>
+                    <p class="flex justify-between items-center"><span><span class="inline-block w-6 text-center" id="badge-stat-bomb"></span>Bulunan Bomba Sayısı:</span> <span id="publicUserBombCount" class="font-bold text-fuchsia-400 text-lg"></span></p>
+                    <p class="flex justify-between items-center"><span><span class="inline-block w-6 text-center" id="badge-stat-multiplier"></span>Bulunan Çarpan Sayısı:</span> <span id="publicUserMultiplierFoundCount" class="font-bold text-fuchsia-400 text-lg"></span></p>
+                    <p class="flex justify-between items-center"><span><span class="inline-block w-6 text-center" id="badge-stat-shield"></span>Kullanılan Kalkan Sayısı:</span> <span id="publicUserShieldUsedCount" class="font-bold text-fuchsia-400 text-lg"></span></p>
+                    <p class="flex justify-between items-center"><span><span class="inline-block w-6 text-center" id="badge-stat-store"></span>Mağazada Harcanan Puan:</span> <span id="publicUserTotalSpent" class="font-bold text-fuchsia-400 text-lg"></span></p>
+                </div>
+            </div>
+        </div>
+        <button onclick="closePublicUserDetailModal()" class="mt-6 w-full max-w-xs mx-auto py-3 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg transition-colors">Kapat</button>
+    </div>
   </div>
 </div>
   <div id="inventoryModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 hidden">
