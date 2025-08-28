@@ -13219,36 +13219,47 @@ async function forceClientUpdate() {
     if (!isAdmin) return;
     const confirmed = await customConfirm("Tüm aktif kullanıcılara 'Güncelleme Mevcut' penceresini göstermek istediğinize emin misiniz?");
     if (confirmed) {
-        // Veritabanına "güncelleme gerekli" işaretini koyuyoruz.
-        await db.ref('gameConfig/updateRequired').set(true);
+        // Veritabanına "güncelleme gerekli" işareti olarak o anki sunucu zamanını yazıyoruz.
+        await db.ref('gameConfig/updateRequiredTimestamp').set(firebase.database.ServerValue.TIMESTAMP);
         displayMessage("Güncelleme sinyali tüm kullanıcılara gönderildi.");
     }
 }
 
- function performForceReload() {
-    // Sayfayı yenilemeden önce tarayıcının geçici hafızasına bir not bırak
-    sessionStorage.setItem('isReloadingForUpdate', 'true');
+ // ESKİSİNİ SİLİP BUNU YAPIŞTIR
+async function performForceReload() {
+    // Önce sunucudaki güncel güncelleme zaman damgasını al
+    const updateTimestampSnap = await db.ref('gameConfig/updateRequiredTimestamp').once('value');
+    const updateTimestamp = updateTimestampSnap.val();
+
+    if (updateTimestamp) {
+        // Bu zaman damgasını kullanıcının kendi profiline "gördüğü son güncelleme" olarak kaydet
+        await db.ref(`users/${currentUser}/lastSeenUpdateTimestamp`).set(updateTimestamp);
+    }
     
     // Sayfayı, önbelleği atlayacak şekilde yeniden yükle
     window.location.href = window.location.pathname + '?v=' + Date.now();
 }
 
+// ESKİSİNİ SİLİP BUNU YAPIŞTIR
 function listenForForceUpdateSignal() {
     if (isAdmin) return; // Adminler bu pencereyi görmez
 
-    // Sayfa, güncelleme için zorla yenilendiyse, notu kontrol et
-    if (sessionStorage.getItem('isReloadingForUpdate')) {
-        // Notu sil ki bir sonraki normal yenilemede tekrar kontrol edebilsin
-        sessionStorage.removeItem('isReloadingForUpdate');
-        // Pencereyi göstermeden fonksiyonu bitir
-        return;
-    }
+    const updateRef = db.ref('gameConfig/updateRequiredTimestamp');
+    
+    updateRef.on('value', async (snapshot) => {
+        const requiredUpdateTimestamp = snapshot.val();
 
-    const updateRef = db.ref('gameConfig/updateRequired');
-    updateRef.on('value', (snapshot) => {
-        const isUpdateRequired = snapshot.val();
-        if (isUpdateRequired === true) {
-            // Eğer güncelleme işareti varsa, modalı göster
+        // Eğer bir güncelleme sinyali yoksa hiçbir şey yapma
+        if (!requiredUpdateTimestamp) {
+            return;
+        }
+
+        // Kullanıcının en son gördüğü güncellemenin zamanını kendi profilinden al
+        const userSeenTimestampSnap = await db.ref(`users/${currentUser}/lastSeenUpdateTimestamp`).once('value');
+        const userSeenTimestamp = userSeenTimestampSnap.val() || 0;
+
+        // Sadece sunucudaki güncelleme, kullanıcının gördüğünden daha YENİ ise pencereyi göster
+        if (requiredUpdateTimestamp > userSeenTimestamp) {
             document.getElementById('forceUpdateModal').style.display = 'flex';
         }
     });
