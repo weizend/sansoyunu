@@ -4936,34 +4936,37 @@ async function openBox(index) {
     if (box.content === 'multiplier') {
         updates['multiplierFoundCount'] = (user.multiplierFoundCount || 0) + 1;
         
+        // --- DEĞİŞEN KISIM BAŞLANGICI ---
         if (user.multiplierSource === 'store' && user.multiplierRemainingUses > 0) {
+            // Kural 1: Eğer kutudan çıkan çarpan, mevcut çarpanla aynı değerdeyse, sadece kullanım hakkını artır.
             if (box.value === user.activeMultiplier) {
                 updates['multiplierRemainingUses'] = (user.multiplierRemainingUses || 0) + 1;
-                message = `Tebrikler! Mevcut <b>${user.activeMultiplier}x</b> çarpanınla aynı türde bir çarpan daha buldun. Kullanım hakkın <b>+1</b> arttı!`;
-                logActivity('multiplierStacked', currentUser, { value: user.activeMultiplier, uses: 1 });
-
-            } else {
-                shouldLockGame = false;
-                shouldDisplayMessage = false;
+                message = `Harika! Mevcut <b>${user.activeMultiplier}x</b> çarpanınla aynı türde bir çarpan daha buldun. Kullanım hakkın <b class="text-green-400">+1</b> arttı!`;
                 
-                const existingMultiplier = {
-                    value: user.activeMultiplier,
-                    uses: user.multiplierRemainingUses
-                };
-                const foundMultiplier = {
-                    value: box.value,
-                    uses: 1
-                };
-
-                await userRef.update(updates);
-                await boxRef.update(boxUpdate);
-                await db.ref('lastOpenedBox').set(boxOpenInfo);
+                logActivity('multiplierStacked', currentUser, { 
+                    value: user.activeMultiplier, 
+                    uses: 1, 
+                    boxId: box.id 
+                });
+        
+            } 
+            // Kural 2: Eğer kutudan çıkan çarpan, mevcut çarpandan FARKLI ise, kullanıcının kafasını karıştırma.
+            // Yeni çıkanı Kutu Hakkı'na dönüştür ve mevcut çarpanı koru.
+            else {
+                const boxRightsToGain = box.value; // Çarpanın değeri kadar kutu hakkı ver
+                updates['kutuHakki'] = (user.kutuHakki || 0) + boxRightsToGain;
+                message = `Mevcut <b>${user.activeMultiplier}x</b> çarpanın korundu. Kutudan çıkan ${box.value}x çarpanı ise envanterine <b class="text-green-400">+${boxRightsToGain} Kutu Hakkı</b> olarak eklendi!`;
                 
-                openMultiplierChoiceModal({ hasMultiplier: true, existing: existingMultiplier, found: foundMultiplier });
-                return;
+                logActivity('multiplierConvertedToBoxRights', currentUser, {
+                    rewardValue: box.value,
+                    boxRights: boxRightsToGain,
+                    keptMultiplierValue: user.activeMultiplier,
+                    boxId: box.id
+                });
             }
-
-        } else {
+        }
+        // --- DEĞİŞEN KISIM SONU ---
+        else {
             if (user.multiplierSource === 'box' && user.activeMultiplier > 1) {
                 const oldValue = user.activeMultiplier;
                 const newValue = box.value;
