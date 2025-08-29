@@ -992,7 +992,21 @@ body.modal-open .modal-content {
                 </button>
             </div>
         </div>
+    
+    <div class="mt-6 pt-4 border-t border-gray-700">
+        <h4 class="text-lg font-bold text-purple-300 mb-3 text-center">PAZAR AYARLARI</h4>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+            <div class="md:col-span-1">
+                <label for="tradeFeeInput" class="block text-sm font-medium text-gray-300 mb-1">Takas İşlem Ücreti (Puan)</label>
+                <input type="number" id="tradeFeeInput" value="0" class="box-setting-input">
+            </div>
+            <div class="md:col-span-2 flex flex-col sm:flex-row gap-3 mt-4">
+                <button onclick="saveMarketSettings()" class="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg">Ücreti Kaydet</button>
+                <button onclick="toggleMarketLock()" id="marketLockBtn" class="w-full py-2 bg-gray-600 hover:bg-gray-500 text-white font-bold rounded-lg">Pazarı Kilitle</button>
+            </div>
+        </div>
     </div>
+</div>
     
     <div id="cardCollectionAlbum" class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-6 p-4 bg-gray-900/50 rounded-xl border border-gray-700">
         </div>
@@ -12597,7 +12611,6 @@ function closeCreateOfferModal() {
     document.getElementById('createOfferModal').style.display = 'none';
 }
 
-// Formdaki bilgileri alıp yeni bir takas teklifi oluşturur
 async function submitTradeOffer() {
     const offeredCardId = document.getElementById('offerMyCardSelect').value;
     const requestedCardId = document.getElementById('offerRequestCardSelect').value;
@@ -12606,40 +12619,58 @@ async function submitTradeOffer() {
         displayMessage("Teklif etmek için en az bir karttan 2 adet veya daha fazlasına sahip olmalısın.");
         return;
     }
-
     if (offeredCardId === requestedCardId) {
         displayMessage("Bir kartı kendisiyle takas edemezsin.");
         return;
     }
 
-    const newTrade = {
-        offerer: currentUser,
-        offeredCardId: offeredCardId,
-        requestedCardId: requestedCardId,
-        timestamp: firebase.database.ServerValue.TIMESTAMP
-    };
+    const userCardRef = db.ref(`users/${currentUser}/cardCollection/${offeredCardId}`);
 
-    // Yeni loglama fonksiyonunu çağırmadan önce kart isimlerini almamız lazım
-    const masterCardsSnap = await db.ref('gameConfig/cardCollection').once('value');
-    const masterCards = masterCardsSnap.val();
-    const offeredCardName = masterCards[offeredCardId]?.cardName || 'Bilinmeyen Kart';
-    const requestedCardName = masterCards[requestedCardId]?.cardName || 'Bilinmeyen Kart';
+    // GÜVENLİ İŞLEM: Firebase Transaction ile kart sayısını kontrol et ve düşür
+    try {
+        const { committed, snapshot } = await userCardRef.transaction(cardData => {
+            // Eğer kart verisi yoksa veya 1'den fazla değilse işlemi iptal et
+            if (!cardData || cardData.count <= 1) {
+                return; // Abort the transaction
+            }
+            // Kart sayısı 1'den fazlaysa, sayıyı 1 azalt
+            cardData.count--;
+            return cardData;
+        });
 
-    // Aktiviteyi logla
-    logActivity('tradeOfferCreated', currentUser, {
-        offeredCardName: offeredCardName,
-        requestedCardName: requestedCardName
-    });
+        if (committed) {
+            // Transaction başarılı olduysa takası oluştur
+            const newTrade = {
+                offerer: currentUser,
+                offeredCardId: offeredCardId,
+                requestedCardId: requestedCardId,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            };
 
-    await db.ref('trades').push(newTrade);
-    displayMessage("Takas teklifin başarıyla pazara eklendi!");
-    closeCreateOfferModal();
-    // Pazarı yenilemek için "Benim Tekliflerim" sekmesine geç
-    switchMarketTab('mine');
+            const masterCardsSnap = await db.ref('gameConfig/cardCollection').once('value');
+            const masterCards = masterCardsSnap.val();
+            const offeredCardName = masterCards[offeredCardId]?.cardName || 'Bilinmeyen Kart';
+            const requestedCardName = masterCards[requestedCardId]?.cardName || 'Bilinmeyen Kart';
+
+            logActivity('tradeOfferCreated', currentUser, {
+                offeredCardName: offeredCardName,
+                requestedCardName: requestedCardName
+            });
+
+            await db.ref('trades').push(newTrade);
+            displayMessage("Takas teklifin başarıyla pazara eklendi ve kartın envanterinden düşüldü!");
+            closeCreateOfferModal();
+            switchMarketTab('mine');
+        } else {
+            // Transaction başarısız olduysa (kart sayısı yetersizse)
+            displayMessage("Hata: Bu karttan takas edebileceğin fazlan kalmamış.");
+        }
+    } catch (error) {
+        console.error("Takas oluşturma hatası:", error);
+        displayMessage("Takas oluşturulurken bir hata oluştu.");
+    }
 }
-
-
-// Bir takas teklifini iptal eder
+      
 async function cancelTradeOffer(tradeId, asAdmin = false) {
     if (!tradeId) return;
     
@@ -12647,51 +12678,52 @@ async function cancelTradeOffer(tradeId, asAdmin = false) {
     const tradeSnap = await tradeRef.once('value');
     const tradeData = tradeSnap.val();
 
-    // Eğer teklif zaten silinmişse bir şey yapma
     if (!tradeData) {
         displayMessage("Bu teklif zaten pazarda mevcut değil.");
         loadMarketOffers(asAdmin ? 'all' : 'mine');
         return;
     }
     
-    if (asAdmin) {
-        if (!isAdmin) return; // Sadece adminler bu işlemi yapabilir
-        const confirmed = await customConfirm("Bu teklifi admin olarak zorla iptal etmek istediğinize emin misiniz?");
-        if (!confirmed) return;
-        
-        // Adminin iptal ettiğini logla
-        const masterCardsSnap = await db.ref('gameConfig/cardCollection').once('value');
-        const masterCards = masterCardsSnap.val();
-        const offeredCardName = masterCards[tradeData.offeredCardId]?.cardName || 'Bilinmeyen Kart';
-        
-        logActivity('tradeOfferCancelledByAdmin', 'WeizendTv', { 
-            offerer: tradeData.offerer, 
-            offeredCardName: offeredCardName 
+    const offererUsername = tradeData.offerer;
+    const offeredCardId = tradeData.offeredCardId;
+
+    const confirmed = await customConfirm(asAdmin 
+        ? "Bu teklifi admin olarak zorla iptal etmek istediğinize emin misiniz? Kart, sahibine iade edilecek."
+        : "Bu takas teklifini pazardan kaldırmak istediğinize emin misiniz? Kartın envanterine geri eklenecek."
+    );
+    if (!confirmed) return;
+
+    // GÜVENLİ İŞLEM: Kartı sahibine iade et ve takası sil
+    const userCardRef = db.ref(`users/${offererUsername}/cardCollection/${offeredCardId}`);
+    
+    try {
+        await userCardRef.transaction(cardData => {
+            if (cardData) {
+                cardData.count++;
+            } else {
+                // Eğer bir sebepten ötürü kart hiç yoksa, 1 olarak ekle (güvenlik önlemi)
+                return { count: 1 };
+            }
+            return cardData;
         });
         
-        await tradeRef.remove();
-        displayMessage("Teklif admin tarafından iptal edildi.");
-        loadMarketOffers('all'); // Admin olduğu için tüm pazar listesini yenile
+        await tradeRef.remove(); // Kart iade edildikten sonra takası sil
 
-    } else {
-        // Kullanıcının kendi teklifini iptal etmesi
-        if (tradeData.offerer === currentUser) {
-            const confirmed = await customConfirm("Bu takas teklifini pazardan kaldırmak istediğinizden emin misiniz?");
-            if (!confirmed) return;
-            
-            // Not: Kart oluşturulduğunda envanterden düşülmediği için, iptal edildiğinde de iadeye gerek yoktur.
-            // Sadece teklifin kendisi silinir.
-            
-            await tradeRef.remove();
-            displayMessage("Teklifin pazardan kaldırıldı.");
-            loadMarketOffers('mine'); // Kullanıcının kendi teklif listesini yenile
+        if (asAdmin) {
+            logActivity('tradeOfferCancelledByAdmin', 'WeizendTv', { offerer: offererUsername });
+            displayMessage("Teklif admin tarafından iptal edildi ve kart sahibine iade edildi.");
+            loadMarketOffers('all');
+        } else {
+            displayMessage("Teklifin pazardan kaldırıldı ve kartın envanterine geri eklendi.");
+            loadMarketOffers('mine');
         }
+
+    } catch(error) {
+        console.error("Takas iptal etme hatası:", error);
+        displayMessage("Takas iptal edilirken bir hata oluştu.");
     }
 }
 
-// =======================================================
-// YENİ ÖZELLİK: KART PAKETİ AÇMA SEREMONİSİ
-// =======================================================
 let packsToReveal = [];
 let packsRevealedCount = 0;
 
