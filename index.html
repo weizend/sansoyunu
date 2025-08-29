@@ -5307,8 +5307,7 @@ function closeMultiplierChoiceModal() {
 }
 
 
-// --- GÜNCELLENMİŞ FONKSİYON ---
-// Yeni aktivite türleri için ikonlar eklendi
+// YENİ VE DÜZELTİLMİŞ KOD (Bununla değiştir)
 function getActivityIcon(type, details = {}) {
     let icon = '🔔';
     let bgColor = 'bg-gray-500';
@@ -5427,6 +5426,11 @@ function getActivityIcon(type, details = {}) {
             icon = '🎯';
             bgColor = 'bg-orange-500';
             break;
+        // YENİ EKLENEN BÖLÜM: Günlük ödül çarpanı dönüştürme eylemi için takvim ikonu
+        case 'dailyRewardMultiplierConverted':
+            icon = '📅';
+            bgColor = 'bg-lime-600'; // Yeşilimsi bir renk
+            break;
         case 'dailyRewardMultiplierStacked':
             icon = '📅';
             bgColor = 'bg-teal-500';
@@ -5459,7 +5463,6 @@ function getActivityIcon(type, details = {}) {
     `;
 }
 
-// --- YENİLENMİŞ VE TAM SÜRÜM ---
 function renderActivityFeed(activities) {
     const activityFeedList = document.getElementById('activityFeedList');
     activityFeedList.innerHTML = '';
@@ -5505,7 +5508,7 @@ function renderActivityFeed(activities) {
             const userHtml = `<b class="text-yellow-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${activity.username}')">${activity.username}</b>`;
 
             const remainingBalanceText = (details.newBalance !== undefined && details.newBalance !== null) 
-                ? ` <span class="text-gray-400">(Mevcut Puanı: ${details.newBalance})</span>`
+                ? ` <span class="text-gray-400">(Kalan Puanı: ${details.newBalance})</span>`
                 : '';
             
             const weeklyScoreText = (details.newWeeklyScore !== undefined && details.newWeeklyScore !== null)
@@ -5576,6 +5579,12 @@ function renderActivityFeed(activities) {
                         : ` <span class="text-xs text-gray-400">(çarpan kullanmadı)</span>`;
                     message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-cyan-300 font-bold">${details.itemName}</span> buldu.${newItemMultiplierText}`;
                     break;
+                case 'multiplierStackedFromStore':
+                    message = `${userHtml}, mağazadan <b class="text-red-400 font-bold">-${details.cost} Puan</b> harcayarak envanterindeki <b>${details.multiplierValue}x</b> çarpanına <b class="text-teal-300">+${details.usesAdded} kullanım hakkı</b> ekledi. Yeni toplam: <b class="text-white">${details.newTotalUses} kullanım</b>.${remainingBalanceText}`;
+                    break;
+                case 'multiplierUpgradedFromStore':
+                    message = `${userHtml}, mağazadan <b class="text-red-400 font-bold">-${details.cost} Puan</b> harcayarak <b class="text-green-400">+1 adet ${details.newValue}x çarpan</b> aldı ve envanterinde bulunan <b class="text-orange-400">+${details.oldUses} adet ${details.oldValue}x</b> çarpanını <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b>'na dönüştürdü.${remainingBalanceText}`;
+                    break;
                 case 'buyItem':
                     let purchasedItemText = '';
                     if (details.itemType === 'tempMultiplier') {
@@ -5587,12 +5596,6 @@ function renderActivityFeed(activities) {
                         purchasedItemText = `<span class="text-indigo-300 font-bold">${details.itemName}</span>`;
                     }
                     message = `${userHtml}, mağazadan <span class="text-red-400 font-bold">-${details.itemCost} Puan</span> harcayarak ${purchasedItemText} aldı.${remainingBalanceText}`;
-                    break;
-                case 'multiplierStackedFromStore':
-                    message = `${userHtml}, mağazadan alım yaparak mevcut <b>${details.multiplierValue}x</b> çarpanına <b class="text-teal-300">+${details.usesAdded} kullanım hakkı</b> ekledi. Yeni toplam: <b class="text-white">${details.newTotalUses} kullanım</b>.`;
-                    break;
-                case 'multiplierUpgradedFromStore':
-                    message = `${userHtml}, mağazadan <b>${details.newValue}x çarpan</b> alarak mevcut ${details.oldValue}x çarpanını yükseltti. Eski çarpanından <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b> iade aldı.`;
                     break;
                 case 'lobbyJoined':
                     message = `${userHtml}, Tıkla-Yakala lobisine <span class="text-red-400 font-bold">-${details.cost} Puan</span> karşılığında katıldı.${remainingBalanceText}`;
@@ -5637,9 +5640,13 @@ function renderActivityFeed(activities) {
                 case 'multiplierStacked':
                     message = `${userHtml}, Tıkla-Yakala'dan <b>${details.value}x çarpan</b> kazandı ve mevcut çarpanına <b class="text-teal-300">+${details.uses} kullanım hakkı</b> ekledi.`;
                     break;
+                
+                // --- DEĞİŞTİRİLEN VE AKILLI HALE GETİRİLEN BÖLÜM ---
                 case 'multiplierConvertedToBoxRights':
-                     message = `${userHtml}, Tıkla-Yakala'dan <b>${details.rewardValue}x çarpan</b> kazandı, ancak mevcut ${details.keptMultiplierValue}x çarpanı daha güçlü olduğu için ödül <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b>'na dönüştürüldü.`;
+                     const sourceText = details.source || "Tıkla-Yakala'dan"; // Eğer kaynak belirtilmemişse, eskisini varsay
+                     message = `${userHtml}, ${sourceText} <b>${details.rewardValue}x çarpan</b> kazandı, ancak mevcut ${details.keptMultiplierValue}x çarpanı daha güçlü olduğu için ödül <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b>'na dönüştürüldü.`;
                     break;
+                
                 case 'dailyRewardMultiplierStacked':
                     message = `${userHtml}, mevcut <b>${details.multiplierValue}x</b> çarpanına günlük ödülden gelen <b class="text-teal-300">+${details.usesAdded} kullanım hakkını</b> ekledi. Yeni toplam: <b class="text-white">${details.newTotalUses} kullanım</b>.`;
                     break;
@@ -6575,7 +6582,13 @@ async function buyItem(itemId) {
                 }
                 const confirmedStack = await customConfirm(`Zaten ${user.activeMultiplier}x çarpanın var. Bu alım, mevcut çarpanına <b>+${item.duration} kullanım hakkı</b> ekleyecek ve toplamda <b>${(user.multiplierRemainingUses || 0) + item.duration} kullanım hakkın</b> olacak. Onaylıyor musun?`);
                 if (confirmedStack) {
-                    logActivity('multiplierStackedFromStore', currentUser, { cost: item.cost, multiplierValue: item.value, usesAdded: item.duration, newTotalUses: (user.multiplierRemainingUses || 0) + item.duration, newBalance: user.balance - item.cost });
+                    logActivity('multiplierStackedFromStore', currentUser, {
+                        cost: item.cost,
+                        multiplierValue: item.value,
+                        usesAdded: item.duration,
+                        newTotalUses: (user.multiplierRemainingUses || 0) + item.duration,
+                        newBalance: (user.balance - item.cost)
+                    });
                     await userRef.update({ balance: user.balance - item.cost, totalSpentPoints: (user.totalSpentPoints || 0) + item.cost, multiplierRemainingUses: (user.multiplierRemainingUses || 0) + item.duration });
                     await itemRef.transaction(currentItem => { if (currentItem) { if (currentItem.stock !== undefined && currentItem.stock !== null) { currentItem.stock--; } currentItem.purchaseCount = (currentItem.purchaseCount || 0) + 1; } return currentItem; });
                     displayMessage(`Başarılı! ${user.activeMultiplier}x çarpanına +${item.duration} kullanım hakkı eklendi.`);
@@ -6588,7 +6601,14 @@ async function buyItem(itemId) {
                 const kutuHakkiDonusum = user.multiplierRemainingUses || 0;
                 const confirmedUpgrade = await customConfirm(`Mevcut ${user.activeMultiplier}x çarpanını daha yüksek olan <b>${item.value}x</b> ile değiştirmek üzeresin. Mevcut çarpanının kalan <b>${user.multiplierRemainingUses} kullanım hakkı</b>, envanterine <b>+${kutuHakkiDonusum} Kutu Hakkı</b> olarak eklenecek. Onaylıyor musun?`);
                 if (confirmedUpgrade) {
-                    logActivity('multiplierUpgradedFromStore', currentUser, { oldValue: user.activeMultiplier, newValue: item.value, boxRights: kutuHakkiDonusum, cost: item.cost, newBalance: user.balance - item.cost });
+                    logActivity('multiplierUpgradedFromStore', currentUser, {
+                        cost: item.cost,
+                        newValue: item.value,
+                        oldValue: user.activeMultiplier,
+                        oldUses: user.multiplierRemainingUses || 0,
+                        boxRights: kutuHakkiDonusum,
+                        newBalance: (user.balance - item.cost)
+                    });
                     await userRef.update({ balance: user.balance - item.cost, totalSpentPoints: (user.totalSpentPoints || 0) + item.cost, kutuHakki: (user.kutuHakki || 0) + kutuHakkiDonusum, activeMultiplier: item.value, multiplierRemainingUses: item.duration, multiplierSource: 'store' });
                     await itemRef.transaction(currentItem => { if (currentItem) { if (currentItem.stock !== undefined && currentItem.stock !== null) { currentItem.stock--; } currentItem.purchaseCount = (currentItem.purchaseCount || 0) + 1; } return currentItem; });
                     displayMessage(`Yükseltme başarılı! Envanterine +${kutuHakkiDonusum} Kutu Hakkı eklendi ve yeni ${item.value}x çarpanın aktif!`);
@@ -8261,10 +8281,12 @@ async function claimDailyReward(rewardId) {
                         return;
                     }
 
+                    // --- DEĞİŞTİRİLEN SATIR: KAYNAK BİLGİSİ EKLENDİ ---
                     logActivity('multiplierConvertedToBoxRights', currentUser, {
                         rewardValue: reward.value,
                         boxRights: kutuHakkiDonusum,
-                        keptMultiplierValue: user.activeMultiplier 
+                        keptMultiplierValue: user.activeMultiplier,
+                        source: "Günlük Ödül'den" // Kaynağı burada belirtiyoruz
                     });
 
                     await userRef.update({
@@ -10235,7 +10257,14 @@ async function endSoloClickCatchGame() {
             } else { // Mevcut çarpan daha güçlüyse
                 const kutuHakkiDonusum = newMultiplier.uses || 0;
                 updates[`users/${currentUser}/kutuHakki`] = (updates[`users/${currentUser}/kutuHakki`] || user.kutuHakki) + kutuHakkiDonusum;
-                logActivity('multiplierConvertedToBoxRights', currentUser, { rewardValue: newMultiplier.value, boxRights: kutuHakkiDonusum, keptMultiplierValue: currentUserMultiplier });
+                
+                // --- DEĞİŞTİRİLEN SATIR: KAYNAK BİLGİSİ EKLENDİ ---
+                logActivity('multiplierConvertedToBoxRights', currentUser, { 
+                    rewardValue: newMultiplier.value, 
+                    boxRights: kutuHakkiDonusum, 
+                    keptMultiplierValue: currentUserMultiplier,
+                    source: "Tıkla-Yakala'dan" // Kaynağı burada belirtiyoruz
+                });
             }
         }
         updates[`users/${currentUser}/activeMultiplier`] = currentUserMultiplier;
