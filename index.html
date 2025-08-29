@@ -5650,7 +5650,7 @@ async function selectCard(selectedCardDiv, userId) {
     await sessionRef.child('result').set({ points: points, newBalance: newBalance });
 }
 
-// --- YENİ VE DÜZELTİLMİŞ KOD ---
+// --- YENİ VE DÜZELTİLMİŞ KOD (Çarpanı Kaydediyor) ---
 
 let isProcessingSurpriseResult = false;
 let spectatorViewingResult = false;
@@ -5665,7 +5665,6 @@ function listenForSurpriseBox() {
     const callback = snap => {
         const sessionData = snap.val();
 
-        // Zaman aşımına uğramış oturumları temizle
         if (sessionData && sessionData.active && !sessionData.result) {
             const sessionAge = getSyncedTime() - sessionData.timestamp;
             if (sessionAge > 70000) {
@@ -5676,27 +5675,22 @@ function listenForSurpriseBox() {
         }
 
         if (sessionData && sessionData.active) {
-            // Eğer oturum benimse ve seçim ekranım açık değilse aç
             if (sessionData.user === currentUser && !sessionData.result && cardSelectionModal.style.display !== 'flex') {
                 openCardSelectionModal(currentUser);
             }
             
-            // Eğer başkasının oturumuysa ve izleyici ekranım açık değilse aç
             if (sessionData.user !== currentUser && !sessionData.result && sessionData.expirationTimestamp && spectatorModal.style.display !== 'flex' && !isProcessingSurpriseResult) {
                 openSpectatorModal(sessionData);
             }
             
-            // *** YENİ EKLENEN ANA KISIM: Sonuç geldiğinde kartları çevir ***
             if (sessionData.result) {
                 if (sessionData.user === currentUser && cardSelectionModal.style.display === 'flex') {
-                    revealMyCardChoice(sessionData); // BENİM EKRANIMDA SONUCU GÖSTER
+                    revealMyCardChoice(sessionData);
                 } else if (spectatorModal.style.display === 'flex') {
-                    updateSpectatorView(sessionData); // İZLEYİCİ EKRANINDA SONUCU GÖSTER
+                    updateSpectatorView(sessionData);
                 }
             }
-            // *** YENİ KISIM BİTİŞİ ***
 
-            // Sonuç loglama ve temizleme işlemleri
             if (sessionData.result && !sessionData.logged && !isProcessingSurpriseResult) {
                 isProcessingSurpriseResult = true; 
 
@@ -5718,7 +5712,8 @@ function listenForSurpriseBox() {
                             boxId: finalSessionData.boxId,
                             points: finalSessionData.result.points,
                             newBalance: finalSessionData.result.newBalance,
-                            timestamp: firebase.database.ServerValue.TIMESTAMP
+                            timestamp: firebase.database.ServerValue.TIMESTAMP,
+                            multiplier: finalSessionData.multiplier || 1 // <-- YENİ EKLENEN SATIR
                         };
 
                         if (finalSessionData.boxId === 'Çark') {
@@ -5737,7 +5732,6 @@ function listenForSurpriseBox() {
                             newBalance: finalSessionData.result.newBalance
                         });
                         
-                        // Sonucu gördükten sonra pencereleri kapatmak için bekleme
                         setTimeout(() => {
                             if (finalSessionData.user === currentUser) {
                                 closeCardSelectionModal();
@@ -5750,7 +5744,7 @@ function listenForSurpriseBox() {
                                 handleSurpriseBoxCleanup(finalSessionData);
                                 isProcessingSurpriseResult = false;
                             }, 4000);
-                        }, 3000); // Kartların açık kalması için 3 saniye bekle
+                        }, 3000);
                     } else {
                         isProcessingSurpriseResult = false;
                     }
@@ -6992,6 +6986,8 @@ async function silSonCarkSurprizi() {
     } // --- if bloğunu kapatan parantez
 }
 
+// --- YENİ VE İSTEKLERE GÖRE DÜZENLENMİŞ SON VERSİYON ---
+
 function listenForLastSurpriseFinderPanel() {
     const ref = db.ref('gameStats/lastSurpriseInfo');
     const panel = document.getElementById('lastSurpriseFinderPanel');
@@ -7011,15 +7007,33 @@ function listenForLastSurpriseFinderPanel() {
                 </button>
             `;
         }
+        
+        let boxesOpenedText = '';
+        if (data.boxesOpenedThisRound) {
+            boxesOpenedText = `<p class="text-sm text-gray-300">Bu tur toplam <b class="text-white">${data.boxesOpenedThisRound}</b> kutu açtı.</p>`;
+        }
+        
+        // --- İSTEĞİNE GÖRE YENİDEN DÜZENLENEN ÇARPAN KISMI ---
+        let multiplierText = '';
+        if (data.multiplier && data.multiplier > 1) {
+            // Puanın çarpan olmadan önceki halini hesaplıyoruz
+            const basePoints = Math.round(data.points / data.multiplier);
+            multiplierText = `<p class="text-xs text-purple-400">(${basePoints} Puan x ${data.multiplier} Çarpan)</p>`;
+        } else {
+            multiplierText = `<p class="text-xs text-gray-400">(Çarpan kullanılmadı)</p>`;
+        }
+        // --- DEĞİŞİKLİK SONU ---
 
+        // HTML yapısını da yeni sıralamaya göre güncelliyoruz
         let messageHtml = `
             ${adminDeleteButton}
             <h4 class="text-amber-300 text-xl font-bold">🎉 SON SÜRPRİZ KUTUSU BULUNDU! 🎉</h4>
             <p><b class="text-white text-lg">${data.finder}</b>, ${data.boxId} numaralı kutudan Sürpriz Kutu buldu!</p>
+            ${boxesOpenedText} 
             <p>Kart seçiminden <b class="text-green-400">+${data.points} Puan</b> kazandı.</p>
+            ${multiplierText} 
         `;
 
-        // ÇÖZÜM: "resettledBy" alanı varsa, kimin sıfırladığını gösterir. Yoksa uyarıyı gösterir.
         if (data.resettledBy) {
             messageHtml += `
                 <hr class="border-gray-600 my-2">
