@@ -576,19 +576,40 @@
   .glowing-border {
     animation: glow 2.5s ease-in-out infinite;
   }
-  .card-back, .card-front {
-    backface-visibility: hidden;
-    transition: transform 0.5s ease-in-out;
-  }
-  .card.opened .card-back {
+  /* --- KART ÇEVİRME ANİMASYONU STİLLERİ --- */
+.card-flip-container {
+    perspective: 1000px;
+    width: 150px; /* Veya kartlarınızın genişliği ne ise */
+    height: 210px; /* Veya kartlarınızın yüksekliği ne ise */
+    cursor: pointer;
+}
+
+.card-flipper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+}
+
+/* Bu sınıf JS tarafından eklendiğinde kart dönecek */
+.card-flip-container.flipped .card-flipper {
     transform: rotateY(180deg);
-  }
-  .card.opened .card-front {
-    transform: rotateY(0deg);
-  }
-  .card-front {
-    transform: rotateY(-180deg);
-  }
+}
+
+.card-front, .card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    border-radius: 12px;
+}
+
+/* Kartın arka yüzü başlangıçta arkaya dönük olacak */
+.card-back {
+    transform: rotateY(180deg);
+}
   .user-mention {
     background-color: #4a5568;
     color: #a0aec0;
@@ -1657,7 +1678,7 @@ body.modal-open .modal-content {
     
     <h4 id="cardSelectionCountdown" class="text-red-500 text-2xl font-bold mb-4">60</h4>
 
-    <div class="card-container grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 justify-center items-center"></div>
+    <div id="playerCardContainer" class="card-container grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 justify-center items-center"></div>
   </div>
 </div>
 
@@ -6020,11 +6041,9 @@ function showOpenedBoxInfo(box) {
   function closeOpenedBoxInfoModal() { openedBoxInfoModal.style.display = 'none'; }
   function shuffleArray(array) { for (let i = array.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [array[i], array[j]] = [array[j], array[i]]; } return array; }
   
-  // --- YENİ VE DÜZELTİLMİŞ KOD ---
-
-function openCardSelectionModal(userId) {
+  function openCardSelectionModal(userId) {
     if (countdownInterval) clearInterval(countdownInterval);
-    const cardContainer = document.querySelector('#cardSelectionModal .card-container');
+    const cardContainer = document.getElementById('playerCardContainer');
     cardContainer.innerHTML = '';
     const sessionRef = db.ref('surprise_box_session');
 
@@ -6085,8 +6104,6 @@ function openCardSelectionModal(userId) {
         }, 1000);
     });
 }
-
-// --- YENİ EKLENECEK YARDIMCI KOD ---
 
 // Kullanıcının kendi seçtiği kartları ve sonucu ekranda gösterir.
 function revealMyCardChoice(sessionData) {
