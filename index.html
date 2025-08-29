@@ -4857,29 +4857,38 @@ function showOpenedBoxInfo(box) {
 
     if (box.content === 'points') {
         let multiplierText = ` (Çarpan kullanılmadı)`;
-        if (box.multiplierApplied && box.multiplierApplied > 1) { 
+        if (box.multiplierApplied && box.multiplierApplied > 1) {
             multiplierText = ` (${box.basePoints} Puan x ${box.multiplierApplied} Çarpan)`;
         }
         contentDisplay = `<b>+${box.finalPoints} Puan</b><br><span class="text-sm text-gray-400">${multiplierText}</span>`;
-    } 
+    }
     else if (box.content === 'iflas') {
         contentDisplay = box.shieldUsed ? 'İflas (Kalkanla Korundu)' : (box.lostPoints ? `İflas (-${box.lostPoints} Puan)` : 'İflas');
-    } 
+    }
     else if (box.content === 'multiplier') {
         contentDisplay = `<b>${box.value}X Çarpan</b>`;
-    } 
+    }
     else if (box.content === 'surpriz') {
         contentDisplay = 'Sürpriz Kutu';
-    } 
-    // --- "undefined" SORUNUNU ÇÖZEN GÜNCEL BLOK ---
-    else if (itemNames[box.content]) { 
+    }
+    // --- KESİN ÇÖZÜMÜ İÇEREN BLOK ---
+    else if (itemNames[box.content]) {
         const itemName = itemNames[box.content];
-        const finalValue = box.finalValue || box.value || 1;
-        contentDisplay = `<b>+${finalValue} Adet ${itemName}</b>`;
         
+        // DEĞİŞİKLİK 1: Değeri al ve her ihtimale karşı temizle
+        let finalValue = box.finalValue || box.value || 1;
+        // Bu satır, finalValue'nin "+1" gibi bir string olması ihtimaline karşı
+        // onu temizleyip saf bir sayıya dönüştürür ve '++' hatasını engeller.
+        finalValue = Math.abs(parseInt(String(finalValue).replace('+', '')));
+
+        contentDisplay = `<b>+${finalValue} ${itemName}</b>`;
+
         if (box.multiplierApplied && box.multiplierApplied > 1) {
-            const baseValue = box.baseValue || 1;
-            contentDisplay += `<br><span class="text-sm text-gray-400">(${baseValue} Adet x ${box.multiplierApplied} Çarpan)</span>`;
+            // DEĞİŞİKLİK 2: Aynı temizleme işlemini çarpan açıklaması için de yap
+            let baseValue = box.baseValue || 1;
+            baseValue = Math.abs(parseInt(String(baseValue).replace('+', '')));
+            
+            contentDisplay += `<br><span class="text-sm text-gray-400">(${baseValue} x ${box.multiplierApplied} Çarpan)</span>`;
         }
     }
     // --- DÜZELTME SONU ---
@@ -11145,7 +11154,8 @@ function closeHelpModal() {
   helpModal.style.display = 'none';
 }
 
-    // YENİ EKLENEN FONKSİYON: DIŞARIYA TIKLAYINCA KAPATIR
+    // BU FONKSİYONU SCRIPT BLOĞUNUN İÇİNE EKLE
+// BU FONKSİYONU SCRIPT BLOĞUNUN İÇİNE EKLE
 function closeModalOnClickOutside(event) {
   // Eğer tıklanan elementin ID'si modalın kendisi ise (yani dıştaki karanlık alan ise)
   if (event.target.id === 'publicUserDetailModal') {
@@ -13327,9 +13337,8 @@ async function toggleCollectionPause() {
     }
 }
 
-// EKSİK OLAN VE EKLENMESİ GEREKEN FONKSİYON
+// BU FONKSİYONU SCRIPT BLOĞUNUN İÇİNE EKLE
 function formatNumber(num) {
-  // Bu fonksiyon sayıları 1.000, 10.000 gibi daha okunaklı hale getirir.
   if (num === null || num === undefined) {
     return 0;
   }
