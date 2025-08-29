@@ -5438,8 +5438,7 @@ function getActivityIcon(type, details = {}) {
     `;
 }
 
-// --- GÜNCELLENMİŞ FONKSİYON ---
-// Yeni aktivite türleri için metinler eklendi
+// --- YENİLENMİŞ VE TAM SÜRÜM ---
 function renderActivityFeed(activities) {
     const activityFeedList = document.getElementById('activityFeedList');
     activityFeedList.innerHTML = '';
@@ -5493,7 +5492,23 @@ function renderActivityFeed(activities) {
                 : '';
 
             switch (activity.type) {
-                // --- YENİ METİNLER BURADA ---
+                case 'tradeOfferCreated':
+                    message = `${userHtml}, pazara yeni bir takas teklifi koydu: <b class="text-cyan-300">${details.offeredCardName}</b> karşılığında <b class="text-pink-300">${details.requestedCardName}</b>.`;
+                    break;
+                case 'tradeOfferAccepted':
+                    message = `${userHtml}, <b class="text-yellow-400">${details.offerer}</b> adlı kullanıcının <b class="text-cyan-300">${details.offeredCardName}</b> kartı teklifini kabul etti.`;
+                    break;
+                case 'collectionCompleted':
+                    message = details.isFirst
+                        ? `${userHtml}, koleksiyonu tamamlayan <b class="text-amber-400">İLK KİŞİ</b> oldu ve büyük ödülü kazandı!`
+                        : `${userHtml}, koleksiyonu tamamlayarak büyük ödülü kazandı!`;
+                    break;
+                case 'wildcardConverted':
+                    message = `${userHtml}, Koleksiyonu tamamladığı için ${details.source}'dan aldığı ${details.wildcards} Joker Kart'ı <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b>'na dönüştürdü.`;
+                    break;
+                case 'cardPackConverted':
+                    message = `${userHtml}, Koleksiyonu tamamladığı için ${details.source}'dan aldığı ${details.packs} Kart Paketi'ni <b class="text-green-300 font-bold">+${details.points} Puana</b> dönüştürdü.`;
+                    break;
                 case 'multiplierConvertedOnUsedOpen':
                     message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <b>${details.foundValue}x çarpan</b> buldu. Mevcut <b>+${details.existingUses} adet ${details.existingValue}x çarpanını</b> koruyarak, kutudan çıkan çarpanı <span class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı'na</span> dönüştürdü. <span class="text-xs text-gray-400">(Çarpanla Çarpan Buldu)</span>`;
                     break;
@@ -5506,8 +5521,6 @@ function renderActivityFeed(activities) {
                 case 'multiplierSwappedOnUnusedOpen':
                     message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <b>${details.foundValue}x çarpan</b> buldu. Mevcut <b>${details.existingValue}x çarpanının ${details.refundedUses} kullanım hakkını +${details.boxRights} Kutu Hakkı'na</b> dönüştürerek envanterine yeni <b>tek kullanımlık ${details.foundValue}x çarpanı</b> ekledi. <span class="text-xs text-gray-400">(Çarpan Kullanılmadı)</span>`;
                     break;
-                
-                // ... (diğer, eski case'ler burada kalacak)
                 case 'openBox':
                     let openBoxMultiplierText = (details.multiplier && details.multiplier > 1)
                         ? ` <span class="text-xs text-purple-400">(${details.multiplier}x çarpan kullandı)</span>`
@@ -5523,6 +5536,9 @@ function renderActivityFeed(activities) {
                         ? `${userHtml}, <b>${details.boxId}</b> numaralı kutudan bomba buldu ama kalkanı korudu.${iflasMultiplierText}`
                         : `${userHtml}, <b>${details.boxId}</b> numaralı kutudan bomba buldu <span class="text-red-400 font-bold">-${details.lostPoints} Puan</span> kaybetti.${iflasMultiplierText}${remainingBalanceText}`;
                     break;
+                case 'kasaTransfer':
+                    message = `${userHtml}, Kasa'sına <b class="text-purple-300 font-bold">${details.amount} Puan</b> aktardı. <span class="text-gray-400">(Yeni Kasa Puanı: ${details.newKasaBalance})</span>`;
+                    break;
                 case 'surpriseBox':
                     let surpriseMultiplierText = (details.multiplier && details.multiplier > 1)
                         ? ` <span class="text-xs text-purple-400">(${details.multiplier}x çarpan kullandı)</span>`
@@ -5532,9 +5548,6 @@ function renderActivityFeed(activities) {
                     break;
                 case 'multiplierFound':
                     message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-purple-300 font-bold">${details.value}x Çarpan</span> buldu.`;
-                    break;
-                case 'multiplierRefund':
-                     message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-purple-300 font-bold">${details.newMultiplier}x Çarpan</span> buldu ve mağaza çarpanı iade edildi.`;
                     break;
                 case 'newItemFound':
                      let newItemMultiplierText = (details.multiplier && details.multiplier > 1)
@@ -5553,6 +5566,12 @@ function renderActivityFeed(activities) {
                         purchasedItemText = `<span class="text-indigo-300 font-bold">${details.itemName}</span>`;
                     }
                     message = `${userHtml}, mağazadan <span class="text-red-400 font-bold">-${details.itemCost} Puan</span> harcayarak ${purchasedItemText} aldı.${remainingBalanceText}`;
+                    break;
+                case 'multiplierStackedFromStore':
+                    message = `${userHtml}, mağazadan alım yaparak mevcut <b>${details.multiplierValue}x</b> çarpanına <b class="text-teal-300">+${details.usesAdded} kullanım hakkı</b> ekledi. Yeni toplam: <b class="text-white">${details.newTotalUses} kullanım</b>.`;
+                    break;
+                case 'multiplierUpgradedFromStore':
+                    message = `${userHtml}, mağazadan <b>${details.newValue}x çarpan</b> alarak mevcut ${details.oldValue}x çarpanını yükseltti. Eski çarpanından <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b> iade aldı.`;
                     break;
                 case 'lobbyJoined':
                     message = `${userHtml}, Tıkla-Yakala lobisine <span class="text-red-400 font-bold">-${details.cost} Puan</span> karşılığında katıldı.${remainingBalanceText}`;
@@ -5591,6 +5610,15 @@ function renderActivityFeed(activities) {
                 case 'clickCatchLobby':
                     message = `${userHtml}, lobi oyununu kazanarak <span class="text-yellow-300 font-bold">+${details.prize} Puan</span> ödül aldı!${remainingBalanceText}`;
                     break;
+                case 'multiplierUpgraded':
+                    message = `${userHtml}, Tıkla-Yakala'dan <b>${details.newValue}x çarpan</b> kazandı ve mevcut ${details.oldValue}x çarpanını yükseltti. Eski çarpanından <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b> iade aldı.`;
+                    break;
+                case 'multiplierStacked':
+                    message = `${userHtml}, Tıkla-Yakala'dan <b>${details.value}x çarpan</b> kazandı ve mevcut çarpanına <b class="text-teal-300">+${details.uses} kullanım hakkı</b> ekledi.`;
+                    break;
+                case 'multiplierConvertedToBoxRights':
+                     message = `${userHtml}, Tıkla-Yakala'dan <b>${details.rewardValue}x çarpan</b> kazandı, ancak mevcut ${details.keptMultiplierValue}x çarpanı daha güçlü olduğu için ödül <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b>'na dönüştürüldü.`;
+                    break;
                 case 'dailyRewardMultiplierStacked':
                     message = `${userHtml}, mevcut <b>${details.multiplierValue}x</b> çarpanına günlük ödülden gelen <b class="text-teal-300">+${details.usesAdded} kullanım hakkını</b> ekledi. Yeni toplam: <b class="text-white">${details.newTotalUses} kullanım</b>.`;
                     break;
@@ -5614,10 +5642,6 @@ function renderActivityFeed(activities) {
                         message = `${userHtml}, günlük ödül olarak <span class="text-teal-300 font-bold">${rewardText}</span> aldı.${remainingBalanceText}`;
                     }
                     break;
-                case 'surpriseBoxTimeout':
-                    message = `${userHtml}, Sürpriz Kutu şansını süre dolduğu için kaçırdı.`;
-                    break;
-
                 default:
                     message = `${userHtml} bir eylem gerçekleştirdi. (Tip: ${activity.type})`;
                     break;
