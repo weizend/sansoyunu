@@ -2912,29 +2912,29 @@ function getSyncedTime() {
   let wheelSegments = []; // Bu artık veritabanından doldurulacak
 
 const defaultWheelSegments = [
-    // Sık Gelen Ödüller
-    { type: 'points', value: 100, label: '🍌', prizeName: '+100 Puan', color: '#fde047', weight: 20 },
-    { type: 'boxRights', value: 1, label: '📦', prizeName: '+1 Kutu Hakkı', color: '#8b5cf6', weight: 15 },
-    { type: 'card_pack', value: 1, label: '🎴', prizeName: '+1 Standart Kart Paketi', color: '#14b8a6', weight: 12 }, 
-    { type: 'card_pack_normal', value: 1, label: '🥉', prizeName: '+1 Bronz Kart Paketi', color: '#a16207', weight: 10 },
-    { type: 'points', value: 10, label: '🍆', prizeName: '+10 Puan', color: '#9ca3af', weight: 10 },
-    { type: 'pas', label: '☠️', prizeName: 'Pas', color: '#6b7280', weight: 10 },
+    // Sık Gelen Ödüller (Yüksek Şans)
+    { type: 'points', value: 100, label: '🍌', prizeName: '+100 Puan', color: '#2dd4bf', weight: 25 }, // Şansı arttı (20 -> 25)
+    { type: 'boxRights', value: 1, label: '📦', prizeName: '+1 Kutu Hakkı', color: '#818cf8', weight: 20 }, // Şansı arttı (15 -> 20)
+    { type: 'card_pack', value: 1, label: '🎴', prizeName: '+1 Standart Kart Paketi', color: '#facc15', weight: 18 }, // Şansı arttı (12 -> 18)
+    { type: 'card_pack_normal', value: 1, label: '🥉', prizeName: '+1 Bronz Kart Paketi', color: '#f59e0b', weight: 15 }, // Şansı arttı (10 -> 15)
+    { type: 'boxRights', value: 3, label: '🎁', prizeName: '+3 Kutu Hakkı', color: '#fb7185', weight: 10 }, // Orta seviye olarak ayarlandı
+    { type: 'pas', label: '☠️', prizeName: 'Pas', color: '#000000', weight: 12 }, // Şansı ayarlandı (10 -> 12)
 
-    // Orta Seviye Ödüller
-    { type: 'card_pack_gumus', value: 1, label: '🥈', prizeName: '+1 Gümüş Kart Paketi', color: '#71717a', weight: 8 },
-    { type: 'points', value: 250, label: '🍐', prizeName: '+250 Puan', color: '#22c55e', weight: 10 },
-    { type: 'iflasShield', value: 1, label: '🛡️', prizeName: '+1 İflas Kalkanı', color: '#3b82f6', weight: 8 },
-    { type: 'clickCatchTicket', value: 1, label: '🎟️', prizeName: '+1 T-Y Bileti', color: '#ec4899', weight: 8 },
-    { type: 'wheelTicket', value: 1, label: '🎡', prizeName: 'Bedava Çevirme', color: '#f97316', weight: 8 },
-    { type: 'pas', label: '☠️', prizeName: 'Pas', color: '#6b7280', weight: 10 },
+    // Orta Seviye Ödüller (Normal Şans)
+    { type: 'card_pack_gumus', value: 1, label: '🥈', prizeName: '+1 Gümüş Kart Paketi', color: '#dbeafe', weight: 8 }, // Şansı aynı kaldı
+    { type: 'points', value: 250, label: '🍐', prizeName: '+250 Puan', color: '#4ade80', weight: 9 }, // Şansı biraz azaltıldı (10 -> 9)
+    { type: 'iflasShield', value: 1, label: '🛡️', prizeName: '+1 İflas Kalkanı', color: '#38bdf8', weight: 8 }, // Şansı aynı kaldı
+    { type: 'clickCatchTicket', value: 1, label: '🎟️', prizeName: '+1 T-Y Bileti', color: '#f472b6', weight: 8 }, // Şansı aynı kaldı
+    { type: 'wheelTicket', value: 1, label: '🎡', prizeName: 'Bedava Çevirme', color: '#fb923c', weight: 8 }, // Şansı aynı kaldı
+    { type: 'pas', label: '☠️', prizeName: 'Pas', color: '#000000', weight: 12 }, // Şansı ayarlandı (10 -> 12)
     
-    // Nadir ve Efsanevi Ödüller
-    { type: 'card_pack_altin', value: 1, label: '🥇', prizeName: '+1 Altın Kart Paketi', color: '#f59e0b', weight: 4 },
-    { type: 'wildcard', value: 1, label: '🃏', prizeName: '+1 Joker Kart', color: '#d946ef', weight: 4 },
-    { type: 'tempMultiplier', value: 5, duration: 1, label: '✖️', prizeName: '5X Çarpan', color: '#06b6d4', weight: 2 }, // EKLENEN SATIR
-    { type: 'points', value: 1000, label: '🎂', prizeName: '+1000 Puan', color: '#ef4444', weight: 2 },
-    { type: 'card_pack_efsanevi', value: 1, label: '🏆', prizeName: '+1 Efsanevi Kart Paketi', color: '#7e22ce', weight: 1 },
-    { type: 'surpriseBox', value: 1, label: '🎉', prizeName: 'Sürpriz Kutu', color: '#eab308', weight: 1 }
+    // Nadir ve Efsanevi Ödüller (Düşük Şans)
+    { type: 'card_pack_altin', value: 1, label: '🥇', prizeName: '+1 Altın Kart Paketi', color: '#fef08a', weight: 4 }, // Şansı aynı kaldı, nadir
+    { type: 'wildcard', value: 1, label: '🃏', prizeName: '+1 Joker Kart', color: '#e879f9', weight: 1 }, // Şansı azaltıldı, çok nadir (4 -> 2)
+    { type: 'tempMultiplier', value: 5, duration: 1, label: '✖️', prizeName: '5X Çarpan', color: '#22d3ee', weight: 2 }, // Şansı aynı kaldı, çok nadir
+    { type: 'points', value: 1000, label: '🎂', prizeName: '+1000 Puan', color: '#f87171', weight: 2 }, // Şansı aynı kaldı, çok nadir
+    { type: 'card_pack_efsanevi', value: 1, label: '🏆', prizeName: '+1 Efsanevi Kart Paketi', color: '#c084fc', weight: 1 }, // Şansı aynı kaldı, en nadir
+    { type: 'surpriseBox', value: 1, label: '🎉', prizeName: 'Sürpriz Kutu', color: '#fde047', weight: 1 } // Şansı aynı kaldı, en nadir
 ];
   
   // Tıkla Yakala Değişkenleri
@@ -3847,7 +3847,7 @@ async function calculateAllLeaders(allUsersData) {
     const currentClickCatchLeader = await getClickCatchLeaderUsername();
     let leaders = {
         highestCurrentBalance: -1, currentBalanceUser: null,
-        highestEverBalance: -1, highEverBalanceUser: null, // Bu satırın anlamı artık "En Yüksek Kariyer Puan" olacak
+        highestEverBalance: -1, highEverBalanceUser: null, // Bu alan artık Kariyer Puanı liderini tutuyor
         maxSurpriseBoxes: -1, surpriseBoxUser: null,
         maxBombCount: -1, bombUser: null,
         maxSpentPoints: -1, spentPointsUser: null,
@@ -3867,12 +3867,12 @@ async function calculateAllLeaders(allUsersData) {
             leaders.currentBalanceUser = username;
         }
 
-        // --- DEĞİŞİKLİK BURADA ---
-        // Artık 'highestBalanceEver' yerine 'kariyerPuani'nı kontrol ediyoruz.
+        // --- DÜZELTME BURADA ---
+        // Artık sıralama için 'highestBalanceEver' yerine doğrudan 'kariyerPuani'nı kullanıyoruz.
         const userHighestBalance = userData.kariyerPuani || 0; 
         if (userHighestBalance > 0 && userHighestBalance > leaders.highestEverBalance) {
             leaders.highestEverBalance = userHighestBalance;
-            leaders.highEverBalanceUser = username;
+            leaders.highEverBalanceUser = username; // Kariyer Puanı Lideri bu değişkende saklanır.
         }
 
         const userSurpriseBoxes = userData.surpriseBoxesOpened || 0;
@@ -4755,12 +4755,13 @@ async function deleteUserAvatar(username, avatarId) {
             
             let openedContentHtml = '';
 
-            // Kart paketi veya Joker Kart ise, CSS sınıfını ekle (ikon CSS'ten gelecek)
+            // --- DÜZELTİLEN KISIM BAŞLANGICI ---
+            // Artık JS ile ikon eklemiyoruz, sadece CSS'in işini yapması için doğru sınıfı ve gerekli div'i ekliyoruz.
             if (box.content && (box.content.startsWith('card_pack') || box.content === 'wildcard')) {
                 div.classList.add(box.content);
-                openedContentHtml = `<div class="box-content"></div>`; 
+                openedContentHtml = `<div class="box-content"></div>`; // Bu div, CSS'in ikonu göstermesi için gerekli
             }
-            // Diğer içerik türleri için ikonu/yazıyı doğrudan ekle
+            // --- DÜZELTİLEN KISIM SONU ---
             else if (box.content === 'points') { 
                 openedContentHtml = `<span class="box-content text-green-400 text-xl">+${box.finalPoints || box.value}</span>`; 
                 div.classList.add('bg-green-700', 'border-green-500', 'animate-pulse'); 
@@ -4801,7 +4802,6 @@ async function deleteUserAvatar(username, avatarId) {
                 div.appendChild(multiplierIcon);
             }
         } else {
-            // Kutu kapalıysa, sadece numarasını göster
             div.innerHTML = `<span class="box-content text-gray-300">${box.id}</span>`;
         }
         
@@ -4814,6 +4814,55 @@ async function deleteUserAvatar(username, avatarId) {
         }; 
         container.appendChild(div); 
     }); 
+}
+
+function showOpenedBoxInfo(box) {
+    let contentDisplay = '';
+
+    const itemNames = {
+        wheelTicket: 'Şans Çarkı Bileti',
+        clickCatchTicket: 'Tıkla-Yakala Bileti',
+        iflasShield: 'İflas Kalkanı',
+        wildcard: 'Joker Kart',
+        card_pack: 'Standart Kart Paketi',
+        card_pack_normal: 'Bronz Kart Paketi',
+        card_pack_gumus: 'Gümüş Kart Paketi',
+        card_pack_altin: 'Altın Kart Paketi',
+        card_pack_efsanevi: 'Efsanevi Kart Paketi'
+    };
+
+    if (box.content === 'points') {
+        let multiplierText = ` (Çarpan kullanılmadı)`;
+        if (box.multiplierApplied && box.multiplierApplied > 1) { 
+            multiplierText = ` (${box.basePoints} Puan x ${box.multiplierApplied} Çarpan)`;
+        }
+        contentDisplay = `<b>+${box.finalPoints} Puan</b><br><span class="text-sm text-gray-400">${multiplierText}</span>`;
+    } 
+    else if (box.content === 'iflas') {
+        contentDisplay = box.shieldUsed ? 'İflas (Kalkanla Korundu)' : (box.lostPoints ? `İflas (-${box.lostPoints} Puan)` : 'İflas');
+    } 
+    else if (box.content === 'multiplier') {
+        contentDisplay = `<b>${box.value}X Çarpan</b>`;
+    } 
+    else if (box.content === 'surpriz') {
+        contentDisplay = 'Sürpriz Kutu';
+    } 
+    // --- "undefined" SORUNUNU ÇÖZEN GÜNCEL BLOK ---
+    else if (itemNames[box.content]) { 
+        const itemName = itemNames[box.content];
+        const finalValue = box.finalValue || box.value || 1;
+        contentDisplay = `<b>+${finalValue} Adet ${itemName}</b>`;
+        
+        if (box.multiplierApplied && box.multiplierApplied > 1) {
+            const baseValue = box.baseValue || 1;
+            contentDisplay += `<br><span class="text-sm text-gray-400">(${baseValue} Adet x ${box.multiplierApplied} Çarpan)</span>`;
+        }
+    }
+    // --- DÜZELTME SONU ---
+
+    const contentHtml = `<div class='text-center mb-4'><p class='text-gray-400'>${box.id} Nolu Kutuyu Açan</p><p class='text-2xl font-bold text-green-400 py-2'>${box.opener}</p></div><hr class="border-gray-600 my-3"><p class="text-xl"><b>İçerik:</b> ${contentDisplay}</p>`;
+    document.getElementById('openedBoxInfoContent').innerHTML = contentHtml;
+    openedBoxInfoModal.style.display = 'flex';
 }
 
 function addBoxSettingRow(item = {}) {
@@ -5064,8 +5113,9 @@ async function openBox(index) {
         }
         else if (box.content === 'wildcard' || box.content.startsWith('card_pack')) {
             const itemsGained = (box.value || 1) * finalMultiplier;
-            const itemType = box.content; // 'wildcard', 'card_pack_altin' etc.
+            const itemType = box.content;
             
+            // --- DÜZELTME BURADA: EKSİK OLAN İSİM HARİTASI EKLENDİ ---
             const itemNames = {
                 'wildcard': 'Joker Kart',
                 'card_pack': 'Standart Kart Paketi',
@@ -5074,7 +5124,8 @@ async function openBox(index) {
                 'card_pack_altin': 'Altın Kart Paketi',
                 'card_pack_efsanevi': 'Efsanevi Kart Paketi'
             };
-            const itemName = itemNames[itemType] || 'Kart Paketi';
+            const itemName = itemNames[itemType] || 'Kart Paketi'; // Artık doğru ismi bulacak
+            // --- DÜZELTME SONU ---
             
             if (itemType === 'wildcard') {
                 const userSnapForCheck = await userRef.once('value');
@@ -5098,8 +5149,10 @@ async function openBox(index) {
                 message = `Tebrikler! Kutudan ${itemsGained} adet ${itemName} buldun!`;
                 logActivity('newItemFound', currentUser, { itemName: `+${itemsGained} ${itemName}`, itemType: itemType, boxId: box.id, multiplier: finalMultiplier });
                 
-                boxUpdate.value = `+${itemsGained} ${itemName}`;
-                boxOpenInfo.value = `+${itemsGained} ${itemName}`;
+                boxUpdate.baseValue = box.value || 1;
+                boxUpdate.finalValue = itemsGained;
+                boxOpenInfo.baseValue = box.value || 1;
+                boxOpenInfo.finalValue = itemsGained;
 
                 shouldLockGame = false; 
                 shouldDisplayMessage = true; 
@@ -5107,15 +5160,15 @@ async function openBox(index) {
             }
         }
         else {
-            const itemsGained = box.value * finalMultiplier;
+            const itemsGained = (box.value || 1) * finalMultiplier;
             const itemNames = { wheelTicket: 'Şans Çarkı Bileti', clickCatchTicket: 'Tıkla-Yakala Bileti', iflasShield: 'İflas Kalkanı' };
             const dbKeys = { wheelTicket: 'carkBileti', clickCatchTicket: 'clickCatchTickets', iflasShield: 'iflasShieldUses' };
             updates[dbKeys[box.content]] = (user[dbKeys[box.content]] || 0) + itemsGained;
             message = `Kutudan <b>+${itemsGained} ${itemNames[box.content]}</b> kazandın!`;
 
-            boxUpdate.baseValue = box.value;
+            boxUpdate.baseValue = box.value || 1;
             boxUpdate.finalValue = itemsGained;
-            boxOpenInfo.baseValue = box.value;
+            boxOpenInfo.baseValue = box.value || 1;
             boxOpenInfo.finalValue = itemsGained;
 
             logActivity('newItemFound', currentUser, { itemName: `+${itemsGained} ${itemNames[box.content]}`, itemType: box.content, boxId: box.id, multiplier: finalMultiplier });
@@ -5134,8 +5187,7 @@ async function openBox(index) {
         await db.ref('gameLock').set(true);
     }
 }
-
-// --- YENİ FONKSİYON ---
+      
 // Senaryo A: Kutu çarpanla açıldığında çıkan seçim ekranı
 function openMultiplierUpgradeChoiceModal(existing, found, boxId) {
     const modal = document.getElementById('multiplierChoiceModal');
@@ -5458,6 +5510,7 @@ function renderActivityFeed(activities) {
         return;
     }
     
+    // --- DÜZELTME BURADA: İSİM HARİTASI BU FONKSİYONA DA EKLENDİ ---
     const typeToName = {
         points: 'Puan',
         boxRights: 'Kutu Hakkı',
@@ -5491,6 +5544,19 @@ function renderActivityFeed(activities) {
                 : '';
 
             switch (activity.type) {
+                // --- DÜZELTME BURADA: "newItemFound" DURUMU GÜNCELLENDİ ---
+                case 'newItemFound':
+                    let newItemMultiplierText = (details.multiplier && details.multiplier > 1)
+                        ? ` <span class="text-xs text-purple-400">(${details.multiplier}x çarpan kullandı)</span>`
+                        : ` <span class="text-xs text-gray-400">(çarpan kullanmadı)</span>`;
+                    
+                    // itemType'a göre doğru ismi bul, eğer type yoksa eski itemName'i kullan
+                    let displayItemName = details.itemType ? typeToName[details.itemType] : details.itemName;
+                    let displayItemAmount = details.itemName ? details.itemName.split(' ')[0] : '+1'; // Miktarı ayıkla
+                    
+                    message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-cyan-300 font-bold">${displayItemAmount} ${displayItemName}</span> buldu.${newItemMultiplierText}`;
+                    break;
+                // --- DİĞER TÜM "CASE"LER AYNI KALIYOR ---
                 case 'tradeOfferCreated':
                     message = `${userHtml}, pazara yeni bir takas teklifi koydu: <b class="text-cyan-300">${details.offeredCardName}</b> karşılığında <b class="text-pink-300">${details.requestedCardName}</b>.`;
                     break;
@@ -5547,12 +5613,6 @@ function renderActivityFeed(activities) {
                     break;
                 case 'multiplierFound':
                     message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-purple-300 font-bold">${details.value}x Çarpan</span> buldu.`;
-                    break;
-                case 'newItemFound':
-                     let newItemMultiplierText = (details.multiplier && details.multiplier > 1)
-                        ? ` <span class="text-xs text-purple-400">(${details.multiplier}x çarpan kullandı)</span>`
-                        : ` <span class="text-xs text-gray-400">(çarpan kullanmadı)</span>`;
-                    message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-cyan-300 font-bold">${details.itemName}</span> buldu.${newItemMultiplierText}`;
                     break;
                 case 'multiplierStackedFromStore':
                     message = `${userHtml}, mağazadan <b class="text-red-400 font-bold">-${details.cost} Puan</b> harcayarak envanterindeki <b>${details.multiplierValue}x</b> çarpanına <b class="text-teal-300">+${details.usesAdded} kullanım hakkı</b> ekledi. Yeni toplam: <b class="text-white">${details.newTotalUses} kullanım</b>. <span class="text-gray-400">(Kalan Puan: ${details.newBalance})</span>`;
@@ -5976,52 +6036,6 @@ function searchUsers() {
       countdownInterval = setInterval(updateCountdown, 1000);
       updateCountdown();
   }
-  
-  // YENİ VE GÜNCELLENMİŞ FONKSİYON
-// YENİ VE DÜZGÜN ÇALIŞAN KOD (Bununla değiştir)
-function showOpenedBoxInfo(box) {
-    let contentDisplay = '';
-
-    const itemNames = {
-        wheelTicket: 'Şans Çarkı Bileti',
-        clickCatchTicket: 'Tıkla-Yakala Bileti',
-        iflasShield: 'İflas Kalkanı',
-        wildcard: 'Joker Kart',
-        card_pack: 'Kart Paketi'
-    };
-
-    if (box.content === 'points') {
-        let multiplierText = ` (Çarpan kullanılmadı)`;
-        // DEĞİŞİKLİK BURADA: 'multiplierUsed' yerine 'multiplierApplied' kullanıldı
-        if (box.multiplierApplied && box.multiplierApplied > 1) { 
-            multiplierText = ` (${box.basePoints} Puan x ${box.multiplierApplied} Çarpan)`;
-        }
-        contentDisplay = `<b>+${box.finalPoints} Puan</b><br><span class="text-sm text-gray-400">${multiplierText}</span>`;
-    } 
-    else if (box.content === 'iflas') {
-        contentDisplay = box.shieldUsed ? 'İflas (Kalkanla Korundu)' : (box.lostPoints ? `İflas (-${box.lostPoints} Puan)` : 'İflas');
-    } 
-    else if (box.content === 'multiplier') {
-        contentDisplay = `<b>${box.value}X Çarpan</b>`;
-    } 
-    else if (box.content === 'surpriz') {
-        contentDisplay = 'Sürpriz Kutu';
-    } 
-    else if (itemNames[box.content]) { // Diğer tüm eşyalar için (Bilet, Kalkan, Joker, Kart Paketi)
-        const itemName = itemNames[box.content];
-        const finalValue = box.finalValue || box.value || 1;
-        contentDisplay = `<b>+${finalValue} Adet ${itemName}</b>`;
-        // DEĞİŞİKLİK BURADA: 'multiplierUsed' yerine 'multiplierApplied' kullanıldı
-        if (box.multiplierApplied && box.multiplierApplied > 1) {
-            const baseValue = box.baseValue || 1;
-            contentDisplay += `<br><span class="text-sm text-gray-400">(${baseValue} Adet x ${box.multiplierApplied} Çarpan)</span>`;
-        }
-    }
-
-    const contentHtml = `<div class='text-center mb-4'><p class='text-gray-400'>${box.id} Nolu Kutuyu Açan</p><p class='text-2xl font-bold text-green-400 py-2'>${box.opener}</p></div><hr class="border-gray-600 my-3"><p class="text-xl"><b>İçerik:</b> ${contentDisplay}</p>`;
-    document.getElementById('openedBoxInfoContent').innerHTML = contentHtml;
-    openedBoxInfoModal.style.display = 'flex';
-}
   
   function closeOpenedBoxInfoModal() { openedBoxInfoModal.style.display = 'none'; }
   function shuffleArray(array) { for (let i = array.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [array[i], array[j]] = [array[j], array[i]]; } return array; }
@@ -8798,7 +8812,7 @@ function renderWheel() {
     // Pozitif sayı = Saat yönünde kaydırır.
     // Negatif sayı = Saat yönünün tersine kaydırır.
     // 0 = Tam ortaya alır.
-    const angleOffset = 11; 
+    const angleOffset = 190; 
     // ------------------------------------
 
     const segmentAngle = 360 / segmentCount;
@@ -8935,7 +8949,10 @@ async function spinWheel() {
     const winningAngle = (winningIndex * degreesPerSegment) + (degreesPerSegment / 2);
 
     const spinCycles = 5 + Math.floor(Math.random() * 3);
-    const finalRotation = (spinCycles * 360) + 270 - winningAngle;
+    
+    // --- DÜZELTME BURADA: Açı hesaplaması güncellendi ---
+    // Bu yeni formül, okun tam olarak dilimin ortasına gelmesini sağlar.
+    const finalRotation = (spinCycles * 360) - winningAngle + 80;
 
     wheel.style.transition = 'transform 5s cubic-bezier(0.25, 0.1, 0.25, 1)';
     wheel.style.transform = `rotate(${finalRotation}deg)`;
@@ -9020,9 +9037,8 @@ async function spinWheel() {
             case 'card_pack_altin':
             case 'card_pack_efsanevi':
                 const packsToOpen = winningSegment.value || 1;
-                message = `Tebrikler! Çarktan ${packsToOpen} adet ${winningSegment.prizeName} kazandın!`;
+                message = `Tebrikler! Çarktan ${packsToOpen} adet ${winningSegment.label} kazandın!`;
                 startCardPackOpening(packsToOpen, 'Şans Çarkı', 1, winningSegment.type);
-                shouldLogActivity = false;
                 break;
             case 'pas':
                 message = "Bu seferlik pas! Bir dahaki sefere daha şanslı olabilirsin.";
@@ -9074,7 +9090,7 @@ async function spinWheel() {
 
     }, 5100);
 }
-
+      
 function closeSoloGameSettingsModal() {
     soloGameSettingsModal.style.display = 'none';
 }
@@ -10870,6 +10886,22 @@ function loadWheelHistory() {
         snapshot.forEach(child => { history.push({ key: child.key, ...child.val() }); });
         history.reverse();
 
+        // --- DÜZELTME BURADA BAŞLIYOR ---
+        const typeToName = {
+            wildcard: 'Joker Kart',
+            card_pack: 'Standart Kart Paketi',
+            card_pack_normal: 'Bronz Kart Paketi',
+            card_pack_gumus: 'Gümüş Kart Paketi',
+            card_pack_altin: 'Altın Kart Paketi',
+            card_pack_efsanevi: 'Efsanevi Kart Paketi'
+        };
+
+        const typeToIcon = {
+            wildcard: '🃏', card_pack: '🎴', card_pack_normal: '🥉',
+            card_pack_gumus: '🥈', card_pack_altin: '🥇', card_pack_efsanevi: '🏆'
+        };
+        // --- DÜZELTME BURADA BİTİYOR ---
+
         history.forEach(item => {
             const timeAgo = formatTimeAgo(item.timestamp);
             
@@ -10878,7 +10910,6 @@ function loadWheelHistory() {
             const prizeType = item.type;
             const prizeValue = item.value;
 
-            // YENİ İKON MANTIĞI BURADA
             if (prizeType === 'points') {
                 if (prizeValue >= 1000) icon = '🎂';
                 else if (prizeValue >= 250) icon = '🍐';
@@ -10903,14 +10934,12 @@ function loadWheelHistory() {
             } else if (prizeType === 'iflasShield') {
                 icon = '🛡️';
                 prizeText = `+${prizeValue} İflas Kalkanı`;
-            // YENİ EKLENEN KOD BAŞLANGICI
-            } else if (prizeType === 'wildcard') {
-                icon = '🃏';
-                prizeText = `+${prizeValue} Joker Kart`;
-            } else if (prizeType === 'card_pack') {
-                icon = '🎴';
-                prizeText = `+${prizeValue} Kart Paketi`;
-            // YENİ EKLENEN KOD SONU
+            // --- DÜZELTME BURADA BAŞLIYOR: Artık tüm kart paketlerini tanıyor ---
+            } else if (prizeType.startsWith('card_pack') || prizeType === 'wildcard') {
+                icon = typeToIcon[prizeType] || '🃏';
+                const name = typeToName[prizeType] || 'Kart Paketi';
+                prizeText = `+${prizeValue} ${name}`;
+            // --- DÜZELTME BURADA BİTİYOR ---
             } else if (prizeType === 'pas') {
                 icon = '☠️';
                 prizeText = 'PAS';
@@ -11482,8 +11511,8 @@ async function executeSeasonReset(isManual = false) {
     const settingsSnap = await db.ref('gameConfig/seasonSettings').once('value');
     const seasonSettings = settingsSnap.val();
 
-    // Liderleri belirle
-    const puanLeader = leaders.highEverBalanceUser;
+    // Liderleri belirle (DÜZELTME: Artık doğru şekilde Kariyer Puanı liderini alıyor)
+    const puanLeader = leaders.highEverBalanceUser; 
     const rozetLeader = (await getTopBadgeHolder(allUsersData, leaders)).username;
     
     // Ödülleri hazırla
@@ -11496,8 +11525,10 @@ async function executeSeasonReset(isManual = false) {
     // Tüm veritabanı güncellemelerini tek bir objede topla
     const updates = {};
     
-    // Ana kart koleksiyonu ayarlarını sıfırla
-    updates['/gameConfig/cardCollection'] = null;
+    // !!! EN KRİTİK DÜZELTME: ANA KART LİSTESİNİ SİLEN SATIR KALDIRILDI !!!
+    // updates['/gameConfig/cardCollection'] = null; // BU SATIR SİLİNDİ! KARTLARIN ARTIK GÜVENDE.
+
+    // Diğer koleksiyon ayarlarını sıfırla
     updates['/gameConfig/collectionWinner'] = null;
     updates['/gameConfig/collectionGrandPrize'] = null;
     updates['/gameConfig/cardCollectionStatus'] = 'inactive';
@@ -11524,8 +11555,6 @@ async function executeSeasonReset(isManual = false) {
             if(rozetAvatar) updates[`${userPath}/selectedAvatar`] = { id: `sezon_odul_rozet_${Date.now()}`, url: rozetAvatar };
             updates[`${userPath}/rozetChampionshipsWon`] = (userData.rozetChampionshipsWon || 0) + 1;
         }
-        // ÖNEMLİ: Kalıcı şampiyonluk sayaçları (`puanChampionshipsWon`, `rozetChampionshipsWon`
-        // ve daha önce eklediğimiz `collectionChampionshipsWon`) burada SIFIRLANMAZ! Sadece artırılır.
         
         // 3. Sezonluk ilerlemeyi ve istatistikleri sıfırla
         updates[`${userPath}/balance`] = 0;
@@ -11538,8 +11567,6 @@ async function executeSeasonReset(isManual = false) {
         updates[`${userPath}/iflasShieldUsedCount`] = 0;
         updates[`${userPath}/wheelSpinsCount`] = 0;
         updates[`${userPath}/clickCatchHighestScore`] = 0;
-        
-        // Sezonluk kart ilerlemesi ve tamamlanma durumu sıfırlanır.
         updates[`${userPath}/cardCollection`] = null;
         updates[`${userPath}/completedCollection`] = null;
     }
@@ -13527,27 +13554,28 @@ function listenForForceUpdateSignal() {
     });
 }
 
-// YENİ LİDERLİK TABLOSU FONKSİYONU
 async function loadCollectionLeaderboard() {
     const leaderboardContainer = document.getElementById('collectionFinishersLeaderboard');
     const listEl = document.getElementById('finishersList');
     listEl.innerHTML = '<p class="text-gray-400">Sıralama yükleniyor...</p>';
-    listEl.classList.add('scrollable-list'); // Tutarlı kaydırma çubuğu stili için
+    listEl.classList.add('scrollable-list');
 
     const usersRef = db.ref('users');
 
-    // Bu listener, birisi yeni bir kart aldığında veya ilerlediğinde listenin anında güncellenmesini sağlar.
-    usersRef.on('value', async (snapshot) => {
+    // Listener'ı tekrar tekrar eklememek için kontrol
+    if (activeListeners.collectionLeaderboard) {
+        usersRef.off('value', activeListeners.collectionLeaderboard.callback);
+    }
+
+    const callback = async (snapshot) => {
         const allUsersData = snapshot.val() || {};
         
-        // Gerekli tüm verileri tek seferde çekiyoruz
         const masterCardsSnap = await db.ref('gameConfig/cardCollection').once('value');
         const masterCards = masterCardsSnap.val() || {};
         const totalCardCount = Object.keys(masterCards).length;
 
-        // Sadece koleksiyona başlamış kullanıcıları filtrele
         const playersWithCards = Object.values(allUsersData).filter(user => 
-            user.cardCollection && user.collectionInfo && user.collectionInfo.firstCardTimestamp
+            user.cardCollection && Object.keys(user.cardCollection).length > 0
         );
 
         if (playersWithCards.length === 0) {
@@ -13557,12 +13585,28 @@ async function loadCollectionLeaderboard() {
 
         leaderboardContainer.classList.remove('hidden');
 
-        // Oyuncuları ilk kartı alma zamanlarına göre sırala (en eskiden en yeniye)
-        playersWithCards.sort((a, b) => a.collectionInfo.firstCardTimestamp - b.collectionInfo.firstCardTimestamp);
+        // --- YENİ SIRALAMA MANTIĞI BURADA ---
+        playersWithCards.sort((a, b) => {
+            const cardCountA = Object.keys(a.cardCollection || {}).length;
+            const cardCountB = Object.keys(b.cardCollection || {}).length;
+
+            // 1. Kriter: En çok karta sahip olan üste gelsin (azalan sıralama)
+            if (cardCountB !== cardCountA) {
+                return cardCountB - cardCountA;
+            }
+
+            // 2. Kriter (Eşitlik bozma): İlk kartını daha erken alan üste gelsin (artan sıralama)
+            const firstCardTimeA = a.collectionInfo?.firstCardTimestamp || 0;
+            const firstCardTimeB = b.collectionInfo?.firstCardTimestamp || 0;
+            return firstCardTimeA - firstCardTimeB;
+        });
+        // --- SIRALAMA MANTIĞI SONU ---
 
         let html = '';
         playersWithCards.forEach((userData, index) => {
             const username = Object.keys(allUsersData).find(key => allUsersData[key] === userData);
+            if (!username) return; // Kullanıcı adı bulunamazsa atla
+
             const rank = index + 1;
             const rankIcon = rank === 1 ? '🥇' : (rank === 2 ? '🥈' : (rank === 3 ? '🥉' : `${rank}.`));
             const rowClass = rank === 1 ? 'bg-amber-800/50 border-amber-500' : 'bg-gray-700/50 border-gray-600';
@@ -13595,9 +13639,12 @@ async function loadCollectionLeaderboard() {
             `;
         });
         listEl.innerHTML = html;
-    });
+    };
+    
+    activeListeners.collectionLeaderboard = { callback };
+    usersRef.on('value', callback);
 }
-
+      
 </script>
 </body>
 </html>
