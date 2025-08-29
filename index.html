@@ -5509,8 +5509,11 @@ function showOpenedBoxInfo(box) {
   function closeOpenedBoxInfoModal() { openedBoxInfoModal.style.display = 'none'; }
   function shuffleArray(array) { for (let i = array.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [array[i], array[j]] = [array[j], array[i]]; } return array; }
   
-  function openCardSelectionModal(userId) {
+  // --- YENİ VE DÜZELTİLMİŞ KOD ---
+
+function openCardSelectionModal(userId) {
     if (countdownInterval) clearInterval(countdownInterval);
+    const cardContainer = document.querySelector('#cardSelectionModal .card-container');
     cardContainer.innerHTML = '';
     const sessionRef = db.ref('surprise_box_session');
 
@@ -5519,18 +5522,19 @@ function showOpenedBoxInfo(box) {
         if (!sessionData || !sessionData.active || sessionData.result) return;
 
         sessionData.cards.forEach((cardValue, index) => {
-            // ÇÖZÜM: CSS'in beklediği doğru HTML yapısı burada oluşturuluyor.
+            // CSS'in beklediği doğru HTML yapısı burada oluşturuluyor.
             const containerDiv = document.createElement('div');
             containerDiv.className = 'card-flip-container'; // Ana container
             containerDiv.dataset.value = cardValue;
             containerDiv.dataset.index = index;
             
+            // Kartın ön ve arka yüzünü içeren HTML yapısı
             containerDiv.innerHTML = `
                 <div class="card-flipper">
-                    <div class="card-front bg-gradient-to-br from-red-700 to-red-900 flex items-center justify-center text-white text-6xl font-bold">
+                    <div class="card-front bg-gradient-to-br from-red-700 to-red-900 flex items-center justify-center text-white text-6xl font-bold rounded-xl">
                         ?
                     </div>
-                    <div class="card-back bg-gray-900 flex flex-col items-center justify-center text-yellow-400 text-3xl">
+                    <div class="card-back bg-gray-900 flex flex-col items-center justify-center text-yellow-400 text-3xl rounded-xl">
                         
                     </div>
                 </div>
@@ -5546,19 +5550,69 @@ function showOpenedBoxInfo(box) {
         let timeLeft = Math.round((sessionData.expirationTimestamp - getSyncedTime()) / 1000);
 
         const handleTimeout = () => {
-            // ... (bu kısım aynı kalıyor)
+            if (cardSelectionModal.style.display === 'flex' && !sessionData.selection) {
+                displayMessage("Süre dolduğu için kart seçemedin!");
+                closeCardSelectionModal();
+                db.ref('surprise_box_session').remove(); // Oturumu temizle
+            }
         };
 
         if (timeLeft <= 0) {
-            // ... (bu kısım aynı kalıyor)
+            handleTimeout();
             return;
         }
 
         countdownEl.textContent = timeLeft;
         countdownInterval = setInterval(() => {
-            // ... (bu kısım aynı kalıyor)
+            timeLeft--;
+            if (timeLeft >= 0) {
+                countdownEl.textContent = timeLeft;
+            } else {
+                clearInterval(countdownInterval);
+                handleTimeout();
+            }
         }, 1000);
     });
+}
+
+// --- YENİ EKLENECEK YARDIMCI KOD ---
+
+// Kullanıcının kendi seçtiği kartları ve sonucu ekranda gösterir.
+function revealMyCardChoice(sessionData) {
+    if (countdownInterval) clearInterval(countdownInterval);
+    document.getElementById('cardSelectionCountdown').textContent = 'Seçim Yapıldı!';
+
+    const selectedCardIndex = sessionData.selection.cardIndex;
+    const pointsGained = sessionData.result.points;
+    
+    const cardContainer = document.querySelector('#cardSelectionModal .card-container');
+    const allCards = cardContainer.querySelectorAll('.card-flip-container');
+
+    // Tüm kartları çevir ve sonuçları göster
+    sessionData.cards.forEach((cardValue, index) => {
+        const cardEl = allCards[index];
+        if (cardEl) {
+            const cardBack = cardEl.querySelector('.card-back');
+            const realPoints = cardValue * (sessionData.multiplier || 1);
+            
+            // Kartın arka yüzünü puanla doldur
+            cardBack.innerHTML = `<div class="w-full h-full flex items-center justify-center text-3xl font-bold text-yellow-300 bg-gray-900 rounded-xl border-2 border-gray-700">+${realPoints}</div>`;
+            
+            // Kartı çevirme animasyonunu tetikle
+            cardEl.classList.add('flipped');
+            
+            // Eğer bu kart kullanıcının seçtiği kart ise, onu özel olarak parlat
+            if (index == selectedCardIndex) {
+                cardEl.querySelector('.card-flipper').classList.add('border-4', 'border-yellow-400', 'rounded-xl', 'shadow-lg', 'shadow-yellow-400/50');
+            }
+        }
+    });
+
+    // Puan kazanma yazısını altta göster
+    const resultPopup = document.createElement('div');
+    resultPopup.className = 'absolute bottom-10 left-1/2 -translate-x-1/2 bg-black bg-opacity-80 px-6 py-3 rounded-lg text-2xl font-bold text-green-400 animate-pulse';
+    resultPopup.textContent = `+${pointsGained} Puan Kazandın!`;
+    cardContainer.parentElement.appendChild(resultPopup);
 }
 
 // MEVCUT selectCard fonksiyonunu bununla değiştir
@@ -5596,7 +5650,7 @@ async function selectCard(selectedCardDiv, userId) {
     await sessionRef.child('result').set({ points: points, newBalance: newBalance });
 }
 
-// MEVCUT listenForSurpriseBox FONKSİYONUNU SİL VE BUNUNLA DEĞİŞTİR
+// --- YENİ VE DÜZELTİLMİŞ KOD ---
 
 let isProcessingSurpriseResult = false;
 let spectatorViewingResult = false;
@@ -5611,28 +5665,38 @@ function listenForSurpriseBox() {
     const callback = snap => {
         const sessionData = snap.val();
 
+        // Zaman aşımına uğramış oturumları temizle
         if (sessionData && sessionData.active && !sessionData.result) {
             const sessionAge = getSyncedTime() - sessionData.timestamp;
             if (sessionAge > 70000) {
-                console.log("Zaman aşımına uğramış Sürpriz Kutu oturumu tespit edildi ve temizleniyor...");
+                console.log("Zaman aşımına uğramış Sürpriz Kutu oturumu temizleniyor...");
                 sessionRef.remove();
                 return; 
             }
         }
 
         if (sessionData && sessionData.active) {
+            // Eğer oturum benimse ve seçim ekranım açık değilse aç
             if (sessionData.user === currentUser && !sessionData.result && cardSelectionModal.style.display !== 'flex') {
                 openCardSelectionModal(currentUser);
             }
             
-            if (sessionData.selection && sessionData.result && spectatorModal.style.display === 'flex') {
-                updateSpectatorView(sessionData);
-            }
-
+            // Eğer başkasının oturumuysa ve izleyici ekranım açık değilse aç
             if (sessionData.user !== currentUser && !sessionData.result && sessionData.expirationTimestamp && spectatorModal.style.display !== 'flex' && !isProcessingSurpriseResult) {
                 openSpectatorModal(sessionData);
             }
+            
+            // *** YENİ EKLENEN ANA KISIM: Sonuç geldiğinde kartları çevir ***
+            if (sessionData.result) {
+                if (sessionData.user === currentUser && cardSelectionModal.style.display === 'flex') {
+                    revealMyCardChoice(sessionData); // BENİM EKRANIMDA SONUCU GÖSTER
+                } else if (spectatorModal.style.display === 'flex') {
+                    updateSpectatorView(sessionData); // İZLEYİCİ EKRANINDA SONUCU GÖSTER
+                }
+            }
+            // *** YENİ KISIM BİTİŞİ ***
 
+            // Sonuç loglama ve temizleme işlemleri
             if (sessionData.result && !sessionData.logged && !isProcessingSurpriseResult) {
                 isProcessingSurpriseResult = true; 
 
@@ -5662,7 +5726,7 @@ function listenForSurpriseBox() {
                         } else {
                             surpriseInfo.boxesOpenedThisRound = finalSessionData.boxesOpenedThisRound || null;
                             surpriseInfo.resettledBy = null;
-                            surpriseInfo.resettled = false; // YENİ EKLENEN SATIR: Sıfırlama hakkı doğdu
+                            surpriseInfo.resettled = false;
                             db.ref('gameStats/lastSurpriseInfo').set(surpriseInfo);
                         }
                         
@@ -5673,18 +5737,20 @@ function listenForSurpriseBox() {
                             newBalance: finalSessionData.result.newBalance
                         });
                         
-                        if (finalSessionData.user === currentUser) {
-                            closeCardSelectionModal();
-                            displayMessage(`Sürpriz kutudan tebrikler! Toplam ${finalSessionData.result.points} puan kazandınız!`);
-                        } else {
-                            showGlobalSurpriseBoxNotification(finalSessionData);
-                        }
-                        
+                        // Sonucu gördükten sonra pencereleri kapatmak için bekleme
                         setTimeout(() => {
-                            closeGlobalSurpriseBoxModal(); 
-                            handleSurpriseBoxCleanup(finalSessionData);
-                            isProcessingSurpriseResult = false;
-                        }, 4000);
+                            if (finalSessionData.user === currentUser) {
+                                closeCardSelectionModal();
+                            } else {
+                                showGlobalSurpriseBoxNotification(finalSessionData);
+                            }
+                            
+                            setTimeout(() => {
+                                closeGlobalSurpriseBoxModal(); 
+                                handleSurpriseBoxCleanup(finalSessionData);
+                                isProcessingSurpriseResult = false;
+                            }, 4000);
+                        }, 3000); // Kartların açık kalması için 3 saniye bekle
                     } else {
                         isProcessingSurpriseResult = false;
                     }
