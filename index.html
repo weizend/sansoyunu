@@ -5591,6 +5591,9 @@ function renderActivityFeed(activities) {
                 case 'clickCatchLobby':
                     message = `${userHtml}, lobi oyununu kazanarak <span class="text-yellow-300 font-bold">+${details.prize} Puan</span> ödül aldı!${remainingBalanceText}`;
                     break;
+                case 'dailyRewardMultiplierStacked':
+                    message = `${userHtml}, mevcut <b>${details.multiplierValue}x</b> çarpanına günlük ödülden gelen <b class="text-teal-300">+${details.usesAdded} kullanım hakkını</b> ekledi. Yeni toplam: <b class="text-white">${details.newTotalUses} kullanım</b>.`;
+                    break;
                 case 'dailyReward':
                     let rewardText = '';
                     const rewardType = details.rewardType;
