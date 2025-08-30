@@ -729,11 +729,11 @@
     background-repeat: no-repeat;
     cursor: pointer;
     transition: transform 0.1s ease;
-    /* --- YENİ EKLENEN KODLAR --- */
-    -webkit-user-select: none; /* Safari */
-    -moz-user-select: none;    /* Firefox */
-    -ms-user-select: none;     /* Internet Explorer/Edge */
-    user-select: none;         /* Standart sözdizimi */
+    -webkit-user-select: none; /* Mevcut kod */
+    -moz-user-select: none;    /* Mevcut kod */
+    -ms-user-select: none;     /* Mevcut kod */
+    user-select: none;         /* Mevcut kod */
+    -webkit-tap-highlight-color: transparent; /* YENİ EKLENECEK SATIR */
 }
   .catch-item:hover {
       transform: scale(1.1);
@@ -2937,28 +2937,31 @@ function getSyncedTime() {
 
 const defaultWheelSegments = [
     // Sık Gelen Ödüller (Yüksek Şans)
-    { type: 'points', value: 100, label: '🍌', prizeName: '+100 Puan', color: '#2dd4bf', weight: 25 }, // Şansı arttı (20 -> 25)
-    { type: 'boxRights', value: 1, label: '📦', prizeName: '+1 Kutu Hakkı', color: '#818cf8', weight: 20 }, // Şansı arttı (15 -> 20)
-    { type: 'card_pack', value: 1, label: '🎴', prizeName: '+1 Standart Kart Paketi', color: '#facc15', weight: 18 }, // Şansı arttı (12 -> 18)
-    { type: 'card_pack_normal', value: 1, label: '🥉', prizeName: '+1 Bronz Kart Paketi', color: '#f59e0b', weight: 15 }, // Şansı arttı (10 -> 15)
-    { type: 'boxRights', value: 3, label: '🎁', prizeName: '+3 Kutu Hakkı', color: '#fb7185', weight: 10 }, // Orta seviye olarak ayarlandı
-    { type: 'pas', label: '☠️', prizeName: 'Pas', color: '#000000', weight: 12 }, // Şansı ayarlandı (10 -> 12)
+    { type: 'points', value: 100, label: '🍌', prizeName: '+100 Puan', color: '#2dd4bf', weight: 20 },
+    // --- YENİ EKLENEN SATIR BAŞLANGICI ---
+    { type: 'points', value: 10, label: '🍆', prizeName: '+10 Puan', color: '#a855f7', weight: 20 }, 
+    // --- YENİ EKLENEN SATIR SONU ---
+    { type: 'boxRights', value: 1, label: '📦', prizeName: '+1 Kutu Hakkı', color: '#818cf8', weight: 20 },
+    { type: 'card_pack', value: 1, label: '🎴', prizeName: '+1 Standart Kart Paketi', color: '#facc15', weight: 18 },
+    { type: 'card_pack_normal', value: 1, label: '🥉', prizeName: '+1 Bronz Kart Paketi', color: '#f59e0b', weight: 15 },
+    { type: 'boxRights', value: 3, label: '🎁', prizeName: '+3 Kutu Hakkı', color: '#fb7185', weight: 10 },
+    { type: 'pas', label: '☠️', prizeName: 'Pas', color: '#000000', weight: 20 },
 
     // Orta Seviye Ödüller (Normal Şans)
-    { type: 'card_pack_gumus', value: 1, label: '🥈', prizeName: '+1 Gümüş Kart Paketi', color: '#dbeafe', weight: 8 }, // Şansı aynı kaldı
-    { type: 'points', value: 250, label: '🍐', prizeName: '+250 Puan', color: '#4ade80', weight: 9 }, // Şansı biraz azaltıldı (10 -> 9)
-    { type: 'iflasShield', value: 1, label: '🛡️', prizeName: '+1 İflas Kalkanı', color: '#38bdf8', weight: 8 }, // Şansı aynı kaldı
-    { type: 'clickCatchTicket', value: 1, label: '🎟️', prizeName: '+1 T-Y Bileti', color: '#f472b6', weight: 8 }, // Şansı aynı kaldı
-    { type: 'wheelTicket', value: 1, label: '🎡', prizeName: 'Bedava Çevirme', color: '#fb923c', weight: 8 }, // Şansı aynı kaldı
-    { type: 'pas', label: '☠️', prizeName: 'Pas', color: '#000000', weight: 12 }, // Şansı ayarlandı (10 -> 12)
+    { type: 'card_pack_gumus', value: 1, label: '🥈', prizeName: '+1 Gümüş Kart Paketi', color: '#dbeafe', weight: 7 },
+    { type: 'points', value: 250, label: '🍐', prizeName: '+250 Puan', color: '#4ade80', weight: 9 },
+    { type: 'iflasShield', value: 1, label: '🛡️', prizeName: '+1 İflas Kalkanı', color: '#38bdf8', weight:  5},
+    { type: 'clickCatchTicket', value: 1, label: '🎟️', prizeName: '+1 T-Y Bileti', color: '#f472b6', weight: 7 },
+    { type: 'wheelTicket', value: 1, label: '🎡', prizeName: 'Bedava Çevirme', color: '#fb923c', weight: 9 },
+    { type: 'pas', label: '☠️', prizeName: 'Pas', color: '#000000', weight: 20 },
     
     // Nadir ve Efsanevi Ödüller (Düşük Şans)
-    { type: 'card_pack_altin', value: 1, label: '🥇', prizeName: '+1 Altın Kart Paketi', color: '#fef08a', weight: 4 }, // Şansı aynı kaldı, nadir
-    { type: 'wildcard', value: 1, label: '🃏', prizeName: '+1 Joker Kart', color: '#e879f9', weight: 1 }, // Şansı azaltıldı, çok nadir (4 -> 2)
-    { type: 'tempMultiplier', value: 5, duration: 1, label: '✖️', prizeName: '5X Çarpan', color: '#22d3ee', weight: 2 }, // Şansı aynı kaldı, çok nadir
-    { type: 'points', value: 1000, label: '🎂', prizeName: '+1000 Puan', color: '#f87171', weight: 2 }, // Şansı aynı kaldı, çok nadir
-    { type: 'card_pack_efsanevi', value: 1, label: '🏆', prizeName: '+1 Efsanevi Kart Paketi', color: '#c084fc', weight: 1 }, // Şansı aynı kaldı, en nadir
-    { type: 'surpriseBox', value: 1, label: '🎉', prizeName: 'Sürpriz Kutu', color: '#fde047', weight: 1 } // Şansı aynı kaldı, en nadir
+    { type: 'card_pack_altin', value: 1, label: '🥇', prizeName: '+1 Altın Kart Paketi', color: '#fef08a', weight: 2 },
+    { type: 'wildcard', value: 1, label: '🃏', prizeName: '+1 Joker Kart', color: '#e879f9', weight: 1 },
+    { type: 'tempMultiplier', value: 5, duration: 1, label: '✖️', prizeName: '5X Çarpan', color: '#22d3ee', weight: 2 },
+    { type: 'points', value: 1000, label: '🎂', prizeName: '+1000 Puan', color: '#f87171', weight: 3 },
+    { type: 'card_pack_efsanevi', value: 1, label: '🏆', prizeName: '+1 Efsanevi Kart Paketi', color: '#c084fc', weight: 1 },
+    { type: 'surpriseBox', value: 1, label: '🎉', prizeName: 'Sürpriz Kutu', color: '#fde047', weight: 1 }
 ];
   
   // Tıkla Yakala Değişkenleri
@@ -8850,7 +8853,7 @@ function renderWheel() {
     // Pozitif sayı = Saat yönünde kaydırır.
     // Negatif sayı = Saat yönünün tersine kaydırır.
     // 0 = Tam ortaya alır.
-    const angleOffset = 190; 
+    const angleOffset = 195; 
     // ------------------------------------
 
     const segmentAngle = 360 / segmentCount;
@@ -8955,10 +8958,18 @@ async function spinWheel() {
         return;
     }
     
-    if (userData.multiplierSource !== 'none') {
+    // --- DEĞİŞEN VE DÜZELTİLEN KISIM BURASI ---
+    // Bir çarpanın "aktif" olup olmadığını doğru bir şekilde kontrol ediyoruz.
+    const hasActiveMultiplier =
+        (userData.multiplierSource === 'store' && (userData.multiplierRemainingUses || 0) > 0) ||
+        (userData.multiplierSource === 'box');
+        
+    // Sadece gerçekten aktif bir çarpan varsa uyarı göster.
+    if (hasActiveMultiplier) {
         const confirmSpin = await customConfirm("Aktif bir çarpanınız var. Çarktan yeni bir çarpan çıkarsa, mevcut çarpanınızın üzerine yazılır. Devam etmek istiyor musunuz?");
         if (!confirmSpin) return;
     }
+    // --- DÜZELTME SONU ---
 
     isWheelSpinning = true;
     spinBtn.disabled = true;
@@ -8988,8 +8999,6 @@ async function spinWheel() {
 
     const spinCycles = 5 + Math.floor(Math.random() * 3);
     
-    // --- DÜZELTME BURADA: Açı hesaplaması güncellendi ---
-    // Bu yeni formül, okun tam olarak dilimin ortasına gelmesini sağlar.
     const finalRotation = (spinCycles * 360) - winningAngle + 80;
 
     wheel.style.transition = 'transform 5s cubic-bezier(0.25, 0.1, 0.25, 1)';
@@ -9210,6 +9219,14 @@ async function resetClickCatchLeaderboard() {
     const item = document.createElement('div');
     item.className = 'catch-item';
     
+    // --- YENİ EKLENEN KISIM BAŞLANGICI ---
+    // Bu kod, fareye basıldığı anda tarayıcının varsayılan
+    // "seçim yapma" (maviye boyama) davranışını engeller.
+    item.addEventListener('mousedown', (event) => {
+        event.preventDefault();
+    });
+    // --- YENİ EKLENEN KISIM SONU ---
+    
     if (gameMode === 'solo') {
         const itemsWithChance = [
             { type: 'points', value: soloGameSettings.bombValue, emoji: '💣', chance: soloGameSettings.bombChance },
@@ -9277,6 +9294,7 @@ async function resetClickCatchLeaderboard() {
         }
     }, disappearTime);
 }
+      
   function showFloatingText(text, x, y) {
       const gameArea = document.getElementById('clickCatchGameArea');
       const textEl = document.createElement('div');
@@ -10170,18 +10188,25 @@ async function startSoloClickCatchGame() {
         return;
     }
     
-    if (userData.multiplierSource && userData.multiplierSource !== 'none') {
+    // --- DEĞİŞEN VE DÜZELTİLEN KISIM BURASI ---
+    // Bir çarpanın "aktif" olup olmadığını doğru bir şekilde kontrol ediyoruz.
+    const hasActiveMultiplier =
+        (userData.multiplierSource === 'store' && (userData.multiplierRemainingUses || 0) > 0) ||
+        (userData.multiplierSource === 'box');
+
+    // Sadece gerçekten aktif bir çarpan varsa uyarı göster.
+    if (hasActiveMultiplier) {
         const warningConfirmed = await customConfirm(`Aktif bir <b>${userData.activeMultiplier}x</b> çarpanın bulunuyor. Bu oyunda yeni bir çarpan kazanırsan mevcut çarpanınla etkileşime girebilir. Devam etmek istiyor musun?`);
         if (!warningConfirmed) {
             return;
         }
     }
+    // --- DÜZELTME SONU ---
 
     const confirmed = await customConfirm("Oyuna başlamak için 1 adet 'Tıkla-Yakala Bileti' harcanacaktır. Onaylıyor musun?");
     if (!confirmed) return;
     await userRef.update({ clickCatchTickets: (userData.clickCatchTickets || 0) - 1 });
     
-    // YENİ PAKETLERİ TANIYAN GÜNCEL HARİTA
     const specialItemMapping = {
       'boxRight': { type: 'boxRight', value: soloGameSettings.specialValue || 1, emoji: '📦' },
       'iflasShield': { type: 'iflasShield', value: soloGameSettings.specialValue || 1, emoji: '🛡️' },
@@ -10203,7 +10228,7 @@ async function startSoloClickCatchGame() {
     collectedIflasShields = 0;
     collectedWheelTickets = 0;
     collectedMultipliers = [];
-    collectedCardPacks = []; // YENİ EKLENDİ: Her oyun başında listeyi sıfırla
+    collectedCardPacks = [];
 
     document.getElementById('clickCatchScore').textContent = clickCatchScore;
     document.getElementById('clickCatchTimer').textContent = clickCatchTimer;
