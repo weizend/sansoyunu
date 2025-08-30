@@ -972,42 +972,49 @@ body.modal-open .modal-content {
     <div id="finishersList" class="space-y-3 text-left">
         </div>
 </div>
-    
-    <div id="adminCardCollectionControls" class="hidden my-4 p-6 bg-gray-800 rounded-lg border border-purple-500 max-w-4xl mx-auto">
-        <h4 class="text-lg font-bold text-purple-300 mb-4 text-center border-b border-gray-700 pb-2">KOLEKSİYON SEZON YÖNETİMİ</h4>
-        <p class="text-center text-gray-400 text-sm mb-4">Mevcut Sezon Durumu: <b id="collectionStatusText" class="text-white">Bilinmiyor</b></p>
-        
-       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="space-y-3">
-                <button onclick="openCardCreatorModal()" class="w-full py-3 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg">Kart Ekle/Düzenle</button>
-                <button onclick="openGrandPrizeSettings()" class="w-full py-3 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg">Büyük Ödülü Ayarla</button>
-            </div>
-            
-            <div class="space-y-3">
-                <button onclick="toggleCollectionPause()" id="pauseResumeButton" class="w-full py-3 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-lg">Sezonu Duraklat</button>
-                <button onclick="openTradeHistoryModal()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg">Takas Geçmişi</button>
-            </div>
 
-            <div class="space-y-3">
-                <button id="toggleSeasonBtn" onclick="toggleCardSeason()" class="w-full h-full py-3 bg-gray-700 text-white font-bold rounded-lg text-lg">
-                    Yükleniyor...
-                </button>
-            </div>
-        </div>
+        <div id="collectionAdminModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[50000] hidden">
+  <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-purple-500 w-11/12 max-w-4xl text-left relative max-h-[90vh] overflow-y-auto scrollable-list">
+    <button class="modal-close-button" onclick="closeCollectionAdminModal()">&times;</button>
     
-    <div class="mt-6 pt-4 border-t border-gray-700">
-        <h4 class="text-lg font-bold text-purple-300 mb-3 text-center">PAZAR AYARLARI</h4>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-            <div class="md:col-span-1">
-                <label for="tradeFeeInput" class="block text-sm font-medium text-gray-300 mb-1">Takas İşlem Ücreti (Puan)</label>
-                <input type="number" id="tradeFeeInput" value="0" class="box-setting-input">
-            </div>
-            <div class="md:col-span-2 flex flex-col sm:flex-row gap-3 mt-4">
-                <button onclick="saveMarketSettings()" class="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg">Ücreti Kaydet</button>
-                <button onclick="toggleMarketLock()" id="marketLockBtn" class="w-full py-2 bg-gray-600 hover:bg-gray-500 text-white font-bold rounded-lg">Pazarı Kilitle</button>
-            </div>
-        </div>
+    <div id="collectionAdminModalContent">
+      <h4 class="text-lg font-bold text-purple-300 mb-4 text-center border-b border-gray-700 pb-2">KOLEKSİYON SEZON YÖNETİMİ</h4>
+      <p class="text-center text-gray-400 text-sm mb-4">Mevcut Sezon Durumu: <b id="collectionStatusText" class="text-white">Bilinmiyor</b></p>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="space-y-3">
+              <button onclick="openCardCreatorModal()" class="w-full py-3 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg">Kart Ekle/Düzenle</button>
+              <button onclick="openGrandPrizeSettings()" class="w-full py-3 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg">Büyük Ödülü Ayarla</button>
+          </div>
+          
+          <div class="space-y-3">
+              <button onclick="toggleCollectionPause()" id="pauseResumeButton" class="w-full py-3 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-lg">Sezonu Duraklat</button>
+              <button onclick="openTradeHistoryModal()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg">Takas Geçmişi</button>
+          </div>
+
+          <div class="space-y-3">
+              <button id="toggleSeasonBtn" onclick="toggleCardSeason()" class="w-full h-full py-3 bg-gray-700 text-white font-bold rounded-lg text-lg">
+                  Yükleniyor...
+              </button>
+          </div>
+      </div>
+  
+      <div class="mt-6 pt-4 border-t border-gray-700">
+          <h4 class="text-lg font-bold text-purple-300 mb-3 text-center">PAZAR AYARLARI</h4>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+              <div class="md:col-span-1">
+                  <label for="tradeFeeInput" class="block text-sm font-medium text-gray-300 mb-1">Takas İşlem Ücreti (Puan)</label>
+                  <input type="number" id="tradeFeeInput" value="0" class="box-setting-input">
+              </div>
+              <div class="md:col-span-2 flex flex-col sm:flex-row gap-3 mt-4">
+                  <button onclick="saveMarketSettings()" class="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg">Ücreti Kaydet</button>
+                  <button onclick="toggleMarketLock()" id="marketLockBtn" class="w-full py-2 bg-gray-600 hover:bg-gray-500 text-white font-bold rounded-lg">Pazarı Kilitle</button>
+              </div>
+          </div>
+      </div>
     </div>
+
+  </div>
 </div>
     
     <div id="cardCollectionAlbum" class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-6 p-4 bg-gray-900/50 rounded-xl border border-gray-700">
@@ -1096,7 +1103,7 @@ body.modal-open .modal-content {
     </div>
   </div>
 </div>
-<div id="cardCreatorModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[9999] hidden">
+<div id="cardCreatorModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[50001] hidden">
   <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-yellow-500 w-11/12 max-w-lg text-left relative">
     <button class="modal-close-button" onclick="closeCardCreatorModal()">&times;</button>
     <h3 id="cardFormTitle" class="text-yellow-300 text-3xl font-bold mb-6 text-center">Yeni Kart Oluştur</h3>
@@ -2649,17 +2656,6 @@ body.modal-open .modal-content {
   </div>
 </div>
 
-    <div id="collectionAdminModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[10002] hidden">
-  <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-purple-500 w-11/12 max-w-4xl text-left relative">
-    <button class="modal-close-button" onclick="closeCollectionAdminModal()">&times;</button>
-    <h3 class="text-purple-300 text-3xl font-bold mb-6 text-center">Koleksiyon Sezon Yönetimi</h3>
-    
-    <div id="collectionAdminModalContent">
-    </div>
-
-  </div>
-</div>
-
     <div id="tradeCompleteModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-[10005] hidden">
   <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border-4 border-green-500 w-11/12 max-w-md text-center relative">
     <h4 class="text-green-300 text-3xl font-bold mb-4">🤝 Takas Gerçekleşti! 🤝</h4>
@@ -2736,7 +2732,7 @@ body.modal-open .modal-content {
   </div>
 </div>
 
-<div id="grandPrizeSettingsModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[9999] hidden">
+<div id="grandPrizeSettingsModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[50001] hidden">
   <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-yellow-500 w-11/12 max-w-2xl text-center relative">
     <button class="modal-close-button" onclick="closeGrandPrizeSettingsModal()">&times;</button>
     <h3 class="text-yellow-300 text-3xl font-bold mb-6">Büyük Ödül Ayarları</h3>
@@ -3673,6 +3669,7 @@ async function afterLogin() {
     }
   }
 
+// ✅ YENİ VE GÜNCEL FONKSİYON
 function showSection(sectionId) {
     // Kart koleksiyonu sekmesinden başka bir sekmeye geçildiğinde "YENİ" etiketini temizle
     if (currentActiveSection === 'cardCollection' && sectionId !== 'cardCollection') {
@@ -3692,11 +3689,16 @@ function showSection(sectionId) {
         }
     });
 
-    // Diğer admin butonlarıyla birlikte bu butonu da gizle
-document.getElementById('collectionAdminBtn')?.classList.add('hidden');
+    // Bölüme özel tüm admin butonlarını varsayılan olarak gizle
+    document.getElementById('adminStoreManagementButtonContainer').classList.add('hidden');
+    document.getElementById('adminAnnouncementControls').classList.add('hidden');
+    document.getElementById('clickCatchAdminButtonsContainer')?.classList.add('hidden');
+    document.getElementById('kasaSettingsBtn')?.classList.add('hidden');
+    // YÖNETİM PANELİ BUTONU DA ARTIK BURADA GİZLENİYOR
+    document.getElementById('collectionAdminBtn')?.classList.add('hidden');
+
     // Sadece istenen içeriği ve sekme butonunu aktif et
     document.getElementById(`${sectionId}Content`)?.classList.remove('hidden');
-    // Not: Bazı bölümlerin hem '...Content' hem de '...Section' ID'si olabilir, bu yüzden ikisini de kontrol ediyoruz.
     document.getElementById(`${sectionId}Section`)?.classList.remove('hidden');
 
     const activeBtn = document.getElementById(`${sectionId}TabBtn`);
@@ -3704,13 +3706,6 @@ document.getElementById('collectionAdminBtn')?.classList.add('hidden');
         activeBtn.classList.add('bg-red-700', 'hover:bg-red-600');
         activeBtn.classList.remove('bg-gray-700', 'hover:bg-gray-600');
     }
-
-    // Bölüme özel admin panellerini varsayılan olarak gizle
-    document.getElementById('adminStoreManagementButtonContainer').classList.add('hidden');
-    document.getElementById('adminAnnouncementControls').classList.add('hidden');
-    document.getElementById('clickCatchAdminButtonsContainer')?.classList.add('hidden');
-    document.getElementById('adminCardCollectionControls')?.classList.add('hidden');
-    document.getElementById('kasaSettingsBtn')?.classList.add('hidden');
 
     // Hangi sekmeye tıklandıysa ona özel fonksiyonları çalıştır
     if (sectionId === 'store') {
@@ -3749,9 +3744,10 @@ document.getElementById('collectionAdminBtn')?.classList.add('hidden');
     } else if (sectionId === 'cardCollection') {
         loadCollectionAlbum();
         loadGrandPrizeDisplay();
-        loadCollectionLeaderboard(); // Koleksiyon liderlik sıralamasını yükle
+        loadCollectionLeaderboard();
         if (isAdmin) {
-            document.getElementById('adminCardCollectionControls').classList.remove('hidden');
+            // ARTIK PANEL YERİNE BUTONU GÖSTERİYORUZ
+            document.getElementById('collectionAdminBtn').classList.remove('hidden');
             loadMarketSettingsForAdmin();
             loadPrizeSettingsForAdmin();
         }
@@ -14170,6 +14166,15 @@ function listenForTradeNotifications() {
         }
     });
 }
+
+      function openCollectionAdminModal() {
+        if (!isAdmin) return;
+        document.getElementById('collectionAdminModal').style.display = 'flex';
+    }
+
+    function closeCollectionAdminModal() {
+        document.getElementById('collectionAdminModal').style.display = 'none';
+    }
 // ★★★ YENİ EKLENECEK FONKSİYONLAR SONU ★★★
       
 </script>
