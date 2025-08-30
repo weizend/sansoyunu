@@ -5546,7 +5546,6 @@ function renderActivityFeed(activities) {
         return;
     }
     
-    // --- DÜZELTME BURADA: İSİM HARİTASI BU FONKSİYONA DA EKLENDİ ---
     const typeToName = {
         points: 'Puan',
         boxRights: 'Kutu Hakkı',
@@ -5580,24 +5579,30 @@ function renderActivityFeed(activities) {
                 : '';
 
             switch (activity.type) {
-                // --- DÜZELTME BURADA: "newItemFound" DURUMU GÜNCELLENDİ ---
+                // ★★★ İSTEĞİNİZE GÖRE GÜNCELLENEN KISIM BAŞLANGICI ★★★
+                case 'tradeOfferCreated':
+                    message = `${userHtml}, <b class="text-red-400">-${details.fee} Puan</b> ödeyip pazara yeni bir takas teklifi koydu: <b class="text-cyan-300">${details.offeredCardName}</b> karşılığında <b class="text-pink-300">${details.requestedCardName}</b> istiyor.`;
+                    
+                    if (details.status === 'completed') {
+                        message += ` <span class="text-green-400 font-bold">(Takas Yapıldı)</span>`;
+                    } else if (details.status === 'cancelled') {
+                        message += ` <span class="text-red-500 font-bold">(İşlem İptal Edildi)</span>`;
+                    }
+                    break;
+                case 'tradeOfferAccepted':
+                    message = `${userHtml}, <b class="text-red-400">-${details.fee} Puan</b> ödeyip, ${details.offerer}'in takasını onayladı. <span class="text-gray-400">(Kalan Puan: ${formatNumber(details.newBalance)})</span>`;
+                    break;
+                // ★★★ İSTEĞİNİZE GÖRE GÜNCELLENEN KISIM SONU ★★★
+                    
                 case 'newItemFound':
                     let newItemMultiplierText = (details.multiplier && details.multiplier > 1)
                         ? ` <span class="text-xs text-purple-400">(${details.multiplier}x çarpan kullandı)</span>`
                         : ` <span class="text-xs text-gray-400">(çarpan kullanmadı)</span>`;
                     
-                    // itemType'a göre doğru ismi bul, eğer type yoksa eski itemName'i kullan
                     let displayItemName = details.itemType ? typeToName[details.itemType] : details.itemName;
-                    let displayItemAmount = details.itemName ? details.itemName.split(' ')[0] : '+1'; // Miktarı ayıkla
+                    let displayItemAmount = details.itemName ? details.itemName.split(' ')[0] : '+1'; 
                     
                     message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-cyan-300 font-bold">${displayItemAmount} ${displayItemName}</span> buldu.${newItemMultiplierText}`;
-                    break;
-                // --- DİĞER TÜM "CASE"LER AYNI KALIYOR ---
-                case 'tradeOfferCreated':
-                    message = `${userHtml}, pazara yeni bir takas teklifi koydu: <b class="text-cyan-300">${details.offeredCardName}</b> karşılığında <b class="text-pink-300">${details.requestedCardName}</b> istiyor.`;
-                    break;
-                case 'tradeOfferAccepted':
-                    message = `${userHtml}, <b class="text-yellow-400">${details.offerer}</b> adlı kullanıcının <b class="text-cyan-300">${details.offeredCardName}</b> kartı teklifini kabul etti.`;
                     break;
                 case 'collectionCompleted':
                     message = details.isFirst
@@ -10551,9 +10556,8 @@ const ref = db.ref('activityFeed').orderByChild('timestamp').limitToLast(20);
     ref.on('value', callback);
 }
 
-// --- MEVCUT İLGİLİ FONKSİYONLARI KOMPLE SİLİP BUNU YAPIŞTIR ---
-
-function logActivity(type, username, details = {}) {
+// ★★★ BU FONKSİYONU KOMPLE DEĞİŞTİR ★★★
+function logActivity(type, username, details = {}, activityId = null) {
     // WeizendTv'nin kendi eylemlerini loglama (örneğin lobi iptali)
     if (username.toLowerCase() === 'weizendtv') {
         return;
@@ -10564,8 +10568,15 @@ function logActivity(type, username, details = {}) {
         details,
         timestamp: firebase.database.ServerValue.TIMESTAMP
     };
-    const newActivityRef = db.ref('activityFeed').push();
-    newActivityRef.set(activityData);
+
+    // --- DÜZELTME BURADA ---
+    // Eğer dışarıdan bir activityId geldiyse (takas oluşturma gibi), o ID ile kayıt oluştur.
+    // Gelmediyse, eskisi gibi yeni bir ID oluştur.
+    const activityRef = activityId
+        ? db.ref(`activityFeed/${activityId}`)
+        : db.ref('activityFeed').push();
+    
+    activityRef.set(activityData);
 
     const feedRef = db.ref('activityFeed');
     feedRef.orderByChild('timestamp').once('value', (snapshot) => {
@@ -12390,12 +12401,16 @@ async function acceptTradeOffer(tradeId) {
         return;
     }
 
+    // ★★★ YENİ EKLENEN KISIM ★★★
+    // Orijinal eylem kaydını güncellemek için activityId'yi alıyoruz.
+    const originalActivityId = trade.activityId;
+    // ★★★ YENİ EKLENEN KISIM SONU ★★★
+
     const userRef = db.ref(`users/${currentUser}`);
     const userSnap = await userRef.once('value');
     const userData = userSnap.val();
     const userCards = userData.cardCollection || {};
 
-    // --- DÜZELTME BURADA: >= 1 yerine > 1 olarak güncellendi ---
     if (!userCards[trade.requestedCardId] || userCards[trade.requestedCardId].count <= 1) {
         displayMessage(`Bu takası yapabilmek için istenen karttan en az 2 adete sahip olmalısın.`);
         return;
@@ -12424,6 +12439,8 @@ async function acceptTradeOffer(tradeId) {
     if (!confirmed) return;
 
     try {
+        let finalAccepterBalance = 0; // Yeni bakiyeyi loglamak için
+
         await db.ref().transaction(data => {
             if (!data.trades || !data.trades[tradeId]) {
                 return; 
@@ -12433,13 +12450,11 @@ async function acceptTradeOffer(tradeId) {
             const accepter = data.users[currentUser];
             const offerer = data.users[currentTrade.offerer];
 
-            // --- GÜVENLİK KONTROLÜ BURADA DA GÜÇLENDİRİLDİ ---
             if (!accepter || !offerer) return;
             if (!accepter.cardCollection?.[currentTrade.requestedCardId]?.count || accepter.cardCollection[currentTrade.requestedCardId].count <= 1) return;
             if (!offerer.cardCollection?.[currentTrade.offeredCardId]?.count || offerer.cardCollection[currentTrade.offeredCardId].count <= 1) return;
             if ((accepter.balance || 0) < tradeFee) return;
 
-            // Kartları Transfer Et (Kabul Eden)
             accepter.cardCollection[currentTrade.requestedCardId].count--;
             if (accepter.cardCollection[currentTrade.requestedCardId].count === 0) {
                 accepter.cardCollection[currentTrade.requestedCardId] = null;
@@ -12449,7 +12464,6 @@ async function acceptTradeOffer(tradeId) {
             }
             accepter.cardCollection[currentTrade.offeredCardId].count++;
 
-            // Kartları Transfer Et (Teklif Eden)
             offerer.cardCollection[currentTrade.offeredCardId].count--;
             if (!offerer.cardCollection[currentTrade.requestedCardId]) {
                 offerer.cardCollection[currentTrade.requestedCardId] = { count: 0 };
@@ -12457,16 +12471,24 @@ async function acceptTradeOffer(tradeId) {
             offerer.cardCollection[currentTrade.requestedCardId].count++;
 
             accepter.balance = (accepter.balance || 0) - tradeFee;
+            finalAccepterBalance = accepter.balance; // Yeni bakiyeyi değişkene ata
+            
             data.trades[tradeId] = null;
             
             return data;
         });
 
+        // ★★★ İSTEĞİNE GÖRE YENİ EYLEM KAYDI OLUŞTURULUYOR ★★★
         logActivity('tradeOfferAccepted', currentUser, {
             offerer: trade.offerer,
-            offeredCardName: offeredCard.cardName,
-            requestedCardName: requestedCard.cardName
+            fee: tradeFee,
+            newBalance: finalAccepterBalance // Yeni bakiye bilgisi eklendi
         });
+        
+        // ★★★ Orijinal eylem kaydı "Takas Yapıldı" olarak güncelleniyor ★★★
+        if (originalActivityId) {
+            await db.ref(`activityFeed/${originalActivityId}/details/status`).set('completed');
+        }
 
         const historyRef = db.ref('tradeHistory').push();
         await historyRef.set({
@@ -12591,9 +12613,16 @@ async function openCreateOfferModal(preselectedCardId = null) {
     // Pazar ayarlarından takas ücretini çek
     const feeSnap = await db.ref('gameConfig/marketSettings/tradeFee').once('value');
     const tradeFee = feeSnap.val() || 0;
-    document.getElementById('tradeFeeInfo').textContent = tradeFee > 0 
-        ? `Not: Bu teklifi kabul eden oyuncudan ${tradeFee} Puan işlem ücreti alınacaktır.`
-        : `Not: Takas işlemleri şu anda ücretsizdir.`;
+    
+    // ★★★ DEĞİŞEN UYARI MESAJI BURADA ★★★
+    const feeInfoEl = document.getElementById('tradeFeeInfo');
+    if (tradeFee > 0) {
+        // innerHTML kullanarak metni daha dikkat çekici hale getiriyoruz.
+        feeInfoEl.innerHTML = `Bu teklifi oluşturmak için sizden <b class="text-yellow-400">${tradeFee} Puan</b> işlem ücreti alınacaktır. <b class="text-red-400">Bu ücret, teklifi iptal etseniz bile iade edilmez.</b>`;
+    } else {
+        feeInfoEl.textContent = `Not: Takas işlemleri şu anda ücretsizdir.`;
+    }
+    // ★★★ DEĞİŞİKLİK SONU ★★★
 
     // Kullanıcının fazla kartlarını ve tüm kartların listesini aynı anda çek
     const [userCardsSnap, masterCardsSnap] = await Promise.all([
@@ -12604,7 +12633,7 @@ async function openCreateOfferModal(preselectedCardId = null) {
     const userCards = userCardsSnap.val() || {};
     const masterCards = masterCardsSnap.val() || {};
 
-    // 1. "Teklif Ettiğim Kart" listesini doldur (sadece count > 1 olanlar)
+    // "Teklif Ettiğim Kart" listesini doldur
     myCardSelect.innerHTML = '';
     let hasDuplicates = false;
     for (const cardId in userCards) {
@@ -12622,12 +12651,11 @@ async function openCreateOfferModal(preselectedCardId = null) {
     if (!hasDuplicates) {
         myCardSelect.innerHTML = '<option value="">Takas edilecek kartın yok</option>';
     }
-    // Eğer koleksiyondan bir kart seçilerek gelinmişse, onu otomatik olarak seçili yap
     if (preselectedCardId) {
         myCardSelect.value = preselectedCardId;
     }
 
-    // 2. "İstediğim Kart" listesini doldur (tüm kartlar)
+    // "İstediğim Kart" listesini doldur
     requestCardSelect.innerHTML = '';
     for (const cardId in masterCards) {
         const cardInfo = masterCards[cardId];
@@ -12639,8 +12667,7 @@ async function openCreateOfferModal(preselectedCardId = null) {
     
     document.getElementById('createOfferModal').style.display = 'flex';
 }
-
-
+      
 // Yeni teklif oluşturma penceresini kapatır
 function closeCreateOfferModal() {
     document.getElementById('createOfferModal').style.display = 'none';
@@ -12659,45 +12686,79 @@ async function submitTradeOffer() {
         return;
     }
 
+    const feeSnap = await db.ref('gameConfig/marketSettings/tradeFee').once('value');
+    const tradeFee = feeSnap.val() || 0;
+
+    const userSnap = await db.ref(`users/${currentUser}`).once('value');
+    const userData = userSnap.val();
+
+    if ((userData.balance || 0) < tradeFee) {
+        displayMessage(`Teklif oluşturmak için gereken ${tradeFee} Puan işlem ücretine sahip değilsin.`);
+        return;
+    }
+
     const userCardRef = db.ref(`users/${currentUser}/cardCollection/${offeredCardId}`);
 
-    // GÜVENLİ İŞLEM: Firebase Transaction ile kart sayısını kontrol et ve düşür
     try {
         const { committed, snapshot } = await userCardRef.transaction(cardData => {
-            // Eğer kart verisi yoksa veya 1'den fazla değilse işlemi iptal et
             if (!cardData || cardData.count <= 1) {
-                return; // Abort the transaction
+                return;
             }
-            // Kart sayısı 1'den fazlaysa, sayıyı 1 azalt
             cardData.count--;
             return cardData;
         });
 
         if (committed) {
-            // Transaction başarılı olduysa takası oluştur
-            const newTrade = {
-                offerer: currentUser,
-                offeredCardId: offeredCardId,
-                requestedCardId: requestedCardId,
-                timestamp: firebase.database.ServerValue.TIMESTAMP
-            };
-
             const masterCardsSnap = await db.ref('gameConfig/cardCollection').once('value');
             const masterCards = masterCardsSnap.val();
             const offeredCardName = masterCards[offeredCardId]?.cardName || 'Bilinmeyen Kart';
             const requestedCardName = masterCards[requestedCardId]?.cardName || 'Bilinmeyen Kart';
 
-            logActivity('tradeOfferCreated', currentUser, {
-                offeredCardName: offeredCardName,
-                requestedCardName: requestedCardName
-            });
+            // ★★★ YENİ EKLENEN KISIM BAŞLANGICI ★★★
+            // 1. Önce eylem kaydını oluşturup onun unique ID'sini alıyoruz.
+            const activityRef = db.ref('activityFeed').push();
+            const activityId = activityRef.key;
+            
+            // 2. Bu eylem kaydını veritabanına yazıyoruz.
+            logActivity(
+                'tradeOfferCreated', 
+                currentUser, 
+                {
+                    offeredCardName: offeredCardName,
+                    requestedCardName: requestedCardName,
+                    fee: tradeFee,
+                    status: 'active' // Başlangıç durumu: aktif
+                },
+                activityId // Eylem kaydının ID'sini de gönderiyoruz
+            );
+            // ★★★ YENİ EKLENEN KISIM SONU ★★★
 
-            await db.ref('trades').push(newTrade);
-            displayMessage("Takas teklifin başarıyla pazara eklendi ve kartın envanterinden düşüldü!");
+            const newTradeRef = db.ref(`trades/${activityId}`); // Takas ID'si olarak eylem ID'sini kullanmak daha mantıklı
+            const newTrade = {
+                offerer: currentUser,
+                offeredCardId: offeredCardId,
+                requestedCardId: requestedCardId,
+                tradeFee: tradeFee, 
+                timestamp: firebase.database.ServerValue.TIMESTAMP,
+                activityId: activityId // Eylem ID'sini takas verisine kaydediyoruz.
+            };
+            
+            const updates = {};
+            updates[`/trades/${newTradeRef.key}`] = newTrade;
+            updates[`/users/${currentUser}/balance`] = userData.balance - tradeFee;
+            updates[`/users/${currentUser}/totalSpentPoints`] = (userData.totalSpentPoints || 0) + tradeFee;
+
+            await db.ref().update(updates);
+
+            displayMessage("Takas teklifin başarıyla pazara eklendi!");
             closeCreateOfferModal();
             switchMarketTab('mine');
+            
+            if (currentActiveSection === 'cardCollection') {
+                loadCollectionAlbum();
+            }
+            
         } else {
-            // Transaction başarısız olduysa (kart sayısı yetersizse)
             displayMessage("Hata: Bu karttan takas edebileceğin fazlan kalmamış.");
         }
     } catch (error) {
@@ -12721,36 +12782,48 @@ async function cancelTradeOffer(tradeId, asAdmin = false) {
     
     const offererUsername = tradeData.offerer;
     const offeredCardId = tradeData.offeredCardId;
+    const feeToRefund = tradeData.tradeFee || 0;
+    
+    // ★★★ YENİ EKLENEN KISIM ★★★
+    const originalActivityId = tradeData.activityId; // Güncellenecek eylem kaydının ID'si
+    // ★★★ YENİ EKLENEN KISIM SONU ★★★
 
     const confirmed = await customConfirm(asAdmin 
-        ? "Bu teklifi admin olarak zorla iptal etmek istediğinize emin misiniz? Kart, sahibine iade edilecek."
-        : "Bu takas teklifini pazardan kaldırmak istediğinize emin misiniz? Kartın envanterine geri eklenecek."
+        ? "Bu teklifi admin olarak zorla iptal etmek istediğinize emin misiniz? Kart sahibine iade edilecek, işlem ücreti iade edilmeyecektir."
+        : `Bu takas teklifini pazardan kaldırmak istediğinize emin misiniz? Sadece kartınız iade edilecek, ödediğiniz ${feeToRefund} Puan işlem ücreti iade edilmeyecektir.`
     );
     if (!confirmed) return;
 
-    // GÜVENLİ İŞLEM: Kartı sahibine iade et ve takası sil
-    const userCardRef = db.ref(`users/${offererUsername}/cardCollection/${offeredCardId}`);
+    const userRef = db.ref(`users/${offererUsername}`);
     
     try {
-        await userCardRef.transaction(cardData => {
-            if (cardData) {
-                cardData.count++;
-            } else {
-                // Eğer bir sebepten ötürü kart hiç yoksa, 1 olarak ekle (güvenlik önlemi)
-                return { count: 1 };
+        await userRef.transaction(userData => {
+            if (userData) {
+                if (!userData.cardCollection) userData.cardCollection = {};
+                if (!userData.cardCollection[offeredCardId]) userData.cardCollection[offeredCardId] = { count: 0 };
+                userData.cardCollection[offeredCardId].count++;
             }
-            return cardData;
+            return userData;
         });
         
-        await tradeRef.remove(); // Kart iade edildikten sonra takası sil
+        await tradeRef.remove();
+        
+        // ★★★ Orijinal eylem kaydı "İptal Edildi" olarak güncelleniyor ★★★
+        if (originalActivityId) {
+            await db.ref(`activityFeed/${originalActivityId}/details/status`).set('cancelled');
+        }
 
         if (asAdmin) {
             logActivity('tradeOfferCancelledByAdmin', 'WeizendTv', { offerer: offererUsername });
-            displayMessage("Teklif admin tarafından iptal edildi ve kart sahibine iade edildi.");
+            displayMessage("Teklif admin tarafından iptal edildi. Kart sahibine iade edildi.");
             loadMarketOffers('all');
         } else {
-            displayMessage("Teklifin pazardan kaldırıldı ve kartın envanterine geri eklendi.");
+            displayMessage("Teklifin pazardan kaldırıldı. Kartın envanterine geri eklendi.");
             loadMarketOffers('mine');
+        }
+
+        if (currentActiveSection === 'cardCollection') {
+            loadCollectionAlbum();
         }
 
     } catch(error) {
@@ -12758,7 +12831,7 @@ async function cancelTradeOffer(tradeId, asAdmin = false) {
         displayMessage("Takas iptal edilirken bir hata oluştu.");
     }
 }
-
+      
 let packsToReveal = [];
 let packsRevealedCount = 0;
 
