@@ -6372,8 +6372,7 @@ function revealMyCardChoice(sessionData) {
     cardContainer.parentElement.appendChild(resultPopup);
 }
 
-// YENİ, GÜVENLİ VE DÜZELTİLMİŞ KOD
-// YENİ, GÜVENLİ VE DÜZELTİLMİŞ KOD
+// YENİ, GÜVENLİ VE ÇARPANLI PUAN HESAPLAMASI YAPAN KOD
 async function selectCard(selectedCardDiv, userId) {
     // Anında koruma: Bir kart seçildiği anda diğer tüm kartların tıklanmasını engelle.
     const cardContainer = document.getElementById('playerCardContainer');
@@ -6405,11 +6404,11 @@ async function selectCard(selectedCardDiv, userId) {
 
     const updatedSessionData = transactionResult.snapshot.val();
     
-    // !!!!!!!!!!!!!  PUAN BUG'INI ÇÖZEN KRİTİK DÜZELTME BURADA  !!!!!!!!!!!!!
-    // Puan hesaplanırken artık sessionData.multiplier ile ÇARPILMIYOR. Sadece kartın kendi değeri alınıyor.
-    // Böylece çarpan ne olursa olsun, sürpriz kutu puanı sabit kalır.
-    let points = parseInt(selectedCardDiv.dataset.value);
-    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    // --- İSTEĞİN ÜZERİNE DEĞİŞTİRİLEN KISIM BURASI ---
+    // Puan hesaplanırken artık sürpriz kutu oturumundaki çarpan değeriyle (multiplier) çarpılıyor.
+    // Eğer çarpan kullanılmadıysa, updatedSessionData.multiplier değeri 1 olacağı için puan aynı kalır.
+    let points = parseInt(selectedCardDiv.dataset.value) * (updatedSessionData.multiplier || 1);
+    // --- DEĞİŞİKLİK SONU ---
     
     const userRef = db.ref('users/' + userId);
 
@@ -6432,8 +6431,6 @@ async function selectCard(selectedCardDiv, userId) {
     // Sonucu Firebase'e yaz
     await sessionRef.child('result').set({ points: points, newBalance: newBalance });
 }
-
-// --- YENİ VE GÜNCEL SÜRPRİZ KUTU DİNLEME FONKSİYONU ---
 
 let isProcessingSurpriseResult = false;
 let spectatorViewingResult = false;
