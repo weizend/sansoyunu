@@ -2792,21 +2792,65 @@ body.modal-open .modal-content {
     <p class="mt-8 text-5xl animate-spin">⚙️</p>
 </div>
   <script>
-      document.addEventListener('DOMContentLoaded', () => {
-    const typeSelect = document.getElementById('soloSpecialItemType');
-    if (typeSelect) {
-        typeSelect.addEventListener('change', () => {
-            const valueInput = document.getElementById('soloSpecialValue');
-            const usesInput = document.getElementById('soloSpecialMultiplierUses');
-            if (typeSelect.value === 'tempMultiplier') {
-                valueInput.placeholder = 'Çarpan Değeri (örn: 2)';
-                usesInput.classList.remove('hidden');
-            } else {
-                valueInput.placeholder = 'Adet (örn: 1, 5)';
-                usesInput.classList.add('hidden');
+      // ÖNCEKİ document.addEventListener('DOMContentLoaded', ...) BLOĞUNU KOMPLE SİLİP BUNU YAPIŞTIR
+
+document.addEventListener('DOMContentLoaded', () => {
+    const loginContainer = document.getElementById("loginContainer");
+    const gameDiv = document.getElementById("gameDiv");
+    const maintenanceOverlay = document.getElementById("maintenanceOverlay");
+
+    // Sayfa yüklendiğinde TÜM login işlemleri bu ana fonksiyon içinden geçecek.
+    auth.onAuthStateChanged(firebaseUser => {
+        const isAdminLoggedIn = firebaseUser && firebaseUser.email.startsWith('weizendtv');
+
+        // HER ŞEYDEN ÖNCE: Veritabanından bakım modunun durumunu kontrol et.
+        db.ref('gameConfig/isMaintenanceMode').once('value').then(snap => {
+            const isMaintenanceMode = snap.val() === true;
+
+            // ANA KONTROL NOKTASI: Bakım modu aktifse VE giriş yapan admin değilse...
+            if (isMaintenanceMode && !isAdminLoggedIn) {
+                // Bakım ekranını göster ve başka hiçbir şey yapma.
+                loginContainer.style.display = "none";
+                gameDiv.style.display = "none";
+                maintenanceOverlay.style.display = "flex";
+                detachAllListeners(); // Tüm bağlantıları kes
+                return; // Kodu burada durdur.
+            }
+
+            // Eğer bu noktaya ulaştıysak, ya bakım modu kapalıdır ya da giriş yapan admindir.
+            // Normal işlemlere devam et.
+            maintenanceOverlay.style.display = "none";
+
+            // 1. Admin Girişi Kontrolü
+            if (isAdminLoggedIn) {
+                currentUser = "WeizendTv";
+                isAdmin = true;
+                afterLogin();
+            } 
+            // 2. Normal Kullanıcı (localStorage) Girişi Kontrolü
+            else {
+                const savedUser = localStorage.getItem('weizendOyunUser');
+                if (savedUser) {
+                    db.ref('users/' + savedUser).once('value').then(userSnap => {
+                        if (userSnap.exists()) {
+                            checkAndProceedLogin(savedUser, userSnap.val());
+                        } else {
+                            localStorage.removeItem('weizendOyunUser');
+                            loginContainer.style.display = "block";
+                            gameDiv.style.display = "none";
+                        }
+                    });
+                } 
+                // 3. Hiç kimse giriş yapmamışsa
+                else {
+                    loginContainer.style.display = "block";
+                    gameDiv.style.display = "none";
+                    switchAuthTab('login');
+                    detachAllListeners();
+                }
             }
         });
-    }
+    });
 });
   // Firebase yapılandırması
   const firebaseConfig = {
