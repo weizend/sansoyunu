@@ -2789,76 +2789,61 @@ body.modal-open .modal-content {
 <div id="maintenanceOverlay" class="fixed top-0 left-0 w-full h-full bg-gray-900 text-white flex-col justify-center items-center z-[999999] hidden text-center">
     <h2 class="text-4xl font-bold text-red-500 mb-4">SİTE BAKIMDA</h2>
     <p class="text-xl">Oyun dünyasında bazı güncellemeler yapıyoruz. Lütfen daha sonra tekrar deneyin.</p>
-    <p class="mt-8 text-5xl animate-spin">⚙️</p>
+    <div id="maintenanceIcon" class="mt-8 text-5xl animate-spin cursor-pointer" title="Admin Girişi">⚙️</div>
 </div>
   <script>
       // YENİ EKLENECEK GİZLİ ADMİN GİRİŞİ KODU
-
-let adminKeySequence = [];
-const adminCode = ['a', 'a', 'a', 'a', 'a']; // 5 kere 'a' harfine basılacak kod
+const keyboardSecretCode = ['b', 'a', 'k', 'i', 'm'];
+let keyboardKeySequence = [];
 
 document.addEventListener('keydown', (e) => {
-    // Sadece bakım ekranı aktifken çalış
     const maintenanceOverlay = document.getElementById('maintenanceOverlay');
     if (maintenanceOverlay.style.display !== 'flex') {
+        keyboardKeySequence = [];
         return;
     }
-
     const key = e.key.toLowerCase();
-    adminKeySequence.push(key);
-
-    // Diziyi kod uzunluğunda tut
-    if (adminKeySequence.length > adminCode.length) {
-        adminKeySequence.shift();
+    keyboardKeySequence.push(key);
+    if (keyboardKeySequence.length > keyboardSecretCode.length) {
+        keyboardKeySequence.shift();
     }
-
-    // Basılan tuşlar kod ile eşleşiyor mu diye kontrol et
-    if (JSON.stringify(adminKeySequence) === JSON.stringify(adminCode)) {
-        console.log("Admin giriş kodu girildi!");
+    if (keyboardKeySequence.join('') === keyboardSecretCode.join('')) {
+        console.log("Admin bakım modu (Klavye) bypass kodu girildi!");
         maintenanceOverlay.style.display = 'none';
         document.getElementById('loginContainer').style.display = 'block';
-        adminKeySequence = []; // Kodu sıfırla
+        keyboardKeySequence = [];
     }
 });
-      // ÖNCEKİ KARMAŞIK OLANI SİL, BUNU YAPIŞTIR
-document.addEventListener('DOMContentLoaded', () => {
-    auth.onAuthStateChanged(user => {
-        // 1. Önce Admin girişi var mı diye kontrol et (Firebase Auth ile)
-        if (user) {
-            const firebaseAuthUsername = user.email ? user.email.split('@')[0].toLowerCase() : '';
-            if (firebaseAuthUsername === "weizendtv") {
-                currentUser = "WeizendTv";
-                isAdmin = true;
-                afterLogin();
-            }
-        } 
-        // 2. Admin girişi yoksa, normal kullanıcı girişi var mı diye kontrol et (localStorage ile)
-        else {
-            const savedUser = localStorage.getItem('weizendOyunUser');
-            if (savedUser) {
-                // Kayıtlı kullanıcı varsa, veritabanından bilgilerini çekip doğrula
-                db.ref('users/' + savedUser).once('value').then(snap => {
-                    if (snap.exists()) {
-                        // Kullanıcı veritabanında varsa, otomatik giriş yap
-                        checkAndProceedLogin(savedUser, snap.val());
-                    } else {
-                        // Kullanıcı silinmişse, hafızayı temizle ve giriş ekranını göster
-                        localStorage.removeItem('weizendOyunUser');
-                        document.getElementById("loginContainer").style.display = "block";
-                        document.getElementById("gameDiv").style.display = "none";
-                    }
-                });
-            } 
-            // 3. Hiçbir giriş yoksa, giriş ekranını göster
-            else {
-                document.getElementById("loginContainer").style.display = "block";
-                document.getElementById("gameDiv").style.display = "none";
-                switchAuthTab('login');
-                detachAllListeners(); // Güvenlik için tüm dinleyicileri kapat
-            }
+
+// --- MOBİL (DOKUNMA) İÇİN GİRİŞ KODU ---
+let tapCount = 0;
+let firstTapTime = 0;
+const requiredTaps = 5; // Giriş için gereken dokunma sayısı
+const tapTimeLimit = 3000; // 3 saniye içinde dokunulmalı
+
+const maintenanceIcon = document.getElementById('maintenanceIcon');
+if (maintenanceIcon) {
+    maintenanceIcon.addEventListener('click', () => {
+        const maintenanceOverlay = document.getElementById('maintenanceOverlay');
+        if (maintenanceOverlay.style.display !== 'flex') return;
+
+        const now = Date.now();
+        if (now - firstTapTime > tapTimeLimit) {
+            tapCount = 0;
+        }
+        if (tapCount === 0) {
+            firstTapTime = now;
+        }
+        tapCount++;
+        if (tapCount >= requiredTaps) {
+            console.log("Admin bakım modu (Mobil) bypass kodu aktive edildi!");
+            maintenanceOverlay.style.display = 'none';
+            document.getElementById('loginContainer').style.display = 'block';
+            tapCount = 0;
+            firstTapTime = 0;
         }
     });
-});
+}
   // Firebase yapılandırması
   const firebaseConfig = {
     apiKey: "AIzaSyAVuyT2Hb7v9omKSgcwtoj0gzjTbXRtQn8",
@@ -6360,7 +6345,8 @@ function revealMyCardChoice(sessionData) {
     cardContainer.parentElement.appendChild(resultPopup);
 }
 
-// MEVCUT selectCard FONKSİYONUNU KOMPLE SİLİP BUNUNLA DEĞİŞTİR
+// YENİ, GÜVENLİ VE DÜZELTİLMİŞ KOD
+// YENİ, GÜVENLİ VE DÜZELTİLMİŞ KOD
 async function selectCard(selectedCardDiv, userId) {
     // Anında koruma: Bir kart seçildiği anda diğer tüm kartların tıklanmasını engelle.
     const cardContainer = document.getElementById('playerCardContainer');
@@ -6378,13 +6364,13 @@ async function selectCard(selectedCardDiv, userId) {
     // Garantili koruma: Firebase Transaction ile sunucu tarafında sadece İLK isteği kabul et.
     const transactionResult = await sessionRef.transaction(sessionData => {
         if (!sessionData || sessionData.selection) {
-            return; // İşlemi iptal et
+            return; // İşlemi iptal et, çünkü zaten bir seçim yapılmış.
         }
         sessionData.selection = { user: userId, cardIndex: cardIndex };
         return sessionData;
     });
 
-    // Sadece işlem başarılı olduysa devam et.
+    // Sadece işlem başarılı olduysa (yani ilk seçimi bu kullanıcı yaptıysa) devam et.
     if (!transactionResult.committed) {
         console.log("Bu kart zaten seçilmiş veya oturum süresi dolmuş.");
         return;
@@ -6392,10 +6378,11 @@ async function selectCard(selectedCardDiv, userId) {
 
     const updatedSessionData = transactionResult.snapshot.val();
     
-    // !!!!!!!!!!!!!  İŞTE DÜZELTME BURADA  !!!!!!!!!!!!!
+    // !!!!!!!!!!!!!  PUAN BUG'INI ÇÖZEN KRİTİK DÜZELTME BURADA  !!!!!!!!!!!!!
     // Puan hesaplanırken artık sessionData.multiplier ile ÇARPILMIYOR. Sadece kartın kendi değeri alınıyor.
+    // Böylece çarpan ne olursa olsun, sürpriz kutu puanı sabit kalır.
     let points = parseInt(selectedCardDiv.dataset.value);
-    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     
     const userRef = db.ref('users/' + userId);
 
@@ -6419,7 +6406,7 @@ async function selectCard(selectedCardDiv, userId) {
     await sessionRef.child('result').set({ points: points, newBalance: newBalance });
 }
 
-// --- YENİ VE DÜZELTİLMİŞ KOD (Çarpanı Kaydediyor) ---
+// --- YENİ VE GÜNCEL SÜRPRİZ KUTU DİNLEME FONKSİYONU ---
 
 let isProcessingSurpriseResult = false;
 let spectatorViewingResult = false;
@@ -6482,7 +6469,7 @@ function listenForSurpriseBox() {
                             points: finalSessionData.result.points,
                             newBalance: finalSessionData.result.newBalance,
                             timestamp: firebase.database.ServerValue.TIMESTAMP,
-                            multiplier: finalSessionData.multiplier || 1 // <-- YENİ EKLENEN SATIR
+                            multiplier: finalSessionData.multiplier || 1
                         };
 
                         if (finalSessionData.boxId === 'Çark') {
@@ -6529,7 +6516,7 @@ function listenForSurpriseBox() {
     activeListeners.surpriseBox = { ref: sessionRef, event: 'value', callback };
     sessionRef.on('value', callback);
 }
-
+      
   function closeCardSelectionModal() { 
     cardSelectionModal.style.display = 'none'; 
   }
@@ -7699,8 +7686,7 @@ function listenForGameChanges() {
     lastOpenedBoxRef.on('value', lastOpenedBoxCallback);
 }
 
-// --- SORUNLARI ÇÖZ MODALI İÇİN YENİ FONKSİYONLAR ---
-
+// YENİ EKLENEN SORUN GİDERME FONKSİYONLARI
 function openSolveProblemsModal() {
     document.getElementById('solveProblemsModal').style.display = 'flex';
 }
@@ -7709,6 +7695,7 @@ function closeSolveProblemsModal() {
     document.getElementById('solveProblemsModal').style.display = 'none';
 }
 
+// Oyuncunun kendi oyun kilidini manuel olarak açmasını sağlar.
 async function manualUnlockGame() {
     const gameLockRef = db.ref('gameLock');
     const lockSnap = await gameLockRef.once('value');
@@ -7721,17 +7708,18 @@ async function manualUnlockGame() {
     closeSolveProblemsModal();
 }
 
+// Sürpriz kutu bulunduktan sonra oyunun sıfırlanmasını sağlar.
 async function manualResetAfterSurprise() {
     const lastSurpriseSnap = await db.ref('gameStats/lastSurpriseInfo').once('value');
     const lastSurpriseData = lastSurpriseSnap.val();
 
-    // ÇÖZÜM 1: Sadece sıfırlanmamış bir sürpriz varsa işlemi yap
+    // GÜVENLİK KONTROLÜ: Sadece sıfırlanmamış bir sürpriz varsa işlemi yap
     if (lastSurpriseData && lastSurpriseData.resettled === false) {
         
-        // ÇÖZÜM 2: Veriyi silmek yerine, kimin sıfırladığını ekleyerek güncelle
+        // GÜVENLİK KONTROLÜ 2: Veriyi silmek yerine, kimin sıfırladığını ekleyerek güncelle
         await db.ref('gameStats/lastSurpriseInfo').update({
             resettled: true,
-            resettledBy: currentUser
+            resettledBy: currentUser // Sıfırlayan kişiyi kaydet
         });
         
         // Oyunu sıfırla
@@ -7740,7 +7728,7 @@ async function manualResetAfterSurprise() {
         displayMessage("Açılmış sürpriz kutu tespit edildi ve oyun senin tarafından sıfırlandı!");
 
     } else {
-        displayMessage("Bu özellik sadece bir sürpriz kutu bulunduktan sonra kullanılabilir.");
+        displayMessage("Bu özellik sadece bir sürpriz kutu bulunduktan sonra veya oyun sıfırlanmamışsa kullanılabilir.");
     }
     
     closeSolveProblemsModal();
@@ -12878,6 +12866,7 @@ function closeCreateOfferModal() {
     document.getElementById('createOfferModal').style.display = 'none';
 }
 
+// submitTradeOffer FONKSİYONUNU BUL VE BUNUNLA DEĞİŞTİR
 async function submitTradeOffer() {
     const submitBtn = document.getElementById('submit-trade-offer-btn');
     if (!submitBtn) return;
@@ -12983,7 +12972,8 @@ async function submitTradeOffer() {
         submitBtn.textContent = 'TEKLİFİ PAZARA KOY';
     }
 }
-      
+
+// cancelTradeOffer FONKSİYONUNU BUL VE BUNUNLA DEĞİŞTİR
 async function cancelTradeOffer(tradeId, asAdmin = false) {
     if (!tradeId) return;
     
