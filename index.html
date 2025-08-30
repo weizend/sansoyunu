@@ -977,7 +977,7 @@ body.modal-open .modal-content {
         <h4 class="text-lg font-bold text-purple-300 mb-4 text-center border-b border-gray-700 pb-2">KOLEKSİYON SEZON YÖNETİMİ</h4>
         <p class="text-center text-gray-400 text-sm mb-4">Mevcut Sezon Durumu: <b id="collectionStatusText" class="text-white">Bilinmiyor</b></p>
         
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="space-y-3">
                 <button onclick="openCardCreatorModal()" class="w-full py-3 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg">Kart Ekle/Düzenle</button>
                 <button onclick="openGrandPrizeSettings()" class="w-full py-3 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg">Büyük Ödülü Ayarla</button>
@@ -985,13 +985,12 @@ body.modal-open .modal-content {
             
             <div class="space-y-3">
                 <button onclick="toggleCollectionPause()" id="pauseResumeButton" class="w-full py-3 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-lg">Sezonu Duraklat</button>
-                <button onclick="endCurrentSeason()" class="w-full py-3 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg">⛔ Sezonu Bitir</button>
                 <button onclick="openTradeHistoryModal()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg">Takas Geçmişi</button>
             </div>
 
             <div class="space-y-3">
-                <button onclick="startNewCollection()" class="w-full h-full py-3 bg-green-700 hover:bg-green-600 text-white font-bold rounded-lg text-lg animate-pulse">
-                    💥 YENİ SEZONU BAŞLAT 💥
+                <button id="toggleSeasonBtn" onclick="toggleCardSeason()" class="w-full h-full py-3 bg-gray-700 text-white font-bold rounded-lg text-lg">
+                    Yükleniyor...
                 </button>
             </div>
         </div>
@@ -12158,6 +12157,23 @@ async function loadCollectionAlbum() {
                 pauseBtn.classList.replace('hover:bg-green-500', 'hover:bg-orange-500');
             }
         }
+        
+        // --- YENİ EKLENEN BUTON GÜNCELLEME KODU BURADA ---
+        const toggleBtn = document.getElementById('toggleSeasonBtn');
+        if (toggleBtn) {
+            if (currentStatus === 'active') {
+                // Sezon aktifse: Butonu KIRMIZI ve "Sezonu Bitir" yap
+                toggleBtn.textContent = '⛔ Sezonu Bitir';
+                toggleBtn.classList.remove('bg-green-700', 'hover:bg-green-600', 'animate-pulse');
+                toggleBtn.classList.add('bg-red-700', 'hover:bg-red-600');
+            } else {
+                // Sezon aktif değilse: Butonu YEŞİL, "Yeni Sezonu Başlat" yap ve animasyon ekle
+                toggleBtn.textContent = '💥 YENİ SEZONU BAŞLAT 💥';
+                toggleBtn.classList.remove('bg-red-700', 'hover:bg-red-600');
+                toggleBtn.classList.add('bg-green-700', 'hover:bg-green-600', 'animate-pulse');
+            }
+        }
+        // --- YENİ EKLENEN KOD SONU ---
     }
 
     if (!isAdmin) {
@@ -12235,7 +12251,6 @@ async function loadCollectionAlbum() {
                 newBadge = `<div class="new-card-badge">YENİ</div>`;
             }
             
-            // --- DÜZELTME BURADA: Fazla kart sayısını '+1' formatında gösteriyoruz ---
             let duplicateBadge = userHasCard && userHasCard.count > 1 ? `<div class="duplicate-badge">+${userHasCard.count - 1}</div>` : '';
             let adminCardControls = isAdmin ? `<div class="card-admin-buttons"><button onclick="openCardCreatorModal('${cardId}')" title="Düzenle">✏️</button><button onclick="deleteCard('${cardId}')" title="Sil">🗑️</button></div>` : '';
             
@@ -13652,18 +13667,52 @@ async function saveGrandPrizeAndCloseModal() {
     closeGrandPrizeSettingsModal(); // Modalı kapat
 }
 
-// Yeni sezonu başlatır. Önce her şeyi sıfırlar, sonra sezonu "aktif" yapar.
-async function startNewCollection() {
-    if(!isAdmin) return;
-    const confirmed = await customConfirm("Bu işlem mevcut tüm kartları, kullanıcı ilerlemelerini ve şampiyonlukları SİLEREK yepyeni bir sezon başlatacaktır. Emin misiniz?");
-    if(!confirmed) return;
-    
-    // resetWholeCollection fonksiyonu artık her şeyi siliyor ve durumu 'inactive' yapıyor.
-    await resetWholeCollection();
-    
-    // Şimdi yeni sezonu 'aktif' olarak işaretleyelim.
-    await db.ref('gameConfig/cardCollectionStatus').set('active');
-    displayMessage("YENİ KOLEKSİYON SEZONU BAŞLATILDI!");
+      // YENİ AKILLI FONKSİYON: Sezonu başlatır veya bitirir.
+async function toggleCardSeason() {
+    if (!isAdmin) return;
+
+    // 1. Mevcut sezon durumunu kontrol et
+    const statusRef = db.ref('gameConfig/cardCollectionStatus');
+    const statusSnap = await statusRef.once('value');
+    const currentStatus = statusSnap.val() || 'inactive';
+
+    // 2. Eğer sezon aktifse, BİTİRME işlemini yap
+    if (currentStatus === 'active') {
+        const confirmed = await customConfirm("Bu işlem mevcut sezonu sonlandıracak. Tüm kullanıcıların topladığı kartlar, joker kartları ve koleksiyon tamamlama durumları sıfırlanacak. ANA KART LİSTENİZ SİLİNMEZ. Emin misiniz?");
+        if (!confirmed) return;
+
+        try {
+            const updates = {};
+            updates['/gameConfig/cardCollectionStatus'] = 'inactive';
+            updates['/gameConfig/collectionWinner'] = null;
+
+            const usersSnap = await db.ref('users').once('value');
+            if (usersSnap.exists()) {
+                usersSnap.forEach(userSnap => {
+                    const username = userSnap.key;
+                    updates[`/users/${username}/cardCollection`] = null;
+                    updates[`/users/${username}/completedCollection`] = null;
+                    updates[`/users/${username}/wildcards`] = 0; 
+                });
+            }
+            await db.ref().update(updates);
+            displayMessage("Sezon başarıyla bitirildi! Tüm kullanıcıların kart ilerlemesi sıfırlandı.");
+            loadCollectionAlbum(); // Arayüzü güncelle
+        } catch (error) {
+            console.error("Sezon bitirilirken hata oluştu:", error);
+            displayMessage("Sezon bitirilirken bir hata meydana geldi.");
+        }
+    } 
+    // 3. Eğer sezon aktif değilse (bitmiş veya duraklatılmışsa), YENİ SEZON BAŞLATMA işlemini yap
+    else {
+        const confirmed = await customConfirm("Bu işlem mevcut tüm kartları, kullanıcı ilerlemelerini ve şampiyonlukları SİLEREK yepyeni bir sezon başlatacaktır. Emin misiniz?");
+        if (!confirmed) return;
+
+        await resetWholeCollection(); // Bu fonksiyon zaten ilerlemeyi sıfırlıyor
+        await statusRef.set('active');
+        displayMessage("YENİ KOLEKSİYON SEZONU BAŞLATILDI!");
+        loadCollectionAlbum(); // Arayüzü güncelle
+    }
 }
 
 // YENİ VE GÜNCEL FONKSİYONU EKLE
@@ -13711,41 +13760,6 @@ function formatNumber(num) {
     return 0;
   }
   return num.toLocaleString('tr-TR');
-}
-
-      // YENİ EKLENEN SEZONU BİTİRME FONKSİYONU
-async function endCurrentSeason() {
-    if (!isAdmin) return;
-
-    const confirmed = await customConfirm("Bu işlem mevcut sezonu sonlandıracak. Tüm kullanıcıların topladığı kartlar, joker kartları ve koleksiyon tamamlama durumları sıfırlanacak. ANA KART LİSTENİZ SİLİNMEZ. Emin misiniz?");
-    if (!confirmed) return;
-
-    try {
-        const updates = {};
-        
-        updates['/gameConfig/cardCollectionStatus'] = 'inactive';
-        updates['/gameConfig/collectionWinner'] = null;
-
-        const usersSnap = await db.ref('users').once('value');
-        if (usersSnap.exists()) {
-            usersSnap.forEach(userSnap => {
-                const username = userSnap.key;
-                updates[`/users/${username}/cardCollection`] = null;
-                updates[`/users/${username}/completedCollection`] = null;
-                // EKSİK OLANI EKLEDİK: Joker kartları da sıfırlanıyor
-                updates[`/users/${username}/wildcards`] = 0; 
-            });
-        }
-        
-        await db.ref().update(updates);
-
-        displayMessage("Sezon başarıyla bitirildi! Tüm kullanıcıların kart ilerlemesi sıfırlandı.");
-        loadCollectionAlbum();
-
-    } catch (error) {
-        console.error("Sezon bitirilirken hata oluştu:", error);
-        displayMessage("Sezon bitirilirken bir hata meydana geldi.");
-    }
 }
 
 // Kasa Ayarları penceresini açar ve mevcut ayarı input'a yazar
