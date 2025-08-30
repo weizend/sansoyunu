@@ -2677,7 +2677,7 @@ body.modal-open .modal-content {
             </div>
         </div>
         <p id="tradeFeeInfo" class="text-center text-sm text-gray-400 mt-6"></p>
-        <button onclick="submitTradeOffer()" class="w-full mt-2 py-3 bg-green-700 hover:bg-green-600 text-white font-bold rounded-lg shadow-md">TEKLİFİ PAZARA KOY</button>
+        <button id="submit-trade-offer-btn" onclick="submitTradeOffer()" class="w-full mt-2 py-3 bg-green-700 hover:bg-green-600 text-white font-bold rounded-lg shadow-md">TEKLİFİ PAZARA KOY</button>
     </div>
 </div>
 
@@ -12702,35 +12702,42 @@ function closeCreateOfferModal() {
 }
 
 async function submitTradeOffer() {
-    const offeredCardId = document.getElementById('offerMyCardSelect').value;
-    const requestedCardId = document.getElementById('offerRequestCardSelect').value;
+    const submitBtn = document.getElementById('submit-trade-offer-btn');
+    if (!submitBtn) return;
 
-    if (!offeredCardId) {
-        displayMessage("Teklif etmek için en az bir karttan 2 adet veya daha fazlasına sahip olmalısın.");
-        return;
-    }
-    if (offeredCardId === requestedCardId) {
-        displayMessage("Bir kartı kendisiyle takas edemezsin.");
-        return;
-    }
-
-    const feeSnap = await db.ref('gameConfig/marketSettings/tradeFee').once('value');
-    const tradeFee = feeSnap.val() || 0;
-
-    const userSnap = await db.ref(`users/${currentUser}`).once('value');
-    const userData = userSnap.val();
-
-    if ((userData.balance || 0) < tradeFee) {
-        displayMessage(`Teklif oluşturmak için gereken ${tradeFee} Puan işlem ücretine sahip değilsin.`);
-        return;
-    }
-
-    const userCardRef = db.ref(`users/${currentUser}/cardCollection/${offeredCardId}`);
+    // Butona basıldığı an devre dışı bırak ve yazısını değiştir
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Teklif Oluşturuluyor...';
 
     try {
+        const offeredCardId = document.getElementById('offerMyCardSelect').value;
+        const requestedCardId = document.getElementById('offerRequestCardSelect').value;
+
+        if (!offeredCardId) {
+            displayMessage("Teklif etmek için en az bir karttan 2 adet veya daha fazlasına sahip olmalısın.");
+            return; // return'den önce 'finally' bloğu çalışacak
+        }
+        if (offeredCardId === requestedCardId) {
+            displayMessage("Bir kartı kendisiyle takas edemezsin.");
+            return;
+        }
+
+        const feeSnap = await db.ref('gameConfig/marketSettings/tradeFee').once('value');
+        const tradeFee = feeSnap.val() || 0;
+
+        const userSnap = await db.ref(`users/${currentUser}`).once('value');
+        const userData = userSnap.val();
+
+        if ((userData.balance || 0) < tradeFee) {
+            displayMessage(`Teklif oluşturmak için gereken ${tradeFee} Puan işlem ücretine sahip değilsin.`);
+            return;
+        }
+
+        const userCardRef = db.ref(`users/${currentUser}/cardCollection/${offeredCardId}`);
+
         const { committed, snapshot } = await userCardRef.transaction(cardData => {
             if (!cardData || cardData.count <= 1) {
-                return;
+                return; // Transaction'ı iptal et
             }
             cardData.count--;
             return cardData;
@@ -12741,13 +12748,10 @@ async function submitTradeOffer() {
             const masterCards = masterCardsSnap.val();
             const offeredCardName = masterCards[offeredCardId]?.cardName || 'Bilinmeyen Kart';
             const requestedCardName = masterCards[requestedCardId]?.cardName || 'Bilinmeyen Kart';
-
-            // ★★★ YENİ EKLENEN KISIM BAŞLANGICI ★★★
-            // 1. Önce eylem kaydını oluşturup onun unique ID'sini alıyoruz.
+            
             const activityRef = db.ref('activityFeed').push();
             const activityId = activityRef.key;
             
-            // 2. Bu eylem kaydını veritabanına yazıyoruz.
             logActivity(
                 'tradeOfferCreated', 
                 currentUser, 
@@ -12755,20 +12759,19 @@ async function submitTradeOffer() {
                     offeredCardName: offeredCardName,
                     requestedCardName: requestedCardName,
                     fee: tradeFee,
-                    status: 'active' // Başlangıç durumu: aktif
+                    status: 'active'
                 },
-                activityId // Eylem kaydının ID'sini de gönderiyoruz
+                activityId
             );
-            // ★★★ YENİ EKLENEN KISIM SONU ★★★
-
-            const newTradeRef = db.ref(`trades/${activityId}`); // Takas ID'si olarak eylem ID'sini kullanmak daha mantıklı
+            
+            const newTradeRef = db.ref(`trades/${activityId}`);
             const newTrade = {
                 offerer: currentUser,
                 offeredCardId: offeredCardId,
                 requestedCardId: requestedCardId,
                 tradeFee: tradeFee, 
                 timestamp: firebase.database.ServerValue.TIMESTAMP,
-                activityId: activityId // Eylem ID'sini takas verisine kaydediyoruz.
+                activityId: activityId
             };
             
             const updates = {};
@@ -12792,6 +12795,10 @@ async function submitTradeOffer() {
     } catch (error) {
         console.error("Takas oluşturma hatası:", error);
         displayMessage("Takas oluşturulurken bir hata oluştu.");
+    } finally {
+        // İşlem ne olursa olsun (başarılı, başarısız, hatalı) butonu eski haline getir.
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'TEKLİFİ PAZARA KOY';
     }
 }
       
