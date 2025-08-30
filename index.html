@@ -2644,6 +2644,17 @@ body.modal-open .modal-content {
   </div>
 </div>
 
+    <div id="tradeCompleteModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-[10005] hidden">
+  <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border-4 border-green-500 w-11/12 max-w-md text-center relative">
+    <h4 class="text-green-300 text-3xl font-bold mb-4">🤝 Takas Gerçekleşti! 🤝</h4>
+    <div id="tradeCompleteMessage" class="text-lg text-gray-200 space-y-3">
+        </div>
+    <button onclick="closeTradeCompleteModal()" class="mt-8 w-full py-3 bg-green-700 hover:bg-green-600 text-white font-bold rounded-lg shadow-md">
+      Harika!
+    </button>
+  </div>
+</div>
+
 
 <div id="createOfferModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[10002] hidden">
     <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-green-500 w-11/12 max-w-xl text-left relative">
@@ -3485,6 +3496,7 @@ async function afterLogin() {
     listenForLastSurpriseFinderPanel();
     listenForLastWheelSurprisePanel();
     listenForForceUpdateSignal();
+    listenForTradeNotifications();
     
     if (!isAdmin) {
         listenForAdminNotifications();
@@ -5579,7 +5591,7 @@ function renderActivityFeed(activities) {
                 : '';
 
             switch (activity.type) {
-                // ★★★ İSTEĞİNİZE GÖRE GÜNCELLENEN KISIM BAŞLANGICI ★★★
+                // ★★★ İSTEĞİNİZE GÖRE GÜNCELLENEN TAKAS BİLDİRİMLERİ ★★★
                 case 'tradeOfferCreated':
                     message = `${userHtml}, <b class="text-red-400">-${details.fee} Puan</b> ödeyip pazara yeni bir takas teklifi koydu: <b class="text-cyan-300">${details.offeredCardName}</b> karşılığında <b class="text-pink-300">${details.requestedCardName}</b> istiyor.`;
                     
@@ -5590,9 +5602,9 @@ function renderActivityFeed(activities) {
                     }
                     break;
                 case 'tradeOfferAccepted':
-                    message = `${userHtml}, <b class="text-red-400">-${details.fee} Puan</b> ödeyip, ${details.offerer}'in takasını onayladı. <span class="text-gray-400">(Kalan Puan: ${formatNumber(details.newBalance)})</span>`;
+                    message = `${userHtml}, <b class="text-red-400">-${details.fee} Puan</b> ödeyip, ${details.offerer}'in <b class="text-cyan-300">'${details.offeredCardName}'</b> kartı teklifini kabul etti ve karşılığında <b class="text-pink-300">'${details.requestedCardName}'</b> kartını verdi. <span class="text-gray-400">(Kalan Puan: ${formatNumber(details.newBalance)})</span>`;
                     break;
-                // ★★★ İSTEĞİNİZE GÖRE GÜNCELLENEN KISIM SONU ★★★
+                // ★★★ GÜNCELLEMELER SONA ERDİ, DİĞERLERİ ORİJİNAL HALİYLE DEVAM EDİYOR ★★★
                     
                 case 'newItemFound':
                     let newItemMultiplierText = (details.multiplier && details.multiplier > 1)
@@ -5773,7 +5785,7 @@ function renderActivityFeed(activities) {
         }
     });
 }
-
+      
 // MEVCUT listenForActivityFeed FONKSİYONUNU SİLİP BUNU YAPIŞTIR
 function listenForActivityFeed() {
     const ref = db.ref('activityFeed').orderByChild('timestamp').limitToLast(15);
@@ -12378,7 +12390,6 @@ function switchMarketTab(tabName) {
     }
 }
 
-// Bir takas teklifini kabul eder
 async function acceptTradeOffer(tradeId) {
     if (isAdmin) return; 
 
@@ -12401,11 +12412,7 @@ async function acceptTradeOffer(tradeId) {
         return;
     }
 
-    // ★★★ YENİ EKLENEN KISIM ★★★
-    // Orijinal eylem kaydını güncellemek için activityId'yi alıyoruz.
     const originalActivityId = trade.activityId;
-    // ★★★ YENİ EKLENEN KISIM SONU ★★★
-
     const userRef = db.ref(`users/${currentUser}`);
     const userSnap = await userRef.once('value');
     const userData = userSnap.val();
@@ -12438,57 +12445,58 @@ async function acceptTradeOffer(tradeId) {
     const confirmed = await customConfirm(confirmationMessage);
     if (!confirmed) return;
 
-    try {
-        let finalAccepterBalance = 0; // Yeni bakiyeyi loglamak için
+    let finalAccepterBalance = 0;
+    const transactionResult = await db.ref().transaction(data => {
+        if (!data.trades || !data.trades[tradeId]) { return; }
+        const currentTrade = data.trades[tradeId];
+        const accepter = data.users[currentUser];
+        const offerer = data.users[currentTrade.offerer];
 
-        await db.ref().transaction(data => {
-            if (!data.trades || !data.trades[tradeId]) {
-                return; 
-            }
+        if (!accepter || !offerer) { return; }
+        if (!accepter.cardCollection?.[currentTrade.requestedCardId]?.count || accepter.cardCollection[currentTrade.requestedCardId].count <= 1) { return; }
+        if (!offerer.cardCollection?.[currentTrade.offeredCardId]?.count || offerer.cardCollection[currentTrade.offeredCardId].count < 1) { return; }
+        if ((accepter.balance || 0) < tradeFee) { return; }
 
-            const currentTrade = data.trades[tradeId];
-            const accepter = data.users[currentUser];
-            const offerer = data.users[currentTrade.offerer];
+        accepter.cardCollection[currentTrade.requestedCardId].count--;
+        if (accepter.cardCollection[currentTrade.requestedCardId].count === 0) {
+            accepter.cardCollection[currentTrade.requestedCardId] = null;
+        }
+        if (!accepter.cardCollection[currentTrade.offeredCardId]) {
+            accepter.cardCollection[currentTrade.offeredCardId] = { count: 0 };
+        }
+        accepter.cardCollection[currentTrade.offeredCardId].count++;
 
-            if (!accepter || !offerer) return;
-            if (!accepter.cardCollection?.[currentTrade.requestedCardId]?.count || accepter.cardCollection[currentTrade.requestedCardId].count <= 1) return;
-            if (!offerer.cardCollection?.[currentTrade.offeredCardId]?.count || offerer.cardCollection[currentTrade.offeredCardId].count <= 1) return;
-            if ((accepter.balance || 0) < tradeFee) return;
+        offerer.cardCollection[currentTrade.offeredCardId].count--;
+        if (offerer.cardCollection[currentTrade.offeredCardId].count === 0) {
+            offerer.cardCollection[currentTrade.offeredCardId] = null;
+        }
+        if (!offerer.cardCollection[currentTrade.requestedCardId]) {
+            offerer.cardCollection[currentTrade.requestedCardId] = { count: 0 };
+        }
+        offerer.cardCollection[currentTrade.requestedCardId].count++;
 
-            accepter.cardCollection[currentTrade.requestedCardId].count--;
-            if (accepter.cardCollection[currentTrade.requestedCardId].count === 0) {
-                accepter.cardCollection[currentTrade.requestedCardId] = null;
-            }
-            if (!accepter.cardCollection[currentTrade.offeredCardId]) {
-                accepter.cardCollection[currentTrade.offeredCardId] = { count: 0 };
-            }
-            accepter.cardCollection[currentTrade.offeredCardId].count++;
+        accepter.balance = (accepter.balance || 0) - tradeFee;
+        finalAccepterBalance = accepter.balance; 
+        data.trades[tradeId] = null;
+        return data;
+    });
 
-            offerer.cardCollection[currentTrade.offeredCardId].count--;
-            if (!offerer.cardCollection[currentTrade.requestedCardId]) {
-                offerer.cardCollection[currentTrade.requestedCardId] = { count: 0 };
-            }
-            offerer.cardCollection[currentTrade.requestedCardId].count++;
-
-            accepter.balance = (accepter.balance || 0) - tradeFee;
-            finalAccepterBalance = accepter.balance; // Yeni bakiyeyi değişkene ata
-            
-            data.trades[tradeId] = null;
-            
-            return data;
-        });
-
-        // ★★★ İSTEĞİNE GÖRE YENİ EYLEM KAYDI OLUŞTURULUYOR ★★★
+    if (transactionResult.committed) {
         logActivity('tradeOfferAccepted', currentUser, {
             offerer: trade.offerer,
             fee: tradeFee,
-            newBalance: finalAccepterBalance // Yeni bakiye bilgisi eklendi
+            newBalance: finalAccepterBalance,
+            offeredCardName: offeredCard.cardName,
+            requestedCardName: requestedCard.cardName
         });
         
-        // ★★★ Orijinal eylem kaydı "Takas Yapıldı" olarak güncelleniyor ★★★
         if (originalActivityId) {
             await db.ref(`activityFeed/${originalActivityId}/details/status`).set('completed');
         }
+
+        // ★★★ TEKLİFİ VERENE ANLIK BİLDİRİM GÖNDERİLİYOR ★★★
+        const notificationMessage = `<b>${currentUser}</b> adlı kullanıcı, <b class="text-yellow-300">'${offeredCard.cardName}'</b> kartı karşılığında verdiğiniz <b class="text-pink-300">'${requestedCard.cardName}'</b> kartı takasını onayladı. Yeni kartınız albümünüze eklendi!`;
+        await db.ref(`tradeNotifications/${trade.offerer}`).push({ message: notificationMessage, timestamp: firebase.database.ServerValue.TIMESTAMP });
 
         const historyRef = db.ref('tradeHistory').push();
         await historyRef.set({
@@ -12503,12 +12511,12 @@ async function acceptTradeOffer(tradeId) {
 
         displayMessage("Takas başarıyla tamamlandı!");
         loadMarketOffers('all');
+        
+        // ★★★ TAKASI KABUL EDENİN DE EKRANI ANINDA YENİLENİYOR ★★★
         if (currentActiveSection === 'cardCollection') {
             loadCollectionAlbum();
         }
-
-    } catch (error) {
-        console.error("Takas sırasında hata:", error);
+    } else {
         displayMessage("Takas sırasında bir hata oluştu veya teklif artık geçerli değil. Lütfen tekrar deneyin.");
         loadMarketOffers('all');
     }
@@ -13849,6 +13857,44 @@ async function openUserAlbumViewer(username) {
 function closeUserAlbumViewerModal() {
     document.getElementById('userAlbumViewerModal').style.display = 'none';
 }
+
+      // ★★★ YENİ EKLENECEK FONKSİYONLAR BAŞLANGICI ★★★
+
+// Takas bilgilendirme penceresini gösterir
+function showTradeCompleteModal(message) {
+    document.getElementById('tradeCompleteMessage').innerHTML = message;
+    document.getElementById('tradeCompleteModal').style.display = 'flex';
+}
+
+// Takas bilgilendirme penceresini kapatır
+function closeTradeCompleteModal() {
+    document.getElementById('tradeCompleteModal').style.display = 'none';
+}
+
+// Her oyuncu için kişisel takas bildirimlerini dinler
+function listenForTradeNotifications() {
+    if (isAdmin) return; // Adminler bu bildirimi almaz
+
+    const notificationsRef = db.ref(`tradeNotifications/${currentUser}`);
+    
+    // Bu listener, sadece BANA ÖZEL gelen yeni takas bildirimlerini yakalar
+    notificationsRef.on('child_added', (snapshot) => {
+        const notification = snapshot.val();
+        if (notification && notification.message) {
+            // 1. Ekranda anlık olarak bilgilendirme penceresini göster
+            showTradeCompleteModal(notification.message);
+
+            // 2. Eğer o an kart koleksiyonu sekmesindeysem, albümümü anında yenile
+            if (currentActiveSection === 'cardCollection') {
+                loadCollectionAlbum();
+            }
+
+            // 3. Gösterilen bildirimi veritabanından sil ki tekrar görünmesin
+            snapshot.ref.remove();
+        }
+    });
+}
+// ★★★ YENİ EKLENECEK FONKSİYONLAR SONU ★★★
       
 </script>
 </body>
