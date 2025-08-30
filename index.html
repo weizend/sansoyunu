@@ -8289,7 +8289,10 @@ async function claimDailyReward(rewardId) {
         }
 
         if (reward.type === 'tempMultiplier') {
-            if (user.multiplierSource && user.multiplierSource !== 'none') {
+            // --- HATA DÜZELTMESİ: Kullanıcının aktif bir çarpanı olup olmadığını daha doğru kontrol ediyoruz ---
+            const hasActiveMultiplier = (user.multiplierSource === 'box') || (user.multiplierSource === 'store' && (user.multiplierRemainingUses || 0) > 0);
+
+            if (hasActiveMultiplier) {
                 const rewardValue = parseInt(reward.value);
                 const userMultiplierValue = parseInt(user.activeMultiplier);
 
@@ -8402,7 +8405,7 @@ async function claimDailyReward(rewardId) {
                 if (user.completedCollection === true) {
                     const boxRightsToGain = (reward.value || 1) * 5;
                     updates['kutuHakki'] = (user.kutuHakki || 0) + boxRightsToGain;
-                    message = `Harika! Koleksiyonu zaten tamamladığın için kazandığın ${reward.value} Joker Kart, hesabına <b class="text-green-400">+${boxRightsToGain} Kutu Hakkı</b> olarak eklendi!`;
+                    message = `Harika! Koleksiyonu zaten tamamladığın için kazandığın ${reward.value} Joker Kart, hesabına <b class="text-green-400">+${boxRightsToGain} Kutu Hakkına</b> dönüştürüldü!`;
                 } else {
                     updates['wildcards'] = (user.wildcards || 0) + reward.value;
                     message = `İNANILMAZ! Günlük ödülden <b class="text-purple-400">+${reward.value} JOKER KART</b> kazandın!`;
