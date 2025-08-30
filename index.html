@@ -6100,11 +6100,10 @@ async function handleSurpriseBoxCleanup(sessionData) {
         const updates = {};
         if (usersData) {
             for (const u in usersData) {
-                // Admin dışındaki tüm kullanıcıları döngüye al
                 if (u !== "weizendtv") {
                     const userPath = 'users/' + u;
                     
-                    // --- SIFIRLANACAK VERİLER (ROZETLER DAHİL) ---
+                    // Kullanıcı verilerini sıfırlama kısmı aynı kalıyor
                     updates[userPath + '/balance'] = 0;
                     updates[userPath + '/kasaPuani'] = 0;
                     updates[userPath + '/kariyerPuani'] = 0;
@@ -6140,29 +6139,38 @@ async function handleSurpriseBoxCleanup(sessionData) {
             await db.ref().update(updates);
         }
         
-        // Diğer genel oyun verilerini de temizle
+        // --- DEĞİŞİKLİK BURADA BAŞLIYOR ---
+        // Artık 'gameConfig' klasörünü toptan silmiyoruz.
+        // Bunun yerine sadece sezonluk veya geçici ayarları temizliyoruz.
+        // KARTLARINIZ, KUTU AYARLARINIZ ve ÇARK AYARLARINIZ GÜVENDE KALACAK.
+        await db.ref('gameConfig/seasonSettings').remove();
+        await db.ref('gameConfig/seasonEndDate').remove();
+        await db.ref('gameConfig/seasonResetStatus').remove();
+        await db.ref('gameConfig/updateRequiredTimestamp').remove();
+        await db.ref('gameConfig/collectionWinner').remove();
+        await db.ref('gameConfig/collectionGrandPrize').remove();
+        await db.ref('gameConfig/cardCollectionStatus').set('inactive');
+        // --- DEĞİŞİKLİK SONA ERDİ ---
+
+        // Diğer genel oyun verilerini temizlemeye devam ediyoruz
         await createBoxes();
         await db.ref('purchaseHistory').remove();
         await db.ref('pendingSpecialPurchases').remove();
         await db.ref('gameStats').remove();
         await db.ref('announcements').remove();
         await db.ref('dailyRewardOptions').remove();
-        await db.ref('gameConfig').remove();
         await db.ref('trades').remove();
         await db.ref('tradeHistory').remove();
         await db.ref('activityFeed').remove();
 
         displayMessage("Sistem başarıyla baştan başlatıldı! Tüm rozetler ve istatistikler sıfırlandı. Sayfa 2 saniye içinde yenilenecek...");
         
-        // !!!!!!!!!!!!!  İŞTE YENİ EKLENEN KISIM BURASI  !!!!!!!!!!!!!
-        // İşlem bittikten 2 saniye sonra sayfayı otomatik olarak yenile.
         setTimeout(() => {
             window.location.reload();
         }, 2000);
-        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     }
 }
-
+      
   function loadTotalOpenedBoxesCount() {
     const ref = db.ref('boxes');
     const callback = snap => {
@@ -9383,7 +9391,6 @@ async function resetClickCatchLeaderboard() {
 
     try {
         // 1. Haftalık skor tablosunu tamamen sil.
-        // Bu tablo olmasa bile kod hata vermeden çalışacaktır.
         await db.ref('clickCatchWeeklyScores').remove();
 
         // 2. Tüm kullanıcıların kişisel rekorlarını sıfırla.
@@ -9394,20 +9401,26 @@ async function resetClickCatchLeaderboard() {
         const updates = {};
         if (usersData) {
             for (const username in usersData) {
-                // Sadece 'clickCatchHighestScore' alanı olan kullanıcıları güncelle
                 if (usersData[username].hasOwnProperty('clickCatchHighestScore')) {
                     updates[`/users/${username}/clickCatchHighestScore`] = 0;
                 }
             }
         }
 
-        // Eğer güncellenecek kullanıcı varsa, toplu güncelleme yap.
         if (Object.keys(updates).length > 0) {
             await db.ref().update(updates);
         }
 
         // 3. Global lider değişkenini temizle
         clickCatchLeader = null;
+
+        // --- YENİ EKLENEN ARAYÜZ YENİLEME KODLARI ---
+        // Bu kodlar, veritabanı güncellendikten sonra ekrandaki
+        // liderlik tablolarını anında yeniden çizer.
+        console.log("Tıkla-Yakala sıfırlandı, liderlik tabloları yenileniyor...");
+        await loadLeaderboardRanking(); // Rozetli Liderler Sıralamasını yeniler.
+        await renderUserRankings();     // Kariyer Puanı Sıralamasını (ve rozetleri) yeniler.
+        // --- YENİ KODLARIN SONU ---
 
         displayMessage("Tüm Tıkla-Yakala sıralaması ve kişisel rekorlar başarıyla sıfırlandı.");
         
@@ -9416,6 +9429,7 @@ async function resetClickCatchLeaderboard() {
         displayMessage("Sıfırlama işlemi sırasında bir hata meydana geldi.");
     }
 }
+      
   function createCatchItem(gameMode) {
     if (!clickCatchGameActive && gameMode === 'solo') return;
     if (gameMode === 'lobby' && (!lobbyGameSettings.state || lobbyGameSettings.state !== 'active')) return;
