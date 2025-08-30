@@ -6100,15 +6100,19 @@ async function handleSurpriseBoxCleanup(sessionData) {
   async function restartSystem() {
     const confirmed = await customConfirm("Sistemi baştan başlatmak istediğinize emin misiniz? Avatarlar ve Sezon Başarımları HARİÇ, Kasa Puanları ve Rozetleri belirleyen tüm istatistikler dahil her şey kalıcı olarak sıfırlanacak!");
     if (confirmed) {
+        
+        // Tüm güncellemeleri tek bir objede toplayacağız
+        const updates = {};
+
         const userSnap = await db.ref('users').once('value');
         const usersData = userSnap.val();
-        const updates = {};
+        
         if (usersData) {
             for (const u in usersData) {
                 if (u !== "weizendtv") {
                     const userPath = 'users/' + u;
                     
-                    // Kullanıcı verilerini sıfırlama kısmı aynı kalıyor
+                    // Kullanıcı verilerini sıfırlama kısmı
                     updates[userPath + '/balance'] = 0;
                     updates[userPath + '/kasaPuani'] = 0;
                     updates[userPath + '/kariyerPuani'] = 0;
@@ -6141,13 +6145,22 @@ async function handleSurpriseBoxCleanup(sessionData) {
                     updates[userPath + '/wildcards'] = 0;
                 }
             }
-            await db.ref().update(updates);
         }
         
-        // --- DEĞİŞİKLİK BURADA BAŞLIYOR ---
-        // Artık 'gameConfig' klasörünü toptan silmiyoruz.
-        // Bunun yerine sadece sezonluk veya geçici ayarları temizliyoruz.
-        // KARTLARINIZ, KUTU AYARLARINIZ ve ÇARK AYARLARINIZ GÜVENDE KALACAK.
+        // --- YENİ EKLENEN KISIM BAŞLANGICI ---
+        // Mağazadaki ürünlerin "satın alınma sayısını" sıfırla
+        const storeItemsSnap = await db.ref('storeItems').once('value');
+        if (storeItemsSnap.exists()) {
+            storeItemsSnap.forEach(itemSnap => {
+                updates[`storeItems/${itemSnap.key}/purchaseCount`] = 0;
+            });
+        }
+        // --- YENİ EKLENEN KISIM SONU ---
+
+        // Toplanan tüm kullanıcı ve mağaza güncellemelerini tek seferde uygula
+        await db.ref().update(updates);
+        
+        // Geri kalan genel verileri ve ayarları temizle
         await db.ref('gameConfig/seasonSettings').remove();
         await db.ref('gameConfig/seasonEndDate').remove();
         await db.ref('gameConfig/seasonResetStatus').remove();
@@ -6155,9 +6168,7 @@ async function handleSurpriseBoxCleanup(sessionData) {
         await db.ref('gameConfig/collectionWinner').remove();
         await db.ref('gameConfig/collectionGrandPrize').remove();
         await db.ref('gameConfig/cardCollectionStatus').set('inactive');
-        // --- DEĞİŞİKLİK SONA ERDİ ---
 
-        // Diğer genel oyun verilerini temizlemeye devam ediyoruz
         await createBoxes();
         await db.ref('purchaseHistory').remove();
         await db.ref('pendingSpecialPurchases').remove();
