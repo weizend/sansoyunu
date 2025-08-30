@@ -1451,6 +1451,9 @@ body.modal-open .modal-content {
     <h4 class="text-green-300 text-xl font-semibold mb-4 border-b border-gray-600 pb-2">🏆 Aylık Sezon Yönetimi 👑</h4>
     <button onclick="openSeasonManagementModal()" class="w-full py-3 bg-green-800 hover:bg-green-700 text-white font-bold rounded-lg">Sezon Ayarlarını Aç</button>
 </div>
+<button id="maintenanceModeBtn" onclick="toggleMaintenanceMode()" class="flex-1 py-2 px-3 bg-yellow-700 hover:bg-yellow-600 text-white font-bold rounded-lg text-sm">
+    Bakımı Başlat
+</button>
 <button onclick="forceClientUpdate()" class="w-full py-3 bg-teal-700 hover:bg-teal-600 text-white font-bold rounded-lg text-sm">
     Tüm Kullanıcılara Güncellemeyi Zorla
 </button>
@@ -2782,6 +2785,12 @@ body.modal-open .modal-content {
         </div>
   </div>
 </div>
+
+<div id="maintenanceOverlay" class="fixed top-0 left-0 w-full h-full bg-gray-900 text-white flex-col justify-center items-center z-[999999] hidden text-center">
+    <h2 class="text-4xl font-bold text-red-500 mb-4">SİTE BAKIMDA</h2>
+    <p class="text-xl">Oyun dünyasında bazı güncellemeler yapıyoruz. Lütfen daha sonra tekrar deneyin.</p>
+    <p class="mt-8 text-5xl animate-spin">⚙️</p>
+</div>
   <script>
       document.addEventListener('DOMContentLoaded', () => {
     const typeSelect = document.getElementById('soloSpecialItemType');
@@ -3252,46 +3261,99 @@ async function register() {
     afterLogin();
   }
 
- // BU FONKSİYONU BUL VE AŞAĞIDAKİYLE DEĞİŞTİR
-// Sayfa yüklendiğinde oturum kontrolü yapar.
+ /// MEVCUT "DOMContentLoaded" KOD BLOĞUNU KOMPLE SİLİP BUNUNLA DEĞİŞTİR
+
 document.addEventListener('DOMContentLoaded', () => {
-    auth.onAuthStateChanged(user => {
-        // 1. Önce Admin girişi var mı diye kontrol et (Firebase Auth ile)
-        if (user) {
-            const firebaseAuthUsername = user.email ? user.email.split('@')[0].toLowerCase() : '';
-            if (firebaseAuthUsername === "weizendtv") {
-                currentUser = "WeizendTv";
-                isAdmin = true;
-                afterLogin();
-            }
-        } 
-        // 2. Admin girişi yoksa, normal kullanıcı girişi var mı diye kontrol et (localStorage ile)
-        else {
-            const savedUser = localStorage.getItem('weizendOyunUser');
-            if (savedUser) {
-                // Kayıtlı kullanıcı varsa, veritabanından bilgilerini çekip doğrula
-                db.ref('users/' + savedUser).once('value').then(snap => {
-                    if (snap.exists()) {
-                        // Kullanıcı veritabanında varsa, otomatik giriş yap
-                        checkAndProceedLogin(savedUser, snap.val());
-                    } else {
-                        // Kullanıcı silinmişse, hafızayı temizle ve giriş ekranını göster
-                        localStorage.removeItem('weizendOyunUser');
-                        document.getElementById("loginContainer").style.display = "block";
-                        document.getElementById("gameDiv").style.display = "none";
-                    }
-                });
-            } 
-            // 3. Hiçbir giriş yoksa, giriş ekranını göster
-            else {
-                document.getElementById("loginContainer").style.display = "block";
-                document.getElementById("gameDiv").style.display = "none";
-                switchAuthTab('login');
-                detachAllListeners(); // Güvenlik için tüm dinleyicileri kapat
-            }
-        }
+    const loginContainer = document.getElementById("loginContainer");
+    const gameDiv = document.getElementById("gameDiv");
+    const maintenanceOverlay = document.getElementById("maintenanceOverlay");
+
+    let isFirebaseUserChecked = false;
+    let isMaintenanceChecked = false;
+    let isMaintenanceMode = false;
+    let loggedInFirebaseUser = null;
+
+    // 1. Bakım modunu dinle
+    db.ref('gameConfig/isMaintenanceMode').on('value', snap => {
+        isMaintenanceMode = snap.val() === true;
+        isMaintenanceChecked = true;
+        checkInitialLoad();
     });
+
+    // 2. Kullanıcı giriş durumunu dinle
+    auth.onAuthStateChanged(user => {
+        loggedInFirebaseUser = user;
+        isFirebaseUserChecked = true;
+        checkInitialLoad();
+    });
+
+    // 3. İki bilgi de geldikten sonra siteyi yükle
+    function checkInitialLoad() {
+        if (!isFirebaseUserChecked || !isMaintenanceChecked) {
+            return; // Henüz her iki bilgiyi de almadıysak bekle
+        }
+
+        const isAdminLoggedIn = loggedInFirebaseUser && loggedInFirebaseUser.email.startsWith('weizendtv');
+        const savedUser = localStorage.getItem('weizendOyunUser');
+
+        // Bakım modu aktifse VE giriş yapan admin değilse, bakım ekranını göster
+        if (isMaintenanceMode && !isAdminLoggedIn) {
+            loginContainer.style.display = "none";
+            gameDiv.style.display = "none";
+            maintenanceOverlay.style.display = "flex";
+            detachAllListeners(); // Herkes için dinleyicileri kapat
+            return;
+        }
+        
+        // Bakım modu kapalıysa veya admin giriş yaptıysa, normal işlemlere devam et
+        maintenanceOverlay.style.display = "none";
+
+        if (isAdminLoggedIn) {
+            currentUser = "WeizendTv";
+            isAdmin = true;
+            afterLogin();
+        } else if (savedUser) {
+            db.ref('users/' + savedUser).once('value').then(snap => {
+                if (snap.exists()) {
+                    checkAndProceedLogin(savedUser, snap.val());
+                } else {
+                    localStorage.removeItem('weizendOyunUser');
+                    loginContainer.style.display = "block";
+                    gameDiv.style.display = "none";
+                }
+            });
+        } else {
+            loginContainer.style.display = "block";
+            gameDiv.style.display = "none";
+            switchAuthTab('login');
+            detachAllListeners();
+        }
+    }
 });
+
+// Adminin bakım modunu açıp kapatacağı fonksiyon
+async function toggleMaintenanceMode() {
+    if (!isAdmin) return;
+    const ref = db.ref('gameConfig/isMaintenanceMode');
+    const snap = await ref.once('value');
+    const isCurrentlyActive = snap.val() === true;
+    
+    const newState = !isCurrentlyActive;
+    await ref.set(newState);
+    
+    const btn = document.getElementById('maintenanceModeBtn');
+    if (newState) {
+        btn.textContent = 'Bakımı Bitir';
+        btn.classList.remove('bg-yellow-700', 'hover:bg-yellow-600');
+        btn.classList.add('bg-green-700', 'hover:bg-green-600');
+        displayMessage("Bakım modu BAŞLATILDI. Adminler hariç kimse siteye giremez.");
+    } else {
+        btn.textContent = 'Bakımı Başlat';
+        btn.classList.remove('bg-green-700', 'hover:bg-green-600');
+        btn.classList.add('bg-yellow-700', 'hover:bg-yellow-600');
+        displayMessage("Bakım modu BİTTİ. Site tüm kullanıcılara açıldı.");
+    }
+}
 
 async function saveWeeklyResetSettings() {
     if (!isAdmin) return;
@@ -6231,14 +6293,14 @@ function revealMyCardChoice(sessionData) {
     cardContainer.parentElement.appendChild(resultPopup);
 }
 
+// MEVCUT selectCard FONKSİYONUNU KOMPLE SİLİP BUNUNLA DEĞİŞTİR
 async function selectCard(selectedCardDiv, userId) {
-    // 1. ANINDA KORUMA: Bir kart seçildiği anda diğer tüm kartların tıklanmasını engelle.
-    // Bu, kullanıcının çift tıklamasını anında durdurur.
+    // Anında koruma: Bir kart seçildiği anda diğer tüm kartların tıklanmasını engelle.
     const cardContainer = document.getElementById('playerCardContainer');
     const allCards = cardContainer.querySelectorAll('.card-flip-container');
     allCards.forEach(card => {
-        card.onclick = null; // Tıklama olayını tamamen kaldır
-        card.style.cursor = 'default'; // Fare imlecini normal yap
+        card.onclick = null;
+        card.style.cursor = 'default';
     });
 
     if (countdownInterval) clearInterval(countdownInterval);
@@ -6246,28 +6308,27 @@ async function selectCard(selectedCardDiv, userId) {
     const cardIndex = selectedCardDiv.dataset.index;
     const sessionRef = db.ref('surprise_box_session');
 
-    // 2. GARANTİLİ KORUMA: Firebase Transaction kullanarak sunucu tarafında sadece İLK isteği kabul et.
-    // Bu, aynı anda yüzlerce istek gelse bile sadece birinin başarılı olmasını garanti eder.
+    // Garantili koruma: Firebase Transaction ile sunucu tarafında sadece İLK isteği kabul et.
     const transactionResult = await sessionRef.transaction(sessionData => {
-        // Eğer oturum verisi yoksa veya "selection" alanı zaten doluysa, bu isteği reddet.
         if (!sessionData || sessionData.selection) {
             return; // İşlemi iptal et
         }
-        
-        // Bu ilk geçerli tıklama. Seçimi kaydet ve işlemi onayla.
         sessionData.selection = { user: userId, cardIndex: cardIndex };
         return sessionData;
     });
 
-    // 3. Sadece işlem başarılı olduysa (yani bu tıklama kazandıysa) puan verme ve diğer işlemleri yap.
+    // Sadece işlem başarılı olduysa devam et.
     if (!transactionResult.committed) {
         console.log("Bu kart zaten seçilmiş veya oturum süresi dolmuş.");
-        displayMessage("Bu kart zaten seçilmiş veya oturum süresi dolmuş.");
-        return; // Fonksiyondan çık, hiçbir şey yapma.
+        return;
     }
 
     const updatedSessionData = transactionResult.snapshot.val();
-    let points = parseInt(selectedCardDiv.dataset.value) * updatedSessionData.multiplier;
+    
+    // !!!!!!!!!!!!!  İŞTE DÜZELTME BURADA  !!!!!!!!!!!!!
+    // Puan hesaplanırken artık sessionData.multiplier ile ÇARPILMIYOR. Sadece kartın kendi değeri alınıyor.
+    let points = parseInt(selectedCardDiv.dataset.value);
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     
     const userRef = db.ref('users/' + userId);
 
