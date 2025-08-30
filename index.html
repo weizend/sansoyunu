@@ -12818,32 +12818,39 @@ async function cancelTradeOffer(tradeId, asAdmin = false) {
     const offererUsername = tradeData.offerer;
     const offeredCardId = tradeData.offeredCardId;
     const feeToRefund = tradeData.tradeFee || 0;
-    
-    // ★★★ YENİ EKLENEN KISIM ★★★
-    const originalActivityId = tradeData.activityId; // Güncellenecek eylem kaydının ID'si
-    // ★★★ YENİ EKLENEN KISIM SONU ★★★
+    const originalActivityId = tradeData.activityId;
 
-    const confirmed = await customConfirm(asAdmin 
+    // --- DEĞİŞEN KISIM: Onay mesajı artık ücretin iade edileceğini belirtiyor ---
+    const confirmationMessage = asAdmin 
         ? "Bu teklifi admin olarak zorla iptal etmek istediğinize emin misiniz? Kart sahibine iade edilecek, işlem ücreti iade edilmeyecektir."
-        : `Bu takas teklifini pazardan kaldırmak istediğinize emin misiniz? Sadece kartınız iade edilecek, ödediğiniz ${feeToRefund} Puan işlem ücreti iade edilmeyecektir.`
-    );
+        : `Bu takas teklifini pazardan kaldırmak istediğinize emin misiniz? Kartınız ve ödediğiniz ${feeToRefund} Puan işlem ücreti iade edilecektir.`;
+
+    const confirmed = await customConfirm(confirmationMessage);
     if (!confirmed) return;
 
     const userRef = db.ref(`users/${offererUsername}`);
     
     try {
+        // --- DEĞİŞEN KISIM: Transaction içine ücret iade mantığı eklendi ---
         await userRef.transaction(userData => {
             if (userData) {
+                // 1. Kartı iade et
                 if (!userData.cardCollection) userData.cardCollection = {};
                 if (!userData.cardCollection[offeredCardId]) userData.cardCollection[offeredCardId] = { count: 0 };
                 userData.cardCollection[offeredCardId].count++;
+
+                // 2. İşlem ücretini iade et (Eğer admin iptal etmiyorsa ve ücret varsa)
+                if (!asAdmin && feeToRefund > 0) {
+                    userData.balance = (userData.balance || 0) + feeToRefund;
+                    // 3. Harcanan puandan düş
+                    userData.totalSpentPoints = Math.max(0, (userData.totalSpentPoints || 0) - feeToRefund);
+                }
             }
             return userData;
         });
         
         await tradeRef.remove();
         
-        // ★★★ Orijinal eylem kaydı "İptal Edildi" olarak güncelleniyor ★★★
         if (originalActivityId) {
             await db.ref(`activityFeed/${originalActivityId}/details/status`).set('cancelled');
         }
@@ -12853,7 +12860,8 @@ async function cancelTradeOffer(tradeId, asAdmin = false) {
             displayMessage("Teklif admin tarafından iptal edildi. Kart sahibine iade edildi.");
             loadMarketOffers('all');
         } else {
-            displayMessage("Teklifin pazardan kaldırıldı. Kartın envanterine geri eklendi.");
+            // --- DEĞİŞEN KISIM: Başarı mesajı güncellendi ---
+            displayMessage(`Teklifin pazardan kaldırıldı. Kartın ve ${feeToRefund} Puan işlem ücretin iade edildi.`);
             loadMarketOffers('mine');
         }
 
