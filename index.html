@@ -5976,51 +5976,70 @@ async function handleSurpriseBoxCleanup(sessionData) {
   }
 
   async function restartSystem() {
-    const confirmed = await customConfirm("Sistemi baştan başlatmak istediğinize emin misiniz? Tüm kullanıcı verileri (puan, hak, istatistik) sıfırlanacak!");
+    const confirmed = await customConfirm("Sistemi baştan başlatmak istediğinize emin misiniz? Avatarlar ve Sezon Başarımları HARİÇ, Kasa Puanları dahil tüm kullanıcı verileri (puan, hak, istatistik) kalıcı olarak sıfırlanacak!");
     if (confirmed) {
         const userSnap = await db.ref('users').once('value');
         const usersData = userSnap.val();
         const updates = {};
         if (usersData) {
             for (const u in usersData) {
+                // Admin dışındaki tüm kullanıcıları döngüye al
                 if (u !== "weizendtv") {
-                    updates['users/' + u + '/balance'] = 0;
-                    updates['users/' + u + '/highestBalanceEver'] = 0;
-                    updates['users/' + u + '/totalSpentPoints'] = 0;
-                    updates['users/' + u + '/kutuHakki'] = 0;
-                    updates['users/' + u + '/carkBileti'] = 0; // YENİ
-                    updates['users/' + u + '/clickCatchHighestScore'] = 0; // YENİ
-                    updates['users/' + u + '/boxesOpenedCount'] = 0;
-                    updates['users/' + u + '/surpriseBoxesOpened'] = 0;
-                    updates['users/' + u + '/activeMultiplier'] = 1;
-                    updates['users/' + u + '/multiplierSource'] = 'none';
-                    updates['users/' + u + '/multiplierRemainingUses'] = 0;
-                    updates['users/' + u + '/activeStoreMultiplierItemId'] = null;
-                    updates['users/' + u + '/iflasShieldUses'] = 0;
-                    updates['users/' + u + '/iflasCount'] = 0;
-                    updates['users/' + u + '/iflasShieldUsedCount'] = 0;
-                    updates['users/' + u + '/multiplierFoundCount'] = 0;
-                    updates['users/' + u + '/storePurchasesCount'] = 0;
-                    updates['users/' + u + '/hasReceivedWelcomeGift'] = false;
-                    updates['users/' + u + '/approvalNotified'] = null;
-                    updates['users/' + u + '/notifications'] = null;
-                    updates['users/' + u + '/dailyRewardsClaimed'] = null;
-                    updates['users/' + u + '/lastSeenAnnouncementTimestamp'] = null;
-                    updates['users/' + u + '/lastSeenGlobalNotifTimestamp'] = null; // YENİ EKLENEN SATIR
+                    const userPath = 'users/' + u;
+                    
+                    // SIFIRLANACAK VERİLER
+                    updates[userPath + '/balance'] = 0;
+                    updates[userPath + '/kasaPuani'] = 0; // İSTEĞİN ÜZERİNE EKLENDİ
+                    updates[userPath + '/kariyerPuani'] = 0; // Bu da sıfırlanmalı
+                    updates[userPath + '/highestBalanceEver'] = 0;
+                    updates[userPath + '/totalSpentPoints'] = 0;
+                    updates[userPath + '/kutuHakki'] = 0;
+                    updates[userPath + '/carkBileti'] = 0;
+                    updates[userPath + '/clickCatchTickets'] = 0;
+                    updates[userPath + '/clickCatchHighestScore'] = 0;
+                    updates[userPath + '/boxesOpenedCount'] = 0;
+                    updates[userPath + '/surpriseBoxesOpened'] = 0;
+                    updates[userPath + '/activeMultiplier'] = 1;
+                    updates[userPath + '/multiplierSource'] = 'none';
+                    updates[userPath + '/multiplierRemainingUses'] = 0;
+                    updates[userPath + '/activeStoreMultiplierItemId'] = null;
+                    updates[userPath + '/iflasShieldUses'] = 0;
+                    updates[userPath + '/iflasCount'] = 0;
+                    updates[userPath + '/iflasShieldUsedCount'] = 0;
+                    updates[userPath + '/multiplierFoundCount'] = 0;
+                    updates[userPath + '/storePurchasesCount'] = 0;
+                    updates[userPath + '/hasReceivedWelcomeGift'] = false;
+                    updates[userPath + '/approvalNotified'] = null;
+                    updates[userPath + '/notifications'] = null;
+                    updates[userPath + '/dailyRewardsClaimed'] = null;
+                    updates[userPath + '/lastSeenAnnouncementTimestamp'] = null;
+                    updates[userPath + '/lastSeenGlobalNotifTimestamp'] = null;
+                    updates[userPath + '/cardCollection'] = null; // Kart koleksiyonunu sıfırla
+                    updates[userPath + '/completedCollection'] = null; // Koleksiyon tamamlama durumunu sıfırla
+                    updates[userPath + '/wildcards'] = 0; // Joker kartları sıfırla
+
+                    // DOKUNULMAYACAK VERİLER:
+                    // 'avatars' ve '...ChampionshipsWon' alanları bu listede olmadığı için silinmeyecek.
                 }
             }
             await db.ref().update(updates);
         }
+        
+        // Diğer genel verileri de temizle
         await createBoxes();
         await db.ref('purchaseHistory').remove();
         await db.ref('pendingSpecialPurchases').remove();
         await db.ref('gameStats').remove();
         await db.ref('announcements').remove();
         await db.ref('dailyRewardOptions').remove();
-        await db.ref('gameConfig').remove(); // <-- BU SATIRI EKLE
+        await db.ref('gameConfig').remove();
+        await db.ref('trades').remove(); // Açık takas tekliflerini temizle
+        await db.ref('tradeHistory').remove(); // Takas geçmişini temizle
+        await db.ref('activityFeed').remove(); // Eylem geçmişini temizle
+
         displayMessage("Sistem başarıyla baştan başlatıldı!");
     }
-  }
+}
 
   function loadTotalOpenedBoxesCount() {
     const ref = db.ref('boxes');
