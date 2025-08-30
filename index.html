@@ -5976,7 +5976,7 @@ async function handleSurpriseBoxCleanup(sessionData) {
   }
 
   async function restartSystem() {
-    const confirmed = await customConfirm("Sistemi baştan başlatmak istediğinize emin misiniz? Avatarlar ve Sezon Başarımları HARİÇ, Kasa Puanları dahil tüm kullanıcı verileri (puan, hak, istatistik) kalıcı olarak sıfırlanacak!");
+    const confirmed = await customConfirm("Sistemi baştan başlatmak istediğinize emin misiniz? Avatarlar ve Sezon Başarımları HARİÇ, Kasa Puanları ve Rozetleri belirleyen tüm istatistikler dahil her şey kalıcı olarak sıfırlanacak!");
     if (confirmed) {
         const userSnap = await db.ref('users').once('value');
         const usersData = userSnap.val();
@@ -5987,10 +5987,10 @@ async function handleSurpriseBoxCleanup(sessionData) {
                 if (u !== "weizendtv") {
                     const userPath = 'users/' + u;
                     
-                    // SIFIRLANACAK VERİLER
+                    // --- SIFIRLANACAK VERİLER (ROZETLER DAHİL) ---
                     updates[userPath + '/balance'] = 0;
-                    updates[userPath + '/kasaPuani'] = 0; // İSTEĞİN ÜZERİNE EKLENDİ
-                    updates[userPath + '/kariyerPuani'] = 0; // Bu da sıfırlanmalı
+                    updates[userPath + '/kasaPuani'] = 0;
+                    updates[userPath + '/kariyerPuani'] = 0;
                     updates[userPath + '/highestBalanceEver'] = 0;
                     updates[userPath + '/totalSpentPoints'] = 0;
                     updates[userPath + '/kutuHakki'] = 0;
@@ -6008,24 +6008,22 @@ async function handleSurpriseBoxCleanup(sessionData) {
                     updates[userPath + '/iflasShieldUsedCount'] = 0;
                     updates[userPath + '/multiplierFoundCount'] = 0;
                     updates[userPath + '/storePurchasesCount'] = 0;
+                    updates[userPath + '/wheelSpinsCount'] = 0;
                     updates[userPath + '/hasReceivedWelcomeGift'] = false;
                     updates[userPath + '/approvalNotified'] = null;
                     updates[userPath + '/notifications'] = null;
                     updates[userPath + '/dailyRewardsClaimed'] = null;
                     updates[userPath + '/lastSeenAnnouncementTimestamp'] = null;
                     updates[userPath + '/lastSeenGlobalNotifTimestamp'] = null;
-                    updates[userPath + '/cardCollection'] = null; // Kart koleksiyonunu sıfırla
-                    updates[userPath + '/completedCollection'] = null; // Koleksiyon tamamlama durumunu sıfırla
-                    updates[userPath + '/wildcards'] = 0; // Joker kartları sıfırla
-
-                    // DOKUNULMAYACAK VERİLER:
-                    // 'avatars' ve '...ChampionshipsWon' alanları bu listede olmadığı için silinmeyecek.
+                    updates[userPath + '/cardCollection'] = null;
+                    updates[userPath + '/completedCollection'] = null;
+                    updates[userPath + '/wildcards'] = 0;
                 }
             }
             await db.ref().update(updates);
         }
         
-        // Diğer genel verileri de temizle
+        // Diğer genel oyun verilerini de temizle
         await createBoxes();
         await db.ref('purchaseHistory').remove();
         await db.ref('pendingSpecialPurchases').remove();
@@ -6033,11 +6031,18 @@ async function handleSurpriseBoxCleanup(sessionData) {
         await db.ref('announcements').remove();
         await db.ref('dailyRewardOptions').remove();
         await db.ref('gameConfig').remove();
-        await db.ref('trades').remove(); // Açık takas tekliflerini temizle
-        await db.ref('tradeHistory').remove(); // Takas geçmişini temizle
-        await db.ref('activityFeed').remove(); // Eylem geçmişini temizle
+        await db.ref('trades').remove();
+        await db.ref('tradeHistory').remove();
+        await db.ref('activityFeed').remove();
 
-        displayMessage("Sistem başarıyla baştan başlatıldı!");
+        displayMessage("Sistem başarıyla baştan başlatıldı! Tüm rozetler ve istatistikler sıfırlandı. Sayfa 2 saniye içinde yenilenecek...");
+        
+        // !!!!!!!!!!!!!  İŞTE YENİ EKLENEN KISIM BURASI  !!!!!!!!!!!!!
+        // İşlem bittikten 2 saniye sonra sayfayı otomatik olarak yenile.
+        setTimeout(() => {
+            window.location.reload();
+        }, 2000);
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     }
 }
 
