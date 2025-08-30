@@ -6207,23 +6207,47 @@ function revealMyCardChoice(sessionData) {
     cardContainer.parentElement.appendChild(resultPopup);
 }
 
-// MEVCUT selectCard fonksiyonunu bununla değiştir
-async function selectCard(selectedCardDiv, userId) { 
+async function selectCard(selectedCardDiv, userId) {
+    // 1. ANINDA KORUMA: Bir kart seçildiği anda diğer tüm kartların tıklanmasını engelle.
+    // Bu, kullanıcının çift tıklamasını anında durdurur.
+    const cardContainer = document.getElementById('playerCardContainer');
+    const allCards = cardContainer.querySelectorAll('.card-flip-container');
+    allCards.forEach(card => {
+        card.onclick = null; // Tıklama olayını tamamen kaldır
+        card.style.cursor = 'default'; // Fare imlecini normal yap
+    });
+
     if (countdownInterval) clearInterval(countdownInterval);
-    if (selectedCardDiv.classList.contains('opened')) return; 
 
     const cardIndex = selectedCardDiv.dataset.index;
     const sessionRef = db.ref('surprise_box_session');
-    
-    await sessionRef.child('selection').set({ user: userId, cardIndex: cardIndex });
 
-    const snap = await sessionRef.once('value');
-    const sessionData = snap.val();
-    let points = parseInt(selectedCardDiv.dataset.value) * sessionData.multiplier;
-    
-    const userRef = db.ref('users/' + userId); 
+    // 2. GARANTİLİ KORUMA: Firebase Transaction kullanarak sunucu tarafında sadece İLK isteği kabul et.
+    // Bu, aynı anda yüzlerce istek gelse bile sadece birinin başarılı olmasını garanti eder.
+    const transactionResult = await sessionRef.transaction(sessionData => {
+        // Eğer oturum verisi yoksa veya "selection" alanı zaten doluysa, bu isteği reddet.
+        if (!sessionData || sessionData.selection) {
+            return; // İşlemi iptal et
+        }
+        
+        // Bu ilk geçerli tıklama. Seçimi kaydet ve işlemi onayla.
+        sessionData.selection = { user: userId, cardIndex: cardIndex };
+        return sessionData;
+    });
 
-    // KARİYER PUANI GÜNCELLEMESİ (Transaction ile)
+    // 3. Sadece işlem başarılı olduysa (yani bu tıklama kazandıysa) puan verme ve diğer işlemleri yap.
+    if (!transactionResult.committed) {
+        console.log("Bu kart zaten seçilmiş veya oturum süresi dolmuş.");
+        displayMessage("Bu kart zaten seçilmiş veya oturum süresi dolmuş.");
+        return; // Fonksiyondan çık, hiçbir şey yapma.
+    }
+
+    const updatedSessionData = transactionResult.snapshot.val();
+    let points = parseInt(selectedCardDiv.dataset.value) * updatedSessionData.multiplier;
+    
+    const userRef = db.ref('users/' + userId);
+
+    // Puanları ekle
     await userRef.transaction(user => {
         if (user) {
             user.balance = (user.balance || 0) + points;
@@ -6239,6 +6263,7 @@ async function selectCard(selectedCardDiv, userId) {
     const finalUserData = finalUserSnap.val();
     let newBalance = finalUserData.balance || 0;
  
+    // Sonucu Firebase'e yaz
     await sessionRef.child('result').set({ points: points, newBalance: newBalance });
 }
 
