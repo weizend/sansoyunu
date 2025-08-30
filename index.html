@@ -522,11 +522,13 @@
     color: #4b5563; /* gray-600 */
     font-weight: bold;
 }
+
 /* --- MOBİL İZLEME PENCERESİ DÜZELTMESİ --- */
 #spectatorModal .modal-content {
-    max-height: 85vh; /* İçeriğin ekran yüksekliğinin %85'ini geçmesini engeller */
-    overflow-y: auto; /* Eğer içerik bu yüksekliğe sığmazsa, dikey kaydırma çubuğu ekler */
+    max-height: 85vh !important;
+    overflow-y: auto !important;
 }
+
   .floating-text {
       position: absolute;
       transform: translate(-50%, -50%);
@@ -7207,8 +7209,8 @@ async function openPublicUserDetailModal(username) {
 
         const championshipsDiv = document.getElementById('publicUserChampionships');
         let championshipsHtml = '';
-        if (userData.rozetChampionshipsWon > 0) championshipsHtml += `<p>👑 ${userData.rozetChampionshipsWon} kez 'LİDERLER SIRALAMASI' şampiyonu oldu.</p>`;
-        if (userData.puanChampionshipsWon > 0) championshipsHtml += `<p>🏆 ${userData.puanChampionshipsWon} kez 'KARİYER PUAN SIRALAMASI' şampiyonu oldu.</p>`;
+        if (userData.rozetChampionshipsWon > 0) championshipsHtml += `<p>👑 ${userData.rozetChampionshipsWon} kez 'LİDERLER SIRALAMASI' aylık sezon şampiyonu oldu.</p>`;
+        if (userData.puanChampionshipsWon > 0) championshipsHtml += `<p>🏆 ${userData.puanChampionshipsWon} kez 'KARİYER PUAN SIRALAMASI' aylık sezon şampiyonu oldu.</p>`;
         if (userData.collectionChampionshipsWon > 0) championshipsHtml += `<p>🃏 ${userData.collectionChampionshipsWon} kez 'KART KOLEKSİYONU' şampiyonu oldu.</p>`;
         
         if (championshipsHtml) {
@@ -8975,18 +8977,14 @@ async function spinWheel() {
         return;
     }
     
-    // --- DEĞİŞEN VE DÜZELTİLEN KISIM BURASI ---
-    // Bir çarpanın "aktif" olup olmadığını doğru bir şekilde kontrol ediyoruz.
     const hasActiveMultiplier =
         (userData.multiplierSource === 'store' && (userData.multiplierRemainingUses || 0) > 0) ||
         (userData.multiplierSource === 'box');
         
-    // Sadece gerçekten aktif bir çarpan varsa uyarı göster.
     if (hasActiveMultiplier) {
         const confirmSpin = await customConfirm("Aktif bir çarpanınız var. Çarktan yeni bir çarpan çıkarsa, mevcut çarpanınızın üzerine yazılır. Devam etmek istiyor musunuz?");
         if (!confirmSpin) return;
     }
-    // --- DÜZELTME SONU ---
 
     isWheelSpinning = true;
     spinBtn.disabled = true;
@@ -9095,15 +9093,29 @@ async function spinWheel() {
                     updates.wildcards = (currentUserData.wildcards || 0) + winningSegment.value;
                 }
                 break;
+            // ★★★ UNDEFINED HATASINI KESİN ÇÖZEN KOD BLOĞU ★★★
             case 'card_pack':
             case 'card_pack_normal':
             case 'card_pack_gumus':
             case 'card_pack_altin':
             case 'card_pack_efsanevi':
                 const packsToOpen = winningSegment.value || 1;
-                message = `Tebrikler! Çarktan ${packsToOpen} adet ${winningSegment.label} kazandın!`;
+                
+                // Ödül adını, verideki 'label' veya 'prizeName' yerine direkt tipine göre kendimiz belirliyoruz.
+                // Bu sayede admin panelindeki ayarlarda hata olsa bile her zaman doğru isim görünür.
+                const packNames = {
+                    'card_pack': `+${packsToOpen} Standart Kart Paketi`,
+                    'card_pack_normal': `+${packsToOpen} Bronz Kart Paketi`,
+                    'card_pack_gumus': `+${packsToOpen} Gümüş Kart Paketi`,
+                    'card_pack_altin': `+${packsToOpen} Altın Kart Paketi`,
+                    'card_pack_efsanevi': `+${packsToOpen} Efsanevi Kart Paketi`
+                };
+                const prizeText = packNames[winningSegment.type] || `+${packsToOpen} Kart Paketi`;
+                
+                message = `Tebrikler! Çarktan <b class="text-yellow-300">${prizeText}</b> kazandın!`;
                 startCardPackOpening(packsToOpen, 'Şans Çarkı', 1, winningSegment.type);
                 break;
+            // ★★★ DÜZELTME SONA ERDİ ★★★
             case 'pas':
                 message = "Bu seferlik pas! Bir dahaki sefere daha şanslı olabilirsin.";
                 break;
