@@ -13658,19 +13658,40 @@ async function startNewCollection() {
     displayMessage("YENİ KOLEKSİYON SEZONU BAŞLATILDI!");
 }
 
-// Sezonu duraklatır veya devam ettirir.
+// YENİ VE GÜNCEL FONKSİYONU EKLE
 async function toggleCollectionPause() {
-    if(!isAdmin) return;
+    if (!isAdmin) return;
+
     const statusRef = db.ref('gameConfig/cardCollectionStatus');
     const statusSnap = await statusRef.once('value');
     const currentStatus = statusSnap.val();
 
-    if(currentStatus === 'active') {
+    // Buton ve yazı elementlerini en başta seçelim
+    const pauseBtn = document.getElementById('pauseResumeButton');
+    const statusTextEl = document.getElementById('collectionStatusText');
+
+    if (currentStatus === 'active') {
         await statusRef.set('paused');
         displayMessage("Koleksiyon sezonu duraklatıldı. Oyuncular bakım bilgilendirmesi görecek.");
+
+        // --- YENİ EKLENEN ANINDA GÜNCELLEME KODLARI ---
+        statusTextEl.textContent = 'Duraklatıldı (Bakımda)';
+        pauseBtn.textContent = 'Sezonu Devam Ettir';
+        pauseBtn.classList.replace('bg-orange-600', 'bg-green-600');
+        pauseBtn.classList.replace('hover:bg-orange-500', 'hover:bg-green-500');
+        // --- GÜNCELLEME BİTTİ ---
+
     } else if (currentStatus === 'paused') {
         await statusRef.set('active');
         displayMessage("Koleksiyon sezonu devam ettiriliyor.");
+
+        // --- YENİ EKLENEN ANINDA GÜNCELLEME KODLARI ---
+        statusTextEl.textContent = 'Aktif';
+        pauseBtn.textContent = 'Sezonu Duraklat';
+        pauseBtn.classList.replace('bg-green-600', 'bg-orange-600');
+        pauseBtn.classList.replace('hover:bg-green-500', 'hover:bg-orange-500');
+        // --- GÜNCELLEME BİTTİ ---
+
     } else {
         displayMessage("Sezon sadece 'aktif' veya 'duraklatılmış' durumdayken bu işlem yapılabilir.");
     }
