@@ -6528,6 +6528,45 @@ function listenForSurpriseBox() {
     sessionRef.on('value', callback);
 }
       
+// Sürpriz Kutu bilgilendirme penceresini GÖSTEREN fonksiyon
+function showGlobalSurpriseBoxNotification(data) {
+    document.getElementById('surpriseOpener').textContent = data.user;
+    
+    const sourceInfoEl = document.getElementById('surpriseSourceInfo');
+    if (data.boxId === 'Çark') {
+        sourceInfoEl.innerHTML = `<b>Şans Çarkı</b>'ndan Sürpriz Kutu elde etti ve kart seçiminden`;
+    } else {
+        sourceInfoEl.innerHTML = `<span class="text-red-400 font-bold">${data.boxId}</span> numaralı kutuyu açtı ve kart seçiminden`;
+    }
+
+    document.getElementById('surprisePoints').textContent = data.result.points;
+    
+    let multiplierText = '';
+    if (data.boxId !== 'Çark') {
+        if (data.multiplier && data.multiplier > 1) {
+            const basePoints = Math.round(data.result.points / data.multiplier);
+            multiplierText = `kazandı! <br><span class="text-base text-gray-400">(${basePoints} Puan x ${data.multiplier} Çarpan)</span>`;
+        } else {
+            multiplierText = 'kazandı! (Çarpan kullanılmadı)';
+        }
+    } else {
+        multiplierText = 'kazandı!';
+    }
+
+    document.getElementById('surpriseMultiplierInfo').innerHTML = multiplierText;
+
+    document.getElementById('globalSurpriseBoxModal').style.display = 'flex';
+}
+
+// --- SORUNU ÇÖZEN EKSİK FONKSİYON ---
+// Sürpriz Kutu bilgilendirme penceresini KAPATAN fonksiyon
+function closeGlobalSurpriseBoxModal() {
+    const modal = document.getElementById('globalSurpriseBoxModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+      
   function closeCardSelectionModal() { 
     cardSelectionModal.style.display = 'none'; 
   }
