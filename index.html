@@ -9654,8 +9654,6 @@ async function clearLastWinner() {
             document.getElementById('collectedSpecials').innerHTML += `<span class="text-xl">${emoji}</span>`;
             break;
         case 'wildcard':
-            // Bu gelecekte eklenebilir, şimdilik diğerleriyle aynı mantıkta çalışsın
-            // collectedWildcards += value;
             floatingText = `+${value} 🃏 Joker Kart Yakalandı!`;
             document.getElementById('collectedSpecials').innerHTML += `<span class="text-xl">🎁</span>`;
             break;
@@ -9674,7 +9672,10 @@ async function clearLastWinner() {
             const packName = packNames[type];
             collectedCardPacks.push({ type: type, value: value });
             floatingText = `+${value} ${packName} Yakalandı!`;
-            document.getElementById('collectedSpecials').innerHTML += `<span class="text-xl">🎁</span>`;
+            // --- HATA BURADAYDI, DÜZELTİLDİ ---
+            // Sabit 🎁 simgesi yerine, tıklanan objenin kendi simgesini (emoji) kullanıyoruz.
+            document.getElementById('collectedSpecials').innerHTML += `<span class="text-xl">${emoji}</span>`;
+            // ------------------------------------
             break;
     }
     
@@ -10523,7 +10524,7 @@ async function startSoloClickCatchGame() {
     showGameCountdown(_actuallyStartSoloGame);
 }
 
- async function endSoloClickCatchGame() {
+async function endSoloClickCatchGame() {
     clickCatchGameActive = false;
     clearInterval(clickCatchTimerInterval);
     clearInterval(clickCatchItemInterval);
@@ -10546,14 +10547,30 @@ async function startSoloClickCatchGame() {
     if (collectedMultipliers.length > 0) {
         collectedMultipliers.forEach(m => specialItemsWonLog.push(`${m.value}x Çarpan (${m.uses} kullanım)`));
     }
-    // Kart paketleri için log mesajı artık burada oluşturulmayacak, çünkü hemen açılacaklar.
+    
+    // --- HATA BURADAYDI, DÜZELTİLDİ ---
+    // Kazanılan kart paketlerini de log listesine ekliyoruz.
+    if (collectedCardPacks.length > 0) {
+        const packNames = {
+            'card_pack': 'Standart Kart Paketi', 'card_pack_normal': 'Bronz Kart Paketi',
+            'card_pack_gumus': 'Gümüş Kart Paketi', 'card_pack_altin': 'Altın Kart Paketi',
+            'card_pack_efsanevi': 'Efsanevi Kart Paketi'
+        };
+        const packsByType = collectedCardPacks.reduce((acc, pack) => {
+            acc[pack.type] = (acc[pack.type] || 0) + pack.value;
+            return acc;
+        }, {});
+        for (const packType in packsByType) {
+            specialItemsWonLog.push(`+${packsByType[packType]} ${packNames[packType]}`);
+        }
+    }
+    // ------------------------------------
 
     let endMessage = `Oyun bitti! Bu turdaki skorun: <b>${clickCatchScore}</b>.`;
     if (specialItemsWonLog.length > 0) {
         endMessage += `<br>Ayrıca, <b>${specialItemsWonLog.join(', ')}</b> kazandın!`;
     }
-    // Eğer sadece kart paketi kazanıldıysa ek bir mesaj göstermeye gerek yok, açılış ekranı gelecek.
-    // Ama hem paket hem başka bir şey kazanıldıysa ilk mesajı gösterelim.
+    
     if (specialItemsWonLog.length > 0 || collectedCardPacks.length === 0) {
         displayMessage(endMessage);
     }
@@ -10617,22 +10634,17 @@ async function startSoloClickCatchGame() {
 
     await db.ref().update(updates);
     
-    // --- YENİ EKLENEN KART AÇMA KISMI ---
     if (collectedCardPacks.length > 0) {
-        // Paketleri türüne göre gruplayalım
         const packsByType = collectedCardPacks.reduce((acc, pack) => {
             acc[pack.type] = (acc[pack.type] || 0) + pack.value;
             return acc;
         }, {});
 
-        // Her bir paket türü için açılış ekranını sırayla gösterelim
         for (const packType in packsByType) {
             const packCount = packsByType[packType];
-            // await kullanarak bir açılış bitmeden diğerinin başlamamasını sağlıyoruz
             await startCardPackOpening(packCount, 'Tıkla-Yakala Oyunu', 1, packType);
         }
     }
-    // ------------------------------------
 }
 
   // ... VE YERİNE BU YENİ VERSİYONU YAPIŞTIR
