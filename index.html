@@ -5911,10 +5911,23 @@ function listenForActivityFeed() {
 
                 case 'spinWheel':
                     icon = '🎡';
-                    const prizeText = details.type === 'pas' 
-                        ? 'Pas geçti' 
-                        : `<b class="text-green-400">${details.result}</b> kazandı`;
-                    message = `<b class="text-yellow-300">${activity.username}</b>, çarkı çevirerek ${prizeText}.`;
+                    let prizeText = '';
+                    let wheelBalanceText = details.type === 'points' ? ` <span class="text-gray-400">(Mevcut Puan: ${details.newBalance})</span>` : '';
+
+                    // Eğer kazanılan ödül çarpan ise ve kullanım hakkı bilgisi varsa, özel metin oluştur
+                    if (details.type === 'tempMultiplier' && details.duration > 0) {
+                        prizeText = `<span class="text-pink-300 font-bold">${details.value}x Çarpan (${details.duration} kullanım)</span> kazandı.`;
+                    } 
+                    // Eğer pas geçildiyse
+                    else if (details.type === 'pas') {
+                        prizeText = `<span class="text-gray-400 font-bold">Pas</span> geçti.`;
+                    } 
+                    // Diğer tüm ödüller için genel metin
+                    else {
+                        prizeText = `<span class="text-pink-300 font-bold">${details.result}</span> kazandı.`;
+                    }
+
+                    message = `${userHtml}, çarkı çevirerek ${prizeText}${wheelBalanceText}`;
                     break;
                 
                 // KUTU EYLEMLERİ İÇİN STANDART FORMAT
@@ -9367,7 +9380,9 @@ async function spinWheel() {
         const logDetails = {
             result: winningSegment.prizeName || winningSegment.label,
             type: winningSegment.type,
-            value: winningSegment.value !== undefined ? winningSegment.value : null
+            value: winningSegment.value !== undefined ? winningSegment.value : null,
+            // YENİ EKLENEN SATIR: Kullanım hakkını da log detaylarına ekliyoruz
+            duration: winningSegment.duration !== undefined ? winningSegment.duration : null
         };
         if (winningSegment.type === 'points') {
             logDetails.newBalance = updates.balance;
