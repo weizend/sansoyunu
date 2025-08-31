@@ -10471,37 +10471,37 @@ async function startSoloClickCatchGame() {
         return;
     }
     
-    // --- DEĞİŞEN VE DÜZELTİLEN KISIM BURASI ---
-    // Bir çarpanın "aktif" olup olmadığını doğru bir şekilde kontrol ediyoruz.
     const hasActiveMultiplier =
         (userData.multiplierSource === 'store' && (userData.multiplierRemainingUses || 0) > 0) ||
         (userData.multiplierSource === 'box');
 
-    // Sadece gerçekten aktif bir çarpan varsa uyarı göster.
     if (hasActiveMultiplier) {
         const warningConfirmed = await customConfirm(`Aktif bir <b>${userData.activeMultiplier}x</b> çarpanın bulunuyor. Bu oyunda yeni bir çarpan kazanırsan mevcut çarpanınla etkileşime girebilir. Devam etmek istiyor musun?`);
         if (!warningConfirmed) {
             return;
         }
     }
-    // --- DÜZELTME SONU ---
 
     const confirmed = await customConfirm("Oyuna başlamak için 1 adet 'Tıkla-Yakala Bileti' harcanacaktır. Onaylıyor musun?");
     if (!confirmed) return;
     await userRef.update({ clickCatchTickets: (userData.clickCatchTickets || 0) - 1 });
     
+    // --- HATA BURADAYDI, DÜZELTİLDİ ---
+    // Admin panelindeki 'value' değerleri ile buradaki anahtarlar eşleştirildi.
     const specialItemMapping = {
       'boxRight': { type: 'boxRight', value: soloGameSettings.specialValue || 1, emoji: '📦' },
       'iflasShield': { type: 'iflasShield', value: soloGameSettings.specialValue || 1, emoji: '🛡️' },
       'wheelTicket': { type: 'wheelTicket', value: soloGameSettings.specialValue || 1, emoji: '🎫️' },
       'tempMultiplier': { type: 'tempMultiplier', value: soloGameSettings.specialValue || 2, uses: soloGameSettings.specialMultiplierUses || 1, emoji: '✖️' },
       'wildcard': { type: 'wildcard', value: soloGameSettings.specialValue || 1, emoji: '🃏' },
-      'card_pack_standart': { type: 'card_pack_standart', value: soloGameSettings.specialValue || 1, emoji: '🎴' },
-      'card_pack_bronz': { type: 'card_pack_bronz', value: soloGameSettings.specialValue || 1, emoji: '🥉' },
+      'card_pack': { type: 'card_pack', value: soloGameSettings.specialValue || 1, emoji: '🎴' },
+      'card_pack_normal': { type: 'card_pack_normal', value: soloGameSettings.specialValue || 1, emoji: '🥉' },
       'card_pack_gumus': { type: 'card_pack_gumus', value: soloGameSettings.specialValue || 1, emoji: '🥈' },
       'card_pack_altin': { type: 'card_pack_altin', value: soloGameSettings.specialValue || 1, emoji: '🥇' },
       'card_pack_efsanevi': { type: 'card_pack_efsanevi', value: soloGameSettings.specialValue || 1, emoji: '🏆' }
     };
+    // ------------------------------------
+
     specialItemForThisRound = specialItemMapping[soloGameSettings.specialItemType] || specialItemMapping['boxRight'];
     
     clickCatchGameActive = true;
@@ -10523,7 +10523,7 @@ async function startSoloClickCatchGame() {
     showGameCountdown(_actuallyStartSoloGame);
 }
 
-async function endSoloClickCatchGame() {
+ async function endSoloClickCatchGame() {
     clickCatchGameActive = false;
     clearInterval(clickCatchTimerInterval);
     clearInterval(clickCatchItemInterval);
@@ -10546,12 +10546,17 @@ async function endSoloClickCatchGame() {
     if (collectedMultipliers.length > 0) {
         collectedMultipliers.forEach(m => specialItemsWonLog.push(`${m.value}x Çarpan (${m.uses} kullanım)`));
     }
+    // Kart paketleri için log mesajı artık burada oluşturulmayacak, çünkü hemen açılacaklar.
 
     let endMessage = `Oyun bitti! Bu turdaki skorun: <b>${clickCatchScore}</b>.`;
     if (specialItemsWonLog.length > 0) {
         endMessage += `<br>Ayrıca, <b>${specialItemsWonLog.join(', ')}</b> kazandın!`;
     }
-    displayMessage(endMessage);
+    // Eğer sadece kart paketi kazanıldıysa ek bir mesaj göstermeye gerek yok, açılış ekranı gelecek.
+    // Ama hem paket hem başka bir şey kazanıldıysa ilk mesajı gösterelim.
+    if (specialItemsWonLog.length > 0 || collectedCardPacks.length === 0) {
+        displayMessage(endMessage);
+    }
 
     const weeklyScoreRef = db.ref(`clickCatchWeeklyScores/${currentUser}`);
     const userRef = db.ref('users/' + currentUser);
@@ -10575,36 +10580,33 @@ async function endSoloClickCatchGame() {
     updates[`users/${currentUser}/iflasShieldUses`] = (user.iflasShieldUses || 0) + collectedIflasShields;
     updates[`users/${currentUser}/carkBileti`] = (user.carkBileti || 0) + collectedWheelTickets;
     
-    // --- YENİ EKLENEN ÇARPAN İŞLEME MANTIĞI BAŞLANGICI ---
     if(collectedMultipliers.length > 0){
         let currentUserMultiplier = user.activeMultiplier || 1;
         let currentUserUses = user.multiplierRemainingUses || 0;
         let currentUserSource = user.multiplierSource || 'none';
 
         for (const newMultiplier of collectedMultipliers) {
-            if (currentUserSource === 'none') { // Kullanıcının hiç çarpanı yoksa
+            if (currentUserSource === 'none') {
                 currentUserMultiplier = newMultiplier.value;
                 currentUserUses = newMultiplier.uses;
-                currentUserSource = 'store'; // T-Y'den gelenler mağaza gibi davranır
-            } else if (newMultiplier.value > currentUserMultiplier) { // Gelen çarpan daha güçlüyse
+                currentUserSource = 'store';
+            } else if (newMultiplier.value > currentUserMultiplier) {
                 const kutuHakkiDonusum = currentUserUses || 0;
                 updates[`users/${currentUser}/kutuHakki`] = (updates[`users/${currentUser}/kutuHakki`] || user.kutuHakki) + kutuHakkiDonusum;
                 logActivity('multiplierUpgraded', currentUser, { oldValue: currentUserMultiplier, newValue: newMultiplier.value, boxRights: kutuHakkiDonusum });
                 currentUserMultiplier = newMultiplier.value;
                 currentUserUses = newMultiplier.uses;
-            } else if (newMultiplier.value === currentUserMultiplier) { // Gelen çarpan aynıysa
+            } else if (newMultiplier.value === currentUserMultiplier) {
                 currentUserUses += newMultiplier.uses;
                  logActivity('multiplierStacked', currentUser, { value: newMultiplier.value, uses: newMultiplier.uses });
-            } else { // Mevcut çarpan daha güçlüyse
+            } else {
                 const kutuHakkiDonusum = newMultiplier.uses || 0;
                 updates[`users/${currentUser}/kutuHakki`] = (updates[`users/${currentUser}/kutuHakki`] || user.kutuHakki) + kutuHakkiDonusum;
-                
-                // --- DEĞİŞTİRİLEN SATIR: KAYNAK BİLGİSİ EKLENDİ ---
                 logActivity('multiplierConvertedToBoxRights', currentUser, { 
                     rewardValue: newMultiplier.value, 
                     boxRights: kutuHakkiDonusum, 
                     keptMultiplierValue: currentUserMultiplier,
-                    source: "Tıkla-Yakala'dan" // Kaynağı burada belirtiyoruz
+                    source: "Tıkla-Yakala'dan"
                 });
             }
         }
@@ -10612,10 +10614,27 @@ async function endSoloClickCatchGame() {
         updates[`users/${currentUser}/multiplierRemainingUses`] = currentUserUses;
         updates[`users/${currentUser}/multiplierSource`] = currentUserSource;
     }
-    // --- YENİ EKLENEN ÇARPAN İŞLEME MANTIĞI SONU ---
 
     await db.ref().update(updates);
+    
+    // --- YENİ EKLENEN KART AÇMA KISMI ---
+    if (collectedCardPacks.length > 0) {
+        // Paketleri türüne göre gruplayalım
+        const packsByType = collectedCardPacks.reduce((acc, pack) => {
+            acc[pack.type] = (acc[pack.type] || 0) + pack.value;
+            return acc;
+        }, {});
+
+        // Her bir paket türü için açılış ekranını sırayla gösterelim
+        for (const packType in packsByType) {
+            const packCount = packsByType[packType];
+            // await kullanarak bir açılış bitmeden diğerinin başlamamasını sağlıyoruz
+            await startCardPackOpening(packCount, 'Tıkla-Yakala Oyunu', 1, packType);
+        }
+    }
+    // ------------------------------------
 }
+
   // ... VE YERİNE BU YENİ VERSİYONU YAPIŞTIR
 async function openSelectWinnerModal() {
     if (!isAdmin) return;
