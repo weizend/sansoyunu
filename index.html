@@ -267,6 +267,7 @@
     transform: rotateY(180deg);
 }
 /* --- TAKAS PAZARI STİLLERİ --- */
+/* --- TAKAS PAZARI STİLLERİ --- */
 .market-offer-card {
     display: flex;
     align-items: center;
@@ -277,19 +278,33 @@
     border: 1px solid #374151; /* border-gray-700 */
 }
 
+/* Pazardaki küçük kartların çerçeve ve boyut stili */
+.market-card-item {
+    width: 60px; /* Kart genişliği */
+    aspect-ratio: 7 / 10; /* Kart en boy oranı */
+    border-radius: 6px; /* Daha küçük bir köşe yuvarlaklığı */
+    padding: 3px; /* İç boşluk */
+    background-color: #1f2937;
+    position: relative;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+    flex-shrink: 0; /* Kartların küçülmesini engeller */
+}
+
+/* Pazardaki kartların içindeki resim stili */
+.market-card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 3px; /* Çerçeveye uygun köşe yuvarlaklığı */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
 .market-card-info {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 1rem; /* Yeni kartlar için aralığı biraz artırdık */
     text-align: left;
-}
-
-.market-card-info img {
-    width: 50px;
-    height: 70px;
-    object-fit: cover;
-    border-radius: 0.375rem;
-    border: 2px solid #4b5563;
+    min-width: 0; /* Flexbox'ın taşmasını engeller */
 }
 
 .market-card-info .card-name {
@@ -12884,7 +12899,6 @@ async function loadMarketOffers(mode) {
 
             let actionButton = '';
             if (mode === 'all') {
-                // --- DÜZELTME BURADA: Artık > 0 yerine > 1 kontrolü yapılıyor ---
                 const userHasRequestedCard = userCards[trade.requestedCardId] && userCards[trade.requestedCardId].count > 1;
                 const isMyOwnOffer = trade.offerer === currentUser;
                 
@@ -12910,7 +12924,9 @@ async function loadMarketOffers(mode) {
             const offerHtml = `
                 <div class="market-offer-card">
                     <div class="market-card-info">
-                        <img src="${offeredCard.imageUrl}" alt="${offeredCard.cardName}">
+                        <div class="market-card-item rarity-${offeredCard.rarity || 'normal'}">
+                            <img class="market-card-image" src="${offeredCard.imageUrl}" alt="${offeredCard.cardName}">
+                        </div>
                         <div>
                             <p class="card-name">${offeredCard.cardName}</p>
                             <p class="card-owner">Teklif Sahibi: <b class="text-yellow-400">${trade.offerer}</b></p>
@@ -12918,7 +12934,9 @@ async function loadMarketOffers(mode) {
                     </div>
                     <span class="text-2xl font-bold text-gray-500 mx-4">⇄</span>
                     <div class="market-card-info">
-                        <img src="${requestedCard.imageUrl}" alt="${requestedCard.cardName}">
+                        <div class="market-card-item rarity-${requestedCard.rarity || 'normal'}">
+                            <img class="market-card-image" src="${requestedCard.imageUrl}" alt="${requestedCard.cardName}">
+                        </div>
                         <div>
                             <p class="card-name">${requestedCard.cardName}</p>
                             <p class="card-owner">İstenen Kart</p>
@@ -12934,6 +12952,7 @@ async function loadMarketOffers(mode) {
     activeListeners.marketOffers = { ref: tradesRef, event: 'value', callback };
     tradesRef.on('value', callback);
 }
+
 // Yeni teklif oluşturma penceresini açar
 async function openCreateOfferModal(preselectedCardId = null) {
     const myCardSelect = document.getElementById('offerMyCardSelect');
