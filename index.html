@@ -11102,8 +11102,6 @@ function closeWheelSettingsModal() {
     wheelSettingsModal.style.display = 'none';
 }
 
-// MEVCUT addWheelSettingRow FONKSİYONUNU SİLİP BUNU YAPIŞTIR
-
 // Çark Ayarları için yeni satır ekler
 function addWheelSettingRow(item = {}) {
     const container = document.getElementById('wheelSettingsRowsContainer');
@@ -11111,8 +11109,8 @@ function addWheelSettingRow(item = {}) {
     row.className = 'wheel-setting-row grid grid-cols-1 sm:grid-cols-7 items-center gap-3 p-3 bg-gray-900 rounded-lg';
 
     const type = item.type || 'points';
-    const value = item.value || '';
-    const duration = item.duration || '';
+    const value = item.value !== undefined ? item.value : ''; // 0 değerini korumak için kontrol
+    const duration = item.duration || ''; // Kullanım hakkı için 'duration'
     const label = item.label || '';
     const imageUrl = item.imageUrl || '';
     const color = item.color || '#f44336';
@@ -11122,7 +11120,7 @@ function addWheelSettingRow(item = {}) {
         <select class="setting-type col-span-1 bg-gray-700 p-2 rounded-md text-white border border-gray-600" onchange="handleWheelRowTypeChange(this)">
             <option value="points" ${type === 'points' ? 'selected' : ''}>Puan</option>
             <option value="boxRights" ${type === 'boxRights' ? 'selected' : ''}>Kutu Hakkı</option>
-            <option value="iflasShield" ${type === 'iflasShield' ? 'selected' : ''}>İflas Kalkan</option>
+            <option value="iflasShield" ${type === 'iflasShield' ? 'selected' : ''}>İflas Kalkanı</option>
             <option value="tempMultiplier" ${type === 'tempMultiplier' ? 'selected' : ''}>Çarpan</option>
             <option value="surpriseBox" ${type === 'surpriseBox' ? 'selected' : ''}>Sürpriz Kutu</option>
             <option value="clickCatchTicket" ${type === 'clickCatchTicket' ? 'selected' : ''}>T-Y Bileti</option>
@@ -11138,7 +11136,7 @@ function addWheelSettingRow(item = {}) {
         <input type="text" value="${label}" class="setting-label col-span-1 sm:col-span-2 bg-gray-700 p-2 rounded-md text-white" placeholder="Etiket (Örn: JOKER!)">
         <input type="text" value="${imageUrl}" class="setting-image-url col-span-1 sm:col-span-2 bg-gray-700 p-2 rounded-md text-white" placeholder="Resim URL (Opsiyonel)">
         <input type="number" value="${value}" class="setting-value bg-gray-700 p-2 rounded-md text-white" placeholder="Değer">
-        <input type="number" value="${duration}" class="setting-duration bg-gray-700 p-2 rounded-md text-white" placeholder="Süre/Kullanım">
+        <input type="number" value="${duration}" class="setting-duration bg-gray-700 p-2 rounded-md text-white" placeholder="Kullanım Hakkı">
         <div class="col-span-1 flex items-center gap-2">
             <input type="color" value="${color}" class="setting-color h-10 w-10 p-1 bg-gray-700 rounded-md">
             <input type="number" value="${weight}" class="setting-weight flex-grow bg-gray-700 p-2 rounded-md text-white" placeholder="Şans">
@@ -11149,25 +11147,35 @@ function addWheelSettingRow(item = {}) {
     handleWheelRowTypeChange(row.querySelector('.setting-type'));
 }
     
-// Çark Ayarları'nda seçilen türe göre "Değer" ve "Süre" alanlarını yönetir
+/// Çark Ayarları'nda seçilen türe göre "Değer" ve "Kullanım Hakkı" alanlarını yönetir
 function handleWheelRowTypeChange(selectElement) {
     const row = selectElement.closest('.wheel-setting-row');
     const valueInput = row.querySelector('.setting-value');
-    const durationInput = row.querySelector('.setting-duration');
+    const durationInput = row.querySelector('.setting-duration'); // 'duration' bizim kullanım hakkı alanımız
     const selectedType = selectElement.value;
 
+    // Önce tüm inputları varsayılan durumuna getirelim
     valueInput.disabled = false;
+    valueInput.placeholder = 'Değer';
     durationInput.disabled = true;
-    durationInput.value = ''; // Süreyi temizle
+    durationInput.placeholder = 'Kullanım Hakkı';
+    
+    // SORUNLU SATIR BUYDU, SİLİNDİ: durationInput.value = '';
+    // Bu satır, input'a gelen doğru değeri siliyordu. Artık silmiyor.
 
     if (selectedType === 'pas' || selectedType === 'surpriseBox') {
         valueInput.disabled = true;
-        valueInput.value = ''; // Değeri temizle
+        valueInput.value = '';
+        valueInput.placeholder = 'N/A';
+        durationInput.value = ''; // Bu tipler için kullanım hakkı olmaz, temizleyelim.
     } else if (selectedType === 'tempMultiplier') {
-        durationInput.disabled = false;
-    } else if (selectedType === 'wildcard' || selectedType === 'card_pack') { // YENİ EKLENDİ
-        valueInput.disabled = false;
-        valueInput.value = 1; // Değeri otomatik 1 yap
+        // Eğer ÇARPAN seçildiyse:
+        valueInput.placeholder = 'Çarpan Değeri (2, 3...)';
+        durationInput.disabled = false; // Kullanım Hakkı alanını AKTİF ET
+        durationInput.placeholder = 'Kullanım Hakkı';
+    } else {
+        // Diğer tüm tipler için Kullanım Hakkı alanı pasif ve boş olmalı.
+        durationInput.value = ''; 
     }
 }
 
@@ -11181,20 +11189,40 @@ async function saveWheelSettings() {
         
         const type = row.querySelector('.setting-type').value;
         const label = row.querySelector('.setting-label').value.trim();
-        const imageUrl = row.querySelector('.setting-image-url').value.trim(); // YENİ: Resim URL'i okunuyor
-        const value = parseInt(row.querySelector('.setting-value').value) || 0;
-        const duration = parseInt(row.querySelector('.setting-duration').value) || 0;
+        const imageUrl = row.querySelector('.setting-image-url').value.trim();
+        const value = parseInt(row.querySelector('.setting-value').value); // Değeri her zaman oku
+        const duration = parseInt(row.querySelector('.setting-duration').value); // Kullanım hakkını her zaman oku
         const color = row.querySelector('.setting-color').value;
         const weight = parseInt(row.querySelector('.setting-weight').value);
 
         if (!label || !color || isNaN(weight) || weight <= 0) {
             displayMessage("Her dilim için Etiket, Renk ve geçerli bir Şans Ağırlığı girmelisiniz.");
             hasError = true;
+            return;
         }
 
-        const segment = { type, label, imageUrl, color, weight, order: index }; // YENİ: imageUrl veriye eklendi
-        if (!row.querySelector('.setting-value').disabled) segment.value = value;
-        if (!row.querySelector('.setting-duration').disabled) segment.duration = duration;
+        const segment = { type, label, imageUrl, color, weight, order: index };
+        
+        // Değerin gerekli olduğu tipler için kontrol
+        const needsValue = ['points', 'boxRights', 'iflasShield', 'tempMultiplier', 'clickCatchTicket', 'wheelTicket', 'wildcard', 'card_pack', 'card_pack_normal', 'card_pack_gumus', 'card_pack_altin', 'card_pack_efsanevi'];
+        if(needsValue.includes(type)) {
+            if(isNaN(value)) {
+                displayMessage(`'${label}' adlı dilim için geçerli bir Değer girmelisiniz.`);
+                hasError = true;
+                return;
+            }
+            segment.value = value;
+        }
+
+        // Sadece ÇARPAN tipi için Kullanım Hakkı'nı (duration) ekle
+        if (type === 'tempMultiplier') {
+            if(isNaN(duration) || duration <= 0) {
+                displayMessage(`'${label}' adlı Çarpan dilimi için geçerli bir Kullanım Hakkı girmelisiniz.`);
+                hasError = true;
+                return;
+            }
+            segment.duration = duration;
+        }
         
         newConfig.push(segment);
     });
@@ -11209,7 +11237,7 @@ async function saveWheelSettings() {
     const confirmed = await customConfirm("Yeni çark ayarları kaydedilecek. Onaylıyor musunuz?");
     if (confirmed) {
         await db.ref('gameConfig/wheelSegments').set(newConfig);
-        await loadWheelSettingsFromDB();
+        await loadWheelSettingsFromDB(); // Yeni ayarları anında yükle ve çarkı çiz
         displayMessage("Şans Çarkı ayarları başarıyla kaydedildi.");
         closeWheelSettingsModal();
     }
@@ -11219,9 +11247,16 @@ async function resetWheelSettingsToDefault() {
     if (!isAdmin) return;
     const confirmed = await customConfirm("Mevcut ayarları silip varsayılan çark yapılandırmasına dönmek istediğinize emin misiniz? (Değişiklikleri kalıcı yapmak için kaydetmeniz gerekir.)");
     if (!confirmed) return;
+
+    // Doğru container'ı seçiyoruz
     const container = document.getElementById('wheelSettingsRowsContainer');
-    container.innerHTML = '';
-    defaultWheelSegments.forEach(item => addWheelSettingRow(item));
+    container.innerHTML = ''; // Paneli temizliyoruz
+
+    // HATA BURADAYDI: Yanlışlıkla BOX_CONTENTS kullanılıyordu, DOĞRUSU defaultWheelSegments olacak.
+    // Artık doğru listeyi okuyup, doğru fonksiyonla satırları ekliyor.
+    defaultWheelSegments.forEach(item => {
+        addWheelSettingRow(item);
+    });
 }
 
 function loadWheelHistory() {
