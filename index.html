@@ -11171,7 +11171,6 @@ function handleWheelRowTypeChange(selectElement) {
     }
 }
 
-// YUKARIDAKİ ESKİ KODUN YERİNE BUNU YAPIŞTIR
 async function saveWheelSettings() {
     if (!isAdmin) return;
 
@@ -11182,28 +11181,19 @@ async function saveWheelSettings() {
         
         const type = row.querySelector('.setting-type').value;
         const label = row.querySelector('.setting-label').value.trim();
-        const imageUrl = row.querySelector('.setting-image-url').value.trim();
-        const value = parseInt(row.querySelector('.setting-value').value); // DEĞİŞİKLİK 1: `|| 0` kaldırıldı
-        const duration = parseInt(row.querySelector('.setting-duration').value); // DEĞİŞİKLİK 2: `|| 0` kaldırıldı
+        const imageUrl = row.querySelector('.setting-image-url').value.trim(); // YENİ: Resim URL'i okunuyor
+        const value = parseInt(row.querySelector('.setting-value').value) || 0;
+        const duration = parseInt(row.querySelector('.setting-duration').value) || 0;
         const color = row.querySelector('.setting-color').value;
         const weight = parseInt(row.querySelector('.setting-weight').value);
 
         if (!label || !color || isNaN(weight) || weight <= 0) {
             displayMessage("Her dilim için Etiket, Renk ve geçerli bir Şans Ağırlığı girmelisiniz.");
             hasError = true;
-            return;
         }
 
-        // DEĞİŞİKLİK 3: ÇARPAN İÇİN ÖZEL KONTROL EKLENDİ
-        if (type === 'tempMultiplier' && (isNaN(duration) || duration < 1)) {
-            displayMessage("Hata: Çarpan türü için 'Süre/Kullanım' alanı 1 veya daha büyük bir sayı olmalıdır.");
-            hasError = true;
-            return;
-        }
-        // KONTROL BİTTİ
-
-        const segment = { type, label, imageUrl, color, weight, order: index };
-        if (!row.querySelector('.setting-value').disabled) segment.value = value || 0; // Değeri burada varsayılana çekiyoruz
+        const segment = { type, label, imageUrl, color, weight, order: index }; // YENİ: imageUrl veriye eklendi
+        if (!row.querySelector('.setting-value').disabled) segment.value = value;
         if (!row.querySelector('.setting-duration').disabled) segment.duration = duration;
         
         newConfig.push(segment);
