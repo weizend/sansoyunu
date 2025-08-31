@@ -9207,19 +9207,20 @@ async function spinWheel() {
         return;
     }
 
+    // --- YENİ EKLENEN KİLİT KODU (1. DEĞİŞİKLİK) ---
+    // Yarış Durumunu (Race Condition) engellemek için çark dönerken oyunu kilitliyoruz.
+    await db.ref('gameLock').set(true);
+    // ---------------------------------------------
+
     const userRef = db.ref('users/' + currentUser);
     const userSnap = await userRef.once('value');
     const userData = userSnap.val();
 
     if (!userData || (userData.carkBileti || 0) < 1) {
         displayMessage("Çarkı çevirmek için yeterli biletiniz yok.");
+        await db.ref('gameLock').set(false); // Bilet yoksa kilidi aç.
         return;
     }
-
-    // --- YENİ EKLENEN KİLİT KODU (1. DEĞİŞİKLİK) ---
-    // Yarış Durumunu (Race Condition) engellemek için çark dönerken oyunu kilitliyoruz.
-    await db.ref('gameLock').set(true);
-    // ---------------------------------------------
 
     const hasActiveMultiplier =
         (userData.multiplierSource === 'store' && (userData.multiplierRemainingUses || 0) > 0) ||
@@ -9357,6 +9358,13 @@ async function spinWheel() {
                 const prizeText = packNames[winningSegment.type] || `+${packsToOpen} Kart Paketi`;
                 
                 message = `Tebrikler! Çarktan <b class="text-yellow-300">${prizeText}</b> kazandın!`;
+                
+                // --- DÜZELTME BURADA ---
+                // Oluşturduğumuz doğru ödül ismini, daha sonra loglama sisteminin kullanabilmesi için
+                // kazanan segment objesine manuel olarak ekliyoruz.
+                winningSegment.prizeName = prizeText;
+                // -------------------------
+
                 startCardPackOpening(packsToOpen, 'Şans Çarkı', 1, winningSegment.type);
                 break;
             case 'pas':
@@ -9407,10 +9415,7 @@ async function spinWheel() {
         wheel.style.transition = 'none';
         wheel.style.transform = `rotate(${normalizedRotation}deg)`;
 
-        // --- YENİ EKLENECEK KİLİT AÇMA KODU (2. DEĞİŞİKLİK) ---
-        // Bütün işlemler bitti, artık oyun kilidini güvenle açabiliriz.
         await db.ref('gameLock').set(false);
-        // ----------------------------------------------------
 
     }, 5100);
 }
