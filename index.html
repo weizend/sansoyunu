@@ -2206,7 +2206,7 @@ body.modal-open .modal-content {
             <div class="bg-gray-900 p-4 rounded-lg border border-gray-700 mt-4">
                 <h5 class="font-semibold text-gray-300 mb-2">Çıkacak Özel Hedef</h5>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <select id="soloSpecialItemType" class="box-setting-input md:col-span-1">
+                    <select id="soloSpecialItemType" class="box-setting-input md:col-span-1" onchange="handleSoloSpecialTypeChange()">
     <option value="boxRight">📦 Kutu Hakkı</option>
     <option value="iflasShield">🛡️ İflas Kalkanı)</option>
     <option value="wheelTicket">🎫 Çark Bileti</option>
@@ -10445,17 +10445,8 @@ async function loadSoloGameSettings() {
     document.getElementById('soloSpecialValue').value = soloGameSettings.specialValue || 1;
     document.getElementById('soloSpecialMultiplierUses').value = soloGameSettings.specialMultiplierUses || 1;
     
-    // YENİ EKLENEN KOD: Seçime göre input'ları göster/gizle
-    const typeSelect = document.getElementById('soloSpecialItemType');
-    const valueInput = document.getElementById('soloSpecialValue');
-    const usesInput = document.getElementById('soloSpecialMultiplierUses');
-    if (typeSelect.value === 'tempMultiplier') {
-        valueInput.placeholder = 'Çarpan Değeri (örn: 2)';
-        usesInput.classList.remove('hidden');
-    } else {
-        valueInput.placeholder = 'Adet (örn: 1, 5)';
-        usesInput.classList.add('hidden');
-    }
+    // Ayarlar yüklendikten sonra input'ların görünürlüğünü kontrol eden fonksiyonu çağırır.
+    handleSoloSpecialTypeChange();
 }
 
 async function startSoloClickCatchGame() {
@@ -14328,6 +14319,22 @@ function listenForTradeNotifications() {
     function closeCollectionAdminModal() {
         document.getElementById('collectionAdminModal').style.display = 'none';
     }
+    
+    // BU YENİ FONKSİYONU EKLE
+function handleSoloSpecialTypeChange() {
+    const typeSelect = document.getElementById('soloSpecialItemType');
+    const valueInput = document.getElementById('soloSpecialValue');
+    const usesInput = document.getElementById('soloSpecialMultiplierUses');
+    
+    if (typeSelect.value === 'tempMultiplier') {
+        valueInput.placeholder = 'Çarpan Değeri (örn: 2)';
+        usesInput.classList.remove('hidden');
+    } else {
+        valueInput.placeholder = 'Adet (örn: 1, 5)';
+        usesInput.classList.add('hidden');
+    }
+}
+
 // ★★★ YENİ EKLENECEK FONKSİYONLAR SONU ★★★
       
 </script>
