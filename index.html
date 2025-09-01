@@ -12795,40 +12795,54 @@ async function acceptTradeOffer(tradeId) {
     if (!confirmed) return;
 
     let finalAccepterBalance = 0;
-    const transactionResult = await db.ref().transaction(data => {
-        if (!data.trades || !data.trades[tradeId]) { return; }
-        const currentTrade = data.trades[tradeId];
-        const accepter = data.users[currentUser];
-        const offerer = data.users[currentTrade.offerer];
+    // Düzeltilmiş acceptTradeOffer fonksiyonundaki transaction bloğu
+const transactionResult = await db.ref().transaction(data => {
+    // 1. Gerekli veriler (takas, kabul eden, teklif eden) veritabanında mevcut mu? Kontrol et.
+    if (!data.trades || !data.trades[tradeId]) { return; /* Takas yok, işlemi iptal et */ }
+    const currentTrade = data.trades[tradeId];
+    const accepter = data.users[currentUser];
+    const offerer = data.users[currentTrade.offerer];
 
-        if (!accepter || !offerer) { return; }
-        if (!accepter.cardCollection?.[currentTrade.requestedCardId]?.count || accepter.cardCollection[currentTrade.requestedCardId].count <= 1) { return; }
-        if (!offerer.cardCollection?.[currentTrade.offeredCardId]?.count || offerer.cardCollection[currentTrade.offeredCardId].count < 1) { return; }
-        if ((accepter.balance || 0) < tradeFee) { return; }
+    // 2. Oyuncular ve kartları mevcut mu? Kontrol et.
+    if (!accepter || !offerer) { return; /* Oyunculardan biri yok, iptal et */ }
+    if (!accepter.cardCollection?.[currentTrade.requestedCardId]?.count || accepter.cardCollection[currentTrade.requestedCardId].count <= 1) { return; /* Kabul edenin verecek kartı yok, iptal et */ }
+    if (!offerer.cardCollection?.[currentTrade.offeredCardId]?.count || offerer.cardCollection[currentTrade.offeredCardId].count < 1) { return; /* Teklif edenin verecek kartı kalmamış, iptal et */ }
+    if ((accepter.balance || 0) < tradeFee) { return; /* Yeterli işlem ücreti yok, iptal et */ }
 
-        accepter.cardCollection[currentTrade.requestedCardId].count--;
-        if (accepter.cardCollection[currentTrade.requestedCardId].count === 0) {
-            accepter.cardCollection[currentTrade.requestedCardId] = null;
-        }
-        if (!accepter.cardCollection[currentTrade.offeredCardId]) {
-            accepter.cardCollection[currentTrade.offeredCardId] = { count: 0 };
-        }
-        accepter.cardCollection[currentTrade.offeredCardId].count++;
+    // --- KABUL EDENİN KART GÜNCELLEMESİ ---
+    // Vereceği kartın sayısını 1 azalt.
+    accepter.cardCollection[currentTrade.requestedCardId].count--;
+    if (accepter.cardCollection[currentTrade.requestedCardId].count === 0) {
+        accepter.cardCollection[currentTrade.requestedCardId] = null; // Kart bittiyse tamamen kaldır.
+    }
+    // Alacağı kart envanterinde yoksa, önce oluştur.
+    if (!accepter.cardCollection[currentTrade.offeredCardId]) {
+        accepter.cardCollection[currentTrade.offeredCardId] = { count: 0 };
+    }
+    // Alacağı kartın sayısını 1 artır.
+    accepter.cardCollection[currentTrade.offeredCardId].count++;
 
-        offerer.cardCollection[currentTrade.offeredCardId].count--;
-        if (offerer.cardCollection[currentTrade.offeredCardId].count === 0) {
-            offerer.cardCollection[currentTrade.offeredCardId] = null;
-        }
-        if (!offerer.cardCollection[currentTrade.requestedCardId]) {
-            offerer.cardCollection[currentTrade.requestedCardId] = { count: 0 };
-        }
-        offerer.cardCollection[currentTrade.requestedCardId].count++;
+    // --- TEKLİF EDENİN KART GÜNCELLEMESİ ---
+    // Verdiği (teklif ettiği) kartın sayısını 1 azalt.
+    offerer.cardCollection[currentTrade.offeredCardId].count--;
+    if (offerer.cardCollection[currentTrade.offeredCardId].count === 0) {
+        offerer.cardCollection[currentTrade.offeredCardId] = null; // Kart bittiyse tamamen kaldır.
+    }
+    // Aldığı (karşılığında istediği) kart envanterinde yoksa, önce oluştur.
+    if (!offerer.cardCollection[currentTrade.requestedCardId]) {
+        offerer.cardCollection[currentTrade.requestedCardId] = { count: 0 };
+    }
+    // Aldığı kartın sayısını 1 artır.
+    offerer.cardCollection[currentTrade.requestedCardId].count++;
 
-        accepter.balance = (accepter.balance || 0) - tradeFee;
-        finalAccepterBalance = accepter.balance; 
-        data.trades[tradeId] = null;
-        return data;
-    });
+    // 4. İşlem ücretini düş ve takası kaldır.
+    accepter.balance = (accepter.balance || 0) - tradeFee;
+    finalAccepterBalance = accepter.balance; 
+    data.trades[tradeId] = null; // Takası sil.
+
+    // 5. Güncellenmiş veriyi geri döndür.
+    return data;
+});
 
     if (transactionResult.committed) {
         logActivity('tradeOfferAccepted', currentUser, {
