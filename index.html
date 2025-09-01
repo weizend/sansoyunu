@@ -5519,7 +5519,10 @@ function getActivityIcon(type, details = {}) {
             bgColor = 'bg-purple-600';
             break;
         case 'multiplierUpgraded':
-            icon = '❎';
+        case 'multiplierStacked':
+        case 'multiplierUpgradedFromStore':
+        case 'dailyRewardMultiplierStacked':
+            icon = '✨';
             bgColor = 'bg-teal-500';
             break;
         case 'multiplierFound':
@@ -5527,26 +5530,21 @@ function getActivityIcon(type, details = {}) {
             icon = '✖️';
             bgColor = 'bg-purple-500';
             break;
-        case 'multiplierCombined':
-        case 'multiplierUpgradedWithRefund':
-            icon = '✨';
-            bgColor = 'bg-teal-500';
-            break;
-        case 'multiplierUpgradedFromStore':
-        case 'multiplierStackedFromStore':
         case 'buyItem':
             icon = '🛒';
             bgColor = 'bg-indigo-500';
             break;
         case 'multiplierDiscarded':
+        case 'multiplierCombined': // Bu yeni case ❎ ikonunu kullanacak
             icon = '❎';
-            bgColor = 'bg-gray-600';
+            bgColor = 'bg-teal-500';
             break;
         case 'multiplierConvertedToBoxRights':
         case 'multiplierConvertedOnUsedOpen':
         case 'multiplierConvertedOnUnusedOpen':
+        case 'dailyRewardMultiplierConverted':
             icon = '♻️';
-            bgColor = 'bg-lime-600';
+            bgColor = 'bg-lime-600'; 
             break;
         case 'multiplierSwappedOnUnusedOpen':
             icon = '🔄';
@@ -5598,15 +5596,6 @@ function getActivityIcon(type, details = {}) {
         case 'clickCatchLobby':
             icon = '🎯';
             bgColor = 'bg-orange-500';
-            break;
-        // --- İSTEDİĞİN GÜNCELLEME BURADA ---
-        case 'dailyRewardMultiplierConverted':
-            icon = '📅';
-            bgColor = 'bg-lime-600'; 
-            break;
-        case 'dailyRewardMultiplierStacked':
-            icon = '📅';
-            bgColor = 'bg-teal-500';
             break;
         case 'dailyReward':
             if (details.rewardType === 'avatar') {
@@ -5689,7 +5678,6 @@ function renderActivityFeed(activities) {
                 : '';
 
             switch (activity.type) {
-                // ★★★ İSTEĞİNİZE GÖRE GÜNCELLENEN TAKAS BİLDİRİMLERİ ★★★
                 case 'tradeOfferCreated':
                     message = `${userHtml}, <b class="text-red-400">-${details.fee} Puan</b> ödeyip pazara yeni bir takas teklifi koydu: <b class="text-cyan-300">${details.offeredCardName}</b> karşılığında <b class="text-pink-300">${details.requestedCardName}</b> istiyor.`;
                     
@@ -5702,8 +5690,6 @@ function renderActivityFeed(activities) {
                 case 'tradeOfferAccepted':
                     message = `${userHtml}, <b class="text-red-400">-${details.fee} Puan</b> ödeyip, ${details.offerer}'in <b class="text-cyan-300">'${details.offeredCardName}'</b> kartı teklifini kabul etti ve karşılığında <b class="text-pink-300">'${details.requestedCardName}'</b> kartını verdi. <span class="text-gray-400">(Kalan Puan: ${formatNumber(details.newBalance)})</span>`;
                     break;
-                // ★★★ GÜNCELLEMELER SONA ERDİ, DİĞERLERİ ORİJİNAL HALİYLE DEVAM EDİYOR ★★★
-                    
                 case 'newItemFound':
                     let newItemMultiplierText = (details.multiplier && details.multiplier > 1)
                         ? ` <span class="text-xs text-purple-400">(${details.multiplier}x çarpan kullandı)</span>`
@@ -5725,17 +5711,11 @@ function renderActivityFeed(activities) {
                 case 'cardPackConverted':
                     message = `${userHtml}, Koleksiyonu tamamladığı için ${details.source}'dan aldığı ${details.packs} Kart Paketi'ni <b class="text-green-300 font-bold">+${details.points} Puana</b> dönüştürdü.`;
                     break;
-                case 'multiplierConvertedOnUsedOpen':
-                    message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <b>${details.foundValue}x çarpan</b> buldu. Mevcut <b>+${details.existingUses} adet ${details.existingValue}x çarpanını</b> koruyarak, kutudan çıkan çarpanı <span class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı'na</span> dönüştürdü. <span class="text-xs text-gray-400">(Çarpanla Çarpan Buldu)</span>`;
+                case 'multiplierCombined': // YENİ EKLENEN CASE
+                    message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <b>${details.foundValue}x çarpan</b> buldu. Mevcut çarpanıyla birleştirerek tek kullanımlık <b class="text-teal-300 font-bold">${details.combinedValue}x</b> gücüne ulaştı ve <span class="text-green-300 font-bold">+1 Kutu Hakkı</span> iade aldı.`;
                     break;
-                case 'multiplierUpgradedWithRefund':
-                    message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <b>${details.foundValue}x çarpan</b> buldu. Mevcut <b>+${details.existingUses} adet ${details.existingValue}x çarpanını</b> tek kullanımlık <b>${details.combinedValue}x çarpana</b> yükseltti ve <span class="text-green-300 font-bold">+1 Kutu Hakkı</span> iade aldı. <span class="text-xs text-gray-400">(Çarpanla Çarpan Buldu)</span>`;
-                    break;
-                case 'multiplierConvertedOnUnusedOpen':
-                    message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <b>${details.foundValue}x çarpan</b> buldu. Mevcut <b>+${details.existingUses} adet ${details.existingValue}x çarpanını</b> koruyarak, yeni çarpanı <span class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı'na</span> dönüştürdü. <span class="text-xs text-gray-400">(Çarpan Kullanılmadı)</span>`;
-                    break;
-                case 'multiplierSwappedOnUnusedOpen':
-                    message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <b>${details.foundValue}x çarpan</b> buldu. Mevcut <b>${details.existingValue}x çarpanının ${details.refundedUses} kullanım hakkını +${details.boxRights} Kutu Hakkı'na</b> dönüştürerek envanterine yeni <b>tek kullanımlık ${details.foundValue}x çarpanı</b> ekledi. <span class="text-xs text-gray-400">(Çarpan Kullanılmadı)</span>`;
+                case 'multiplierStacked': // YENİ EKLENEN CASE
+                     message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan mevcut <b>${details.value}x</b> çarpanıyla aynı değerde bir çarpan daha buldu. Kullanım hakkı <b class="text-teal-300 font-bold">+1</b> artırıldı.`;
                     break;
                 case 'openBox':
                     let openBoxMultiplierText = (details.multiplier && details.multiplier > 1)
@@ -5764,15 +5744,6 @@ function renderActivityFeed(activities) {
                     break;
                 case 'multiplierFound':
                     message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-purple-300 font-bold">${details.value}x Çarpan</span> buldu.`;
-                    break;
-                case 'multiplierStackedFromStore':
-                    message = `${userHtml}, mağazadan <b class="text-red-400 font-bold">-${details.cost} Puan</b> harcayarak envanterindeki <b>${details.multiplierValue}x</b> çarpanına <b class="text-teal-300">+${details.usesAdded} kullanım hakkı</b> ekledi. Yeni toplam: <b class="text-white">${details.newTotalUses} kullanım</b>. <span class="text-gray-400">(Kalan Puan: ${details.newBalance})</span>`;
-                    break;
-                case 'multiplierUpgradedFromStore':
-                    message = `${userHtml}, mağazadan <b class="text-red-400 font-bold">-${details.cost} Puan</b> harcayarak <b class="text-green-400">+${details.newUses} adet ${details.newValue}x çarpan</b> aldı ve envanterinde bulunan <b class="text-orange-400">+${details.oldUses} adet ${details.oldValue}x</b> çarpanını <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b>'na dönüştürdü. <span class="text-gray-400">(Kalan Puan: ${details.newBalance})</span>`;
-                    break;
-                case 'dailyRewardMultiplierConverted':
-                     message = `${userHtml}, Günlük Ödül'den <b>${details.rewardValue}x çarpanı</b> <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b>'na dönüştürdü. Envanterindeki daha yüksek olan <b class="text-purple-400">+${details.keptMultiplierUses} adet ${details.keptMultiplierValue}x çarpanı</b> envanterinde kaldı.`;
                     break;
                 case 'buyItem':
                     let balanceText = details.itemType === 'special' 
@@ -5830,13 +5801,10 @@ function renderActivityFeed(activities) {
                     message = `${userHtml}, lobi oyununu kazanarak <span class="text-yellow-300 font-bold">+${details.prize} Puan</span> ödül aldı! <span class="text-gray-400">(Mevcut Puan: ${details.newBalance})</span>`;
                     break;
                 case 'multiplierUpgraded':
-                    message = `${userHtml}, Tıkla-Yakala'dan <b>${details.newValue}x çarpan</b> kazandı ve mevcut ${details.oldValue}x çarpanını yükseltti. Eski çarpanından kalan kullanım hakları <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b> olarak envanterine eklendi.`;
+                    message = `${userHtml}, ${details.source}'dan <b>${details.newValue}x çarpan</b> kazandı ve mevcut ${details.oldValue}x çarpanını yükseltti. Eski çarpanından kalan kullanım hakları <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b> olarak envanterine eklendi.`;
                     break;
-                case 'multiplierStacked':
-                    message = `${userHtml}, Tıkla-Yakala'dan <b>${details.value}x çarpan</b> kazandı ve mevcut çarpanına <b class="text-teal-300">+${details.uses} kullanım hakkı</b> ekledi.`;
-                    break;
-                case 'dailyRewardMultiplierStacked':
-                    message = `${userHtml}, mevcut <b>${details.multiplierValue}x</b> çarpanına günlük ödülden gelen <b class="text-teal-300">+${details.usesAdded} kullanım hakkını</b> ekledi. Yeni toplam: <b class="text-white">${details.newTotalUses} kullanım</b>.`;
+                case 'dailyRewardMultiplierConverted':
+                     message = `${userHtml}, Günlük Ödül'den <b>${details.rewardValue}x çarpanı</b> <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b>'na dönüştürdü. Envanterindeki daha yüksek olan <b class="text-purple-400">+${details.keptMultiplierUses} adet ${details.keptMultiplierValue}x çarpanı</b> envanterinde kaldı.`;
                     break;
                 case 'dailyReward':
                     let rewardText = '';
@@ -12727,17 +12695,17 @@ function switchMarketTab(tabName) {
     }
 }
 
-// MEVCUT acceptTradeOffer FONKSİYONUNU BU YENİ VE DÜZELTİLMİŞ VERSİYONLA DEĞİŞTİR
+// MEVCUT acceptTradeOffer FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
 
 let isTradeInProgress = false;
 
 async function acceptTradeOffer(tradeId, buttonElement) {
     if (isTradeInProgress) {
-        return; // Zaten bir işlem varsa ikincisini başlatma
+        return; 
     }
     if (isAdmin) return;
 
-    isTradeInProgress = true; // İşlemi kilitle
+    isTradeInProgress = true; 
     if (buttonElement) {
         buttonElement.disabled = true;
         buttonElement.textContent = 'İşleniyor...';
@@ -12749,7 +12717,7 @@ async function acceptTradeOffer(tradeId, buttonElement) {
 
         if (marketSettings.isLocked) {
             displayMessage("Takas Pazarı şu anda bakım nedeniyle geçici olarak kapalıdır.");
-            return;
+            throw new Error("Pazar kilitli.");
         }
 
         const tradeFee = marketSettings.tradeFee || 0;
@@ -12760,7 +12728,7 @@ async function acceptTradeOffer(tradeId, buttonElement) {
         if (!trade) {
             displayMessage("Bu takas teklifi artık geçerli değil.");
             loadMarketOffers('all');
-            return;
+            throw new Error("Takas bulunamadı.");
         }
 
         const userRef = db.ref(`users/${currentUser}`);
@@ -12770,13 +12738,13 @@ async function acceptTradeOffer(tradeId, buttonElement) {
 
         if (!userCards[trade.requestedCardId] || userCards[trade.requestedCardId].count <= 1) {
             displayMessage(`Bu takası yapabilmek için istenen karttan en az 2 adete sahip olmalısın.`);
-            return;
+            throw new Error("Yetersiz kart.");
         }
         if ((userData.balance || 0) < tradeFee) {
             displayMessage(`Takas için gereken ${tradeFee} Puan işlem ücretine sahip değilsin.`);
-            return;
+            throw new Error("Yetersiz bakiye.");
         }
-
+        
         const masterCardsSnap = await db.ref('gameConfig/cardCollection').once('value');
         const masterCards = masterCardsSnap.val();
         const offeredCard = masterCards[trade.offeredCardId];
@@ -12784,81 +12752,76 @@ async function acceptTradeOffer(tradeId, buttonElement) {
 
         const confirmed = await customConfirm(`<b>${trade.offerer}</b> ile takas yapacaksın. Vereceğin kart: <b class="text-red-400">${requestedCard.cardName}</b>, Alacağın kart: <b class="text-green-400">${offeredCard.cardName}</b>. İşlem ücreti: <b class="text-yellow-400">${tradeFee} Puan</b>. Onaylıyor musun?`);
         if (!confirmed) {
-            return;
+            throw new Error("Kullanıcı iptal etti.");
         }
+        
+        // --- YENİ VE GÜVENLİ MANTIK BAŞLANGICI ---
 
-        let finalAccepterBalance = 0;
-        const transactionResult = await db.ref().transaction(data => {
-            if (!data.trades || !data.trades[tradeId]) { return; }
-            
-            const currentTrade = data.trades[tradeId];
-            const accepter = data.users[currentUser];
-            const offerer = data.users[currentTrade.offerer];
-
-            if (!accepter || !offerer) { return; }
-            if (!accepter.cardCollection?.[currentTrade.requestedCardId]?.count || accepter.cardCollection[currentTrade.requestedCardId].count <= 1) { return; }
-            if ((accepter.balance || 0) < tradeFee) { return; }
-
-            // === DÜZELTİLMİŞ KART ALIŞVERİŞ MANTIĞI ===
-            
-            // 1. KABUL EDEN KULLANICI İÇİN:
-            // Vereceği kartın sayısını 1 azalt.
-            accepter.cardCollection[currentTrade.requestedCardId].count--;
-            // Alacağı kart envanterinde yoksa, önce oluştur.
-            if (!accepter.cardCollection[currentTrade.offeredCardId]) {
-                accepter.cardCollection[currentTrade.offeredCardId] = { count: 0 };
+        // 1. ADIM: Sadece takasın kendisini transaction ile kaldırarak "kap".
+        const transactionResult = await tradeRef.transaction(currentTrade => {
+            if (currentTrade === null) {
+                return; // Başka biri takası zaten almış, işlemi iptal et.
             }
-            // Alacağı kartın sayısını 1 artır.
-            accepter.cardCollection[currentTrade.offeredCardId].count++;
-
-            // 2. TEKLİFİ VEREN KULLANICI İÇİN:
-            // HATALI KISIM BURADAYDI VE KALDIRILDI! Teklif verenin kartı zaten pazara koyulurken düşülmüştü.
-            // Burada tekrar düşmeye GEREK YOK. Sadece istediği kartı alacak.
-            
-            // Aldığı (karşılığında istediği) kart envanterinde yoksa, önce oluştur.
-            if (!offerer.cardCollection[currentTrade.requestedCardId]) {
-                offerer.cardCollection[currentTrade.requestedCardId] = { count: 0 };
-            }
-            // Aldığı kartın sayısını 1 artır.
-            offerer.cardCollection[currentTrade.requestedCardId].count++;
-
-            // 3. İşlem ücretini düş ve takası kaldır.
-            accepter.balance = (accepter.balance || 0) - tradeFee;
-            finalAccepterBalance = accepter.balance;
-            data.trades[tradeId] = null;
-
-            return data;
+            return null; // Takası kaldır.
         });
 
-        if (transactionResult.committed) {
-            // İşlem başarılıysa loglama ve bildirimler...
-            logActivity('tradeOfferAccepted', currentUser, {
-                offerer: trade.offerer, fee: tradeFee, newBalance: finalAccepterBalance,
-                offeredCardName: offeredCard.cardName, requestedCardName: requestedCard.cardName
-            });
-            if (trade.activityId) {
-                await db.ref(`activityFeed/${trade.activityId}/details/status`).set('completed');
-            }
-            const notificationMessage = `<b>${currentUser}</b>, '${offeredCard.cardName}' kartı karşılığında verdiğiniz '${requestedCard.cardName}' takasını onayladı. Yeni kartınız albümünüze eklendi!`;
-            await db.ref(`tradeNotifications/${trade.offerer}`).push({ message: notificationMessage, timestamp: firebase.database.ServerValue.TIMESTAMP });
-            await db.ref('tradeHistory').push().set({
-                offerer: trade.offerer, accepter: currentUser, offeredCardId: trade.offeredCardId,
-                requestedCardId: trade.requestedCardId, offeredCardName: offeredCard.cardName,
-                requestedCardName: requestedCard.cardName, timestamp: firebase.database.ServerValue.TIMESTAMP
-            });
-
-            displayMessage("Takas başarıyla tamamlandı!");
+        // Eğer takas başkası tarafından alınmışsa, işlemi durdur.
+        if (!transactionResult.committed) {
+            displayMessage("Takas yapılamadı. Muhtemelen teklif sahibi kartı pazardan çekti veya başka bir oyuncu daha hızlı davrandı.");
             loadMarketOffers('all');
-            if (currentActiveSection === 'cardCollection') loadCollectionAlbum();
-        } else {
-            displayMessage("Takas yapılamadı. Muhtemelen teklif sahibi kartı pazardan çekti veya başka bir sorun oluştu.");
-            loadMarketOffers('all');
+            throw new Error("Takas zaten alınmış.");
         }
+
+        // 2. ADIM: Takas başarıyla alındıysa, şimdi kullanıcı güncellemelerini yap.
+        const updates = {};
+        
+        // Kabul eden (benim) güncellemelerim
+        updates[`users/${currentUser}/cardCollection/${trade.requestedCardId}/count`] = (userCards[trade.requestedCardId].count) - 1;
+        updates[`users/${currentUser}/cardCollection/${trade.offeredCardId}/count`] = (userCards[trade.offeredCardId]?.count || 0) + 1;
+        updates[`users/${currentUser}/balance`] = (userData.balance || 0) - tradeFee;
+        const finalAccepterBalance = updates[`users/${currentUser}/balance`];
+
+        // Teklifi verenin güncellemeleri
+        const offererRef = db.ref(`users/${trade.offerer}`);
+        const offererSnap = await offererRef.once('value');
+        const offererData = offererSnap.val();
+        updates[`users/${trade.offerer}/cardCollection/${trade.requestedCardId}/count`] = (offererData.cardCollection?.[trade.requestedCardId]?.count || 0) + 1;
+        
+        // Tüm güncellemeleri tek seferde yap
+        await db.ref().update(updates);
+        
+        // 3. ADIM: Loglama ve bildirim işlemleri
+        logActivity('tradeOfferAccepted', currentUser, {
+            offerer: trade.offerer, fee: tradeFee, newBalance: finalAccepterBalance,
+            offeredCardName: offeredCard.cardName, requestedCardName: requestedCard.cardName
+        });
+
+        if (trade.activityId) {
+            await db.ref(`activityFeed/${trade.activityId}/details/status`).set('completed');
+        }
+
+        const notificationMessage = `<b>${currentUser}</b>, '${offeredCard.cardName}' kartı karşılığında verdiğiniz '${requestedCard.cardName}' takasını onayladı. Yeni kartınız albümünüze eklendi!`;
+        await db.ref(`tradeNotifications/${trade.offerer}`).push({ message: notificationMessage, timestamp: firebase.database.ServerValue.TIMESTAMP });
+        
+        await db.ref('tradeHistory').push().set({
+            offerer: trade.offerer, accepter: currentUser, offeredCardId: trade.offeredCardId,
+            requestedCardId: trade.requestedCardId, offeredCardName: offeredCard.cardName,
+            requestedCardName: requestedCard.cardName, timestamp: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        displayMessage("Takas başarıyla tamamlandı!");
+        loadMarketOffers('all');
+        if (currentActiveSection === 'cardCollection') loadCollectionAlbum();
+
+        // --- GÜVENLİ MANTIK SONU ---
+
     } catch (error) {
-        console.error("Takas işlemi hatası:", error);
-        displayMessage("Beklenmedik bir hata oluştu. Lütfen konsolu kontrol edin.");
+        // Hata "Kullanıcı iptal etti" gibi bizim kontrol ettiğimiz bir durum değilse mesaj göster.
+        if (error.message !== "Kullanıcı iptal etti." && error.message !== "Takas bulunamadı." && error.message !== "Yetersiz kart." && error.message !== "Yetersiz bakiye." && error.message !== "Pazar kilitli." && error.message !== "Takas zaten alınmış.") {
+             console.error("Takas işlemi hatası:", error);
+             displayMessage("Beklenmedik bir hata oluştu. Lütfen konsolu kontrol edin.");
+        }
     } finally {
-        // İşlem ne olursa olsun (başarılı, başarısız, iptal) sonunda kilidi kaldır ve butonu normale döndür.
         isTradeInProgress = false;
         if (buttonElement) {
             buttonElement.disabled = false;
@@ -13968,26 +13931,22 @@ function openMultiplierChoiceModal(existingMultiplier, foundMultiplier, boxId) {
     modal.style.display = 'flex';
 }
 
-// Seçim penceresini açar ve senaryoya göre içini doldurur
 function openMultiplierChoiceModal(context) {
     const modal = document.getElementById('multiplierChoiceModal');
     const infoEl = document.getElementById('multiplierChoiceInfo');
     const convertBtn = document.getElementById('choiceConvertBtn');
     const combineBtn = document.getElementById('choiceCombineBtn');
 
-    // Bekleyen seçimi global değişkene kaydet
     pendingMultiplierChoice = context;
 
     const { hasMultiplier, existing, found } = context;
 
     if (hasMultiplier) {
-        // Senaryo: Kullanıcının zaten bir çarpanı var ve FARKLI bir tane buldu
         const boxRightsFromFound = found.value;
         const convertText = `Yeni ${found.value}x Çarpanı, <b>+${boxRightsFromFound} Kutu Hakkı</b>'na dönüştür. <br><small>(Mevcut ${existing.value}x çarpanın korunur)</small>`;
         
         const combineValue = existing.value + found.value;
-        // DÜZENLENEN KISIM: Buton metninden Kutu Hakkı ödülü çıkarıldı ve uyarı eklendi.
-        const acceptNewText = `İki çarpanı birleştirip <b>1 kullanımlık ${combineValue}x</b> elde et. <br><small>(DİKKAT: Mevcut ${existing.uses} adet ${existing.value}x çarpan hakkın kaybolacak!)</small>`;
+        const acceptNewText = `İki çarpanı birleştirip <b>1 kullanımlık ${combineValue}x</b> elde et. <br><small>(DİKKAT: Mevcut ${existing.uses} adet ${existing.value}x çarpan hakkın kaybolacak ve <b>+1 Kutu Hakkı</b> iade edilecek!)</small>`;
 
         infoEl.innerHTML = `Kutudan <b class="text-yellow-300">${found.value}x Çarpan</b> buldun! Mevcut <b class="text-purple-300">${existing.uses} adet ${existing.value}x</b> çarpanın var. Stratejik bir karar ver!`;
         convertBtn.innerHTML = convertText;
@@ -13997,7 +13956,6 @@ function openMultiplierChoiceModal(context) {
         combineBtn.onclick = () => resolveMultiplierChoice('combine_and_upgrade');
 
     } else {
-        // Senaryo: Kullanıcının hiç çarpanı yok ve ilk defa buldu
         const boxRightsFromFound = found.value;
         const convertText = `Bulduğun ${found.value}x Çarpanı, <b>+${boxRightsFromFound} Kutu Hakkı</b>'na dönüştür.`;
         const acceptText = `Bulduğun ${found.value}x Çarpanı <b>1 kullanımlık</b> olarak envanterine ekle.`;
@@ -14016,7 +13974,7 @@ function openMultiplierChoiceModal(context) {
 async function resolveMultiplierChoice(choice) {
     if (!pendingMultiplierChoice) return;
 
-    const { existing, found } = pendingMultiplierChoice;
+    const { hasMultiplier, existing, found, boxId } = pendingMultiplierChoice;
     const userRef = db.ref('users/' + currentUser);
     const updates = {};
     let message = '';
@@ -14024,41 +13982,32 @@ async function resolveMultiplierChoice(choice) {
     const userSnap = await userRef.once('value');
     const user = userSnap.val();
 
-    switch (choice) {
-        case 'convert_found':
+    if (hasMultiplier) { // Senaryo: Kullanıcının zaten bir çarpanı var
+        if (choice === 'convert_new') {
             updates.kutuHakki = (user.kutuHakki || 0) + found.value;
-            message = `Seçimin üzerine, ${found.value}x çarpan <b>+${found.value} Kutu Hakkı</b>'na dönüştürüldü!`;
-            logActivity('multiplierConvertedToBoxRights', currentUser, { rewardValue: found.value, boxRights: found.value });
-            break;
-            
-        case 'accept_found':
-            updates.activeMultiplier = found.value;
-            updates.multiplierSource = 'box';
-            updates.multiplierRemainingUses = 0;
-            message = `Yeni <b>${found.value}x</b> çarpanın bir sonraki kutu açılışında kullanılmak üzere envanterine eklendi!`;
-            logActivity('multiplierFound', currentUser, { value: found.value });
-            break;
-
-        case 'convert_new':
-            updates.kutuHakki = (user.kutuHakki || 0) + found.value;
-            message = `Mevcut ${existing.value}x çarpanını korudun ve yeni çıkan ${found.value}x çarpanı <b>+${found.value} Kutu Hakkı</b>'na dönüştürüldü!`;
-            logActivity('multiplierConvertedFromBox', currentUser, { 
-                rewardValue: found.value, 
-                boxRights: found.value, 
-                keptMultiplierValue: existing.value 
-            });
-            break;
-
-        case 'combine_and_upgrade':
+            message = `Mevcut ${existing.value}x çarpanını korudun ve kutudan çıkan ${found.value}x çarpanı <b>+${found.value} Kutu Hakkı</b>'na dönüştürüldü!`;
+            logActivity('multiplierConvertedToBoxRights', currentUser, { rewardValue: found.value, boxRights: found.value, source: `Kutudan` });
+        } else if (choice === 'combine_and_upgrade') {
             const combinedValue = existing.value + found.value;
             updates.activeMultiplier = combinedValue;
             updates.multiplierSource = 'box';
-            updates.multiplierRemainingUses = 0;
-            updates.kutuHakki = (user.kutuHakki || 0) + 1; // İADE KODU BURADA!
-            
+            updates.multiplierRemainingUses = 0; // Tek kullanımlık olur
+            updates.kutuHakki = (user.kutuHakki || 0) + 1; // 1 Kutu Hakkı iade et
             message = `Seçim yapıldı! Mevcut çarpan hakların feda edilerek envanterine <b>1 kullanımlık ${combinedValue}x</b> eklendi ve <b>+1 Kutu Hakkı</b> iade edildi!`;
-            logActivity('multiplierUpgraded', currentUser, { newValue: combinedValue, oldValue: existing.value, boxRights: 1 });
-            break;
+            logActivity('multiplierCombined', currentUser, { boxId: boxId, foundValue: found.value, combinedValue: combinedValue });
+        }
+    } else { // Senaryo: Kullanıcının hiç çarpanı yok
+        if (choice === 'convert_found') {
+            updates.kutuHakki = (user.kutuHakki || 0) + found.value;
+            message = `Seçimin üzerine, ${found.value}x çarpan <b>+${found.value} Kutu Hakkı</b>'na dönüştürüldü!`;
+            logActivity('multiplierConvertedToBoxRights', currentUser, { rewardValue: found.value, boxRights: found.value, source: `Kutudan` });
+        } else if (choice === 'accept_found') {
+            updates.activeMultiplier = found.value;
+            updates.multiplierSource = 'box';
+            updates.multiplierRemainingUses = 0; // Tek kullanımlık
+            message = `Yeni <b>${found.value}x</b> çarpanın bir sonraki kutu açılışında kullanılmak üzere envanterine eklendi!`;
+            logActivity('multiplierFound', currentUser, { boxId: boxId, value: found.value });
+        }
     }
 
     await userRef.update(updates);
