@@ -5118,7 +5118,7 @@ function handleRowTypeChange(selectElement) {
     }
 }
 
-// MEVCUT openBox FONKSİYONUNU SİLİP BUNU YAPIŞTIR
+// MEVCUT openBox FONKSİYONUNU SİL VE YERİNE BUNU YAPIŞTIR
 async function openBox(index) {
     if (isGameLocked) {
         displayMessage("Kutular 1 saniye arayla açılıyor. Lütfen tekrar deneyin. Sorun devam ediyorsa, 'Sorunları Çöz' menüsüne göz atabilirsiniz.");
@@ -5147,12 +5147,37 @@ async function openBox(index) {
     const initialConfirm = await customConfirm(`<b>${boxes[index].id}</b> numaralı kutuyu açmak istediğinize emin misiniz?`);
     if (!initialConfirm) return;
 
+    // --- MANTIK DÜZELTMESİ BURADA BAŞLIYOR ---
+
+    // 1. ÖNCE KULLANICININ ÇARPAN DURUMUNU ÖĞREN VE GEREKİRSE SORUYU SOR
+    let finalMultiplier = 1;
+    let useMultiplier = false;
+    const originalMultiplierSource = user.multiplierSource || 'none';
+    const originalMultiplierValue = user.activeMultiplier || 1;
+    const originalMultiplierUses = user.multiplierRemainingUses || 0;
+
+    // Eğer otomatik kullanılacak tek seferlik çarpan varsa, finalMultiplier'ı ayarla.
+    if (originalMultiplierSource === 'box') {
+        finalMultiplier = originalMultiplierValue;
+        useMultiplier = true;
+    } 
+    // Eğer mağazadan alınmış ve kullanım hakkı olan bir çarpan varsa, KUTUYU AÇMADAN ÖNCE soruyu sor.
+    else if (originalMultiplierSource === 'store' && originalMultiplierUses > 0) {
+        const confirmed = await customConfirm(`Mevcut <b>${originalMultiplierValue}x</b> çarpanınızı kullanmak ister misiniz?`);
+        if (confirmed) {
+            // Kullanıcı evet derse, bu kararı bir değişkende sakla.
+            finalMultiplier = originalMultiplierValue;
+            useMultiplier = true;
+        }
+    }
+
+    // 2. ŞİMDİ, TÜM KARARLAR VERİLDİKTEN SONRA, KUTUYU AÇMA İŞLEMİNİ YAP
     const boxRef = db.ref('boxes/' + index);
 
-    // YARIŞ DURUMUNU (RACE CONDITION) ENGELLEMEK İÇİN TRANSACTION KULLANILDI
+    // Yarış durumunu engellemek için transaction kullanıyoruz.
     const transactionResult = await boxRef.transaction(currentBoxData => {
         if (currentBoxData && currentBoxData.opened) {
-            return; // Başka biri zaten açmış, işlemi iptal et.
+            return; // Başka biri sen karar verene kadar açmış, işlemi iptal et.
         }
         if (currentBoxData) {
             currentBoxData.opened = true;
@@ -5161,44 +5186,31 @@ async function openBox(index) {
         return currentBoxData;
     });
 
+    // Eğer transaction başarısız olursa (yani başkası kutuyu açtıysa), kullanıcıya bildir ve çık.
     if (!transactionResult.committed) {
-        displayMessage(`Seçtiğiniz kutu <b>${transactionResult.snapshot.val().opener}</b> tarafından açıldı. Geç kaldınız!`);
+        displayMessage(`Seçtiğiniz kutu <b>${transactionResult.snapshot.val().opener}</b> tarafından açıldı. Haklarınız ve çarpanınız kullanılmadı.`);
         return;
     }
-    
-    // Artık kutu bize ait, işlemlere güvenle devam edebiliriz.
-    isGameLocked = true;
-    await db.ref('gameLock').set(true);
 
+    // Artık kutu bize ait, oyunu kilitleyip işlemlere güvenle devam edebiliriz.
+    await db.ref('gameLock').set(true);
+    isGameLocked = true;
+    
+    // İşlemlerin en güncel halini garantilemek için kullanıcı verisini tekrar çekiyoruz.
     userSnap = await userRef.once('value');
     user = userSnap.val();
 
-    let finalMultiplier = 1;
-    let useMultiplier = false;
-    const originalMultiplierSource = user.multiplierSource || 'none';
-    const originalMultiplierValue = user.activeMultiplier || 1;
-    const originalMultiplierUses = user.multiplierRemainingUses || 0;
-
-    if (originalMultiplierSource === 'box') {
-        finalMultiplier = originalMultiplierValue;
-        useMultiplier = true;
-    } else if (originalMultiplierSource === 'store' && originalMultiplierUses > 0) {
-        const confirmed = await customConfirm(`Mevcut <b>${originalMultiplierValue}x</b> çarpanınızı kullanmak ister misiniz?`);
-        if (confirmed) {
-            finalMultiplier = originalMultiplierValue;
-            useMultiplier = true;
-        }
-    }
-    
+    // 3. SONUÇLARI İŞLE VE VERİTABANINI GÜNCELLE
     const box = boxes[index];
     const updates = {};
     let message = '';
-    let shouldLockGame = true;
+    let shouldLockGame = true; // Bu artık oyunu kilitlemek için değil, kilidi ne zaman açacağımızı belirlemek için kullanılıyor.
     let shouldDisplayMessage = true;
 
     updates['kutuHakki'] = (user.kutuHakki || 0) - BOX_RIGHTS_COST_PER_BOX;
     updates['boxesOpenedCount'] = (user.boxesOpenedCount || 0) + 1;
 
+    // Eğer kullanıcı çarpan kullanmayı seçtiyse, kullanım hakkını düşür.
     if (useMultiplier) {
         if (originalMultiplierSource === 'box') {
             updates['activeMultiplier'] = 1;
@@ -5222,6 +5234,7 @@ async function openBox(index) {
         boxOpenInfo.multiplierUsed = finalMultiplier;
     }
     
+    // Kutu içeriğini işleme mantığı (bu kısım aynı kalabilir)
     if (box.content === 'multiplier') {
         updates['multiplierFoundCount'] = (user.multiplierFoundCount || 0) + 1;
         const foundMultiplier = { value: box.value, uses: 1, source: 'box' };
@@ -5314,7 +5327,10 @@ async function openBox(index) {
     }
 
     await userRef.update(updates);
-    await boxRef.update(boxUpdate);
+    
+    // Kutu verisini en son güncelliyoruz.
+    const finalBoxRef = db.ref('boxes/' + index);
+    await finalBoxRef.update(boxUpdate);
 
     if (shouldDisplayMessage) {
         await db.ref('lastOpenedBox').set(boxOpenInfo);
@@ -5322,12 +5338,10 @@ async function openBox(index) {
     }
     
     if (shouldLockGame) {
-        await db.ref('gameLock').set(false); // İşlem bitince kilidi aç
+        await db.ref('gameLock').set(false);
         isGameLocked = false;
     }
 }
-      
-// MEVCUT TÜM openMultiplier... ve resolveMultiplier... FONKSİYONLARINI SİLİP BU 4 FONKSİYONU EKLE
 
 // Senaryo A: Çarpanla kutu açarken yeni bir çarpan bulma seçeneği
 function openMultiplierUpgradeChoiceModal(existing, found, boxId) {
