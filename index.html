@@ -5296,16 +5296,20 @@ async function openBox(index) {
         boxOpenInfo.lostPoints = shieldWasUsed ? 0 : lostPoints;
         logActivity('iflas', currentUser, { shieldUsed: shieldWasUsed, lostPoints: shieldWasUsed ? 0 : lostPoints, boxId: box.id, multiplier: finalMultiplier, newBalance: newBalanceForLog });
     } else if (box.content === 'surpriz') {
-        updates['surpriseBoxesOpened'] = (user.surpriseBoxesOpened || 0) + 1;
-        shouldLockGame = false;
-        shouldDisplayMessage = false;
-        const openedInTurnSnap = await db.ref(`gameStats/boxesOpenedByUsers/${currentUser}`).once('value');
-        const openedBoxesThisRound = openedInTurnSnap.val() || 1;
-        const sessionRef = db.ref('surprise_box_session');
-        await sessionRef.set({ active: true, user: currentUser, boxId: box.id, multiplier: finalMultiplier, cards: shuffleArray([...cardValues]), selection: null, result: null, timestamp: firebase.database.ServerValue.TIMESTAMP, boxesOpenedThisRound: openedBoxesThisRound });
-        const snap = await sessionRef.once('value');
-        await sessionRef.update({ expirationTimestamp: snap.val().timestamp + 60000 });
-    } else {
+            updates['surpriseBoxesOpened'] = (user.surpriseBoxesOpened || 0) + 1;
+            shouldLockGame = false;
+            shouldDisplayMessage = false;
+            
+            // YENİ EKLENEN SATIR: Sürpriz kutu bulunduğunu anında veritabanına işliyoruz.
+            await db.ref('gameStats/lastSurpriseInfo').set({ finder: currentUser, resettled: false, boxId: box.id, timestamp: firebase.database.ServerValue.TIMESTAMP });
+            
+            const openedInTurnSnap = await db.ref(`gameStats/boxesOpenedByUsers/${currentUser}`).once('value');
+            const openedBoxesThisRound = openedInTurnSnap.val() || 1;
+            const sessionRef = db.ref('surprise_box_session');
+            await sessionRef.set({ active: true, user: currentUser, boxId: box.id, multiplier: finalMultiplier, cards: shuffleArray([...cardValues]), selection: null, result: null, timestamp: firebase.database.ServerValue.TIMESTAMP, boxesOpenedThisRound: openedBoxesThisRound });
+            const snap = await sessionRef.once('value');
+            await sessionRef.update({ expirationTimestamp: snap.val().timestamp + 60000 });
+        } else {
         const itemsGained = (box.value || 1) * finalMultiplier;
         const itemNames = { wheelTicket: 'Şans Çarkı Bileti', clickCatchTicket: 'Tıkla-Yakala Bileti', iflasShield: 'İflas Kalkanı', wildcard: 'Joker Kart', card_pack: 'Standart Kart Paketi', card_pack_normal: 'Bronz Kart Paketi', card_pack_gumus: 'Gümüş Kart Paketi', card_pack_altin: 'Altın Kart Paketi', card_pack_efsanevi: 'Efsanevi Kart Paketi' };
         const dbKeys = { wheelTicket: 'carkBileti', clickCatchTicket: 'clickCatchTickets', iflasShield: 'iflasShieldUses', wildcard: 'wildcards' };
@@ -6068,11 +6072,17 @@ function listenForLastOpenedBox() {
     await db.ref('gameLock').set(false);
 }
 
+// --- MEVCUT HATALI FONKSİYONU BUNUNLA DEĞİŞTİR ---
 async function handleSurpriseBoxCleanup(sessionData) {
     if (!sessionData) return;
 
-    // --- SÜRPRİZ KUTU DÜZELTMESİ: Kutunun nereden geldiğini kontrol et ---
+    // Sadece kutu oyunundan gelen sürprizlerde oyunu sıfırla
     if (sessionData.boxId !== 'Çark') {
+        await resetGameBoard(); // OYUNU SIFIRLAYAN EKSİK KOD
+        await db.ref('gameStats/lastSurpriseInfo').update({
+            resettled: true,
+            resettledBy: 'Otomatik Sistem' // Sıfırlayanın kim olduğunu belirt
+        });
     }
     
     // Her durumda, sürpriz kutu oturumunu veritabanından temizle.
@@ -7817,8 +7827,7 @@ async function silSonCarkSurprizi() {
     } // --- if bloğunu kapatan parantez
 }
 
-// --- YENİ VE İSTEKLERE GÖRE DÜZENLENMİŞ SON VERSİYON ---
-
+// --- MEVCUT FONKSİYONU BUNUNLA DEĞİŞTİR ---
 function listenForLastSurpriseFinderPanel() {
     const ref = db.ref('gameStats/lastSurpriseInfo');
     const panel = document.getElementById('lastSurpriseFinderPanel');
@@ -7844,18 +7853,14 @@ function listenForLastSurpriseFinderPanel() {
             boxesOpenedText = `<p class="text-sm text-gray-300">Bu tur toplam <b class="text-white">${data.boxesOpenedThisRound}</b> kutu açtı.</p>`;
         }
         
-        // --- İSTEĞİNE GÖRE YENİDEN DÜZENLENEN ÇARPAN KISMI ---
         let multiplierText = '';
         if (data.multiplier && data.multiplier > 1) {
-            // Puanın çarpan olmadan önceki halini hesaplıyoruz
             const basePoints = Math.round(data.points / data.multiplier);
             multiplierText = `<p class="text-xs text-purple-400">(${basePoints} Puan x ${data.multiplier} Çarpan)</p>`;
         } else {
             multiplierText = `<p class="text-xs text-gray-400">(Çarpan kullanılmadı)</p>`;
         }
-        // --- DEĞİŞİKLİK SONU ---
 
-        // HTML yapısını da yeni sıralamaya göre güncelliyoruz
         let messageHtml = `
             ${adminDeleteButton}
             <h4 class="text-amber-300 text-xl font-bold">🎉 SON SÜRPRİZ KUTUSU BULUNDU! 🎉</h4>
@@ -7865,8 +7870,9 @@ function listenForLastSurpriseFinderPanel() {
             ${multiplierText} 
         `;
 
-        if (data.resettledBy) {
-            messageHtml += `
+        // Sıfırlanma durumunu kontrol et ve mesajı ona göre düzenle
+        if (data.resettled === true && data.resettledBy) {
+             messageHtml += `
                 <hr class="border-gray-600 my-2">
                 <p class="text-sm text-lime-400">Kutuları <b class="text-white">${data.resettledBy}</b> sıfırladı ve oyun yeniden başladı.</p>
             `;
