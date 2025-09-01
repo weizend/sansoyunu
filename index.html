@@ -9502,13 +9502,9 @@ async function resetClickCatchLeaderboard() {
     const item = document.createElement('div');
     item.className = 'catch-item';
     
-    // --- YENİ EKLENEN KISIM BAŞLANGICI ---
-    // Bu kod, fareye basıldığı anda tarayıcının varsayılan
-    // "seçim yapma" (maviye boyama) davranışını engeller.
     item.addEventListener('mousedown', (event) => {
         event.preventDefault();
     });
-    // --- YENİ EKLENEN KISIM SONU ---
     
     if (gameMode === 'solo') {
         const itemsWithChance = [
@@ -9545,6 +9541,15 @@ async function resetClickCatchLeaderboard() {
         item.dataset.type = itemToSpawn.type;
         item.dataset.value = itemToSpawn.value;
         item.dataset.emoji = itemToSpawn.emoji;
+        
+        // ==========================================================
+        // EKLENMESİ GEREKEN SATIR BURADA
+        // Bu satır, çarpanın "kullanım hakkı" bilgisini öğeye ekler.
+        if (itemToSpawn.type === 'tempMultiplier') {
+            item.dataset.uses = itemToSpawn.uses;
+        }
+        // ==========================================================
+
 
     } else { // Bu kısım lobi oyunu için
         const isBomb = Math.random() < 0.2; // %20 ihtimalle bomba çıkar
