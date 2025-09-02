@@ -12698,8 +12698,6 @@ function switchMarketTab(tabName) {
     }
 }
 
-// MEVCUT acceptTradeOffer FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
-
 let isTradeInProgress = false;
 
 async function acceptTradeOffer(tradeId, buttonElement) {
@@ -12758,27 +12756,25 @@ async function acceptTradeOffer(tradeId, buttonElement) {
             throw new Error("Kullanıcı iptal etti.");
         }
         
-        // --- YENİ VE GÜVENLİ MANTIK BAŞLANGICI ---
-
-        // 1. ADIM: Sadece takasın kendisini transaction ile kaldırarak "kap".
+        // Yarış durumunu (race condition) engellemek için transaction kullanıyoruz.
+        // Bu, aynı anda iki kişinin takası kabul etmesini engeller.
         const transactionResult = await tradeRef.transaction(currentTrade => {
             if (currentTrade === null) {
                 return; // Başka biri takası zaten almış, işlemi iptal et.
             }
-            return null; // Takası kaldır.
+            return null; // Takası kaldırarak "kilitle".
         });
 
-        // Eğer takas başkası tarafından alınmışsa, işlemi durdur.
         if (!transactionResult.committed) {
             displayMessage("Takas yapılamadı. Muhtemelen teklif sahibi kartı pazardan çekti veya başka bir oyuncu daha hızlı davrandı.");
             loadMarketOffers('all');
             throw new Error("Takas zaten alınmış.");
         }
 
-        // 2. ADIM: Takas başarıyla alındıysa, şimdi kullanıcı güncellemelerini yap.
+        // Takas başarıyla alındı, şimdi kullanıcı verilerini güncelleyelim.
         const updates = {};
         
-        // Kabul eden (benim) güncellemelerim
+        // Kabul edenin (benim) güncellemeleri
         updates[`users/${currentUser}/cardCollection/${trade.requestedCardId}/count`] = (userCards[trade.requestedCardId].count) - 1;
         updates[`users/${currentUser}/cardCollection/${trade.offeredCardId}/count`] = (userCards[trade.offeredCardId]?.count || 0) + 1;
         updates[`users/${currentUser}/balance`] = (userData.balance || 0) - tradeFee;
@@ -12790,10 +12786,9 @@ async function acceptTradeOffer(tradeId, buttonElement) {
         const offererData = offererSnap.val();
         updates[`users/${trade.offerer}/cardCollection/${trade.requestedCardId}/count`] = (offererData.cardCollection?.[trade.requestedCardId]?.count || 0) + 1;
         
-        // Tüm güncellemeleri tek seferde yap
         await db.ref().update(updates);
         
-        // 3. ADIM: Loglama ve bildirim işlemleri
+        // Loglama ve bildirim işlemleri
         logActivity('tradeOfferAccepted', currentUser, {
             offerer: trade.offerer, fee: tradeFee, newBalance: finalAccepterBalance,
             offeredCardName: offeredCard.cardName, requestedCardName: requestedCard.cardName
@@ -12802,9 +12797,6 @@ async function acceptTradeOffer(tradeId, buttonElement) {
         if (trade.activityId) {
             await db.ref(`activityFeed/${trade.activityId}/details/status`).set('completed');
         }
-
-        const notificationMessage = `<b>${currentUser}</b>, takasa koyduğunuz '${offeredCard.cardName}' kartı karşılığında istediğiniz '${requestedCard.cardName}' kartı takasını onayladı. Yeni kartınız albümünüze eklendi!`;
-        await db.ref(`tradeNotifications/${trade.offerer}`).push({ message: notificationMessage, timestamp: firebase.database.ServerValue.TIMESTAMP });
         
         await db.ref('tradeHistory').push().set({
             offerer: trade.offerer, accepter: currentUser, offeredCardId: trade.offeredCardId,
@@ -12812,15 +12804,18 @@ async function acceptTradeOffer(tradeId, buttonElement) {
             requestedCardName: requestedCard.cardName, timestamp: firebase.database.ServerValue.TIMESTAMP
         });
 
-        displayMessage("Takas başarıyla tamamlandı!");
+        // 1. Takası kabul eden kişiye, sadece basit ve geçici bir bildirim gösterilir.
+        displayGlobalNotification(`Takas başarılı! Yeni kartın albümüne eklendi.`);
+
+        // 2. Sadece teklif sahibine (offerer), özel "Takas Gerçekleşti" penceresini tetikleyecek olan bildirim gönderilir.
+        const notificationMessage = `<b>${currentUser}</b>, takasa koyduğunuz '${offeredCard.cardName}' kartı karşılığında istediğiniz '${requestedCard.cardName}' kartı takasını onayladı. Yeni kartınız albümünüze eklendi!`;
+        await db.ref(`tradeNotifications/${trade.offerer}`).push({ message: notificationMessage, timestamp: firebase.database.ServerValue.TIMESTAMP });
+
         loadMarketOffers('all');
         if (currentActiveSection === 'cardCollection') loadCollectionAlbum();
 
-        // --- GÜVENLİ MANTIK SONU ---
-
     } catch (error) {
-        // Hata "Kullanıcı iptal etti" gibi bizim kontrol ettiğimiz bir durum değilse mesaj göster.
-        if (error.message !== "Kullanıcı iptal etti." && error.message !== "Takas bulunamadı." && error.message !== "Yetersiz kart." && error.message !== "Yetersiz bakiye." && error.message !== "Pazar kilitli." && error.message !== "Takas zaten alınmış.") {
+        if (!["Kullanıcı iptal etti.", "Takas bulunamadı.", "Yetersiz kart.", "Yetersiz bakiye.", "Pazar kilitli.", "Takas zaten alınmış."].includes(error.message)) {
              console.error("Takas işlemi hatası:", error);
              displayMessage("Beklenmedik bir hata oluştu. Lütfen konsolu kontrol edin.");
         }
