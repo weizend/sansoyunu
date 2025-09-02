@@ -1869,7 +1869,7 @@ body.modal-open .modal-content {
       <div id="inventoryDetails" class="text-left text-gray-300 mb-6 space-y-3 bg-gray-900 p-4 rounded-lg border border-gray-700">
           <p class="flex justify-between items-center"><span>📦 Kutu Hakkı:</span> <strong id="inventoryBoxRights" class="text-green-400 text-lg">0</strong></p>
           <p class="flex justify-between items-center"><span>️🎫 Şans Çarkı Bileti:</span> <strong id="inventoryWheelTickets" class="text-yellow-400 text-lg">0</strong></p>
-          <p class="flex justify-between items-center"><span>🎟️ Tıkla-Yakala Bileti:</span> <strong id="inventoryClickCatchTickets" class="text-fuchsia-400 text-lg">0</strong></p>
+          <p class="flex justify-between items-center"><span>🎟️ T-Y Bileti:</span> <strong id="inventoryClickCatchTickets" class="text-fuchsia-400 text-lg">0</strong></p>
           <p class="flex justify-between items-center"><span>🛡️ İflas Kalkanı:</span> <strong id="inventoryIflasShields" class="text-blue-400 text-lg">0</strong></p>
           <hr class="border-gray-600 my-2">
           <div id="inventoryMultiplierDetails">
@@ -6244,7 +6244,8 @@ function searchUsers() {
   function closeOpenedBoxInfoModal() { openedBoxInfoModal.style.display = 'none'; }
   function shuffleArray(array) { for (let i = array.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [array[i], array[j]] = [array[j], array[i]]; } return array; }
   
-  function openCardSelectionModal(userId) {
+  // YERİNE BU YENİ KODU YAPIŞTIRIN
+function openCardSelectionModal(userId) {
     if (countdownInterval) clearInterval(countdownInterval);
     const cardContainer = document.getElementById('playerCardContainer');
     cardContainer.innerHTML = '';
@@ -6255,13 +6256,11 @@ function searchUsers() {
         if (!sessionData || !sessionData.active || sessionData.result) return;
 
         sessionData.cards.forEach((cardValue, index) => {
-            // CSS'in beklediği doğru HTML yapısı burada oluşturuluyor.
             const containerDiv = document.createElement('div');
-            containerDiv.className = 'card-flip-container'; // Ana container
+            containerDiv.className = 'card-flip-container';
             containerDiv.dataset.value = cardValue;
             containerDiv.dataset.index = index;
             
-            // Kartın ön ve arka yüzünü içeren HTML yapısı
             containerDiv.innerHTML = `
                 <div class="card-flipper">
                     <div class="card-front bg-gradient-to-br from-red-700 to-red-900 flex items-center justify-center text-white text-6xl font-bold rounded-xl">
@@ -6284,9 +6283,13 @@ function searchUsers() {
 
         const handleTimeout = () => {
             if (cardSelectionModal.style.display === 'flex' && !sessionData.selection) {
+                // --- DÜZELTME BURADA ---
+                // Zaman aşımı logunu ekliyoruz.
+                logActivity('surpriseBoxTimeout', userId, { boxId: sessionData.boxId });
+                // --- DÜZELTME SONU ---
                 displayMessage("Süre dolduğu için kart seçemedin!");
                 closeCardSelectionModal();
-                db.ref('surprise_box_session').remove(); // Oturumu temizle
+                db.ref('surprise_box_session').remove();
             }
         };
 
@@ -6346,10 +6349,8 @@ function revealMyCardChoice(sessionData) {
     cardContainer.parentElement.appendChild(resultPopup);
 }
 
-// YENİ, GÜVENLİ VE DÜZELTİLMİŞ KOD
-// YENİ, GÜVENLİ VE DÜZELTİLMİŞ KOD
+// YERİNE BU YENİ VE DÜZELTİLMİŞ KODU YAPIŞTIRIN
 async function selectCard(selectedCardDiv, userId) {
-    // Anında koruma: Bir kart seçildiği anda diğer tüm kartların tıklanmasını engelle.
     const cardContainer = document.getElementById('playerCardContainer');
     const allCards = cardContainer.querySelectorAll('.card-flip-container');
     allCards.forEach(card => {
@@ -6362,16 +6363,14 @@ async function selectCard(selectedCardDiv, userId) {
     const cardIndex = selectedCardDiv.dataset.index;
     const sessionRef = db.ref('surprise_box_session');
 
-    // Garantili koruma: Firebase Transaction ile sunucu tarafında sadece İLK isteği kabul et.
     const transactionResult = await sessionRef.transaction(sessionData => {
         if (!sessionData || sessionData.selection) {
-            return; // İşlemi iptal et, çünkü zaten bir seçim yapılmış.
+            return; 
         }
         sessionData.selection = { user: userId, cardIndex: cardIndex };
         return sessionData;
     });
 
-    // Sadece işlem başarılı olduysa (yani ilk seçimi bu kullanıcı yaptıysa) devam et.
     if (!transactionResult.committed) {
         console.log("Bu kart zaten seçilmiş veya oturum süresi dolmuş.");
         return;
@@ -6379,22 +6378,21 @@ async function selectCard(selectedCardDiv, userId) {
 
     const updatedSessionData = transactionResult.snapshot.val();
     
-    // !!!!!!!!!!!!!  PUAN BUG'INI ÇÖZEN KRİTİK DÜZELTME BURADA  !!!!!!!!!!!!!
-    // Puan hesaplanırken artık sessionData.multiplier ile ÇARPILMIYOR. Sadece kartın kendi değeri alınıyor.
-    // Böylece çarpan ne olursa olsun, sürpriz kutu puanı sabit kalır.
-    let points = parseInt(selectedCardDiv.dataset.value);
-    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    // --- ANA DÜZELTME BURADA ---
+    // Artık hem temel puanı hem de çarpanlı puanı ayrı ayrı hesaplıyoruz.
+    const basePoints = parseInt(selectedCardDiv.dataset.value);
+    const finalPoints = basePoints * (updatedSessionData.multiplier || 1);
+    // --- DÜZELTME SONU ---
     
     const userRef = db.ref('users/' + userId);
 
-    // Puanları ekle
     await userRef.transaction(user => {
         if (user) {
-            user.balance = (user.balance || 0) + points;
+            user.balance = (user.balance || 0) + finalPoints;
             if (user.balance > (user.highestBalanceEver || 0)) {
                 user.highestBalanceEver = user.balance;
             }
-            user.kariyerPuani = (user.kariyerPuani || 0) + points;
+            user.kariyerPuani = (user.kariyerPuani || 0) + finalPoints;
         }
         return user;
     });
@@ -6403,12 +6401,15 @@ async function selectCard(selectedCardDiv, userId) {
     const finalUserData = finalUserSnap.val();
     let newBalance = finalUserData.balance || 0;
  
-    // Sonucu Firebase'e yaz
-    await sessionRef.child('result').set({ points: points, newBalance: newBalance });
+    // Sonucu, yeni ve doğru veri yapısıyla Firebase'e yazıyoruz.
+    await sessionRef.child('result').set({ 
+        basePoints: basePoints, 
+        finalPoints: finalPoints, 
+        newBalance: newBalance 
+    });
 }
 
-// --- YENİ VE GÜNCEL SÜRPRİZ KUTU DİNLEME FONKSİYONU ---
-
+// YERİNE BU YENİ VE DÜZELTİLMİŞ KODU YAPIŞTIRIN
 let isProcessingSurpriseResult = false;
 let spectatorViewingResult = false;
 
@@ -6467,10 +6468,11 @@ function listenForSurpriseBox() {
                         const surpriseInfo = {
                             finder: finalSessionData.user,
                             boxId: finalSessionData.boxId,
-                            points: finalSessionData.result.points,
+                            points: finalSessionData.result.finalPoints, // Düzeltme: Artık finalPoints kullanılıyor
                             newBalance: finalSessionData.result.newBalance,
                             timestamp: firebase.database.ServerValue.TIMESTAMP,
-                            multiplier: finalSessionData.multiplier || 1
+                            multiplier: finalSessionData.multiplier || 1,
+                            basePoints: finalSessionData.result.basePoints // Düzeltme: basePoints de ekleniyor
                         };
 
                         if (finalSessionData.boxId === 'Çark') {
@@ -6482,12 +6484,14 @@ function listenForSurpriseBox() {
                             db.ref('gameStats/lastSurpriseInfo').set(surpriseInfo);
                         }
                         
+                        // --- LOGLAMA DÜZELTMESİ BURADA ---
                         logActivity('surpriseBox', finalSessionData.user, { 
                             boxId: finalSessionData.boxId,
-                            points: finalSessionData.result.points, 
+                            points: finalSessionData.result.finalPoints, // finalPoints kullanılıyor
                             multiplier: finalSessionData.multiplier,
                             newBalance: finalSessionData.result.newBalance
                         });
+                        // --- DÜZELTME SONU ---
                         
                         setTimeout(() => {
                             if (finalSessionData.user === currentUser) {
@@ -6517,36 +6521,6 @@ function listenForSurpriseBox() {
     activeListeners.surpriseBox = { ref: sessionRef, event: 'value', callback };
     sessionRef.on('value', callback);
 }
-      
-// Sürpriz Kutu bilgilendirme penceresini GÖSTEREN fonksiyon
-function showGlobalSurpriseBoxNotification(data) {
-    document.getElementById('surpriseOpener').textContent = data.user;
-    
-    const sourceInfoEl = document.getElementById('surpriseSourceInfo');
-    if (data.boxId === 'Çark') {
-        sourceInfoEl.innerHTML = `<b>Şans Çarkı</b>'ndan Sürpriz Kutu elde etti ve kart seçiminden`;
-    } else {
-        sourceInfoEl.innerHTML = `<span class="text-red-400 font-bold">${data.boxId}</span> numaralı kutuyu açtı ve kart seçiminden`;
-    }
-
-    document.getElementById('surprisePoints').textContent = data.result.points;
-    
-    let multiplierText = '';
-    if (data.boxId !== 'Çark') {
-        if (data.multiplier && data.multiplier > 1) {
-            const basePoints = Math.round(data.result.points / data.multiplier);
-            multiplierText = `kazandı! <br><span class="text-base text-gray-400">(${basePoints} Puan x ${data.multiplier} Çarpan)</span>`;
-        } else {
-            multiplierText = 'kazandı! (Çarpan kullanılmadı)';
-        }
-    } else {
-        multiplierText = 'kazandı!';
-    }
-
-    document.getElementById('surpriseMultiplierInfo').innerHTML = multiplierText;
-
-    document.getElementById('globalSurpriseBoxModal').style.display = 'flex';
-}
 
 // --- SORUNU ÇÖZEN EKSİK FONKSİYON ---
 // Sürpriz Kutu bilgilendirme penceresini KAPATAN fonksiyon
@@ -6557,11 +6531,17 @@ function closeGlobalSurpriseBoxModal() {
     }
 }
       
-  function closeCardSelectionModal() { 
-    cardSelectionModal.style.display = 'none'; 
-  }
-  
-  const storeItemsRef = db.ref('storeItems');
+  // YERİNE BU YENİ KODU YAPIŞTIRIN
+function closeCardSelectionModal() {
+    // Önceki turdan kalan sonuç yazısını temizle
+    const oldPopup = cardSelectionModal.querySelector('.result-popup');
+    if (oldPopup) {
+        oldPopup.remove();
+    }
+    
+    // Modalı gizle
+    cardSelectionModal.style.display = 'none';
+}
 
   function openNewItemForm() {
     resetStoreItemForm();
@@ -7797,6 +7777,7 @@ async function silSonCarkSurprizi() {
     } // --- if bloğunu kapatan parantez
 }
 
+// YERİNE BU YENİ KODU YAPIŞTIRIN
 function listenForLastSurpriseFinderPanel() {
     const ref = db.ref('gameStats/lastSurpriseInfo');
     const panel = document.getElementById('lastSurpriseFinderPanel');
@@ -7824,8 +7805,7 @@ function listenForLastSurpriseFinderPanel() {
         
         let multiplierText = '';
         if (data.multiplier && data.multiplier > 1) {
-            const basePoints = Math.round(data.points / data.multiplier);
-            multiplierText = `<p class="text-xs text-purple-400">(${basePoints} Puan x ${data.multiplier} Çarpan)</p>`;
+            multiplierText = `<p class="text-xs text-purple-400">(${data.basePoints} Puan x ${data.multiplier} Çarpan)</p>`;
         } else {
             multiplierText = `<p class="text-xs text-gray-400">(Çarpan kullanılmadı)</p>`;
         }
@@ -7839,7 +7819,6 @@ function listenForLastSurpriseFinderPanel() {
             ${multiplierText} 
         `;
 
-        // Sıfırlanma durumunu kontrol et ve mesajı ona göre düzenle
         if (data.resettled === true && data.resettledBy) {
              messageHtml += `
                 <hr class="border-gray-600 my-2">
@@ -9008,8 +8987,7 @@ function updateSpectatorView(sessionData) {
     }
 }
 
-// MEVCUT showGlobalSurpriseBoxNotification FONKSİYONUNU BU BLOK İLE DEĞİŞTİRİN
-
+// YERİNE BU YENİ KODU YAPIŞTIRIN
 function showGlobalSurpriseBoxNotification(data) {
     document.getElementById('surpriseOpener').textContent = data.user;
     
@@ -9020,23 +8998,14 @@ function showGlobalSurpriseBoxNotification(data) {
         sourceInfoEl.innerHTML = `<span class="text-red-400 font-bold">${data.boxId}</span> numaralı kutuyu açtı ve kart seçiminden`;
     }
 
-    document.getElementById('surprisePoints').textContent = data.result.points;
+    document.getElementById('surprisePoints').textContent = data.result.finalPoints;
     
-    // *** İSTEĞİNİZE GÖRE DÜZENLENEN KISIM BAŞLANGICI ***
-    let multiplierText = ''; // Varsayılan olarak metni boş yapıyoruz.
-    // Sadece kutudan geldiyse çarpan metnini göster
-    if (data.boxId !== 'Çark') {
-        if (data.multiplier && data.multiplier > 1) {
-            const basePoints = Math.round(data.result.points / data.multiplier);
-            multiplierText = `kazandı! <br><span class="text-base text-gray-400">(${basePoints} Puan x ${data.multiplier} Çarpan)</span>`;
-        } else {
-            multiplierText = 'kazandı! (Çarpan kullanılmadı)';
-        }
+    let multiplierText = '';
+    if (data.multiplier && data.multiplier > 1) {
+        multiplierText = `kazandı! <br><span class="text-base text-gray-400">(${data.result.basePoints} Puan x ${data.multiplier} Çarpan)</span>`;
     } else {
-        // Çarktan geldiyse sadece "kazandı!" yazsın.
         multiplierText = 'kazandı!';
     }
-    // *** DÜZENLENEN KISIM SONU ***
 
     document.getElementById('surpriseMultiplierInfo').innerHTML = multiplierText;
 
