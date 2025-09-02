@@ -4590,8 +4590,19 @@ function adjustUserClickCatchTickets(add) {
   // Admin işlemleri
   function openBlockDurationModal(username) { targetUserForBlock = username; document.getElementById('blockUserName').textContent = username; blockDurationModal.style.display = 'flex'; }
   function closeBlockDurationModal() { blockDurationModal.style.display = 'none'; document.getElementById('blockDuration').value = ''; targetUserForBlock = null; if (selectedUserForManagement) openUserManagementModal(selectedUserForManagement); }
-  function confirmBlockUser() { const duration = parseInt(document.getElementById('blockDuration').value); if (isNaN(duration) || duration <= 0) { displayMessage("Geçerli süre girin."); return; } const blockedUntil = Date.now() + duration * 60 * 1000; db.ref('users/' + targetUserForBlock).update({ blocked: true, blockedUntil: blockedUntil }).then(() => { displayMessage(`${targetUserForBlock} ${duration} dakika engellendi.`); closeBlockDurationModal(); }); }
-  async function toggleBlockUser(user, currentStatus, blockedUntil) { 
+  function confirmBlockUser() { 
+      const duration = parseInt(document.getElementById('blockDuration').value); 
+      if (isNaN(duration) || duration <= 0) { 
+          displayMessage("Geçerli süre girin."); return; 
+      } 
+      // DÜZELTİLDİ: Artık sunucuyla senkronize olan getSyncedTime() kullanılıyor.
+      const blockedUntil = getSyncedTime() + duration * 60 * 1000; 
+      db.ref('users/' + targetUserForBlock).update({ blocked: true, blockedUntil: blockedUntil }).then(() => { 
+          displayMessage(`${targetUserForBlock} ${duration} dakika engellendi.`); 
+          closeBlockDurationModal(); 
+      }); 
+  }
+      async function toggleBlockUser(user, currentStatus, blockedUntil) { 
     const isCurrentlyBlocked = currentStatus && blockedUntil && Date.now() < blockedUntil;
     if (isCurrentlyBlocked) { 
       const confirmed = await customConfirm(user + " engelini kaldırmak istiyor musunuz?"); 
@@ -6221,7 +6232,8 @@ function searchUsers() {
       if(countdownInterval) clearInterval(countdownInterval);
 
       const updateCountdown = () => {
-          const timeLeft = blockedUntil - Date.now();
+          // DÜZELTİLDİ: Artık sunucuyla senkronize olan getSyncedTime() kullanılıyor.
+          const timeLeft = blockedUntil - getSyncedTime();
           if (timeLeft <= 0) {
               document.getElementById('blockedCountdown').textContent = "Engel süreniz doldu!";
               clearInterval(countdownInterval);
@@ -6255,13 +6267,11 @@ function searchUsers() {
         if (!sessionData || !sessionData.active || sessionData.result) return;
 
         sessionData.cards.forEach((cardValue, index) => {
-            // CSS'in beklediği doğru HTML yapısı burada oluşturuluyor.
             const containerDiv = document.createElement('div');
-            containerDiv.className = 'card-flip-container'; // Ana container
+            containerDiv.className = 'card-flip-container';
             containerDiv.dataset.value = cardValue;
             containerDiv.dataset.index = index;
             
-            // Kartın ön ve arka yüzünü içeren HTML yapısı
             containerDiv.innerHTML = `
                 <div class="card-flipper">
                     <div class="card-front bg-gradient-to-br from-red-700 to-red-900 flex items-center justify-center text-white text-6xl font-bold rounded-xl">
@@ -6280,13 +6290,14 @@ function searchUsers() {
         cardSelectionModal.style.display = 'flex';
 
         const countdownEl = document.getElementById('cardSelectionCountdown');
+        // DÜZELTİLDİ: Artık sunucuyla senkronize olan getSyncedTime() kullanılıyor.
         let timeLeft = Math.round((sessionData.expirationTimestamp - getSyncedTime()) / 1000);
 
         const handleTimeout = () => {
             if (cardSelectionModal.style.display === 'flex' && !sessionData.selection) {
                 displayMessage("Süre dolduğu için kart seçemedin!");
                 closeCardSelectionModal();
-                db.ref('surprise_box_session').remove(); // Oturumu temizle
+                db.ref('surprise_box_session').remove();
             }
         };
 
@@ -6307,7 +6318,6 @@ function searchUsers() {
         }, 1000);
     });
 }
-
 // Kullanıcının kendi seçtiği kartları ve sonucu ekranda gösterir.
 function revealMyCardChoice(sessionData) {
     if (countdownInterval) clearInterval(countdownInterval);
@@ -6591,7 +6601,8 @@ function closeAdminStoreModal() {
   }
   
   function updateStoreCountdowns() {
-      const now = Date.now();
+      // DÜZELTİLDİ: Artık sunucuyla senkronize olan getSyncedTime() kullanılıyor.
+      const now = getSyncedTime();
       for (const itemId in activeStoreCountdowns) {
           const { endTime } = activeStoreCountdowns[itemId];
           const countdownEl = document.getElementById(`countdown-${itemId}`);
@@ -8265,24 +8276,19 @@ function closeDailyRewardModal() {
         const cooldown = reward.cooldownMs || 0;
         const lastClaim = userClaims[rewardId] || 0;
 
-        // --- DEĞİŞTİRİLEN VE DÜZELTİLEN MANTIK BAŞLANGICI ---
         let isAvailable = false;
-        // 1. Durum: Ödül tek seferlik ise (bekleme süresi 0 ise)
         if (cooldown === 0) {
-            // Sadece daha önce hiç alınmadıysa (lastClaim === 0) müsaittir.
             isAvailable = (lastClaim === 0);
         }
-        // 2. Durum: Ödülün bekleme süresi varsa
         else {
-            // Sadece bekleme süresi dolduysa müsaittir.
-            isAvailable = (Date.now() > lastClaim + cooldown);
+            // DÜZELTİLDİ: Artık sunucuyla senkronize olan getSyncedTime() kullanılıyor.
+            isAvailable = (getSyncedTime() > lastClaim + cooldown);
         }
 
         if (isAvailable) {
             hasAvailableReward = true;
-            break; // Müsait bir ödül bulduk, döngüyü sonlandırabiliriz.
+            break; 
         }
-        // --- DEĞİŞTİRİLEN VE DÜZELTİLEN MANTIK SONU ---
     }
     
     if (hasAvailableReward) {
@@ -8336,19 +8342,16 @@ async function openDailyRewardModal() {
             const cooldown = reward.cooldownMs || 0;
             const nextAvailableTime = lastClaim + cooldown;
 
-            // --- DEĞİŞTİRİLEN KONTROL MANTIĞI BAŞLANGICI ---
             let canClaim = false;
             if (!isAdmin) {
-                // Eğer bekleme süresi 0 ise (tek seferlik) VE daha önce alınmamışsa (lastClaim === 0), alınabilir.
                 if (cooldown === 0) {
                     canClaim = (lastClaim === 0);
                 } 
-                // Eğer bekleme süresi varsa, normal zaman kontrolü yapılır.
                 else {
-                    canClaim = (Date.now() > nextAvailableTime);
+                    // DÜZELTİLDİ: Artık sunucuyla senkronize olan getSyncedTime() kullanılıyor.
+                    canClaim = (getSyncedTime() > nextAvailableTime);
                 }
             }
-            // --- DEĞİŞTİRİLEN KONTROL MANTIĞI SONU ---
 
 
             const card = document.createElement('div');
@@ -8381,7 +8384,8 @@ async function openDailyRewardModal() {
                     if (activeDailyRewardTimers[rewardId]) clearInterval(activeDailyRewardTimers[rewardId]);
 
                     const timerId = setInterval(() => {
-                        const now = Date.now();
+                        // DÜZELTİLDİ: Artık sunucuyla senkronize olan getSyncedTime() kullanılıyor.
+                        const now = getSyncedTime();
                         const timeLeft = nextAvailableTime - now;
                         const el = document.getElementById('reward-cooldown-' + rewardId);
                         if (!el) {
@@ -8390,7 +8394,6 @@ async function openDailyRewardModal() {
                         }
 
                         if (timeLeft <= 0) {
-                            // DEĞİŞTİRİLEN KISIM: Tek seferlik ödüller için bu blok çalışmamalı.
                             if(cooldown > 0){
                                 el.innerHTML = '<span class="text-green-400">Şimdi Alınabilir!</span>';
                                 const claimButton = el.closest('.relative').querySelector('button');
@@ -8920,7 +8923,6 @@ function openSpectatorModal(sessionData) {
 
     sessionData.cards.forEach((cardValue, index) => {
         const cardDiv = document.createElement('div');
-        // --- DEĞİŞİKLİK BURADA: 'bg-gray-700' class'ı kaldırıldı. ---
         cardDiv.className = 'card border-2 border-red-700 rounded-xl w-28 h-40 flex flex-col items-center justify-center font-bold text-2xl relative';
         cardDiv.id = `spectator-card-${index}`;
         cardDiv.innerHTML = `<div class="card-back absolute inset-0 bg-gradient-to-br from-red-700 to-red-900 flex items-center justify-center text-white text-5xl">?</div><div class="card-front absolute inset-0 bg-gray-900 flex items-center justify-center text-yellow-400 text-3xl"></div>`;
@@ -8931,6 +8933,7 @@ function openSpectatorModal(sessionData) {
     resultContainer.innerHTML = '<p id="spectatorResult" class="text-2xl text-green-400 font-bold h-8"></p>';
 
     const countdownEl = document.getElementById('spectatorCountdown');
+    // DÜZELTİLDİ: Artık sunucuyla senkronize olan getSyncedTime() kullanılıyor.
     let timeLeft = Math.round((sessionData.expirationTimestamp - getSyncedTime()) / 1000);
 
     const handleTimeout = () => {
