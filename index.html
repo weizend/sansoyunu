@@ -5119,6 +5119,21 @@ function handleRowTypeChange(selectElement) {
 }
 
 async function openBox(index) {
+    // --- YENİLENEN SÜRPRİZ KUTU UYARI SİSTEMİ ---
+    const lastSurpriseSnap = await db.ref('gameStats/lastSurpriseInfo').once('value');
+    const lastSurpriseData = lastSurpriseSnap.val();
+    if (lastSurpriseData && lastSurpriseData.resettled === false) {
+        const continueOpening = await customConfirm(
+            'Sürpriz kutu bulundu, yine de kutu açmaya devam etmek istiyor musun?<br><br><small>Oyunu sıfırlamak için ana ekrandaki "Sorunları Çöz" menüsünü kullanabilirsin.</small>'
+        );
+        // Eğer kullanıcı "Hayır" butonuna basarsa, fonksiyonu burada durdur.
+        if (!continueOpening) {
+            return;
+        }
+        // "Evet" derse, kod normal şekilde çalışmaya devam eder.
+    }
+    // --- YENİ SİSTEM SONU ---
+
     if (isGameLocked) {
         displayMessage("Kutular 1 saniye arayla açılıyor. Lütfen tekrar deneyin. Sorun devam ediyorsa, 'Sorunları Çöz' menüsüne göz atabilirsiniz.");
         return;
@@ -7736,21 +7751,17 @@ async function manualUnlockGame() {
     closeSolveProblemsModal();
 }
 
-// Sürpriz kutu bulunduktan sonra oyunun sıfırlanmasını sağlar.
 async function manualResetAfterSurprise() {
     const lastSurpriseSnap = await db.ref('gameStats/lastSurpriseInfo').once('value');
     const lastSurpriseData = lastSurpriseSnap.val();
 
-    // GÜVENLİK KONTROLÜ: Sadece sıfırlanmamış bir sürpriz varsa işlemi yap
     if (lastSurpriseData && lastSurpriseData.resettled === false) {
         
-        // GÜVENLİK KONTROLÜ 2: Veriyi silmek yerine, kimin sıfırladığını ekleyerek güncelle
         await db.ref('gameStats/lastSurpriseInfo').update({
             resettled: true,
-            resettledBy: currentUser // Sıfırlayan kişiyi kaydet
+            resettledBy: currentUser 
         });
         
-        // Oyunu sıfırla
         await resetGameBoard();
         
         displayMessage("Açılmış sürpriz kutu tespit edildi ve oyun senin tarafından sıfırlandı!");
@@ -7786,7 +7797,6 @@ async function silSonCarkSurprizi() {
     } // --- if bloğunu kapatan parantez
 }
 
-// --- MEVCUT FONKSİYONU BUNUNLA DEĞİŞTİR ---
 function listenForLastSurpriseFinderPanel() {
     const ref = db.ref('gameStats/lastSurpriseInfo');
     const panel = document.getElementById('lastSurpriseFinderPanel');
@@ -12258,22 +12268,18 @@ async function loadCollectionAlbum() {
             }
         }
         
-        // --- YENİ EKLENEN BUTON GÜNCELLEME KODU BURADA ---
         const toggleBtn = document.getElementById('toggleSeasonBtn');
         if (toggleBtn) {
             if (currentStatus === 'active') {
-                // Sezon aktifse: Butonu KIRMIZI ve "Sezonu Bitir" yap
                 toggleBtn.textContent = '⛔ Sezonu Bitir';
                 toggleBtn.classList.remove('bg-green-700', 'hover:bg-green-600', 'animate-pulse');
                 toggleBtn.classList.add('bg-red-700', 'hover:bg-red-600');
             } else {
-                // Sezon aktif değilse: Butonu YEŞİL, "Yeni Sezonu Başlat" yap ve animasyon ekle
                 toggleBtn.textContent = '💥 YENİ SEZONU BAŞLAT 💥';
                 toggleBtn.classList.remove('bg-red-700', 'hover:bg-red-600');
                 toggleBtn.classList.add('bg-green-700', 'hover:bg-green-600', 'animate-pulse');
             }
         }
-        // --- YENİ EKLENEN KOD SONU ---
     }
 
     if (!isAdmin) {
@@ -12371,7 +12377,7 @@ async function loadCollectionAlbum() {
             }
 
             slot.innerHTML = `
-                <div class="card-item missing relative">
+                <div class="card-item missing relative rarity-${cardInfo.rarity || 'normal'}">
                     <div class="card-image flex items-center justify-center">
                          <span class="missing-text">?</span>
                     </div>
@@ -12383,6 +12389,7 @@ async function loadCollectionAlbum() {
         albumContainer.appendChild(slot);
     }
 }
+
 // Kullanıcı koleksiyonundaki fazla karta tıkladığında teklif oluşturma penceresini açar
 function openTradeMenu(cardId, cardName) {
     if (!cardId) return;
