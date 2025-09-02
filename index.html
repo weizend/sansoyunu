@@ -1868,8 +1868,8 @@ body.modal-open .modal-content {
       <h4 class="text-yellow-400 text-2xl font-bold mb-6">Envanterin</h4>
       <div id="inventoryDetails" class="text-left text-gray-300 mb-6 space-y-3 bg-gray-900 p-4 rounded-lg border border-gray-700">
           <p class="flex justify-between items-center"><span>📦 Kutu Hakkı:</span> <strong id="inventoryBoxRights" class="text-green-400 text-lg">0</strong></p>
-          <p class="flex justify-between items-center"><span>🎡 Şans Çarkı Bileti:</span> <strong id="inventoryWheelTickets" class="text-yellow-400 text-lg">0</strong></p>
-          <p class="flex justify-between items-center"><span>🎯 Tıkla-Yakala Bileti:</span> <strong id="inventoryClickCatchTickets" class="text-fuchsia-400 text-lg">0</strong></p>
+          <p class="flex justify-between items-center"><span>️🎫 Şans Çarkı Bileti:</span> <strong id="inventoryWheelTickets" class="text-yellow-400 text-lg">0</strong></p>
+          <p class="flex justify-between items-center"><span>🎟️ Tıkla-Yakala Bileti:</span> <strong id="inventoryClickCatchTickets" class="text-fuchsia-400 text-lg">0</strong></p>
           <p class="flex justify-between items-center"><span>🛡️ İflas Kalkanı:</span> <strong id="inventoryIflasShields" class="text-blue-400 text-lg">0</strong></p>
           <hr class="border-gray-600 my-2">
           <div id="inventoryMultiplierDetails">
@@ -3842,9 +3842,9 @@ function loadBalanceAndBoxRights() {
             db.ref('users/' + currentUser).update({ blocked: false, blockedUntil: null });
         }
 
-        let statusText = `Mevcut Puanı: ${userData.balance || 0} | Kutu Hakkı: ${userData.kutuHakki || 0}`;
-        if ((userData.carkBileti || 0) > 0) statusText += ` | 🎡 Çark Bileti: ${userData.carkBileti}`;
-        if ((userData.clickCatchTickets || 0) > 0) statusText += ` | 🎯 Yakalama Bileti: ${userData.clickCatchTickets}`;
+        let statusText = `💰 Mevcut Puanı: ${userData.balance || 0} | 📦 Kutu Hakkı: ${userData.kutuHakki || 0}`;
+        if ((userData.carkBileti || 0) > 0) statusText += ` | ️🎫 Çark Bileti: ${userData.carkBileti}`;
+        if ((userData.clickCatchTickets || 0) > 0) statusText += ` | 🎟 T-Y Bileti: ${userData.clickCatchTickets}`;
         if (userData.iflasShieldUses > 0) statusText += ` | 🛡️ Kalkan: ${userData.iflasShieldUses}`;
         if (userData.multiplierSource === 'store' && userData.multiplierRemainingUses > 0) statusText += ` | ✖️ Çarpan: ${userData.activeMultiplier}x (${userData.multiplierRemainingUses} kullanım)`;
         else if (userData.multiplierSource === 'box') statusText += ` | ✖️ Çarpan: ${userData.activeMultiplier}x (Otomatik)`;
