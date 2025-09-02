@@ -2819,6 +2819,7 @@ body.modal-open .modal-content {
     <div id="maintenanceIcon" class="mt-8 text-5xl animate-spin cursor-pointer" title="Admin Girişi">⚙️</div>
 </div>
   <script>
+      let isSelectingCard = false;
       // YENİ EKLENECEK GİZLİ ADMİN GİRİŞİ KODU
 const keyboardSecretCode = ['b', 'a', 'k', 'i', 'm'];
 let keyboardKeySequence = [];
@@ -5321,6 +5322,10 @@ async function openBox(index) {
             const openedInTurnSnap = await db.ref(`gameStats/boxesOpenedByUsers/${currentUser}`).once('value');
             const openedBoxesThisRound = openedInTurnSnap.val() || 1;
             const sessionRef = db.ref('surprise_box_session');
+
+            // YENİ EKLENEN GÜVENLİK SATIRI
+            await sessionRef.remove(); // Yeni oturum oluşturmadan önce eskisini temizle
+
             await sessionRef.set({ active: true, user: currentUser, boxId: box.id, multiplier: finalMultiplier, cards: shuffleArray([...cardValues]), selection: null, result: null, timestamp: firebase.database.ServerValue.TIMESTAMP, boxesOpenedThisRound: openedBoxesThisRound });
             const snap = await sessionRef.once('value');
             await sessionRef.update({ expirationTimestamp: snap.val().timestamp + 60000 });
@@ -6264,7 +6269,7 @@ function searchUsers() {
 
     sessionRef.once('value').then(snap => {
         const sessionData = snap.val();
-        if (!sessionData || !sessionData.active || sessionData.result) return;
+        if (!sessionData || !sessionData.active || !sessionData.result) return;
 
         sessionData.cards.forEach((cardValue, index) => {
             const containerDiv = document.createElement('div');
@@ -6290,11 +6295,13 @@ function searchUsers() {
         cardSelectionModal.style.display = 'flex';
 
         const countdownEl = document.getElementById('cardSelectionCountdown');
-        // DÜZELTİLDİ: Artık sunucuyla senkronize olan getSyncedTime() kullanılıyor.
         let timeLeft = Math.round((sessionData.expirationTimestamp - getSyncedTime()) / 1000);
 
         const handleTimeout = () => {
             if (cardSelectionModal.style.display === 'flex' && !sessionData.selection) {
+                // YENİ EKLENEN SATIR: Süre dolduğunda eylemi kaydet
+                logActivity('surpriseBoxTimeout', sessionData.user, { boxId: sessionData.boxId });
+                
                 displayMessage("Süre dolduğu için kart seçemedin!");
                 closeCardSelectionModal();
                 db.ref('surprise_box_session').remove();
@@ -6356,10 +6363,11 @@ function revealMyCardChoice(sessionData) {
     cardContainer.parentElement.appendChild(resultPopup);
 }
 
-// YENİ, GÜVENLİ VE DÜZELTİLMİŞ KOD
-// YENİ, GÜVENLİ VE DÜZELTİLMİŞ KOD
 async function selectCard(selectedCardDiv, userId) {
-    // Anında koruma: Bir kart seçildiği anda diğer tüm kartların tıklanmasını engelle.
+    // YENİ GÜVENLİK KİLİDİ: Eğer zaten bir kart seçiliyorsa, tekrar çalıştırma.
+    if (isSelectingCard) return;
+    isSelectingCard = true;
+
     const cardContainer = document.getElementById('playerCardContainer');
     const allCards = cardContainer.querySelectorAll('.card-flip-container');
     allCards.forEach(card => {
@@ -6372,32 +6380,26 @@ async function selectCard(selectedCardDiv, userId) {
     const cardIndex = selectedCardDiv.dataset.index;
     const sessionRef = db.ref('surprise_box_session');
 
-    // Garantili koruma: Firebase Transaction ile sunucu tarafında sadece İLK isteği kabul et.
     const transactionResult = await sessionRef.transaction(sessionData => {
         if (!sessionData || sessionData.selection) {
-            return; // İşlemi iptal et, çünkü zaten bir seçim yapılmış.
+            return; 
         }
         sessionData.selection = { user: userId, cardIndex: cardIndex };
         return sessionData;
     });
 
-    // Sadece işlem başarılı olduysa (yani ilk seçimi bu kullanıcı yaptıysa) devam et.
     if (!transactionResult.committed) {
         console.log("Bu kart zaten seçilmiş veya oturum süresi dolmuş.");
+        isSelectingCard = false; // Kilidi aç ve bitir
         return;
     }
 
     const updatedSessionData = transactionResult.snapshot.val();
     
-    // !!!!!!!!!!!!!  PUAN BUG'INI ÇÖZEN KRİTİK DÜZELTME BURADA  !!!!!!!!!!!!!
-    // Puan hesaplanırken artık sessionData.multiplier ile ÇARPILMIYOR. Sadece kartın kendi değeri alınıyor.
-    // Böylece çarpan ne olursa olsun, sürpriz kutu puanı sabit kalır.
     let points = parseInt(selectedCardDiv.dataset.value);
-    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     
     const userRef = db.ref('users/' + userId);
 
-    // Puanları ekle
     await userRef.transaction(user => {
         if (user) {
             user.balance = (user.balance || 0) + points;
@@ -6413,12 +6415,13 @@ async function selectCard(selectedCardDiv, userId) {
     const finalUserData = finalUserSnap.val();
     let newBalance = finalUserData.balance || 0;
  
-    // Sonucu Firebase'e yaz
     await sessionRef.child('result').set({ points: points, newBalance: newBalance });
+
+    // Not: isSelectingCard kilidini, tüm süreç bittiğinde (handleSurpriseBoxCleanup içinde)
+    // veya bir hata olduğunda sıfırlamak en doğrusudur, şimdilik bu şekilde kalması yeterli.
+    // Oturum silindiğinde zaten yeni bir seçim yapılamayacak.
 }
-
-// --- YENİ VE GÜNCEL SÜRPRİZ KUTU DİNLEME FONKSİYONU ---
-
+      
 let isProcessingSurpriseResult = false;
 let spectatorViewingResult = false;
 
@@ -9288,6 +9291,10 @@ async function spinWheel() {
                 break;
             case 'surpriseBox':
                  const sessionRef = db.ref('surprise_box_session');
+
+                 // YENİ EKLENEN GÜVENLİK SATIRI
+                 await sessionRef.remove(); // Yeni oturum oluşturmadan önce eskisini temizle
+
                  await sessionRef.set({ 
                      active: true, user: currentUser, boxId: 'Çark', 
                      multiplier: 1, cards: shuffleArray([...cardValues]), 
