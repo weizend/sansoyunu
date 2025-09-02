@@ -1869,7 +1869,7 @@ body.modal-open .modal-content {
       <div id="inventoryDetails" class="text-left text-gray-300 mb-6 space-y-3 bg-gray-900 p-4 rounded-lg border border-gray-700">
           <p class="flex justify-between items-center"><span>📦 Kutu Hakkı:</span> <strong id="inventoryBoxRights" class="text-green-400 text-lg">0</strong></p>
           <p class="flex justify-between items-center"><span>️🎫 Şans Çarkı Bileti:</span> <strong id="inventoryWheelTickets" class="text-yellow-400 text-lg">0</strong></p>
-          <p class="flex justify-between items-center"><span>🎟️ T-Y Bileti:</span> <strong id="inventoryClickCatchTickets" class="text-fuchsia-400 text-lg">0</strong></p>
+          <p class="flex justify-between items-center"><span>🎟️ Tıkla-Yakala Bileti:</span> <strong id="inventoryClickCatchTickets" class="text-fuchsia-400 text-lg">0</strong></p>
           <p class="flex justify-between items-center"><span>🛡️ İflas Kalkanı:</span> <strong id="inventoryIflasShields" class="text-blue-400 text-lg">0</strong></p>
           <hr class="border-gray-600 my-2">
           <div id="inventoryMultiplierDetails">
@@ -2819,7 +2819,6 @@ body.modal-open .modal-content {
     <div id="maintenanceIcon" class="mt-8 text-5xl animate-spin cursor-pointer" title="Admin Girişi">⚙️</div>
 </div>
   <script>
-      let isSelectingCard = false;
       // YENİ EKLENECEK GİZLİ ADMİN GİRİŞİ KODU
 const keyboardSecretCode = ['b', 'a', 'k', 'i', 'm'];
 let keyboardKeySequence = [];
@@ -4591,19 +4590,8 @@ function adjustUserClickCatchTickets(add) {
   // Admin işlemleri
   function openBlockDurationModal(username) { targetUserForBlock = username; document.getElementById('blockUserName').textContent = username; blockDurationModal.style.display = 'flex'; }
   function closeBlockDurationModal() { blockDurationModal.style.display = 'none'; document.getElementById('blockDuration').value = ''; targetUserForBlock = null; if (selectedUserForManagement) openUserManagementModal(selectedUserForManagement); }
-  function confirmBlockUser() { 
-      const duration = parseInt(document.getElementById('blockDuration').value); 
-      if (isNaN(duration) || duration <= 0) { 
-          displayMessage("Geçerli süre girin."); return; 
-      } 
-      // DÜZELTİLDİ: Artık sunucuyla senkronize olan getSyncedTime() kullanılıyor.
-      const blockedUntil = getSyncedTime() + duration * 60 * 1000; 
-      db.ref('users/' + targetUserForBlock).update({ blocked: true, blockedUntil: blockedUntil }).then(() => { 
-          displayMessage(`${targetUserForBlock} ${duration} dakika engellendi.`); 
-          closeBlockDurationModal(); 
-      }); 
-  }
-      async function toggleBlockUser(user, currentStatus, blockedUntil) { 
+  function confirmBlockUser() { const duration = parseInt(document.getElementById('blockDuration').value); if (isNaN(duration) || duration <= 0) { displayMessage("Geçerli süre girin."); return; } const blockedUntil = Date.now() + duration * 60 * 1000; db.ref('users/' + targetUserForBlock).update({ blocked: true, blockedUntil: blockedUntil }).then(() => { displayMessage(`${targetUserForBlock} ${duration} dakika engellendi.`); closeBlockDurationModal(); }); }
+  async function toggleBlockUser(user, currentStatus, blockedUntil) { 
     const isCurrentlyBlocked = currentStatus && blockedUntil && Date.now() < blockedUntil;
     if (isCurrentlyBlocked) { 
       const confirmed = await customConfirm(user + " engelini kaldırmak istiyor musunuz?"); 
@@ -5322,10 +5310,6 @@ async function openBox(index) {
             const openedInTurnSnap = await db.ref(`gameStats/boxesOpenedByUsers/${currentUser}`).once('value');
             const openedBoxesThisRound = openedInTurnSnap.val() || 1;
             const sessionRef = db.ref('surprise_box_session');
-
-            // YENİ EKLENEN GÜVENLİK SATIRI
-            await sessionRef.remove(); // Yeni oturum oluşturmadan önce eskisini temizle
-
             await sessionRef.set({ active: true, user: currentUser, boxId: box.id, multiplier: finalMultiplier, cards: shuffleArray([...cardValues]), selection: null, result: null, timestamp: firebase.database.ServerValue.TIMESTAMP, boxesOpenedThisRound: openedBoxesThisRound });
             const snap = await sessionRef.once('value');
             await sessionRef.update({ expirationTimestamp: snap.val().timestamp + 60000 });
@@ -6237,8 +6221,7 @@ function searchUsers() {
       if(countdownInterval) clearInterval(countdownInterval);
 
       const updateCountdown = () => {
-          // DÜZELTİLDİ: Artık sunucuyla senkronize olan getSyncedTime() kullanılıyor.
-          const timeLeft = blockedUntil - getSyncedTime();
+          const timeLeft = blockedUntil - Date.now();
           if (timeLeft <= 0) {
               document.getElementById('blockedCountdown').textContent = "Engel süreniz doldu!";
               clearInterval(countdownInterval);
@@ -6269,14 +6252,16 @@ function searchUsers() {
 
     sessionRef.once('value').then(snap => {
         const sessionData = snap.val();
-        if (!sessionData || !sessionData.active || !sessionData.result) return;
+        if (!sessionData || !sessionData.active || sessionData.result) return;
 
         sessionData.cards.forEach((cardValue, index) => {
+            // CSS'in beklediği doğru HTML yapısı burada oluşturuluyor.
             const containerDiv = document.createElement('div');
-            containerDiv.className = 'card-flip-container';
+            containerDiv.className = 'card-flip-container'; // Ana container
             containerDiv.dataset.value = cardValue;
             containerDiv.dataset.index = index;
             
+            // Kartın ön ve arka yüzünü içeren HTML yapısı
             containerDiv.innerHTML = `
                 <div class="card-flipper">
                     <div class="card-front bg-gradient-to-br from-red-700 to-red-900 flex items-center justify-center text-white text-6xl font-bold rounded-xl">
@@ -6299,12 +6284,9 @@ function searchUsers() {
 
         const handleTimeout = () => {
             if (cardSelectionModal.style.display === 'flex' && !sessionData.selection) {
-                // YENİ EKLENEN SATIR: Süre dolduğunda eylemi kaydet
-                logActivity('surpriseBoxTimeout', sessionData.user, { boxId: sessionData.boxId });
-                
                 displayMessage("Süre dolduğu için kart seçemedin!");
                 closeCardSelectionModal();
-                db.ref('surprise_box_session').remove();
+                db.ref('surprise_box_session').remove(); // Oturumu temizle
             }
         };
 
@@ -6325,6 +6307,7 @@ function searchUsers() {
         }, 1000);
     });
 }
+
 // Kullanıcının kendi seçtiği kartları ve sonucu ekranda gösterir.
 function revealMyCardChoice(sessionData) {
     if (countdownInterval) clearInterval(countdownInterval);
@@ -6363,11 +6346,10 @@ function revealMyCardChoice(sessionData) {
     cardContainer.parentElement.appendChild(resultPopup);
 }
 
+// YENİ, GÜVENLİ VE DÜZELTİLMİŞ KOD
+// YENİ, GÜVENLİ VE DÜZELTİLMİŞ KOD
 async function selectCard(selectedCardDiv, userId) {
-    // YENİ GÜVENLİK KİLİDİ: Eğer zaten bir kart seçiliyorsa, tekrar çalıştırma.
-    if (isSelectingCard) return;
-    isSelectingCard = true;
-
+    // Anında koruma: Bir kart seçildiği anda diğer tüm kartların tıklanmasını engelle.
     const cardContainer = document.getElementById('playerCardContainer');
     const allCards = cardContainer.querySelectorAll('.card-flip-container');
     allCards.forEach(card => {
@@ -6380,26 +6362,32 @@ async function selectCard(selectedCardDiv, userId) {
     const cardIndex = selectedCardDiv.dataset.index;
     const sessionRef = db.ref('surprise_box_session');
 
+    // Garantili koruma: Firebase Transaction ile sunucu tarafında sadece İLK isteği kabul et.
     const transactionResult = await sessionRef.transaction(sessionData => {
         if (!sessionData || sessionData.selection) {
-            return; 
+            return; // İşlemi iptal et, çünkü zaten bir seçim yapılmış.
         }
         sessionData.selection = { user: userId, cardIndex: cardIndex };
         return sessionData;
     });
 
+    // Sadece işlem başarılı olduysa (yani ilk seçimi bu kullanıcı yaptıysa) devam et.
     if (!transactionResult.committed) {
         console.log("Bu kart zaten seçilmiş veya oturum süresi dolmuş.");
-        isSelectingCard = false; // Kilidi aç ve bitir
         return;
     }
 
     const updatedSessionData = transactionResult.snapshot.val();
     
+    // !!!!!!!!!!!!!  PUAN BUG'INI ÇÖZEN KRİTİK DÜZELTME BURADA  !!!!!!!!!!!!!
+    // Puan hesaplanırken artık sessionData.multiplier ile ÇARPILMIYOR. Sadece kartın kendi değeri alınıyor.
+    // Böylece çarpan ne olursa olsun, sürpriz kutu puanı sabit kalır.
     let points = parseInt(selectedCardDiv.dataset.value);
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     
     const userRef = db.ref('users/' + userId);
 
+    // Puanları ekle
     await userRef.transaction(user => {
         if (user) {
             user.balance = (user.balance || 0) + points;
@@ -6415,13 +6403,12 @@ async function selectCard(selectedCardDiv, userId) {
     const finalUserData = finalUserSnap.val();
     let newBalance = finalUserData.balance || 0;
  
+    // Sonucu Firebase'e yaz
     await sessionRef.child('result').set({ points: points, newBalance: newBalance });
-
-    // Not: isSelectingCard kilidini, tüm süreç bittiğinde (handleSurpriseBoxCleanup içinde)
-    // veya bir hata olduğunda sıfırlamak en doğrusudur, şimdilik bu şekilde kalması yeterli.
-    // Oturum silindiğinde zaten yeni bir seçim yapılamayacak.
 }
-      
+
+// --- YENİ VE GÜNCEL SÜRPRİZ KUTU DİNLEME FONKSİYONU ---
+
 let isProcessingSurpriseResult = false;
 let spectatorViewingResult = false;
 
@@ -6604,8 +6591,7 @@ function closeAdminStoreModal() {
   }
   
   function updateStoreCountdowns() {
-      // DÜZELTİLDİ: Artık sunucuyla senkronize olan getSyncedTime() kullanılıyor.
-      const now = getSyncedTime();
+      const now = Date.now();
       for (const itemId in activeStoreCountdowns) {
           const { endTime } = activeStoreCountdowns[itemId];
           const countdownEl = document.getElementById(`countdown-${itemId}`);
@@ -8279,19 +8265,24 @@ function closeDailyRewardModal() {
         const cooldown = reward.cooldownMs || 0;
         const lastClaim = userClaims[rewardId] || 0;
 
+        // --- DEĞİŞTİRİLEN VE DÜZELTİLEN MANTIK BAŞLANGICI ---
         let isAvailable = false;
+        // 1. Durum: Ödül tek seferlik ise (bekleme süresi 0 ise)
         if (cooldown === 0) {
+            // Sadece daha önce hiç alınmadıysa (lastClaim === 0) müsaittir.
             isAvailable = (lastClaim === 0);
         }
+        // 2. Durum: Ödülün bekleme süresi varsa
         else {
-            // DÜZELTİLDİ: Artık sunucuyla senkronize olan getSyncedTime() kullanılıyor.
-            isAvailable = (getSyncedTime() > lastClaim + cooldown);
+            // Sadece bekleme süresi dolduysa müsaittir.
+            isAvailable = (Date.now() > lastClaim + cooldown);
         }
 
         if (isAvailable) {
             hasAvailableReward = true;
-            break; 
+            break; // Müsait bir ödül bulduk, döngüyü sonlandırabiliriz.
         }
+        // --- DEĞİŞTİRİLEN VE DÜZELTİLEN MANTIK SONU ---
     }
     
     if (hasAvailableReward) {
@@ -8345,16 +8336,19 @@ async function openDailyRewardModal() {
             const cooldown = reward.cooldownMs || 0;
             const nextAvailableTime = lastClaim + cooldown;
 
+            // --- DEĞİŞTİRİLEN KONTROL MANTIĞI BAŞLANGICI ---
             let canClaim = false;
             if (!isAdmin) {
+                // Eğer bekleme süresi 0 ise (tek seferlik) VE daha önce alınmamışsa (lastClaim === 0), alınabilir.
                 if (cooldown === 0) {
                     canClaim = (lastClaim === 0);
                 } 
+                // Eğer bekleme süresi varsa, normal zaman kontrolü yapılır.
                 else {
-                    // DÜZELTİLDİ: Artık sunucuyla senkronize olan getSyncedTime() kullanılıyor.
-                    canClaim = (getSyncedTime() > nextAvailableTime);
+                    canClaim = (Date.now() > nextAvailableTime);
                 }
             }
+            // --- DEĞİŞTİRİLEN KONTROL MANTIĞI SONU ---
 
 
             const card = document.createElement('div');
@@ -8387,8 +8381,7 @@ async function openDailyRewardModal() {
                     if (activeDailyRewardTimers[rewardId]) clearInterval(activeDailyRewardTimers[rewardId]);
 
                     const timerId = setInterval(() => {
-                        // DÜZELTİLDİ: Artık sunucuyla senkronize olan getSyncedTime() kullanılıyor.
-                        const now = getSyncedTime();
+                        const now = Date.now();
                         const timeLeft = nextAvailableTime - now;
                         const el = document.getElementById('reward-cooldown-' + rewardId);
                         if (!el) {
@@ -8397,6 +8390,7 @@ async function openDailyRewardModal() {
                         }
 
                         if (timeLeft <= 0) {
+                            // DEĞİŞTİRİLEN KISIM: Tek seferlik ödüller için bu blok çalışmamalı.
                             if(cooldown > 0){
                                 el.innerHTML = '<span class="text-green-400">Şimdi Alınabilir!</span>';
                                 const claimButton = el.closest('.relative').querySelector('button');
@@ -8926,6 +8920,7 @@ function openSpectatorModal(sessionData) {
 
     sessionData.cards.forEach((cardValue, index) => {
         const cardDiv = document.createElement('div');
+        // --- DEĞİŞİKLİK BURADA: 'bg-gray-700' class'ı kaldırıldı. ---
         cardDiv.className = 'card border-2 border-red-700 rounded-xl w-28 h-40 flex flex-col items-center justify-center font-bold text-2xl relative';
         cardDiv.id = `spectator-card-${index}`;
         cardDiv.innerHTML = `<div class="card-back absolute inset-0 bg-gradient-to-br from-red-700 to-red-900 flex items-center justify-center text-white text-5xl">?</div><div class="card-front absolute inset-0 bg-gray-900 flex items-center justify-center text-yellow-400 text-3xl"></div>`;
@@ -8936,7 +8931,6 @@ function openSpectatorModal(sessionData) {
     resultContainer.innerHTML = '<p id="spectatorResult" class="text-2xl text-green-400 font-bold h-8"></p>';
 
     const countdownEl = document.getElementById('spectatorCountdown');
-    // DÜZELTİLDİ: Artık sunucuyla senkronize olan getSyncedTime() kullanılıyor.
     let timeLeft = Math.round((sessionData.expirationTimestamp - getSyncedTime()) / 1000);
 
     const handleTimeout = () => {
@@ -9291,10 +9285,6 @@ async function spinWheel() {
                 break;
             case 'surpriseBox':
                  const sessionRef = db.ref('surprise_box_session');
-
-                 // YENİ EKLENEN GÜVENLİK SATIRI
-                 await sessionRef.remove(); // Yeni oturum oluşturmadan önce eskisini temizle
-
                  await sessionRef.set({ 
                      active: true, user: currentUser, boxId: 'Çark', 
                      multiplier: 1, cards: shuffleArray([...cardValues]), 
