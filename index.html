@@ -5700,6 +5700,9 @@ function renderActivityFeed(activities) {
                     
                     message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-cyan-300 font-bold">${displayItemAmount} ${displayItemName}</span> buldu.${newItemMultiplierText}`;
                     break;
+                    case 'dailyRewardMultiplierStacked':
+                    message = `${userHtml}, Günlük Ödül'den mevcut <b>${details.multiplierValue}x</b> çarpanıyla aynı değerde bir çarpan daha aldı. Kullanım hakkı <b class="text-teal-300 font-bold">+${details.usesAdded}</b> artırılarak toplam <b class="text-teal-300 font-bold">${details.newTotalUses}</b> oldu.`;
+                    break;
                 case 'collectionCompleted':
                     message = details.isFirst
                         ? `${userHtml}, koleksiyonu tamamlayan <b class="text-amber-400">İLK KİŞİ</b> oldu ve büyük ödülü kazandı!`
