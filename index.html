@@ -12803,7 +12803,7 @@ async function acceptTradeOffer(tradeId, buttonElement) {
             await db.ref(`activityFeed/${trade.activityId}/details/status`).set('completed');
         }
 
-        const notificationMessage = `<b>${currentUser}</b>, '${offeredCard.cardName}' kartı karşılığında verdiğiniz '${requestedCard.cardName}' takasını onayladı. Yeni kartınız albümünüze eklendi!`;
+        const notificationMessage = `<b>${currentUser}</b>, takasa koyduğunuz '${offeredCard.cardName}' kartı karşılığında istediğiniz '${requestedCard.cardName}' kartı takasını onayladı. Yeni kartınız albümünüze eklendi!`;
         await db.ref(`tradeNotifications/${trade.offerer}`).push({ message: notificationMessage, timestamp: firebase.database.ServerValue.TIMESTAMP });
         
         await db.ref('tradeHistory').push().set({
