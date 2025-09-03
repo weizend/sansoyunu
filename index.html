@@ -266,28 +266,45 @@
 .card-back {
     transform: rotateY(180deg);
 }
-/* --- TAKAS PAZARI STİLLERİ --- */
-/* --- TAKAS PAZARI STİLLERİ --- */
+/* --- TAKAS PAZARI STİLLERİ (MOBİL UYUMLU) --- */
 .market-offer-card {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
     background-color: #1f2937; /* bg-gray-800 */
-    padding: 1rem;
     border-radius: 0.75rem;
     border: 1px solid #374151; /* border-gray-700 */
+    padding: 1rem;
+    display: flex;
+    /* Varsayılan (Mobil): Dikey olarak alt alta */
+    flex-direction: column;
+    gap: 0.75rem; /* 12px */
+}
+
+/* Orta boy ve üzeri ekranlar için (Masaüstü görünümü) */
+@media (min-width: 768px) {
+    .market-offer-card {
+        /* Yatay olarak yan yana */
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
 }
 
 /* Pazardaki küçük kartların çerçeve ve boyut stili */
 .market-card-item {
-    width: 60px; /* Kart genişliği */
-    aspect-ratio: 7 / 10; /* Kart en boy oranı */
-    border-radius: 6px; /* Daha küçük bir köşe yuvarlaklığı */
-    padding: 3px; /* İç boşluk */
-    background-color: #1f2937;
+    width: 50px; /* Mobil için biraz daha küçülttük */
+    aspect-ratio: 7 / 10;
+    border-radius: 6px;
+    padding: 3px;
+    background-color: #111827; /* bg-gray-900 */
     position: relative;
     box-shadow: 0 4px 6px rgba(0,0,0,0.4);
-    flex-shrink: 0; /* Kartların küçülmesini engeller */
+    flex-shrink: 0;
+}
+
+/* Masaüstü için kart boyutunu eski haline getir */
+@media (min-width: 768px) {
+    .market-card-item {
+        width: 60px;
+    }
 }
 
 /* Pazardaki kartların içindeki resim stili */
@@ -295,24 +312,18 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-    border-radius: 3px; /* Çerçeveye uygun köşe yuvarlaklığı */
+    border-radius: 3px;
     border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.market-card-info {
-    display: flex;
-    align-items: center;
-    gap: 1rem; /* Yeni kartlar için aralığı biraz artırdık */
-    text-align: left;
-    min-width: 0; /* Flexbox'ın taşmasını engeller */
 }
 
 .market-card-info .card-name {
     font-weight: bold;
     color: white;
+    font-size: 0.9rem; /* Fontu biraz küçülttük */
+    line-height: 1.2; /* Satır aralığı */
 }
 .market-card-info .card-owner {
-    font-size: 0.8rem;
+    font-size: 0.75rem; /* 12px */
     color: #9ca3af; /* text-gray-400 */
 }
 /* --- KART YÖNETİM BUTONLARI STİLİ --- */
@@ -344,12 +355,21 @@
 }
 /* --- YENİ: KART KOLEKSİYONU SİSTEMİ STİLLERİ --- */
 
-/* Kart albümünün genel yerleşimi */
+/* Kart albümünün genel yerleşimi (Mobil Uyumlu) */
 #cardCollectionAlbum {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 1.5rem;
+    /* Mobil için: min 100px, Masaüstü (md) için: min 150px */
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 1rem; /* Mobilde boşluğu biraz azalttık */
     padding: 1rem;
+}
+
+/* Orta boy ve üzeri ekranlar için (Masaüstü görünümü) */
+@media (min-width: 768px) {
+    #cardCollectionAlbum {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 1.5rem;
+    }
 }
 
 /* Tek bir kartın (hem dolu hem boş) kapladığı alan */
@@ -12673,117 +12693,142 @@ async function acceptTradeOffer(tradeId, buttonElement) {
     }
 
     try {
-        const marketSettingsSnap = await db.ref('gameConfig/marketSettings').once('value');
+        // --- 1. VERİ TOPLAMA VE KONTROLLER ---
+        const isCrossTrade = buttonElement.dataset.tradeFromMarket === 'true';
+        const conflictingTradeId = buttonElement.dataset.conflictingTradeId;
+
+        const [marketSettingsSnap, tradeSnap, userSnap, masterCardsSnap] = await Promise.all([
+            db.ref('gameConfig/marketSettings').once('value'),
+            db.ref(`trades/${tradeId}`).once('value'),
+            db.ref(`users/${currentUser}`).once('value'),
+            db.ref('gameConfig/cardCollection').once('value')
+        ]);
+        
         const marketSettings = marketSettingsSnap.val() || {};
+        const trade = tradeSnap.val();
+        const userData = userSnap.val();
+        const masterCards = masterCardsSnap.val();
 
         if (marketSettings.isLocked) {
-            displayMessage("Takas Pazarı şu anda bakım nedeniyle geçici olarak kapalıdır.");
             throw new Error("Pazar kilitli.");
+        }
+        if (!trade) {
+            loadMarketOffers('all');
+            throw new Error("Bu takas teklifi artık geçerli değil.");
+        }
+        if (!userData) {
+            throw new Error("Kullanıcı verisi bulunamadı.");
         }
 
         const tradeFee = marketSettings.tradeFee || 0;
-        const tradeRef = db.ref(`trades/${tradeId}`);
-        const tradeSnap = await tradeRef.once('value');
-        const trade = tradeSnap.val();
-
-        if (!trade) {
-            displayMessage("Bu takas teklifi artık geçerli değil.");
-            loadMarketOffers('all');
-            throw new Error("Takas bulunamadı.");
-        }
-
-        const userRef = db.ref(`users/${currentUser}`);
-        const userSnap = await userRef.once('value');
-        const userData = userSnap.val();
         const userCards = userData.cardCollection || {};
 
-        if (!userCards[trade.requestedCardId] || userCards[trade.requestedCardId].count <= 1) {
-            displayMessage(`Bu takası yapabilmek için istenen karttan en az 2 adete sahip olmalısın.`);
-            throw new Error("Yetersiz kart.");
-        }
         if ((userData.balance || 0) < tradeFee) {
-            displayMessage(`Takas için gereken ${tradeFee} Puan işlem ücretine sahip değilsin.`);
-            throw new Error("Yetersiz bakiye.");
+            throw new Error(`Takas için gereken ${tradeFee} Puan işlem ücretine sahip değilsin.`);
+        }
+
+        if (isCrossTrade) {
+            if (!userCards[trade.requestedCardId] || userCards[trade.requestedCardId].count !== 1) {
+                throw new Error("Bu takası yapmak için gerekli kart durumun değişmiş.");
+            }
+        } else {
+            if (!userCards[trade.requestedCardId] || userCards[trade.requestedCardId].count <= 1) {
+                throw new Error("Bu takası yapabilmek için istenen karttan en az 2 adete sahip olmalısın.");
+            }
         }
         
-        const masterCardsSnap = await db.ref('gameConfig/cardCollection').once('value');
-        const masterCards = masterCardsSnap.val();
+        // --- 2. KULLANICI ONAYI ---
         const offeredCard = masterCards[trade.offeredCardId];
         const requestedCard = masterCards[trade.requestedCardId];
+        
+        // ★★★ YENİ EKLENEN BİLGİLENDİRME MESAJI MANTIĞI BURADA ★★★
+        let extraWarningMessage = '';
+        if (userCards[trade.offeredCardId] && userCards[trade.offeredCardId].count > 0) {
+            const currentCount = userCards[trade.offeredCardId].count;
+            extraWarningMessage = `<br><br><b class='text-amber-400'>Bilgilendirme:</b> Alacağınız '${offeredCard.cardName}' kartı koleksiyonunuzda zaten mevcut (${currentCount} adet). Takası onaylarsanız bu kartın adedi +1 artacaktır.`;
+        }
+        // ★★★ YENİ KOD SONU ★★★
+        
+        let confirmed = false;
+        if (isCrossTrade) {
+            confirmed = await customConfirm(`Takas etmek istediğiniz '${requestedCard.cardName}' kartı takas pazarına eklenmiş Takası kabul ederseniz, kartınız pazardan silinecektir. <br><br><b>İşlem ücreti: ${tradeFee} Puan</b>. Devam etmek istiyor musunuz?${extraWarningMessage}`);
+        } else {
+            confirmed = await customConfirm(`<b>${trade.offerer}</b> ile takas yapacaksın. Vereceğin kart: <b class="text-red-400">${requestedCard.cardName}</b>, Alacağın kart: <b class="text-green-400">${offeredCard.cardName}</b>. İşlem ücreti: <b class="text-yellow-400">${tradeFee} Puan</b>. Onaylıyor musunuz?${extraWarningMessage}`);
+        }
 
-        const confirmed = await customConfirm(`<b>${trade.offerer}</b> ile takas yapacaksın. Vereceğin kart: <b class="text-red-400">${requestedCard.cardName}</b>, Alacağın kart: <b class="text-green-400">${offeredCard.cardName}</b>. İşlem ücreti: <b class="text-yellow-400">${tradeFee} Puan</b>. Onaylıyor musun?`);
         if (!confirmed) {
             throw new Error("Kullanıcı iptal etti.");
         }
-        
-        // Yarış durumunu (race condition) engellemek için transaction kullanıyoruz.
-        // Bu, aynı anda iki kişinin takası kabul etmesini engeller.
-        const transactionResult = await tradeRef.transaction(currentTrade => {
-            if (currentTrade === null) {
-                return; // Başka biri takası zaten almış, işlemi iptal et.
-            }
-            return null; // Takası kaldırarak "kilitle".
-        });
 
-        if (!transactionResult.committed) {
-            displayMessage("Takas yapılamadı. Muhtemelen teklif sahibi kartı pazardan çekti veya başka bir oyuncu daha hızlı davrandı.");
-            loadMarketOffers('all');
-            throw new Error("Takas zaten alınmış.");
-        }
-
-        // Takas başarıyla alındı, şimdi kullanıcı verilerini güncelleyelim.
+        // --- 3. GÜNCELLEMELERİ HAZIRLAMA ---
         const updates = {};
         
-        // Kabul edenin (benim) güncellemeleri
-        updates[`users/${currentUser}/cardCollection/${trade.requestedCardId}/count`] = (userCards[trade.requestedCardId].count) - 1;
-        updates[`users/${currentUser}/cardCollection/${trade.offeredCardId}/count`] = (userCards[trade.offeredCardId]?.count || 0) + 1;
-        updates[`users/${currentUser}/balance`] = (userData.balance || 0) - tradeFee;
-        const finalAccepterBalance = updates[`users/${currentUser}/balance`];
-
-        // Teklifi verenin güncellemeleri
-        const offererRef = db.ref(`users/${trade.offerer}`);
-        const offererSnap = await offererRef.once('value');
-        const offererData = offererSnap.val();
-        updates[`users/${trade.offerer}/cardCollection/${trade.requestedCardId}/count`] = (offererData.cardCollection?.[trade.requestedCardId]?.count || 0) + 1;
-        
-        await db.ref().update(updates);
-        
-        // Loglama ve bildirim işlemleri
-        logActivity('tradeOfferAccepted', currentUser, {
-            offerer: trade.offerer, fee: tradeFee, newBalance: finalAccepterBalance,
-            offeredCardName: offeredCard.cardName, requestedCardName: requestedCard.cardName
-        });
-
-        if (trade.activityId) {
-            await db.ref(`activityFeed/${trade.activityId}/details/status`).set('completed');
+        if (isCrossTrade && conflictingTradeId) {
+            const conflictingTradeSnap = await db.ref(`trades/${conflictingTradeId}`).once('value');
+            const conflictingTrade = conflictingTradeSnap.val();
+            if (conflictingTrade) {
+                updates[`/trades/${conflictingTradeId}`] = null;
+                if (conflictingTrade.activityId) {
+                    updates[`/activityFeed/${conflictingTrade.activityId}/details/status`] = 'cancelled';
+                }
+            }
         }
         
+        updates[`/trades/${tradeId}`] = null;
+        if (trade.activityId) {
+            updates[`/activityFeed/${trade.activityId}/details/status`] = 'completed';
+        }
+
+        updates[`/users/${currentUser}/cardCollection/${trade.requestedCardId}/count`] = userCards[trade.requestedCardId].count - 1;
+        updates[`/users/${currentUser}/cardCollection/${trade.offeredCardId}/count`] = (userCards[trade.offeredCardId]?.count || 0) + 1;
+        updates[`/users/${currentUser}/balance`] = (userData.balance || 0) - tradeFee;
+        const finalAccepterBalance = updates[`/users/${currentUser}/balance`];
+
+        const offererSnap = await db.ref(`users/${trade.offerer}`).once('value');
+        const offererData = offererSnap.val();
+        if(offererData){
+             updates[`/users/${trade.offerer}/cardCollection/${trade.requestedCardId}/count`] = (offererData.cardCollection?.[trade.requestedCardId]?.count || 0) + 1;
+        }
+
+        // --- 4. GÜNCELLEMELERİ UYGULAMA VE BİLDİRİMLER ---
+        await db.ref().update(updates);
+
         await db.ref('tradeHistory').push().set({
             offerer: trade.offerer, accepter: currentUser, offeredCardId: trade.offeredCardId,
             requestedCardId: trade.requestedCardId, offeredCardName: offeredCard.cardName,
             requestedCardName: requestedCard.cardName, timestamp: firebase.database.ServerValue.TIMESTAMP
         });
 
-        // 1. Takası kabul eden kişiye, sadece basit ve geçici bir bildirim gösterilir.
-        displayGlobalNotification(`Takas başarılı! Yeni kartın albümüne eklendi.`);
+        logActivity('tradeOfferAccepted', currentUser, {
+            offerer: trade.offerer, fee: tradeFee, newBalance: finalAccepterBalance,
+            offeredCardName: offeredCard.cardName, requestedCardName: requestedCard.cardName
+        });
 
-        // 2. Sadece teklif sahibine (offerer), özel "Takas Gerçekleşti" penceresini tetikleyecek olan bildirim gönderilir.
+        displayGlobalNotification(`Takas başarılı! Yeni kartın albümüne eklendi.`);
         const notificationMessage = `<b>${currentUser}</b>, takasa koyduğunuz '${offeredCard.cardName}' kartı karşılığında istediğiniz '${requestedCard.cardName}' kartı takasını onayladı. Yeni kartınız albümünüze eklendi!`;
         await db.ref(`tradeNotifications/${trade.offerer}`).push({ message: notificationMessage, timestamp: firebase.database.ServerValue.TIMESTAMP });
 
-        loadMarketOffers('all');
-        if (currentActiveSection === 'cardCollection') loadCollectionAlbum();
+        if (currentActiveSection === 'cardCollection') {
+            loadCollectionAlbum();
+        }
 
     } catch (error) {
-        if (!["Kullanıcı iptal etti.", "Takas bulunamadı.", "Yetersiz kart.", "Yetersiz bakiye.", "Pazar kilitli.", "Takas zaten alınmış."].includes(error.message)) {
+        const knownErrors = ["Kullanıcı iptal etti.", "Pazar kilitli.", "Bu takas teklifi artık geçerli değil.", "Kullanıcı verisi bulunamadı.", "Bu takası yapmak için gerekli kart durumun değişmiş."];
+        if (!knownErrors.includes(error.message) && !error.message.includes("işlem ücretine sahip değilsin") && !error.message.includes("en az 2 adete sahip olmalısın")) {
              console.error("Takas işlemi hatası:", error);
              displayMessage("Beklenmedik bir hata oluştu. Lütfen konsolu kontrol edin.");
+        } else {
+            displayMessage(error.message);
         }
+        loadMarketOffers('all');
     } finally {
         isTradeInProgress = false;
         if (buttonElement) {
-            buttonElement.disabled = false;
-            buttonElement.textContent = 'Takası Yap';
+            const tradeStillExists = (await db.ref(`trades/${tradeId}`).once('value')).exists();
+            if(tradeStillExists){
+                buttonElement.disabled = false;
+                buttonElement.textContent = 'Takası Yap';
+            }
         }
     }
 }
@@ -12797,6 +12842,15 @@ async function loadMarketOffers(mode) {
     }
 
     let tradesRef = db.ref('trades');
+
+    // Kullanıcının kendi aktif tekliflerini en başta bir kez çekelim
+    const myOffersSnap = await tradesRef.orderByChild('offerer').equalTo(currentUser).once('value');
+    const myOffers = myOffersSnap.val() || {};
+    const myOfferedCardIds = new Map();
+    for (const tradeId in myOffers) {
+        myOfferedCardIds.set(myOffers[tradeId].offeredCardId, tradeId);
+    }
+
     if (mode === 'mine') {
         tradesRef = tradesRef.orderByChild('offerer').equalTo(currentUser);
     }
@@ -12827,17 +12881,25 @@ async function loadMarketOffers(mode) {
 
             let actionButton = '';
             if (mode === 'all') {
-                const userHasRequestedCard = userCards[trade.requestedCardId] && userCards[trade.requestedCardId].count > 1;
+                const userHasDuplicate = userCards[trade.requestedCardId] && userCards[trade.requestedCardId].count > 1;
+                const conflictingTradeId = myOfferedCardIds.get(trade.requestedCardId);
+                const canTradeFromMarket = !userHasDuplicate && (userCards[trade.requestedCardId]?.count === 1) && conflictingTradeId;
+                const canAccept = userHasDuplicate || canTradeFromMarket;
                 const isMyOwnOffer = trade.offerer === currentUser;
                 
+                let tradeFromMarketAttr = '';
+                if (canTradeFromMarket) {
+                    tradeFromMarketAttr = `data-trade-from-market="true" data-conflicting-trade-id="${conflictingTradeId}"`;
+                }
+
                 if (isMyOwnOffer) {
                      actionButton = `<button disabled class="py-2 px-5 bg-gray-600 text-gray-400 rounded-lg text-sm font-bold cursor-not-allowed">Kendi Teklifin</button>`;
                 } else {
-                     // DEĞİŞİKLİK BURADA: onclick olayına 'this' eklendi
                      actionButton = `
                         <button onclick="acceptTradeOffer('${tradeId}', this)" 
-                                class="py-2 px-5 rounded-lg text-sm font-bold transition-colors ${userHasRequestedCard ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-gray-600 text-gray-400 cursor-not-allowed'}"
-                                ${!userHasRequestedCard ? 'disabled title="Bu karttan takas edebileceğin fazlan yok"' : ''}>
+                                class="py-2 px-5 rounded-lg text-sm font-bold transition-colors ${canAccept ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-gray-600 text-gray-400 cursor-not-allowed'}"
+                                ${!canAccept ? 'disabled title="Bu karttan takas edebileceğin fazlan yok"' : ''}
+                                ${tradeFromMarketAttr}>
                             Takası Yap
                         </button>
                     `;
@@ -12850,31 +12912,48 @@ async function loadMarketOffers(mode) {
                  actionButton += `<button onclick="cancelTradeOffer('${tradeId}', true)" class="ml-2 py-2 px-3 bg-red-800 hover:bg-red-700 rounded-lg text-xs" title="Admin Olarak İptal Et">X</button>`;
             }
 
-            const offerHtml = `
-                <div class="market-offer-card">
-                    <div class="market-card-info">
-                        <div class="market-card-item rarity-${offeredCard.rarity || 'normal'}">
-                            <img class="market-card-image" src="${offeredCard.imageUrl}" alt="${offeredCard.cardName}">
-                        </div>
-                        <div>
-                            <p class="card-name">${offeredCard.cardName}</p>
-                            <p class="card-owner">Teklif Sahibi: <b class="text-yellow-400">${trade.offerer}</b></p>
-                        </div>
-                    </div>
-                    <span class="text-2xl font-bold text-gray-500 mx-4">⇄</span>
-                    <div class="market-card-info">
-                        <div class="market-card-item rarity-${requestedCard.rarity || 'normal'}">
-                            <img class="market-card-image" src="${requestedCard.imageUrl}" alt="${requestedCard.cardName}">
-                        </div>
-                        <div>
-                            <p class="card-name">${requestedCard.cardName}</p>
-                            <p class="card-owner">İstenen Kart</p>
-                        </div>
-                    </div>
-                    <div class="ml-auto pl-4">${actionButton}</div>
-                </div>
-            `;
-            listEl.innerHTML += offerHtml;
+            // ... loadMarketOffers fonksiyonu içinde ...
+const offerHtml = `
+    <div class="market-offer-card">
+        <div class="flex items-center gap-3 w-full">
+            <div class="market-card-item rarity-${offeredCard.rarity || 'normal'}">
+                <img class="market-card-image" src="${offeredCard.imageUrl}" alt="${offeredCard.cardName}">
+            </div>
+            <div class="market-card-info flex-grow">
+                <p class="card-name">${offeredCard.cardName}</p>
+                <p class="card-owner">Teklif Edilen Kart</p>
+            </div>
+        </div>
+        
+        <div class="self-center text-2xl font-bold text-gray-500 md:hidden">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+        </div>
+        
+        <div class="flex items-center gap-3 w-full">
+            <div class="market-card-item rarity-${requestedCard.rarity || 'normal'}">
+                <img class="market-card-image" src="${requestedCard.imageUrl}" alt="${requestedCard.cardName}">
+            </div>
+            <div class="market-card-info flex-grow">
+                <p class="card-name">${requestedCard.cardName}</p>
+                <p class="card-owner">İstenen Kart</p>
+            </div>
+        </div>
+
+        <hr class="border-gray-700 w-full md:hidden">
+        
+        <div class="w-full md:w-auto flex flex-col md:flex-row items-center gap-3 md:ml-auto">
+             <p class="text-sm text-gray-300 md:hidden">
+                Teklif Sahibi: <b class="text-yellow-400">${trade.offerer}</b>
+             </p>
+            <p class="hidden md:block text-sm text-gray-300">
+                <b class="text-yellow-400">${trade.offerer}</b>
+            </p>
+            <div class="w-full md:w-auto">${actionButton}</div>
+        </div>
+    </div>
+`;
+listEl.innerHTML += offerHtml;
+
         }
     };
     
