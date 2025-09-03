@@ -5735,6 +5735,9 @@ function renderActivityFeed(activities) {
                 case 'multiplierStacked': // YENİ EKLENEN CASE
                      message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan mevcut <b>${details.value}x</b> çarpanıyla aynı değerde bir çarpan daha buldu. Kullanım hakkı <b class="text-teal-300 font-bold">+1</b> artırıldı.`;
                     break;
+                    case 'surpriseBoxTimeout':
+    message = `${userHtml}, Sürpriz Kutu buldu ancak puan kazanamadı, istenilen süre içinde <b class="text-red-400">kart seçimi yapmadı.</b>`;
+    break;
                 case 'openBox':
                     let openBoxMultiplierText = (details.multiplier && details.multiplier > 1)
                         ? ` <span class="text-xs text-purple-400">(${details.multiplier}x çarpan kullandı)</span>`
@@ -6281,17 +6284,17 @@ function openCardSelectionModal(userId) {
         const countdownEl = document.getElementById('cardSelectionCountdown');
         let timeLeft = Math.round((sessionData.expirationTimestamp - getSyncedTime()) / 1000);
 
-        const handleTimeout = () => {
-            if (cardSelectionModal.style.display === 'flex' && !sessionData.selection) {
-                // --- DÜZELTME BURADA ---
-                // Zaman aşımı logunu ekliyoruz.
-                logActivity('surpriseBoxTimeout', userId, { boxId: sessionData.boxId });
-                // --- DÜZELTME SONU ---
-                displayMessage("Süre dolduğu için kart seçemedin!");
-                closeCardSelectionModal();
-                db.ref('surprise_box_session').remove();
-            }
-        };
+        // BU ŞEKİLDE GÜNCELLEYİN
+const handleTimeout = () => {
+    if (cardSelectionModal.style.display === 'flex' && !sessionData.selection) {
+        // --- EKLENEN SATIR ---
+        logActivity('surpriseBoxTimeout', userId, { boxId: sessionData.boxId });
+        // --- EKLENEN SATIR SONU ---
+        displayMessage("Süre dolduğu için kart seçemedin!");
+        closeCardSelectionModal();
+        db.ref('surprise_box_session').remove(); // Oturumu temizle
+    }
+};
 
         if (timeLeft <= 0) {
             handleTimeout();
@@ -6311,42 +6314,36 @@ function openCardSelectionModal(userId) {
     });
 }
 
-// Kullanıcının kendi seçtiği kartları ve sonucu ekranda gösterir.
+// YERİNE BU YENİ KODU YAPIŞTIRIN
 function revealMyCardChoice(sessionData) {
     if (countdownInterval) clearInterval(countdownInterval);
     document.getElementById('cardSelectionCountdown').textContent = 'Seçim Yapıldı!';
 
     const selectedCardIndex = sessionData.selection.cardIndex;
-    const pointsGained = sessionData.result.points;
+    // Düzeltme: Artık doğru puanı (finalPoints) result objesinden alıyoruz.
+    const pointsGained = sessionData.result.finalPoints; 
     
     const cardContainer = document.querySelector('#cardSelectionModal .card-container');
     const allCards = cardContainer.querySelectorAll('.card-flip-container');
 
-    // Tüm kartları çevir ve sonuçları göster
     sessionData.cards.forEach((cardValue, index) => {
         const cardEl = allCards[index];
         if (cardEl) {
             const cardBack = cardEl.querySelector('.card-back');
             const realPoints = cardValue * (sessionData.multiplier || 1);
             
-            // Kartın arka yüzünü puanla doldur
             cardBack.innerHTML = `<div class="w-full h-full flex items-center justify-center text-3xl font-bold text-yellow-300 bg-gray-900 rounded-xl border-2 border-gray-700">+${realPoints}</div>`;
             
-            // Kartı çevirme animasyonunu tetikle
             cardEl.classList.add('flipped');
             
-            // Eğer bu kart kullanıcının seçtiği kart ise, onu özel olarak parlat
             if (index == selectedCardIndex) {
                 cardEl.querySelector('.card-flipper').classList.add('border-4', 'border-yellow-400', 'rounded-xl', 'shadow-lg', 'shadow-yellow-400/50');
             }
         }
     });
 
-    // Puan kazanma yazısını altta göster
-    const resultPopup = document.createElement('div');
-    resultPopup.className = 'absolute bottom-10 left-1/2 -translate-x-1/2 bg-black bg-opacity-80 px-6 py-3 rounded-lg text-2xl font-bold text-green-400 animate-pulse';
-    resultPopup.textContent = `+${pointsGained} Puan Kazandın!`;
-    cardContainer.parentElement.appendChild(resultPopup);
+    // Puan kazanma yazısı ("Tebrikler...") artık oluşturulmuyor.
+    // Kullanıcı sadece kartların üzerindeki puanları görecek.
 }
 
 // YERİNE BU YENİ VE DÜZELTİLMİŞ KODU YAPIŞTIRIN
@@ -6532,15 +6529,16 @@ function closeGlobalSurpriseBoxModal() {
 }
       
   // YERİNE BU YENİ KODU YAPIŞTIRIN
-function closeCardSelectionModal() {
-    // Önceki turdan kalan sonuç yazısını temizle
-    const oldPopup = cardSelectionModal.querySelector('.result-popup');
-    if (oldPopup) {
-        oldPopup.remove();
+function closeCardSelectionModal() { 
+    const modal = document.getElementById('cardSelectionModal');
+    if(modal){
+        // Bir önceki turdan kalan "sonuç" pop-up'ını temizle
+        const oldPopup = modal.querySelector('.result-popup');
+        if (oldPopup) {
+            oldPopup.remove();
+        }
+        modal.style.display = 'none'; 
     }
-    
-    // Modalı gizle
-    cardSelectionModal.style.display = 'none';
 }
 
   function openNewItemForm() {
