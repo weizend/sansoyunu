@@ -5124,7 +5124,7 @@ async function openBox(index) {
     const lastSurpriseData = lastSurpriseSnap.val();
     if (lastSurpriseData && lastSurpriseData.resettled === false) {
         const continueOpening = await customConfirm(
-            'Sürprriz kutu bulundu, yine de kutu açmaya devam etmek istiyor musun?<br><br><small>Oyunu sıfırlamak için ana ekrandaki "Sorunları Çöz" menüsünü kullanabilirsin.</small>'
+            'Sürpriz kutu bulundu, yine de kutu açmaya devam etmek istiyor musun?<br><br><small>Oyunu sıfırlamak için ana ekrandaki "Sorunları Çöz" menüsünü kullanabilirsin.</small>'
         );
         if (!continueOpening) {
             return;
@@ -5156,6 +5156,13 @@ async function openBox(index) {
         return;
     }
 
+    // EKSİK OLAN VE YENİDEN EKLENEN ONAY KISMI BURASI
+    const initialConfirm = await customConfirm(`<b>${boxes[index].id}</b> numaralı kutuyu açmak istediğinize emin misiniz?`);
+    if (!initialConfirm) {
+        return; // Kullanıcı "Hayır" derse fonksiyonu burada durdur.
+    }
+    // ONAY KISMI SONU
+
     // Çarpanla açma onayı (Artık sadece mağaza çarpanı için sorulacak)
     let useMultiplier = false;
     if (user.multiplierSource === 'store' && (user.multiplierRemainingUses || 0) > 0) {
@@ -5181,17 +5188,18 @@ async function openBox(index) {
         displayMessage(`Seçtiğiniz kutu <b>${transactionResult.snapshot.val().opener}</b> tarafından açıldı. Haklarınız ve çarpanınız kullanılmadı.`);
         return;
     }
-
+    
     await db.ref('gameLock').set(true);
     isGameLocked = true;
-
+    
+    // En güncel kullanıcı verisini tekrar çek
     userSnap = await userRef.once('value');
     user = userSnap.val();
 
     const box = boxes[index];
     const updates = {};
     let message = '';
-
+    
     updates['kutuHakki'] = (user.kutuHakki || 0) - BOX_RIGHTS_COST_PER_BOX;
     updates['boxesOpenedCount'] = (user.boxesOpenedCount || 0) + 1;
     await db.ref(`gameStats/boxesOpenedByUsers/${currentUser}`).transaction(currentValue => (currentValue || 0) + 1);
@@ -5224,7 +5232,6 @@ async function openBox(index) {
         boxUpdate.multiplierApplied = finalMultiplier;
     }
 
-    // === YENİ ÇARPAN MANTIĞI ===
     if (box.content === 'multiplier') {
         updates['multiplierFoundCount'] = (user.multiplierFoundCount || 0) + 1;
         const foundMultiplierValue = box.value;
@@ -5238,9 +5245,9 @@ async function openBox(index) {
             message = `Harika! <b>${foundMultiplierValue}x Çarpan</b> buldun. Bir sonraki kutu açılışında otomatik olarak kullanılacak!`;
             logActivity('multiplierFound', currentUser, { boxId: box.id, value: foundMultiplierValue });
         } else if (foundMultiplierValue === existingMultiplierValue) {
-            updates.multiplierRemainingUses = existingMultiplierUses + 1;
-            message = `Süper! Mevcut <b>${existingMultiplierValue}x</b> çarpanınla aynı değerde bir tane daha buldun. Kullanım hakkın <b class="text-teal-300">+1</b> artarak <b>${updates.multiplierRemainingUses}</b> oldu!`;
-            logActivity('multiplierStacked', currentUser, { value: foundMultiplierValue, uses: 1 });
+             updates.multiplierRemainingUses = existingMultiplierUses + 1;
+             message = `Süper! Mevcut <b>${existingMultiplierValue}x</b> çarpanınla aynı değerde bir tane daha buldun. Kullanım hakkın <b class="text-teal-300">+1</b> artarak <b>${updates.multiplierRemainingUses}</b> oldu!`;
+             logActivity('multiplierStacked', currentUser, { value: foundMultiplierValue, uses: 1 });
         } else if (foundMultiplierValue > existingMultiplierValue) {
             const combinedValue = existingMultiplierValue + foundMultiplierValue;
             updates.activeMultiplier = combinedValue;
@@ -5258,7 +5265,6 @@ async function openBox(index) {
             logActivity('multiplierConvertedToBoxRights', currentUser, { rewardValue: foundMultiplierValue, boxRights: boxRightsFromMultiplier, source: 'Kutudan' });
         }
     }
-    // Diğer kutu içerikleri...
     else if (box.content === 'points') {
         const pointsGained = box.value * finalMultiplier;
         updates['balance'] = (user.balance || 0) + pointsGained;
