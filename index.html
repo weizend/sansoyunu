@@ -5168,7 +5168,7 @@ async function openBox(index) {
     if (originalMultiplierSource === 'box') {
         finalMultiplier = originalMultiplierValue;
         useMultiplier = true;
-    } 
+    }
     else if (originalMultiplierSource === 'store' && originalMultiplierUses > 0) {
         const confirmed = await customConfirm(`Mevcut <b>${originalMultiplierValue}x</b> çarpanınızı kullanmak ister misiniz?`);
         if (confirmed) {
@@ -5204,7 +5204,6 @@ async function openBox(index) {
     const box = boxes[index];
     const updates = {};
     let message = '';
-    let shouldLockGame = true;
     let shouldDisplayMessage = true;
 
     updates['kutuHakki'] = (user.kutuHakki || 0) - BOX_RIGHTS_COST_PER_BOX;
@@ -5249,8 +5248,7 @@ async function openBox(index) {
         openMultiplierChoiceModal(context);
         
         shouldDisplayMessage = false;
-        shouldLockGame = false;
-        
+
     } else if (box.content === 'points') {
         const pointsGained = box.value * finalMultiplier;
         updates['balance'] = (user.balance || 0) + pointsGained;
@@ -5281,8 +5279,9 @@ async function openBox(index) {
         boxOpenInfo.lostPoints = shieldWasUsed ? 0 : lostPoints;
         logActivity('iflas', currentUser, { shieldUsed: shieldWasUsed, lostPoints: shieldWasUsed ? 0 : lostPoints, boxId: box.id, multiplier: finalMultiplier, newBalance: newBalanceForLog });
     } else if (box.content === 'surpriz') {
+        // Burada sürpriz kutu özel mantığı işleniyor
+        // Bu blokta kilidin nasıl yönetildiğini ayrıca incelemen gerekebilir
         updates['surpriseBoxesOpened'] = (user.surpriseBoxesOpened || 0) + 1;
-        shouldLockGame = false;
         shouldDisplayMessage = false;
         
         await db.ref('gameStats/lastSurpriseInfo').set({ finder: currentUser, resettled: false, boxId: box.id, timestamp: firebase.database.ServerValue.TIMESTAMP });
@@ -5319,14 +5318,13 @@ async function openBox(index) {
     const finalBoxRef = db.ref('boxes/' + index);
     await finalBoxRef.update(boxUpdate);
 
+    // ★★★ YENİ EKLENEN KOD: KİLİDİ HER DURUMDA KALDIRIYORUZ ★★★
+    await db.ref('gameLock').set(false);
+    isGameLocked = false;
+    
     if (shouldDisplayMessage) {
         await db.ref('lastOpenedBox').set(boxOpenInfo);
         displayMessage(message);
-    }
-    
-    if (shouldLockGame) {
-        await db.ref('gameLock').set(false);
-        isGameLocked = false;
     }
 }
 
