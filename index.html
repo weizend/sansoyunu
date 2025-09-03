@@ -11,6 +11,18 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
 <style>
+/* --- YENİ EKLENECEK KOD: Kutu Ayarları Mobil Düzeltmesi --- */
+@media (max-width: 640px) { /* sm breakpoint'i (640px) altındaki ekranlar için */
+    .box-setting-row {
+        flex-direction: column; /* Elementleri dikeyde hizala */
+        align-items: stretch;   /* Elementleri tam genişliğe yay */
+        gap: 0.75rem;           /* Aralarındaki boşluğu ayarla */
+    }
+    .box-setting-row .setting-value,
+    .box-setting-row .setting-count {
+        width: 100%; /* Genişlikleri %100 yap */
+    }
+}
 /* --- YENİ EKLENECEK KOD --- */
 #finishersList {
     max-height: 450px; /* Yaklaşık 5 satır + boşluklar için bir yükseklik */
@@ -1227,7 +1239,7 @@ body.modal-open .modal-content {
                     <div id="lobbyPlayerList" class="mt-2 text-sm text-gray-400"></div>
                 </div>
                 
-                <div class="flex justify-around items-center mb-4 bg-gray-900 p-3 rounded-lg">
+                <div class="flex justify-around items-center flex-wrap gap-y-2 mb-4 bg-gray-900 p-3 rounded-lg">
                     <div id="displayScore" class="hidden">
                         <p class="text-gray-400 text-sm">Toplanan Skor</p>
                         <p id="clickCatchScore" class="text-green-400 font-bold text-lg">0</p>
@@ -1322,10 +1334,10 @@ body.modal-open .modal-content {
         <button id="kasaSettingsBtn" onclick="openKasaSettingsModal()" class="hidden py-1 px-3 text-sm bg-gray-600 hover:bg-gray-500 rounded-lg">Ayarlar</button>
     </div>
     <p class="text-gray-400 mb-4">Sezon sıfırlamasından etkilenmeyecek puanlarını buraya aktar. Bu puanlar sadece <b class="text-white">Özel Ürün Mağazası'nda</b> kullanılabilir ve sıralamaya etki etmez.</p>
-    <div class="flex items-center gap-4">
-        <input type="number" id="kasaTransferInput" min="1" placeholder="Miktarı Girin" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500">
-        <button onclick="kasaTransferEt()" class="py-3 px-6 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-lg shadow-md whitespace-nowrap">Kasaya Aktar</button>
-    </div>
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+    <input type="number" id="kasaTransferInput" min="1" placeholder="Miktarı Girin" class="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500">
+    <button onclick="kasaTransferEt()" class="py-3 px-6 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-lg shadow-md whitespace-nowrap">Kasaya Aktar</button>
+</div>
 </div>
 
 <div id="kasaSettingsModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[9999] hidden">
