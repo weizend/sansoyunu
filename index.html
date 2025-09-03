@@ -5156,14 +5156,11 @@ async function openBox(index) {
         return;
     }
 
-    // EKSİK OLAN VE YENİDEN EKLENEN ONAY KISMI BURASI
     const initialConfirm = await customConfirm(`<b>${boxes[index].id}</b> numaralı kutuyu açmak istediğinize emin misiniz?`);
     if (!initialConfirm) {
-        return; // Kullanıcı "Hayır" derse fonksiyonu burada durdur.
+        return;
     }
-    // ONAY KISMI SONU
 
-    // Çarpanla açma onayı (Artık sadece mağaza çarpanı için sorulacak)
     let useMultiplier = false;
     if (user.multiplierSource === 'store' && (user.multiplierRemainingUses || 0) > 0) {
         const confirmed = await customConfirm(`Mevcut <b>${user.activeMultiplier}x</b> çarpanınızı kullanmak ister misiniz?`);
@@ -5175,7 +5172,7 @@ async function openBox(index) {
     const boxRef = db.ref('boxes/' + index);
     const transactionResult = await boxRef.transaction(currentBoxData => {
         if (currentBoxData && currentBoxData.opened) {
-            return; // İşlemi iptal et
+            return; 
         }
         if (currentBoxData) {
             currentBoxData.opened = true;
@@ -5192,7 +5189,6 @@ async function openBox(index) {
     await db.ref('gameLock').set(true);
     isGameLocked = true;
     
-    // En güncel kullanıcı verisini tekrar çek
     userSnap = await userRef.once('value');
     user = userSnap.val();
 
@@ -5243,11 +5239,11 @@ async function openBox(index) {
             updates.activeMultiplier = foundMultiplierValue;
             updates.multiplierSource = 'box';
             message = `Harika! <b>${foundMultiplierValue}x Çarpan</b> buldun. Bir sonraki kutu açılışında otomatik olarak kullanılacak!`;
-            logActivity('multiplierFound', currentUser, { boxId: box.id, value: foundMultiplierValue });
+            logActivity('multiplierFound', currentUser, { boxId: box.id, value: foundMultiplierValue, multiplier: finalMultiplier });
         } else if (foundMultiplierValue === existingMultiplierValue) {
              updates.multiplierRemainingUses = existingMultiplierUses + 1;
              message = `Süper! Mevcut <b>${existingMultiplierValue}x</b> çarpanınla aynı değerde bir tane daha buldun. Kullanım hakkın <b class="text-teal-300">+1</b> artarak <b>${updates.multiplierRemainingUses}</b> oldu!`;
-             logActivity('multiplierStacked', currentUser, { value: foundMultiplierValue, uses: 1 });
+             logActivity('multiplierStacked', currentUser, { boxId: box.id, value: foundMultiplierValue, uses: 1, multiplier: finalMultiplier });
         } else if (foundMultiplierValue > existingMultiplierValue) {
             const combinedValue = existingMultiplierValue + foundMultiplierValue;
             updates.activeMultiplier = combinedValue;
@@ -5257,12 +5253,12 @@ async function openBox(index) {
             updates.kutuHakki += refundedBoxRights;
             
             message = `İNANILMAZ! Mevcut ${existingMultiplierValue}x çarpanın, bulduğun ${foundMultiplierValue}x ile birleşerek tek kullanımlık <b class="text-purple-400">${combinedValue}x</b> gücüne ulaştı! Eski çarpan hakların için <b class="text-green-400">+${refundedBoxRights} Kutu Hakkı</b> iade edildi!`;
-            logActivity('multiplierCombined', currentUser, { boxId: box.id, foundValue: foundMultiplierValue, combinedValue: combinedValue });
+            logActivity('multiplierCombined', currentUser, { boxId: box.id, foundValue: foundMultiplierValue, combinedValue: combinedValue, refundedRights: refundedBoxRights, multiplier: finalMultiplier });
         } else { // foundMultiplierValue < existingMultiplierValue
             const boxRightsFromMultiplier = foundMultiplierValue;
             updates.kutuHakki += boxRightsFromMultiplier;
             message = `Mevcut <b>${existingMultiplierValue}x</b> çarpanın daha güçlü olduğu için korundu. Bulduğun ${foundMultiplierValue}x çarpan ise <b class="text-green-400">+${boxRightsFromMultiplier} Kutu Hakkı</b>'na dönüştürüldü!`;
-            logActivity('multiplierConvertedToBoxRights', currentUser, { rewardValue: foundMultiplierValue, boxRights: boxRightsFromMultiplier, source: 'Kutudan' });
+            logActivity('multiplierConvertedToBoxRights', currentUser, { boxId: box.id, rewardValue: foundMultiplierValue, boxRights: boxRightsFromMultiplier, source: 'Kutudan', multiplier: finalMultiplier });
         }
     }
     else if (box.content === 'points') {
@@ -5287,7 +5283,7 @@ async function openBox(index) {
         }
         boxUpdate.shieldUsed = shieldWasUsed;
         boxUpdate.lostPoints = shieldWasUsed ? 0 : lostPoints;
-        logActivity('iflas', currentUser, { shieldUsed: shieldWasUsed, lostPoints: shieldWasUsed ? 0 : lostPoints, boxId: box.id });
+        logActivity('iflas', currentUser, { shieldUsed: shieldWasUsed, lostPoints: shieldWasUsed ? 0 : lostPoints, boxId: box.id, multiplier: finalMultiplier, newBalance: updates['balance'] });
     } else if (box.content === 'surpriz') {
         updates['surpriseBoxesOpened'] = (user.surpriseBoxesOpened || 0) + 1;
         const openedInTurnSnap = await db.ref(`gameStats/boxesOpenedByUsers/${currentUser}`).once('value');
@@ -5325,7 +5321,6 @@ async function openBox(index) {
     await db.ref('gameLock').set(false);
     isGameLocked = false;
 }
-
 
 // Senaryo A: Çarpanla kutu açarken yeni bir çarpan bulma seçeneği
 function openMultiplierUpgradeChoiceModal(existing, found, boxId) {
@@ -6023,20 +6018,11 @@ function listenForLastOpenedBox() {
     await db.ref('gameLock').set(false);
 }
 
-// --- MEVCUT HATALI FONKSİYONU BUNUNLA DEĞİŞTİR ---
 async function handleSurpriseBoxCleanup(sessionData) {
     if (!sessionData) return;
-
-    // Sadece kutu oyunundan gelen sürprizlerde oyunu sıfırla
-    if (sessionData.boxId !== 'Çark') {
-        await resetGameBoard(); // OYUNU SIFIRLAYAN EKSİK KOD
-        await db.ref('gameStats/lastSurpriseInfo').update({
-            resettled: true,
-            resettledBy: 'Otomatik Sistem' // Sıfırlayanın kim olduğunu belirt
-        });
-    }
     
-    // Her durumda, sürpriz kutu oturumunu veritabanından temizle.
+    // Artık bu fonksiyon oyunu sıfırlamıyor, sadece oturumu temizliyor.
+    // Sıfırlama işlemi manuel olarak "manualResetAfterSurprise" fonksiyonu ile yapılacak.
     await db.ref('surprise_box_session').remove();
 }
 
@@ -7728,17 +7714,19 @@ async function manualResetAfterSurprise() {
 
     if (lastSurpriseData && lastSurpriseData.resettled === false) {
         
+        // Sıfırlama işlemini veritabanına kaydet
         await db.ref('gameStats/lastSurpriseInfo').update({
             resettled: true,
             resettledBy: currentUser 
         });
         
+        // Oyunu sıfırla (kutuları yeniden oluştur ve istatistikleri temizle)
         await resetGameBoard();
         
-        displayMessage("Açılmış sürpriz kutu tespit edildi ve oyun senin tarafından sıfırlandı!");
+        displayMessage("Açılmış sürpriz kutu tespit edildi ve oyun senin tarafından başarıyla sıfırlandı!");
 
     } else {
-        displayMessage("Bu özellik sadece bir sürpriz kutu bulunduktan sonra kullanılabilir.");
+        displayMessage("Bu özellik sadece bir sürpriz kutu bulunduktan sonra ve oyun sıfırlanmadığında kullanılabilir.");
     }
     
     closeSolveProblemsModal();
