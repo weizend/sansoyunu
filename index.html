@@ -8940,9 +8940,8 @@ function openSpectatorModal(sessionData) {
     spectatorModal.style.display = 'flex';
 }
 
+// YERİNE BU YENİ KODU YAPIŞTIRIN
 function updateSpectatorView(sessionData) {
-    // *** YENİ EKLENEN SATIR ***
-    // İzleyicinin artık sonucu gördüğünü ve pencerenin kapanmaması gerektiğini işaretle
     spectatorViewingResult = true;
 
     if (spectatorCountdownInterval) {
@@ -8952,7 +8951,8 @@ function updateSpectatorView(sessionData) {
     document.getElementById('spectatorCountdown').textContent = 'Seçim Yapıldı!';
 
     const selectedCardIndex = sessionData.selection.cardIndex;
-    const pointsGained = sessionData.result.points;
+    // Puanı doğru yerden alıyoruz (önceki düzeltmemiz sayesinde)
+    const pointsGained = sessionData.result.finalPoints; 
 
     const allCards = document.querySelectorAll('#spectatorCardContainer .card');
     
@@ -8974,10 +8974,10 @@ function updateSpectatorView(sessionData) {
 
     const resultContainer = document.getElementById('spectatorResultContainer');
     if (resultContainer) {
-         resultContainer.innerHTML = `
-            <p id="spectatorResult" class="text-2xl text-green-400 font-bold h-8">
-                ${sessionData.user}, ${pointsGained} puan kazandı!
-            </p>
+        // --- ANA DEĞİŞİKLİK BURADA ---
+        // Artık "puan kazandı" yazısını oluşturan <p> satırını tamamen kaldırdık.
+        // Sadece "Oyuna Devam Et" butonu görünecek.
+        resultContainer.innerHTML = `
             <button onclick="closeSpectatorModal()" class="mt-4 py-3 px-8 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg transition-colors">
                 Oyuna Devam Et
             </button>
