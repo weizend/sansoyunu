@@ -2993,7 +2993,7 @@ body.modal-open .modal-content {
       
       <div class="flex-shrink-0 pt-8 px-8 pb-4">
           <h4 class="text-teal-300 text-3xl font-bold mb-2">Giriş Serisi Ödülleri</h4>
-          <p id="loginStreakMessage" class="text-lg text-gray-300 mb-6">Her gün giriş yaparak sıradaki ödülü al. Seriyi bozma!</p>
+          <p id="loginStreakMessage" class="text-lg text-gray-300 mb-6"></p>
           <div id="adminLoginStreakManagementButtonContainer" class="text-center mb-6 hidden">
               <button onclick="openAdminLoginStreakModal()" class="py-2 px-6 bg-blue-700 hover:bg-blue-600 text-white font-bold rounded-lg shadow-md">
                   Giriş Serisi Ayarları
@@ -4533,7 +4533,8 @@ async function loadLeaderboardRanking() {
   
   function displayMessage(message) { document.getElementById('generalMessageContent').innerHTML = message; generalMessageModal.style.display = 'flex'; }
   function closeGeneralMessageModal() { generalMessageModal.style.display = 'none'; }
-  function customConfirm(message, callback) {
+  // --- YENİ KOD (BUNU YAPIŞTIR) ---
+function customConfirm(message, callback) {
     return new Promise(resolve => {
         const confirmBox = document.createElement('div');
         confirmBox.className = 'fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[99999]';
@@ -4547,10 +4548,20 @@ async function loadLeaderboardRanking() {
           </div>
         `;
         document.body.appendChild(confirmBox);
-        document.getElementById('confirmYes').onclick = () => { confirmBox.remove(); resolve(true); };
-        document.getElementById('confirmNo').onclick = () => { confirmBox.remove(); resolve(false); };
+        
+        // DÜZELTME BURADA: Butonlara "event" parametresi ekleyip preventDefault çağırıyoruz.
+        document.getElementById('confirmYes').onclick = (event) => { 
+            event.preventDefault(); 
+            confirmBox.remove(); 
+            resolve(true); 
+        };
+        document.getElementById('confirmNo').onclick = (event) => { 
+            event.preventDefault(); 
+            confirmBox.remove(); 
+            resolve(false); 
+        };
     });
-  }
+}
 
   function notifyUser(username, message) {
       if (!username || !message) return;
@@ -8134,79 +8145,85 @@ async function toggleGameLock() {
         }
     }
     
-    function loadAnnouncements() {
-        const listEl = document.getElementById('announcementsList');
-        const userRef = db.ref(`users/${currentUser}`);
-        const ref = db.ref('announcements').orderByChild('timestamp');
+    // --- YENİ KOD (BUNU YAPIŞTIR) ---
+function loadAnnouncements() {
+    const listEl = document.getElementById('announcementsList');
+    const userRef = db.ref(`users/${currentUser}`);
+    const ref = db.ref('announcements').orderByChild('timestamp');
 
-        const callback = async (snap) => {
-            listEl.innerHTML = '';
-            const announcements = snap.val();
-
-            if (!announcements) {
-                listEl.innerHTML = '<p class="text-center text-gray-400">Henüz yayınlanmış bir duyuru yok.</p>';
-                return;
-            }
-            
-            const userSnap = await userRef.once('value');
-            const userData = userSnap.val() || {};
-            const likedAnnouncements = userData.likedAnnouncements || {};
-            
-            const sortedAnnouncements = Object.entries(announcements).sort((a, b) => b[1].timestamp - a[1].timestamp);
-            
-            sortedAnnouncements.forEach(([id, ann]) => {
-                const date = new Date(ann.timestamp).toLocaleString('tr-TR');
-                const processedText = ann.text.replace(/@(\w+)/g, (match, username) => {
-                    const isCurrentUserMention = username.toLowerCase() === (currentUser || '').toLowerCase();
-                    const highlightClass = isCurrentUserMention ? 'user-mention highlighted' : 'user-mention';
-                    return `<span class="${highlightClass}" data-username="${username}">${match}</span>`;
-                });
-                
-                let adminButtons = '';
-                if(isAdmin) {
-                    adminButtons = `
-                        <button onclick="editAnnouncement('${id}')" class="py-1 px-3 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-md">Düzenle</button>
-                        <button onclick="deleteAnnouncement('${id}')" class="py-1 px-3 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-md">Sil</button>
-                    `;
-                }
-
-                const isLiked = likedAnnouncements[id] && !isAdmin;
-                const likeButtonClass = isLiked ? 'bg-blue-600 text-white' : 'bg-gray-600 hover:bg-gray-500 text-gray-300';
-                const likeButtonText = isLiked ? 'Beğenildi' : 'Beğen';
-
-                const div = document.createElement('div');
-                div.className = 'bg-gray-800 p-6 rounded-lg border-l-4 border-yellow-500 shadow-lg';
-                div.innerHTML = `
-                    <p class="text-lg text-gray-200 mb-4 whitespace-pre-wrap">${processedText}</p>
-                    <div class="flex justify-between items-center mt-4 pt-4 border-t border-gray-700">
-                        <p class="text-xs text-gray-500">${date}</p>
-                        <div class="flex items-center gap-4">
-                             <a onclick="showAnnouncementLikes('${id}')" class="cursor-pointer font-bold text-yellow-400 hover:text-yellow-300">${ann.likes || 0} Beğeni</a>
-                             ${!isAdmin ? `
-                             <button id="likeBtn-${id}" onclick="likeAnnouncement('${id}')" class="${likeButtonClass} px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.562 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.82 2.316l-1.09 1.817c-.381.636-.632 1.356-.632 2.146z" /></svg>
-                                ${likeButtonText}
-                            </button>
-                             ` : adminButtons}
-                        </div>
-                    </div>
-                `;
-                listEl.appendChild(div);
-            });
-            
-            listEl.addEventListener('click', (e) => {
-                if (e.target.classList.contains('user-mention')) {
-                    const usernameToView = e.target.dataset.username;
-                    if (usernameToView) {
-                        openPublicUserDetailModal(usernameToView.toLowerCase());
-                    }
-                }
-            });
-        };
-
-        activeListeners.announcements = { ref, event: 'value', callback };
-        ref.on('value', callback);
+    // DÜZELTME BURADA: Önceki dinleyiciyi temizliyoruz.
+    if (activeListeners.announcements && activeListeners.announcements.ref) {
+        activeListeners.announcements.ref.off('value', activeListeners.announcements.callback);
     }
+
+    const callback = async (snap) => {
+        listEl.innerHTML = '';
+        const announcements = snap.val();
+
+        if (!announcements) {
+            listEl.innerHTML = '<p class="text-center text-gray-400">Henüz yayınlanmış bir duyuru yok.</p>';
+            return;
+        }
+        
+        const userSnap = await userRef.once('value');
+        const userData = userSnap.val() || {};
+        const likedAnnouncements = userData.likedAnnouncements || {};
+        
+        const sortedAnnouncements = Object.entries(announcements).sort((a, b) => b[1].timestamp - a[1].timestamp);
+        
+        sortedAnnouncements.forEach(([id, ann]) => {
+            const date = new Date(ann.timestamp).toLocaleString('tr-TR');
+            const processedText = ann.text.replace(/@(\w+)/g, (match, username) => {
+                const isCurrentUserMention = username.toLowerCase() === (currentUser || '').toLowerCase();
+                const highlightClass = isCurrentUserMention ? 'user-mention highlighted' : 'user-mention';
+                return `<span class="${highlightClass}" data-username="${username}">${match}</span>`;
+            });
+            
+            let adminButtons = '';
+            if(isAdmin) {
+                adminButtons = `
+                    <button onclick="editAnnouncement('${id}')" class="py-1 px-3 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-md">Düzenle</button>
+                    <button onclick="deleteAnnouncement('${id}')" class="py-1 px-3 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-md">Sil</button>
+                `;
+            }
+
+            const isLiked = likedAnnouncements[id] && !isAdmin;
+            const likeButtonClass = isLiked ? 'bg-blue-600 text-white' : 'bg-gray-600 hover:bg-gray-500 text-gray-300';
+            const likeButtonText = isLiked ? 'Beğenildi' : 'Beğen';
+
+            const div = document.createElement('div');
+            div.className = 'bg-gray-800 p-6 rounded-lg border-l-4 border-yellow-500 shadow-lg';
+            div.innerHTML = `
+                <p class="text-lg text-gray-200 mb-4 whitespace-pre-wrap">${processedText}</p>
+                <div class="flex justify-between items-center mt-4 pt-4 border-t border-gray-700">
+                    <p class="text-xs text-gray-500">${date}</p>
+                    <div class="flex items-center gap-4">
+                         <a onclick="showAnnouncementLikes('${id}')" class="cursor-pointer font-bold text-yellow-400 hover:text-yellow-300">${ann.likes || 0} Beğeni</a>
+                         ${!isAdmin ? `
+                         <button id="likeBtn-${id}" onclick="likeAnnouncement('${id}')" class="${likeButtonClass} px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.562 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.82 2.316l-1.09 1.817c-.381.636-.632 1.356-.632 2.146z" /></svg>
+                            ${likeButtonText}
+                        </button>
+                         ` : adminButtons}
+                    </div>
+                </div>
+            `;
+            listEl.appendChild(div);
+        });
+        
+        listEl.addEventListener('click', (e) => {
+            if (e.target.classList.contains('user-mention')) {
+                const usernameToView = e.target.dataset.username;
+                if (usernameToView) {
+                    openPublicUserDetailModal(usernameToView.toLowerCase());
+                }
+            }
+        });
+    };
+
+    activeListeners.announcements = { ref, event: 'value', callback };
+    ref.on('value', callback);
+}
 
     async function likeAnnouncement(announcementId) {
         if (isAdmin) {
@@ -14767,14 +14784,13 @@ async function saveLoginStreakRewards() {
     }
 }
       
-// Giriş Serisi penceresini açar (TÜMÜYLE GÜNCELLENDİ)
+// --- YENİ KOD (BUNU YAPIŞTIR) ---
 async function openLoginStreakModal() {
     document.getElementById('loginStreakModal').style.display = 'flex';
     const container = document.getElementById('loginStreakRewardsContainer');
-    const messageEl = document.getElementById('loginStreakMessage'); // Mesaj elementini seç
+    const messageEl = document.getElementById('loginStreakMessage'); 
     container.innerHTML = '<p class="text-center col-span-full text-gray-400">Ödül yolculuğu yükleniyor...</p>';
     
-    // Önceki zamanlayıcıları temizle
     Object.values(activeStreakTimers).forEach(clearInterval);
     activeStreakTimers = {};
 
@@ -14802,13 +14818,13 @@ async function openLoginStreakModal() {
         const userStreak = userData.loginStreak || { currentDay: 1, lastClaimTimestamp: 0 };
 
         const now = getSyncedTime();
-        const cooldownMs = 20 * 60 * 60 * 1000; // 20 saat
-        const resetMs = 48 * 60 * 60 * 1000; // 48 saat
+        const cooldownMs = 20 * 60 * 60 * 1000;
+        const resetMs = 48 * 60 * 60 * 1000;
         const lastClaimTime = userStreak.lastClaimTimestamp;
         const canClaimToday = now > (lastClaimTime + cooldownMs);
         const streakWillResetTime = lastClaimTime + resetMs;
 
-        // Seri sıfırlanma sayacını güncelle
+        // DÜZELTME BURADA: Geri sayım mantığı artık admin/kullanıcı ayrımı yapmıyor.
         if (lastClaimTime > 0 && now < streakWillResetTime) {
             startStreakResetCountdown(messageEl, streakWillResetTime);
         } else {
@@ -14856,7 +14872,6 @@ async function openLoginStreakModal() {
             `;
             container.appendChild(card);
             
-            // Eğer ödül kilitliyse ve sıradaki ödülse, zamanlayıcıyı başlat
             if (status === 'locked' && day === userStreak.currentDay) {
                 const nextAvailableTime = userStreak.lastClaimTimestamp + cooldownMs;
                 startStreakCountdown(buttonId, nextAvailableTime, day);
@@ -14868,7 +14883,7 @@ async function openLoginStreakModal() {
         container.innerHTML = '<p class="text-center col-span-full text-red-500">Ödüller yüklenemedi.</p>';
     }
 }
-
+      
 function startStreakCountdown(buttonId, nextAvailableTime, day) {
     const buttonEl = document.getElementById(buttonId);
     if (!buttonEl) return;
@@ -14921,7 +14936,7 @@ function startStreakResetCountdown(element, resetTime) {
     activeStreakTimers['resetTimer'] = timerId;
 }
       
-// Kullanıcının ödül talep etme fonksiyonu (Güncellendi ve Düzeltildi)
+// --- YENİ KOD (BUNU YAPIŞTIR) ---
 async function claimLoginStreakReward(day) {
     if (isAdmin) {
         displayMessage("Adminler ödül alamaz.");
@@ -14930,7 +14945,7 @@ async function claimLoginStreakReward(day) {
 
     const claimButton = document.getElementById(`claim-reward-btn-${day}`);
     if (claimButton && claimButton.disabled) {
-        return; 
+        return;
     }
     if (claimButton) {
         claimButton.disabled = true;
@@ -14938,10 +14953,50 @@ async function claimLoginStreakReward(day) {
     }
 
     try {
-        const cardPacksToOpen = [];
-        
-        // HATA DÜZELTMESİ: userRef burada tanımlanmalıydı.
         const userRef = db.ref(`users/${currentUser}`);
+        const dayData = loginStreakRewardsCache[day - 1];
+
+        if (!dayData || !dayData.rewards) {
+            throw new Error("Ödül verisi bulunamadı.");
+        }
+
+        // --- DEĞİŞİKLİK BURADA BAŞLIYOR: Çarpan kontrolünü önden yapıyoruz ---
+        const multiplierReward = dayData.rewards.find(r => r.type === 'tempMultiplier');
+        if (multiplierReward) {
+            const userSnap = await userRef.once('value');
+            const user = userSnap.val();
+            const hasActiveMultiplier = (user.multiplierSource === 'box') || (user.multiplierSource === 'store' && (user.multiplierRemainingUses || 0) > 0);
+
+            if (hasActiveMultiplier) {
+                const rewardValue = parseInt(multiplierReward.value);
+                const userMultiplierValue = parseInt(user.activeMultiplier);
+                
+                if (rewardValue === userMultiplierValue) {
+                    const confirmedStack = await customConfirm(`Zaten ${user.activeMultiplier}x çarpanın var. Bu ödül, mevcut çarpanına <b>+${multiplierReward.uses} kullanım hakkı</b> ekleyecek. Onaylıyor musun?`);
+                    if (!confirmedStack) {
+                        if (claimButton) { claimButton.disabled = false; claimButton.textContent = 'Ödülü Al'; }
+                        return; // Kullanıcı iptal etti
+                    }
+                } else if (rewardValue > userMultiplierValue) {
+                    const kutuHakkiDonusum = user.multiplierRemainingUses || 0;
+                    const confirmedUpgrade = await customConfirm(`Mevcut ${user.activeMultiplier}x çarpanını daha yüksek olan <b>${rewardValue}x</b> ile değiştirmek üzeresin. Mevcut çarpanının kalan <b>${user.multiplierRemainingUses} kullanım hakkı</b>, envanterine <b>+${kutuHakkiDonusum} Kutu Hakkı</b> olarak eklenecek. Onaylıyor musun?`);
+                    if (!confirmedUpgrade) {
+                        if (claimButton) { claimButton.disabled = false; claimButton.textContent = 'Ödülü Al'; }
+                        return;
+                    }
+                } else { // Yeni çarpan daha zayıfsa
+                    const kutuHakkiDonusum = multiplierReward.uses || 0;
+                    const confirmedConvert = await customConfirm(`Mevcut <b>${user.activeMultiplier}x</b> çarpanın bu <b>${rewardValue}x</b> ödülünden daha güçlü. Bu ödülü alırsan, çarpanın değişmeyecek ancak ödülün <b>${kutuHakkiDonusum} kullanım hakkı</b>, envanterine <b>+${kutuHakkiDonusum} Kutu Hakkı</b> olarak eklenecek. Onaylıyor musun?`);
+                    if (!confirmedConvert) {
+                        if (claimButton) { claimButton.disabled = false; claimButton.textContent = 'Ödülü Al'; }
+                        return;
+                    }
+                }
+            }
+        }
+        // --- Çarpan kontrolü burada bitiyor ---
+        
+        const cardPacksToOpen = []; // Transaction içinde kullanamayacağımız için dışarıda tanımlıyoruz.
 
         const { committed, snapshot } = await userRef.transaction(userData => {
             if (userData) {
@@ -14950,9 +15005,6 @@ async function claimLoginStreakReward(day) {
                 if (day !== userStreak.currentDay) return;
                 const cooldownMs = 20 * 60 * 60 * 1000;
                 if (getSyncedTime() < (userStreak.lastClaimTimestamp + cooldownMs)) return;
-
-                const dayData = loginStreakRewardsCache[day - 1];
-                if (!dayData || !dayData.rewards) return;
 
                 dayData.rewards.forEach(reward => {
                     switch (reward.type) {
@@ -14966,9 +15018,25 @@ async function claimLoginStreakReward(day) {
                         case 'iflasShield': userData.iflasShieldUses = (userData.iflasShieldUses || 0) + reward.value; break;
                         case 'wildcard': userData.wildcards = (userData.wildcards || 0) + reward.value; break;
                         case 'tempMultiplier':
-                            userData.activeMultiplier = reward.value;
-                            userData.multiplierRemainingUses = reward.uses;
-                            userData.multiplierSource = 'store';
+                            const hasActiveMultiplier = (userData.multiplierSource === 'box') || (userData.multiplierSource === 'store' && (userData.multiplierRemainingUses || 0) > 0);
+                            if (hasActiveMultiplier) {
+                                const rewardValue = parseInt(reward.value);
+                                const userMultiplierValue = parseInt(userData.activeMultiplier);
+                                if (rewardValue === userMultiplierValue) {
+                                    userData.multiplierRemainingUses = (userData.multiplierRemainingUses || 0) + reward.uses;
+                                } else if (rewardValue > userMultiplierValue) {
+                                    userData.kutuHakki = (userData.kutuHakki || 0) + (userData.multiplierRemainingUses || 0);
+                                    userData.activeMultiplier = reward.value;
+                                    userData.multiplierRemainingUses = reward.uses;
+                                    userData.multiplierSource = 'store';
+                                } else {
+                                    userData.kutuHakki = (userData.kutuHakki || 0) + (reward.uses || 0);
+                                }
+                            } else {
+                                userData.activeMultiplier = reward.value;
+                                userData.multiplierRemainingUses = reward.uses;
+                                userData.multiplierSource = 'store';
+                            }
                             break;
                         case 'avatar':
                             const newAvatarId = firebase.database().ref().push().key;
@@ -14994,7 +15062,6 @@ async function claimLoginStreakReward(day) {
         });
 
         if (committed) {
-            const dayData = loginStreakRewardsCache[day - 1];
             const rewardNames = dayData.rewards.map(r => r.type === 'avatar' ? `'${r.avatarName}' Avatarı` : `+${r.value} ${typeToName[r.type] || 'Ödül'}`).join(', ');
             displayMessage(`Tebrikler! ${day}. gün ödüllerin (${rewardNames}) envanterine eklendi!`);
             
@@ -15010,14 +15077,46 @@ async function claimLoginStreakReward(day) {
             await openLoginStreakModal();
             await checkLoginStreakIndicator();
         } else {
-            displayMessage("Ödül alınamadı. Lütfen sayfayı yenileyip tekrar deneyin.");
+            displayMessage("Ödül alınamadı. Koşulları sağlamıyor olabilirsiniz, lütfen sayfayı yenileyip tekrar deneyin.");
+             if (claimButton) {
+                claimButton.disabled = false;
+                claimButton.textContent = 'Ödülü Al';
+            }
         }
 
     } catch (error) {
         console.error("Ödül talep edilirken hata:", error);
-        displayMessage("Bir hata oluştu.");
+        displayMessage("Bir hata oluştu: " + error.message);
+         if (claimButton) {
+            claimButton.disabled = false;
+            claimButton.textContent = 'Ödülü Al';
+        }
     }
 }
+
+      // --- YENİ YARDIMCI FONKSİYON (BUNU EKLE) ---
+function displayTemporaryNotification(message, color = 'bg-blue-600') {
+    const notification = document.createElement('div');
+    notification.textContent = message;
+    // Tailwind CSS ile şık bir görünüm
+    notification.className = `fixed top-20 left-1/2 -translate-x-1/2 z-[100001] px-6 py-3 rounded-lg shadow-xl text-white font-bold text-center ${color} transition-all duration-300 ease-in-out transform opacity-0`;
+    document.body.appendChild(notification);
+    
+    // Animasyonla görünür yap
+    setTimeout(() => {
+        notification.classList.remove('opacity-0');
+        notification.classList.add('opacity-100');
+    }, 100);
+
+    // 2.5 saniye sonra animasyonla gizle ve kaldır
+    setTimeout(() => {
+        notification.classList.remove('opacity-100');
+        notification.classList.add('opacity-0');
+        notification.addEventListener('transitionend', () => notification.remove());
+    }, 2500);
+}
+
+      
 
 // ★★★ YENİ EKLENECEK FONKSİYONLAR SONU ★★★
       
