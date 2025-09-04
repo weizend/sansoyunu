@@ -11,6 +11,136 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
 <style>
+/* --- YENİ: GİRİŞ SERİSİ ÖDÜL KARTI STİLLERİ --- */
+.streak-card {
+    background-color: #1f2937; /* bg-gray-800 */
+    border: 2px solid #4b5563; /* border-gray-600 */
+    border-radius: 0.75rem;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.streak-card .day-number {
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #4b5563; /* bg-gray-600 */
+    color: white;
+    font-weight: bold;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #111827; /* bg-gray-900 */
+    z-index: 10; /* YENİ EKLENEN SATIR */
+}
+
+.streak-card .reward-image {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    margin-top: 1.25rem;
+    margin-bottom: 0.75rem;
+}
+
+.streak-card .reward-name {
+    font-weight: bold;
+    color: #f3f4f6; /* text-gray-100 */
+    font-size: 1.1rem;
+}
+
+.streak-card .reward-description {
+    font-size: 0.875rem;
+    color: #9ca3af; /* text-gray-400 */
+    flex-grow: 1;
+    margin-bottom: 1rem;
+}
+
+/* --- GÜNCELLENMİŞ: GİRİŞ SERİSİ ÖDÜL KARTI STİLLERİ --- */
+
+/* Kartın kendisine üstten boşluk vererek numaranın görünmesini sağlıyoruz */
+.streak-card {
+    background-color: #1f2937; /* bg-gray-800 */
+    border: 2px solid #4b5563; /* border-gray-600 */
+    border-radius: 0.75rem;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+    transition: all 0.3s ease;
+    margin-top: 15px; /* YENİ EKLENEN SATIR (Numara için yer açar) */
+}
+
+/* Butonun içindeki zamanlayıcı metni için stiller */
+.claim-button {
+    width: 100%;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    font-weight: bold;
+    transition: background-color 0.2s;
+    font-size: 0.9rem; /* Yazı boyutunu hafif küçülttük */
+    line-height: 1.25rem; /* Satır yüksekliği verdik */
+    min-height: 46px; /* Buton yüksekliğini sabitledik */
+    display: flex; /* İçeriği ortalamak için */
+    align-items: center;
+    justify-content: center;
+}
+
+/* Alınabilir Durum */
+.streak-card.claimable {
+    border-color: #22c55e; /* border-green-500 */
+    box-shadow: 0 0 15px rgba(34, 197, 94, 0.5);
+}
+.streak-card.claimable .day-number {
+    background-color: #22c55e; /* bg-green-500 */
+}
+.streak-card.claimable .claim-button {
+    background-color: #16a34a; /* bg-green-600 */
+    color: white;
+    cursor: pointer;
+}
+.streak-card.claimable .claim-button:hover {
+    background-color: #15803d; /* bg-green-700 */
+}
+
+/* Alınmış Durum */
+.streak-card.claimed {
+    background-color: #374151; /* bg-gray-700 */
+    border-color: #6b7280; /* border-gray-500 */
+}
+.streak-card.claimed .day-number {
+    background-color: #6b7280; /* bg-gray-500 */
+}
+.streak-card.claimed .reward-image {
+    filter: grayscale(80%);
+    opacity: 0.6;
+}
+.streak-card.claimed .claim-button {
+    background-color: #4b5563; /* bg-gray-600 */
+    color: #9ca3af; /* text-gray-400 */
+    cursor: not-allowed;
+}
+
+/* Kilitli Durum */
+.streak-card.locked {
+    opacity: 0.5;
+    filter: grayscale(100%);
+}
+.streak-card.locked .claim-button {
+    background-color: #374151; /* bg-gray-700 */
+    color: #6b7280; /* text-gray-500 */
+    cursor: not-allowed;
+}
 /* --- YENİ EKLENECEK KOD: Kutu Ayarları Mobil Düzeltmesi --- */
 @media (max-width: 640px) { /* sm breakpoint'i (640px) altındaki ekranlar için */
     .box-setting-row {
@@ -934,6 +1064,13 @@ body.modal-open .modal-content {
         <p id="balance" class="text-lg text-gray-300 mb-4 text-center"></p>
         <div class="flex justify-center flex-wrap gap-4 mt-4">
             <button onclick="logout()" class="py-2 px-6 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg shadow-md">Çıkış Yap</button>
+            <button id="loginStreakButton" onclick="openLoginStreakModal()" class="py-2 px-6 bg-teal-600 hover:bg-teal-500 text-white font-bold rounded-lg shadow-md relative flex items-center gap-2">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+    </svg>
+    Giriş Serisi
+    <span id="loginStreakIndicator" class="hidden absolute -top-1 -right-1 h-3 w-3 rounded-full bg-red-500 animate-pulse"></span>
+</button>
             <button id="dailyRewardButton" onclick="openDailyRewardModal()" class="py-2 px-6 bg-yellow-600 hover:bg-yellow-500 text-white font-bold rounded-lg shadow-md relative">
                 Günlük Ödül
                 <span id="dailyRewardIndicator" class="hidden absolute -top-1 -right-1 h-3 w-3 rounded-full bg-red-500 animate-pulse"></span>
@@ -2850,6 +2987,41 @@ body.modal-open .modal-content {
     <p class="text-xl">Oyun dünyasında bazı güncellemeler yapıyoruz. Lütfen daha sonra tekrar deneyin.</p>
     <div id="maintenanceIcon" class="mt-8 text-5xl animate-spin cursor-pointer" title="Admin Girişi">⚙️</div>
 </div>
+<div id="loginStreakModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 hidden">
+  <div class="modal-content bg-gray-800 rounded-xl shadow-2xl border border-teal-500 w-11/12 max-w-4xl text-center relative max-h-[90vh] flex flex-col">
+      <button class="modal-close-button absolute top-2 right-4 text-white text-4xl z-20" onclick="closeLoginStreakModal()">&times;</button>
+      
+      <div class="flex-shrink-0 pt-8 px-8 pb-4">
+          <h4 class="text-teal-300 text-3xl font-bold mb-2">Giriş Serisi Ödülleri</h4>
+          <p id="loginStreakMessage" class="text-lg text-gray-300 mb-6">Her gün giriş yaparak sıradaki ödülü al. Seriyi bozma!</p>
+          <div id="adminLoginStreakManagementButtonContainer" class="text-center mb-6 hidden">
+              <button onclick="openAdminLoginStreakModal()" class="py-2 px-6 bg-blue-700 hover:bg-blue-600 text-white font-bold rounded-lg shadow-md">
+                  Giriş Serisi Ayarları
+              </button>
+          </div>
+      </div>
+      
+      <div class="flex-grow overflow-y-auto scrollable-list px-8 pb-8">
+          <div id="loginStreakRewardsContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-6">
+              </div>
+      </div>
+  </div>
+</div>
+
+<div id="adminLoginStreakModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-[100] hidden">
+  <div class="modal-content bg-gray-900/95 p-6 rounded-2xl shadow-2xl border border-blue-500 w-11/12 max-w-5xl h-[95vh] text-left relative flex flex-col">
+      <button class="modal-close-button" onclick="closeAdminLoginStreakModal()">&times;</button>
+      <h3 class="text-blue-300 text-3xl font-bold mb-4 text-center">Giriş Serisi Yönetim Paneli</h3>
+      
+      <div id="adminLoginStreakRowsContainer" class="flex-grow overflow-y-auto scrollable-list pr-4 space-y-4">
+          </div>
+      
+      <div class="flex-shrink-0 mt-4 pt-4 border-t border-gray-700 flex flex-wrap gap-4 justify-center">
+          <button onclick="addLoginStreakDay()" class="py-3 px-6 bg-green-700 hover:bg-green-600 text-white font-bold rounded-lg">Yeni Gün Ekle</button>
+          <button onclick="saveLoginStreakRewards()" class="py-3 px-6 bg-blue-700 hover:bg-blue-600 text-white font-bold rounded-lg">Tüm Ayarları Kaydet</button>
+      </div>
+  </div>
+</div>
   <script>
       // YENİ EKLENECEK GİZLİ ADMİN GİRİŞİ KODU
 const keyboardSecretCode = ['b', 'a', 'k', 'i', 'm'];
@@ -2954,6 +3126,7 @@ function getSyncedTime() {
   // Global değişkenler
   let hasShownLobbyNotification = false;
   let currentUser = null;
+      let activeStreakTimers = {};
   let allUsersCache = [];
   let isAdmin = false;
   let boxes = [];
@@ -3677,6 +3850,7 @@ async function afterLogin() {
     listenForLastWheelSurprisePanel();
     listenForForceUpdateSignal();
     listenForTradeNotifications();
+    checkLoginStreakIndicator();
     
     if (!isAdmin) {
         listenForAdminNotifications();
@@ -5505,6 +5679,12 @@ function getActivityIcon(type, details = {}) {
     let bgColor = 'bg-gray-500';
 
     switch (type) {
+        // YENİ EKLENEN KISIM BAŞLANGICI
+        case 'loginStreakClaim':
+            icon = '📅';
+            bgColor = 'bg-teal-600';
+            break;
+        // YENİ EKLENEN KISIM SONU
         case 'tradeOfferCreated':
             icon = '📤';
             bgColor = 'bg-blue-500';
@@ -5697,6 +5877,11 @@ function renderActivityFeed(activities) {
                 : '';
 
             switch (activity.type) {
+                // YENİ EKLENEN KISIM BAŞLANGICI
+                case 'loginStreakClaim':
+                    message = `${userHtml}, giriş serisinde <b class="text-teal-300 font-bold">${details.day}. gün</b> <b class="text-white">'${details.packageName}'</b> ödülünü aldı.`;
+                    break;
+                // YENİ EKLENEN KISIM SONU
                 case 'tradeOfferCreated':
                     message = `${userHtml}, <b class="text-red-400">-${details.fee} Puan</b> ödeyip pazara yeni bir takas teklifi koydu: <b class="text-cyan-300">${details.offeredCardName}</b> karşılığında <b class="text-pink-300">${details.requestedCardName}</b> istiyor.`;
                     
@@ -14331,6 +14516,506 @@ function handleSoloSpecialTypeChange() {
     } else {
         valueInput.placeholder = 'Adet (örn: 1, 5)';
         usesInput.classList.add('hidden');
+    }
+}
+
+// =======================================================
+// YENİ ÖZELLİK: GİRİŞ SERİSİ ÖDÜL SİSTEMİ
+// =======================================================
+
+let loginStreakRewardsCache = []; // Admin ayarlarını önbellekte tutmak için
+
+const typeToName = {
+        points: 'Puan',
+        boxRights: 'Kutu Hakkı',
+        iflasShield: 'İflas Kalkanı',
+        wheelTicket: 'Çark Bileti',
+        clickCatchTicket: 'Tıkla-Yakala Bileti',
+        tempMultiplier: 'Çarpan',
+        wildcard: 'Joker Kart',
+        card_pack: 'Standart Kart Paketi',
+        card_pack_normal: 'Bronz Kart Paketi',
+        card_pack_gumus: 'Gümüş Kart Paketi',
+        card_pack_altin: 'Altın Kart Paketi',
+        card_pack_efsanevi: 'Efsanevi Kart Paketi'
+    };
+      
+// Giriş Serisi penceresini kapatır (Zamanlayıcıları temizler)
+function closeLoginStreakModal() {
+    // YENİ EKLENEN KISIM: Aktif zamanlayıcıları temizle
+    Object.values(activeStreakTimers).forEach(clearInterval);
+    activeStreakTimers = {};
+    // YENİ EKLENEN KISIM SONU
+    document.getElementById('loginStreakModal').style.display = 'none';
+}
+// Ana butondaki kırmızı noktayı kontrol eder ve günceller
+async function checkLoginStreakIndicator() {
+    if (isAdmin) return;
+    const indicator = document.getElementById('loginStreakIndicator');
+    try {
+        const userSnap = await db.ref(`users/${currentUser}/loginStreak`).once('value');
+        const userStreak = userSnap.val() || { currentDay: 1, lastClaimTimestamp: 0 };
+        
+        const rewardsSnap = await db.ref('gameConfig/loginStreakRewards').once('value');
+        if (!rewardsSnap.exists() || userStreak.currentDay > rewardsSnap.val().length) {
+            indicator.classList.add('hidden');
+            return;
+        }
+
+        const cooldownMs = 20 * 60 * 60 * 1000;
+        if (getSyncedTime() > (userStreak.lastClaimTimestamp + cooldownMs)) {
+            indicator.classList.remove('hidden');
+        } else {
+            indicator.classList.add('hidden');
+        }
+    } catch (error) {
+        indicator.classList.add('hidden');
+    }
+}
+
+// Admin Giriş Serisi ayar panelini kapatır
+function closeAdminLoginStreakModal() {
+    document.getElementById('adminLoginStreakModal').style.display = 'none';
+}
+
+// =======================================================
+// GÜNCELLENMİŞ: GİRİŞ SERİSİ ADMİN FONKSİYONLARI (PAKET SİSTEMLİ)
+// =======================================================
+
+// Admin için Giriş Serisi ayar panelini açar (Güncellendi)
+function openAdminLoginStreakModal() {
+    document.getElementById('adminLoginStreakModal').style.display = 'flex';
+    const container = document.getElementById('adminLoginStreakRowsContainer');
+    container.innerHTML = ''; // Paneli temizle
+    
+    // Önbellekteki veya veritabanındaki mevcut ayarları yükle
+    loginStreakRewardsCache.forEach((dayData, index) => {
+        addLoginStreakDay(dayData, index + 1);
+    });
+}
+
+// Admin paneline yeni bir gün bloğu ekler (DÜZELTİLMİŞ)
+function addLoginStreakDay(dayData = { rewards: [] }, dayNumber = null) {
+    const container = document.getElementById('adminLoginStreakRowsContainer');
+    const newDay = dayNumber || container.children.length + 1;
+    
+    const dayContainer = document.createElement('div');
+    dayContainer.className = 'p-4 bg-gray-800 rounded-lg border border-gray-700';
+    dayContainer.innerHTML = `
+        <div class="flex justify-between items-center mb-3">
+            <h4 class="text-xl font-bold text-blue-300">${newDay}. Gün Paketi</h4>
+            <div>
+                <button onclick="addRewardToDay(this)" class="py-1 px-3 bg-green-600 hover:bg-green-500 rounded-md text-xs mr-2">+ Bu Güne Ödül Ekle</button>
+                <button onclick="this.parentElement.parentElement.parentElement.remove()" class="py-1 px-3 bg-red-700 hover:bg-red-600 rounded-md text-xs">Bu Günü Sil</button>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-2 mb-3 border-b border-gray-700 pb-3">
+             <input type="text" class="box-setting-input reward-name" placeholder="Paket Adı (örn: Başlangıç Paketi)" value="${dayData.name || ''}">
+            <input type="text" class="box-setting-input reward-description" placeholder="Paket Açıklaması" value="${dayData.description || ''}">
+            <input type="text" class="box-setting-input reward-imageUrl" placeholder="Paket Resim URL" value="${dayData.imageUrl || ''}">
+        </div>
+        <div class="rewards-list space-y-3">
+            </div>
+    `;
+    container.appendChild(dayContainer);
+
+    const rewardsList = dayContainer.querySelector('.rewards-list');
+    // Önceki hataya neden olan 'else' bloğu kaldırıldı. Artık sadece veri varsa ödül ekleniyor.
+    if (dayData.rewards && Array.isArray(dayData.rewards) && dayData.rewards.length > 0) {
+        dayData.rewards.forEach(reward => addRewardToDay(rewardsList, reward));
+    }
+}
+
+// Belirli bir gün bloğuna yeni bir ödül ayar satırı ekler (YENİ FONKSİYON)
+// Belirli bir gün bloğuna yeni bir ödül ayar satırı ekler (YENİ FONKSİYON)
+function addRewardToDay(element, rewardData = {}) {
+    // element bir buton veya direkt container olabilir, o yüzden en yakın container'ı bulalım
+    const rewardsListContainer = element.matches('.rewards-list') ? element : element.closest('.p-4').querySelector('.rewards-list');
+    
+    const rewardRow = document.createElement('div');
+    // ★★★ DEĞİŞİKLİK BURADA: 'reward-entry' class'ını ekledik ★★★
+    rewardRow.className = 'reward-entry grid grid-cols-1 sm:grid-cols-3 gap-2 p-2 bg-gray-900/50 rounded-md';
+    rewardRow.innerHTML = `
+        <select class="box-setting-input reward-type" onchange="handleAdminRewardTypeChange(this)">
+            <option value="points" ${rewardData.type === 'points' ? 'selected' : ''}>💰 Puan</option>
+            <option value="boxRights" ${rewardData.type === 'boxRights' ? 'selected' : ''}>📦 Kutu Hakkı</option>
+            <option value="wheelTicket" ${rewardData.type === 'wheelTicket' ? 'selected' : ''}>🎫 Çark Bileti</option>
+            <option value="clickCatchTicket" ${rewardData.type === 'clickCatchTicket' ? 'selected' : ''}>🎟️ T-Y Bileti</option>
+            <option value="iflasShield" ${rewardData.type === 'iflasShield' ? 'selected' : ''}>🛡️ İflas Kalkanı</option>
+            <option value="tempMultiplier" ${rewardData.type === 'tempMultiplier' ? 'selected' : ''}>✖️ Çarpan</option>
+            <option value="avatar" ${rewardData.type === 'avatar' ? 'selected' : ''}>👤 Avatar</option>
+            <option value="wildcard" ${rewardData.type === 'wildcard' ? 'selected' : ''}>🃏 Joker Kart</option>
+            <option value="card_pack" ${rewardData.type === 'card_pack' ? 'selected' : ''}>🎴 Standart Kart Paketi</option>
+            <option value="card_pack_normal" ${rewardData.type === 'card_pack_normal' ? 'selected' : ''}>🥉 Bronz Kart Paketi</option>
+            <option value="card_pack_gumus" ${rewardData.type === 'card_pack_gumus' ? 'selected' : ''}>🥈 Gümüş Kart Paketi</option>
+            <option value="card_pack_altin" ${rewardData.type === 'card_pack_altin' ? 'selected' : ''}>🥇 Altın Kart Paketi</option>
+            <option value="card_pack_efsanevi" ${rewardData.type === 'card_pack_efsanevi' ? 'selected' : ''}>🏆 Efsanevi Kart Paketi</option>
+        </select>
+        <div class="reward-fields-container grid grid-cols-2 gap-2 sm:col-span-2">
+            </div>
+    `;
+    rewardsListContainer.appendChild(rewardRow);
+    const selectElement = rewardRow.querySelector('.reward-type');
+    handleAdminRewardTypeChange(selectElement, rewardData); // Mevcut veriyi de gönder
+}
+// Admin panelinde ödül tipi değiştikçe ilgili inputları gösterir/gizler (Güncellendi)
+function handleAdminRewardTypeChange(selectElement, rewardData = {}) {
+    const type = selectElement.value;
+    const container = selectElement.closest('.grid').querySelector('.reward-fields-container');
+    let fieldsHtml = '';
+
+    if (type === 'tempMultiplier') {
+        fieldsHtml = `
+            <input type="number" class="box-setting-input reward-value" placeholder="Çarpan Değeri (örn: 2)" value="${rewardData.value || ''}">
+            <input type="number" class="box-setting-input reward-uses" placeholder="Kullanım Hakkı" value="${rewardData.uses || ''}">
+            <button onclick="this.parentElement.parentElement.remove()" class="py-1 px-2 bg-red-600 hover:bg-red-500 rounded-md text-xs col-span-2">Sil</button>
+        `;
+    } else if (type === 'avatar') {
+        fieldsHtml = `
+            <input type="text" class="box-setting-input reward-avatarName col-span-2" placeholder="Avatarın Adı" value="${rewardData.avatarName || ''}">
+            <input type="text" class="box-setting-input reward-avatarImageUrl col-span-2" placeholder="Avatar Resim URL" value="${rewardData.avatarImageUrl || ''}">
+            <button onclick="this.parentElement.parentElement.remove()" class="py-1 px-2 bg-red-600 hover:bg-red-500 rounded-md text-xs col-span-2">Sil</button>
+        `;
+    } else {
+        fieldsHtml = `
+            <input type="number" class="box-setting-input reward-value col-span-2 sm:col-span-1" placeholder="Miktar / Adet" value="${rewardData.value || ''}">
+            <button onclick="this.parentElement.parentElement.remove()" class="py-1 px-2 bg-red-600 hover:bg-red-500 rounded-md text-xs sm:col-span-1">Sil</button>
+        `;
+    }
+    container.innerHTML = fieldsHtml;
+}
+
+// Adminin yaptığı tüm gün ayarlarını Firebase'e kaydeder (TAMAMEN DÜZELTİLMİŞ)
+async function saveLoginStreakRewards() {
+    if (!isAdmin) return;
+    const container = document.getElementById('adminLoginStreakRowsContainer');
+    const newRewardsData = [];
+    let hasError = false;
+
+    // Her gün bloğunu DOM'daki sırasına göre alıp yeniden numaralandırıyoruz.
+    Array.from(container.children).forEach((dayRow, dayIndex) => {
+        if (hasError) return;
+        const dayRewards = [];
+        
+        // ★★★ DEĞİŞİKLİK BURADA: Seçiciyi '.reward-entry' olarak güncelledik ★★★
+        dayRow.querySelectorAll('.rewards-list .reward-entry').forEach((rewardRow, rewardIndex) => {
+            if (hasError) return;
+            const reward = { type: rewardRow.querySelector('.reward-type').value };
+
+            // Her ödül tipini ayrı ayrı ve güvenli bir şekilde kontrol ediyoruz.
+            if (reward.type === 'tempMultiplier') {
+                reward.value = parseInt(rewardRow.querySelector('.reward-value').value);
+                reward.uses = parseInt(rewardRow.querySelector('.reward-uses').value);
+                if (isNaN(reward.value) || isNaN(reward.uses) || reward.value <= 0 || reward.uses <= 0) {
+                    displayMessage(`${dayIndex + 1}. gün, ${rewardIndex + 1}. ödül (Çarpan) için geçerli Değer ve Kullanım Hakkı girin.`);
+                    hasError = true; return;
+                }
+            } else if (reward.type === 'avatar') {
+                reward.avatarName = rewardRow.querySelector('.reward-avatarName').value.trim();
+                reward.avatarImageUrl = rewardRow.querySelector('.reward-avatarImageUrl').value.trim();
+                if (!reward.avatarName || !reward.avatarImageUrl) {
+                    displayMessage(`${dayIndex + 1}. gün, ${rewardIndex + 1}. ödül (Avatar) için Ad ve Resim URL'si girin.`);
+                    hasError = true; return;
+                }
+            } else {
+                reward.value = parseInt(rewardRow.querySelector('.reward-value').value);
+                if (isNaN(reward.value) || reward.value <= 0) {
+                    displayMessage(`${dayIndex + 1}. gün, ${rewardIndex + 1}. ödül için geçerli bir Miktar/Adet girin.`);
+                    hasError = true; return;
+                }
+            }
+
+            dayRewards.push(reward);
+        });
+        
+        if (hasError) return;
+
+        const dayName = dayRow.querySelector('.reward-name')?.value.trim() || `${dayIndex + 1}. Gün Ödülü`;
+        const dayDescription = dayRow.querySelector('.reward-description')?.value.trim() || `Giriş yaparak bu paketi kazan!`;
+        const dayImageUrl = dayRow.querySelector('.reward-imageUrl')?.value.trim() || '';
+        
+        if (dayRewards.length > 0) {
+            newRewardsData.push({ 
+                day: dayIndex + 1, 
+                name: dayName, 
+                description: dayDescription, 
+                imageUrl: dayImageUrl, 
+                rewards: dayRewards 
+            });
+        }
+    });
+
+    if (hasError) return;
+
+    const confirmed = await customConfirm(`${newRewardsData.length} günlük yeni bir Giriş Serisi oluşturulacak. Mevcut seri silinecek ve tüm kullanıcıların ilerlemesi SIFIRLANACAK. Emin misiniz?`);
+    if (confirmed) {
+        const usersSnap = await db.ref('users').once('value');
+        const updates = {};
+        if(usersSnap.exists()) {
+            usersSnap.forEach(user => {
+                updates[`/users/${user.key}/loginStreak`] = null;
+            });
+        }
+        await db.ref().update(updates);
+
+        await db.ref('gameConfig/loginStreakRewards').set(newRewardsData);
+        loginStreakRewardsCache = newRewardsData;
+
+        displayMessage("Giriş Serisi başarıyla güncellendi ve tüm oyuncuların ilerlemesi sıfırlandı.");
+        closeAdminLoginStreakModal();
+        openLoginStreakModal();
+    }
+}
+      
+// Giriş Serisi penceresini açar (TÜMÜYLE GÜNCELLENDİ)
+async function openLoginStreakModal() {
+    document.getElementById('loginStreakModal').style.display = 'flex';
+    const container = document.getElementById('loginStreakRewardsContainer');
+    const messageEl = document.getElementById('loginStreakMessage'); // Mesaj elementini seç
+    container.innerHTML = '<p class="text-center col-span-full text-gray-400">Ödül yolculuğu yükleniyor...</p>';
+    
+    // Önceki zamanlayıcıları temizle
+    Object.values(activeStreakTimers).forEach(clearInterval);
+    activeStreakTimers = {};
+
+    const adminButtonContainer = document.getElementById('adminLoginStreakManagementButtonContainer');
+    if (isAdmin) {
+        adminButtonContainer.classList.remove('hidden');
+    } else {
+        adminButtonContainer.classList.add('hidden');
+    }
+
+    try {
+        const [rewardsSnap, userSnap] = await Promise.all([
+            db.ref('gameConfig/loginStreakRewards').once('value'),
+            db.ref(`users/${currentUser}`).once('value')
+        ]);
+
+        if (!rewardsSnap.exists()) {
+            container.innerHTML = '<p class="text-center col-span-full">Admin henüz bir giriş serisi oluşturmadı.</p>';
+            return;
+        }
+
+        const rewardsData = rewardsSnap.val();
+        loginStreakRewardsCache = rewardsData;
+        const userData = userSnap.val() || {};
+        const userStreak = userData.loginStreak || { currentDay: 1, lastClaimTimestamp: 0 };
+
+        const now = getSyncedTime();
+        const cooldownMs = 20 * 60 * 60 * 1000; // 20 saat
+        const resetMs = 48 * 60 * 60 * 1000; // 48 saat
+        const lastClaimTime = userStreak.lastClaimTimestamp;
+        const canClaimToday = now > (lastClaimTime + cooldownMs);
+        const streakWillResetTime = lastClaimTime + resetMs;
+
+        // Seri sıfırlanma sayacını güncelle
+        if (lastClaimTime > 0 && now < streakWillResetTime) {
+            startStreakResetCountdown(messageEl, streakWillResetTime);
+        } else {
+             messageEl.textContent = 'Her gün giriş yaparak sıradaki ödülü al. Seriyi bozma!';
+        }
+
+        container.innerHTML = '';
+        rewardsData.forEach((dayData) => {
+            const day = dayData.day;
+            if (!day) return;
+
+            let status = 'locked';
+            if (day < userStreak.currentDay) {
+                status = 'claimed';
+            } else if (day === userStreak.currentDay && canClaimToday) {
+                status = 'claimable';
+            }
+
+            const buttonId = `streak-btn-${day}`;
+
+            let rewardsListHtml = '<ul class="text-left list-disc list-inside space-y-1 text-sm text-gray-400 flex-grow mb-4">';
+            (dayData.rewards || []).forEach(reward => {
+                let rewardText = '';
+                if (reward.type === 'tempMultiplier') rewardText = `${reward.value}x Çarpan (${reward.uses} kullanım)`;
+                else if (reward.type === 'avatar') rewardText = `'${reward.avatarName}' Avatarı`;
+                else rewardText = `+${reward.value} ${typeToName[reward.type] || 'Ödül'}`;
+                rewardsListHtml += `<li>${rewardText}</li>`;
+            });
+            rewardsListHtml += '</ul>';
+
+            const card = document.createElement('div');
+            card.className = `streak-card ${status}`;
+            card.id = `streak-card-${day}`;
+            card.innerHTML = `
+                <div class="day-number">${day}</div>
+                <img src="${dayData.imageUrl || 'https://i.hizliresim.com/pntfb6j.png'}" alt="${dayData.name}" class="reward-image">
+                <h4 class="reward-name">${dayData.name || day + '. Gün Paketi'}</h4>
+                <div class="reward-description">${rewardsListHtml}</div>
+                <button 
+                    id="${buttonId}"
+                    class="claim-button" 
+                    ${status === 'claimable' ? `onclick="claimLoginStreakReward(${day})"` : 'disabled'}>
+                    ${status === 'claimed' ? 'Alındı' : (status === 'claimable' ? 'Ödülü Al' : 'Kilitli')}
+                </button>
+            `;
+            container.appendChild(card);
+            
+            // Eğer ödül kilitliyse ve sıradaki ödülse, zamanlayıcıyı başlat
+            if (status === 'locked' && day === userStreak.currentDay) {
+                const nextAvailableTime = userStreak.lastClaimTimestamp + cooldownMs;
+                startStreakCountdown(buttonId, nextAvailableTime, day);
+            }
+        });
+
+    } catch (error) {
+        console.error("Giriş Serisi yüklenirken hata:", error);
+        container.innerHTML = '<p class="text-center col-span-full text-red-500">Ödüller yüklenemedi.</p>';
+    }
+}
+
+function startStreakCountdown(buttonId, nextAvailableTime, day) {
+    const buttonEl = document.getElementById(buttonId);
+    if (!buttonEl) return;
+
+    const timerId = setInterval(() => {
+        const now = getSyncedTime();
+        const timeLeft = nextAvailableTime - now;
+
+        if (timeLeft <= 0) {
+            clearInterval(timerId);
+            const cardEl = document.getElementById(`streak-card-${day}`);
+            if (cardEl) {
+                cardEl.classList.remove('locked');
+                cardEl.classList.add('claimable');
+            }
+            buttonEl.disabled = false;
+            buttonEl.textContent = 'Ödülü Al';
+            buttonEl.onclick = () => claimLoginStreakReward(day);
+            checkLoginStreakIndicator();
+        } else {
+            const hours = Math.floor(timeLeft / (1000 * 60 * 60)).toString().padStart(2, '0');
+            const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
+            const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000).toString().padStart(2, '0');
+            buttonEl.innerHTML = `Kalan Süre:<br>${hours}:${minutes}:${seconds}`;
+        }
+    }, 1000);
+
+    activeStreakTimers[day] = timerId;
+}
+
+function startStreakResetCountdown(element, resetTime) {
+    const timerId = setInterval(() => {
+        const now = getSyncedTime();
+        const timeLeft = resetTime - now;
+
+        if (timeLeft <= 0) {
+            clearInterval(timerId);
+            element.textContent = 'Serin bozuldu! 1. günden tekrar başla.';
+        } else {
+            const hours = Math.floor(timeLeft / (1000 * 60 * 60));
+            const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+            element.innerHTML = `HER GÜN PAKETLERİ TOPLA SÜREYİ UZAT
+            <div class="space-y-3 text-gray-300">
+            AŞAĞIDA Kİ SÜRE BİTERSE SERİ SIFIRLANIR
+            <div class="space-y-3 text-gray-300">
+            <b class="text-red-400">${hours} saat ${minutes} dakika </b>`;
+        }
+    }, 1000);
+
+    activeStreakTimers['resetTimer'] = timerId;
+}
+      
+// Kullanıcının ödül talep etme fonksiyonu (Güncellendi ve Düzeltildi)
+async function claimLoginStreakReward(day) {
+    if (isAdmin) {
+        displayMessage("Adminler ödül alamaz.");
+        return;
+    }
+
+    const claimButton = document.getElementById(`claim-reward-btn-${day}`);
+    if (claimButton && claimButton.disabled) {
+        return; 
+    }
+    if (claimButton) {
+        claimButton.disabled = true;
+        claimButton.textContent = 'İşleniyor...';
+    }
+
+    try {
+        const cardPacksToOpen = [];
+        
+        // HATA DÜZELTMESİ: userRef burada tanımlanmalıydı.
+        const userRef = db.ref(`users/${currentUser}`);
+
+        const { committed, snapshot } = await userRef.transaction(userData => {
+            if (userData) {
+                const userStreak = userData.loginStreak || { currentDay: 1, lastClaimTimestamp: 0 };
+                
+                if (day !== userStreak.currentDay) return;
+                const cooldownMs = 20 * 60 * 60 * 1000;
+                if (getSyncedTime() < (userStreak.lastClaimTimestamp + cooldownMs)) return;
+
+                const dayData = loginStreakRewardsCache[day - 1];
+                if (!dayData || !dayData.rewards) return;
+
+                dayData.rewards.forEach(reward => {
+                    switch (reward.type) {
+                        case 'points':
+                            userData.balance = (userData.balance || 0) + reward.value;
+                            userData.kariyerPuani = (userData.kariyerPuani || 0) + reward.value;
+                            break;
+                        case 'boxRights': userData.kutuHakki = (userData.kutuHakki || 0) + reward.value; break;
+                        case 'wheelTicket': userData.carkBileti = (userData.carkBileti || 0) + reward.value; break;
+                        case 'clickCatchTicket': userData.clickCatchTickets = (userData.clickCatchTickets || 0) + reward.value; break;
+                        case 'iflasShield': userData.iflasShieldUses = (userData.iflasShieldUses || 0) + reward.value; break;
+                        case 'wildcard': userData.wildcards = (userData.wildcards || 0) + reward.value; break;
+                        case 'tempMultiplier':
+                            userData.activeMultiplier = reward.value;
+                            userData.multiplierRemainingUses = reward.uses;
+                            userData.multiplierSource = 'store';
+                            break;
+                        case 'avatar':
+                            const newAvatarId = firebase.database().ref().push().key;
+                            if (!userData.avatars) userData.avatars = {};
+                            userData.avatars[newAvatarId] = { id: newAvatarId, name: reward.avatarName, imageUrl: reward.avatarImageUrl };
+                            break;
+                        case 'card_pack':
+                        case 'card_pack_normal':
+                        case 'card_pack_gumus':
+                        case 'card_pack_altin':
+                        case 'card_pack_efsanevi':
+                            cardPacksToOpen.push(reward);
+                            break;
+                    }
+                });
+
+                userData.loginStreak = {
+                    currentDay: userStreak.currentDay + 1,
+                    lastClaimTimestamp: getSyncedTime()
+                };
+            }
+            return userData;
+        });
+
+        if (committed) {
+            const dayData = loginStreakRewardsCache[day - 1];
+            const rewardNames = dayData.rewards.map(r => r.type === 'avatar' ? `'${r.avatarName}' Avatarı` : `+${r.value} ${typeToName[r.type] || 'Ödül'}`).join(', ');
+            displayMessage(`Tebrikler! ${day}. gün ödüllerin (${rewardNames}) envanterine eklendi!`);
+            
+            logActivity('loginStreakClaim', currentUser, {
+                day: day,
+                packageName: dayData.name || `${day}. Gün Paketi`
+            });
+
+            for (const pack of cardPacksToOpen) {
+                await startCardPackOpening(pack.value || 1, `${day}. Gün Ödülü`, 1, pack.type);
+            }
+
+            await openLoginStreakModal();
+            await checkLoginStreakIndicator();
+        } else {
+            displayMessage("Ödül alınamadı. Lütfen sayfayı yenileyip tekrar deneyin.");
+        }
+
+    } catch (error) {
+        console.error("Ödül talep edilirken hata:", error);
+        displayMessage("Bir hata oluştu.");
     }
 }
 
