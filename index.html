@@ -12971,13 +12971,15 @@ function switchMarketTab(tabName) {
 
 let isTradeInProgress = false;
 
+// acceptTradeOffer FONKSİYONUNU BULUP BU BLOK İLE DEĞİŞTİRİN
+
 async function acceptTradeOffer(tradeId, buttonElement) {
     if (isTradeInProgress) {
-        return; 
+        return;
     }
     if (isAdmin) return;
 
-    isTradeInProgress = true; 
+    isTradeInProgress = true;
     if (buttonElement) {
         buttonElement.disabled = true;
         buttonElement.textContent = 'İşleniyor...';
@@ -12994,11 +12996,17 @@ async function acceptTradeOffer(tradeId, buttonElement) {
             db.ref(`users/${currentUser}`).once('value'),
             db.ref('gameConfig/cardCollection').once('value')
         ]);
-        
+
         const marketSettings = marketSettingsSnap.val() || {};
         const trade = tradeSnap.val();
         const userData = userSnap.val();
         const masterCards = masterCardsSnap.val();
+
+        // YENİ EKLENEN KISIM BAŞLANGICI: Koleksiyonu tamamlayanlar takas yapamaz.
+        if (userData.completedCollection === true) {
+            throw new Error("Koleksiyonu tamamladığın için artık takas yapamazsın.");
+        }
+        // YENİ EKLENEN KISIM SONU
 
         if (marketSettings.isLocked) {
             throw new Error("Pazar kilitli.");
@@ -13027,19 +13035,19 @@ async function acceptTradeOffer(tradeId, buttonElement) {
                 throw new Error("Bu takası yapabilmek için istenen karttan en az 2 adete sahip olmalısın.");
             }
         }
-        
+
         // --- 2. KULLANICI ONAYI ---
         const offeredCard = masterCards[trade.offeredCardId];
         const requestedCard = masterCards[trade.requestedCardId];
         
-        // ★★★ YENİ EKLENEN BİLGİLENDİRME MESAJI MANTIĞI BURADA ★★★
+        // YENİ EKLENEN KISIM BAŞLANGICI: Ekstra bilgilendirme mesajı
         let extraWarningMessage = '';
         if (userCards[trade.offeredCardId] && userCards[trade.offeredCardId].count > 0) {
             const currentCount = userCards[trade.offeredCardId].count;
             extraWarningMessage = `<br><br><b class='text-amber-400'>Bilgilendirme:</b> Alacağınız '${offeredCard.cardName}' kartı koleksiyonunuzda zaten mevcut (${currentCount} adet). Takası onaylarsanız bu kartın adedi +1 artacaktır.`;
         }
-        // ★★★ YENİ KOD SONU ★★★
-        
+        // YENİ EKLENEN KISIM SONU
+
         let confirmed = false;
         if (isCrossTrade) {
             confirmed = await customConfirm(`Takas etmek istediğiniz '${requestedCard.cardName}' kartı takas pazarına eklenmiş Takası kabul ederseniz, kartınız pazardan silinecektir. <br><br><b>İşlem ücreti: ${tradeFee} Puan</b>. Devam etmek istiyor musunuz?${extraWarningMessage}`);
@@ -13098,13 +13106,18 @@ async function acceptTradeOffer(tradeId, buttonElement) {
         displayGlobalNotification(`Takas başarılı! Yeni kartın albümüne eklendi.`);
         const notificationMessage = `<b>${currentUser}</b>, takasa koyduğunuz '${offeredCard.cardName}' kartı karşılığında istediğiniz '${requestedCard.cardName}' kartı takasını onayladı. Yeni kartınız albümünüze eklendi!`;
         await db.ref(`tradeNotifications/${trade.offerer}`).push({ message: notificationMessage, timestamp: firebase.database.ServerValue.TIMESTAMP });
+        
+        // YENİ EKLENEN KISIM BAŞLANGICI: Takas sonrası her iki oyuncu için de koleksiyon tamamlama kontrolü
+        await checkAndGrantPrize(currentUser); // Takası kabul eden için kontrol
+        await checkAndGrantPrize(trade.offerer); // Teklifi yapan için kontrol
+        // YENİ EKLENEN KISIM SONU
 
         if (currentActiveSection === 'cardCollection') {
             loadCollectionAlbum();
         }
 
     } catch (error) {
-        const knownErrors = ["Kullanıcı iptal etti.", "Pazar kilitli.", "Bu takas teklifi artık geçerli değil.", "Kullanıcı verisi bulunamadı.", "Bu takası yapmak için gerekli kart durumun değişmiş."];
+        const knownErrors = ["Kullanıcı iptal etti.", "Pazar kilitli.", "Bu takas teklifi artık geçerli değil.", "Kullanıcı verisi bulunamadı.", "Bu takası yapmak için gerekli kart durumun değişmiş.", "Koleksiyonu tamamladığın için artık takas yapamazsın."];
         if (!knownErrors.includes(error.message) && !error.message.includes("işlem ücretine sahip değilsin") && !error.message.includes("en az 2 adete sahip olmalısın")) {
              console.error("Takas işlemi hatası:", error);
              displayMessage("Beklenmedik bir hata oluştu. Lütfen konsolu kontrol edin.");
@@ -13322,7 +13335,8 @@ function closeCreateOfferModal() {
     document.getElementById('createOfferModal').style.display = 'none';
 }
 
-// submitTradeOffer FONKSİYONUNU BUL VE BUNUNLA DEĞİŞTİR
+// submitTradeOffer FONKSİYONUNU BULUP BU BLOK İLE DEĞİŞTİRİN
+
 async function submitTradeOffer() {
     const submitBtn = document.getElementById('submit-trade-offer-btn');
     if (!submitBtn) return;
@@ -13349,22 +13363,26 @@ async function submitTradeOffer() {
         const userSnap = await db.ref(`users/${currentUser}`).once('value');
         const userData = userSnap.val();
 
+        // YENİ EKLENEN KISIM BAŞLANGICI: Koleksiyonu tamamlayanların yeni teklif oluşturmasını engelle
+        if (userData.completedCollection === true) {
+            displayMessage("Koleksiyonu tamamladığın için artık yeni takas teklifi oluşturamazsın.");
+            return; // Fonksiyonu burada durdur
+        }
+        // YENİ EKLENEN KISIM SONU
+
         if ((userData.balance || 0) < tradeFee) {
             displayMessage(`Teklif oluşturmak için gereken ${tradeFee} Puan işlem ücretine sahip değilsin.`);
             return;
         }
 
-        // --- YENİ EKLENEN KONTROL ---
-        // Kullanıcının istediği karta sahip olup olmadığını kontrol et
         const userCards = userData.cardCollection || {};
         const neededCard = !userCards[requestedCardId] || userCards[requestedCardId].count === 0;
-        // --- KONTROL SONU ---
-
+        
         const userCardRef = db.ref(`users/${currentUser}/cardCollection/${offeredCardId}`);
 
         const { committed, snapshot } = await userCardRef.transaction(cardData => {
             if (!cardData || cardData.count <= 1) {
-                return; // Transaction'ı iptal et
+                return; 
             }
             cardData.count--;
             return cardData;
@@ -13399,7 +13417,7 @@ async function submitTradeOffer() {
                 tradeFee: tradeFee, 
                 timestamp: firebase.database.ServerValue.TIMESTAMP,
                 activityId: activityId,
-                offererNeededCard: neededCard // --- YENİ BİLGİYİ KAYDET ---
+                offererNeededCard: neededCard 
             };
             
             const updates = {};
@@ -13774,13 +13792,15 @@ async function loadGrandPrizeDisplay() {
     displayContainer.classList.remove('hidden');
 }
 
+// checkAndGrantPrize FONKSİYONUNU BULUP BU BLOK İLE DEĞİŞTİRİN
+
 async function checkAndGrantPrize(username) {
     const userRef = db.ref(`users/${username}`);
     const userSnap = await userRef.once('value');
     const userData = userSnap.val();
 
     if (userData.completedCollection === true) {
-        return; 
+        return;
     }
 
     const userCards = userData.cardCollection || {};
@@ -13796,18 +13816,14 @@ async function checkAndGrantPrize(username) {
         const prizeData = prizeSnap.val();
         if (!prizeData) return;
 
-        // --- YENİ EKLENEN KISIM BAŞLANGICI ---
-        // Koleksiyonu tamamlayan ilk kişi mi, onu kontrol et
         const finishersRef = db.ref('gameStats/collectionFinishers');
         const finishersSnap = await finishersRef.once('value');
         const isFirstWinner = !finishersSnap.exists();
 
-        // Her bitireni listeye ekle
         await finishersRef.push({
             username: username,
             timestamp: firebase.database.ServerValue.TIMESTAMP
         });
-        // --- YENİ EKLENEN KISIM SONU ---
 
         const updates = {};
         updates.balance = (userData.balance || 0) + (prizeData.points || 0);
@@ -13818,7 +13834,7 @@ async function checkAndGrantPrize(username) {
         updates.completedCollection = true;
 
         if (prizeData.avatarName && prizeData.avatarImageUrl) {
-            const newAvatarId = db.ref().push().key; 
+            const newAvatarId = db.ref().push().key;
             updates[`avatars/${newAvatarId}`] = {
                 id: newAvatarId,
                 name: prizeData.avatarName,
@@ -13826,9 +13842,13 @@ async function checkAndGrantPrize(username) {
             };
         }
         
-        await userRef.child('collectionChampionshipsWon').transaction(currentCount => {
-            return (currentCount || 0) + 1;
-        });
+        // YENİ EKLENEN KISIM BAŞLANGICI: Başarım sadece İLK KAZANANA verilir.
+        if (isFirstWinner) {
+            await userRef.child('collectionChampionshipsWon').transaction(currentCount => {
+                return (currentCount || 0) + 1;
+            });
+        }
+        // YENİ EKLENEN KISIM SONU
 
         await userRef.update(updates);
 
