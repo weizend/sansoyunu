@@ -11,10 +11,12 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
 <style>
-/* --- YENİ: GİRİŞ SERİSİ ÖDÜL KARTI STİLLERİ --- */
+/* --- YENİLENMİŞ VE CANLI GİRİŞ SERİSİ ÖDÜL KARTI STİLLERİ --- */
+
+/* Tüm kartlar için temel stil */
 .streak-card {
-    background-color: #1f2937; /* bg-gray-800 */
-    border: 2px solid #4b5563; /* border-gray-600 */
+    background: linear-gradient(145deg, #2c3e50, #1a2530);
+    border: 2px solid #4b5563;
     border-radius: 0.75rem;
     padding: 1rem;
     display: flex;
@@ -23,14 +25,16 @@
     text-align: center;
     position: relative;
     transition: all 0.3s ease;
+    margin-top: 15px;
 }
 
+/* Gün Numarası */
 .streak-card .day-number {
     position: absolute;
     top: -15px;
     left: 50%;
     transform: translateX(-50%);
-    background-color: #4b5563; /* bg-gray-600 */
+    background-color: #4b5563;
     color: white;
     font-weight: bold;
     width: 30px;
@@ -39,10 +43,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 2px solid #111827; /* bg-gray-900 */
-    z-index: 10; /* YENİ EKLENEN SATIR */
+    border: 2px solid #111827;
+    z-index: 10;
 }
 
+/* Diğer temel stiller */
 .streak-card .reward-image {
     width: 80px;
     height: 80px;
@@ -50,97 +55,131 @@
     margin-top: 1.25rem;
     margin-bottom: 0.75rem;
 }
-
 .streak-card .reward-name {
     font-weight: bold;
-    color: #f3f4f6; /* text-gray-100 */
+    color: #f3f4f6;
     font-size: 1.1rem;
 }
-
 .streak-card .reward-description {
     font-size: 0.875rem;
-    color: #9ca3af; /* text-gray-400 */
+    color: #9ca3af;
     flex-grow: 1;
     margin-bottom: 1rem;
 }
-
-/* --- GÜNCELLENMİŞ: GİRİŞ SERİSİ ÖDÜL KARTI STİLLERİ --- */
-
-/* Kartın kendisine üstten boşluk vererek numaranın görünmesini sağlıyoruz */
-.streak-card {
-    background-color: #1f2937; /* bg-gray-800 */
-    border: 2px solid #4b5563; /* border-gray-600 */
-    border-radius: 0.75rem;
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    position: relative;
-    transition: all 0.3s ease;
-    margin-top: 15px; /* YENİ EKLENEN SATIR (Numara için yer açar) */
-}
-
-/* Butonun içindeki zamanlayıcı metni için stiller */
 .claim-button {
     width: 100%;
     padding: 0.75rem;
     border-radius: 0.5rem;
     font-weight: bold;
-    transition: background-color 0.2s;
-    font-size: 0.9rem; /* Yazı boyutunu hafif küçülttük */
-    line-height: 1.25rem; /* Satır yüksekliği verdik */
-    min-height: 46px; /* Buton yüksekliğini sabitledik */
-    display: flex; /* İçeriği ortalamak için */
+    transition: all 0.2s; /* Geçişi 'all' olarak değiştirdik */
+    font-size: 0.9rem;
+    line-height: 1.25rem;
+    min-height: 46px;
+    display: flex;
     align-items: center;
     justify-content: center;
 }
 
-/* Alınabilir Durum */
+/* Alınabilir Kartlar İçin Nefes Alma Animasyonu */
+@keyframes pulse-claimable {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(20, 210, 220, 0.5);
+    transform: scale(1.02);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(20, 210, 220, 0.8);
+    transform: scale(1.04);
+  }
+}
+
+/* Alınabilir Durum (Daha Canlı ve Animasyonlu) */
 .streak-card.claimable {
-    border-color: #22c55e; /* border-green-500 */
-    box-shadow: 0 0 15px rgba(34, 197, 94, 0.5);
+    background: linear-gradient(145deg, #145369, #0891b2);
+    border-color: #22d3ee;
+    transform: scale(1.02);
+    animation: pulse-claimable 2s infinite ease-in-out;
 }
 .streak-card.claimable .day-number {
-    background-color: #22c55e; /* bg-green-500 */
+    background-color: #22d3ee;
+    color: #083344;
 }
 .streak-card.claimable .claim-button {
-    background-color: #16a34a; /* bg-green-600 */
+    background-color: #0d9488;
     color: white;
     cursor: pointer;
 }
 .streak-card.claimable .claim-button:hover {
-    background-color: #15803d; /* bg-green-700 */
+    background-color: #0f766e;
 }
 
-/* Alınmış Durum */
+/* Alınmış Durum (Daha Net ve Onay İkonlu) */
 .streak-card.claimed {
-    background-color: #374151; /* bg-gray-700 */
-    border-color: #6b7280; /* border-gray-500 */
+    background-color: #111827;
+    border-color: #374151;
 }
 .streak-card.claimed .day-number {
-    background-color: #6b7280; /* bg-gray-500 */
+    background-color: #4b5563;
 }
 .streak-card.claimed .reward-image {
     filter: grayscale(80%);
-    opacity: 0.6;
+    opacity: 0.5;
 }
 .streak-card.claimed .claim-button {
-    background-color: #4b5563; /* bg-gray-600 */
-    color: #9ca3af; /* text-gray-400 */
+    background-color: #22c55e; /* Onay için YEŞİL */
+    color: white;
+    font-weight: bold;
     cursor: not-allowed;
+}
+.streak-card.claimed::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 5rem;
+    color: rgba(34, 197, 94, 0.3); /* Daha soft bir yeşil */
+    font-weight: bold;
+    z-index: 5;
 }
 
-/* Kilitli Durum */
+/* Kilitli Durum (Renkli Zamanlayıcılı) */
 .streak-card.locked {
-    opacity: 0.5;
-    filter: grayscale(100%);
+    /* filter ve opacity'yi kaldırarak renkleri geri getirdik */
+    position: relative; /* Karartma efekti için gerekli */
 }
+
+/* YENİ: Renkleri korurken kartın kilitli olduğunu belli eden karartma efekti */
+.streak-card.locked::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.55); /* %55 oranında siyah overlay */
+    border-radius: 0.75rem; /* Kartın köşe yuvarlaklığı ile aynı olmalı */
+    z-index: 1; /* İçeriğin arkasında, kartın önünde */
+}
+
+/* YENİ: Kart içeriğinin karartma efektinin üzerinde kalmasını sağlar */
+.streak-card.locked > * {
+    position: relative;
+    z-index: 2;
+}
+
+/* GÜNCELLENMİŞ: Kilitli buton stili */
 .streak-card.locked .claim-button {
-    background-color: #374151; /* bg-gray-700 */
-    color: #6b7280; /* text-gray-500 */
+    background-color: #374151; /* Koyu gri arkaplan */
+    border: 1px solid #4b5563; /* Hafif parlak kenarlık */
     cursor: not-allowed;
+    
+    /* GÜNCELLEME: Yazı rengini beyaz yaptık (süre için) */
+    color: white; 
+    
+    /* GÜNCELLEME: Kırmızı vurguyu yazıya gölge olarak ekledik */
+    text-shadow: 0 0 8px rgba(239, 68, 68, 0.9); /* Kırmızı parlama efekti */
 }
+
 /* --- YENİ EKLENECEK KOD: Kutu Ayarları Mobil Düzeltmesi --- */
 @media (max-width: 640px) { /* sm breakpoint'i (640px) altındaki ekranlar için */
     .box-setting-row {
@@ -3995,18 +4034,61 @@ function showSection(sectionId) {
     adminPanelModal.style.display = 'none'; 
   }
     
+// YENİ FONKSİYON: Çıkış yapıldığında tüm global değişkenleri ve önbellekleri sıfırlar.
+function resetGlobalState() {
+    // Aktif zamanlayıcıları temizle
+    if (countdownInterval) clearInterval(countdownInterval);
+    if (globalCountdownInterval) clearInterval(globalCountdownInterval);
+    if (spectatorCountdownInterval) clearInterval(spectatorCountdownInterval);
+    if (storeCountdownInterval) clearInterval(storeCountdownInterval);
+    if (clickCatchTimerInterval) clearInterval(clickCatchTimerInterval);
+    if (clickCatchItemInterval) clearInterval(clickCatchItemInterval);
+    if (seasonCountdownInterval) clearInterval(seasonCountdownInterval);
+    if (weeklyCountdownInterval) clearInterval(weeklyCountdownInterval);
+    Object.values(activeDailyRewardTimers).forEach(clearInterval);
+    Object.values(activeStreakTimers).forEach(clearInterval);
+    
+    // Kullanıcıya özel verileri ve önbellekleri sıfırla
+    currentUser = null;
+    isAdmin = false;
+    allUsersCache = [];
+    boxes = [];
+    isGameLocked = false;
+    latestAnnouncementTimestamp = 0;
+    latestStoreItemTimestamp = 0;
+    newlyAcquiredCards = new Set();
+    packsToReveal = [];
+    packsRevealedCount = 0;
+    clickCatchScore = 0;
+    clickCatchLeader = null;
+    
+    // UI elementlerini (arayüzdeki yazıları) varsayılan durumuna döndür
+    document.getElementById("balance").textContent = "";
+    document.getElementById("currentUserBadges").innerHTML = "";
+    document.getElementById("allUserRankings").innerHTML = "Yükleniyor...";
+    document.getElementById("badgedUsersRanking").innerHTML = "Yükleniyor...";
+    document.getElementById("clickCatchRankings").innerHTML = "Yükleniyor...";
+    document.getElementById("boxContainer").innerHTML = "";
+    // MAĞAZA PUANLARI DA BURADA SIFIRLANIYOR
+    document.getElementById('storeCurrentUserBalance').textContent = '0';
+    document.getElementById('storeCurrentUserSpent').textContent = '0';
+    document.getElementById('storeCurrentUserKasaBalance').textContent = '0';
+}
 
+// MEVCUT logout FONKSİYONUNU BUL VE BU YENİ VERSİYONLA DEĞİŞTİR
 async function logout() {
     const confirmed = await customConfirm("Çıkış yapmak istediğinize emin misiniz?");
     if (!confirmed) return;
 
-    // --- YENİ EKLENEN SATIR BAŞLANGICI ---
-    // Çıkış yaparken tarayıcı hafızasındaki kullanıcı kaydını sil.
     localStorage.removeItem('weizendOyunUser');
-    // --- YENİ EKLENEN SATIR SONU ---
 
+    // 1. ÖNCE tüm dinleyicileri kapat
     detachAllListeners();
     
+    // 2. SONRA tüm geçici verileri ve değişkenleri temizle
+    resetGlobalState();
+
+    // 3. UI'ı (arayüzü) güncelle
     document.getElementById("gameDiv").style.display = "none";
     document.getElementById("loginContainer").style.display = "block";
     
@@ -4019,9 +4101,7 @@ async function logout() {
         activityBellContainer.classList.add('hidden');
     }
 
-    currentUser = null;
-    isAdmin = false;
-    
+    // 4. En son Firebase oturumunu kapat
     auth.signOut().catch((error) => {
         console.error("Çıkış yapılırken hata oluştu: ", error);
         displayMessage("Çıkış yapılırken bir hata oluştu.");
@@ -14294,29 +14374,55 @@ async function performForceReload() {
     window.location.href = window.location.pathname + '?v=' + Date.now();
 }
 
-// ESKİSİNİ SİLİP BUNU YAPIŞTIR
+// BU FONKSİYONU BULUP AŞAĞIDAKİ İLE DEĞİŞTİRİN
+function listenForTradeNotifications() {
+    if (isAdmin) return; 
+
+    const notificationsRef = db.ref(`tradeNotifications/${currentUser}`);
+    
+    const callback = (snapshot) => {
+        const notification = snapshot.val();
+        if (notification && notification.message) {
+            showTradeCompleteModal(notification.message);
+            if (currentActiveSection === 'cardCollection') {
+                loadCollectionAlbum();
+            }
+            snapshot.ref.remove();
+        }
+    };
+
+    // Dinleyiciyi tekrar tekrar eklememek için kontrol et ve kaydet
+    if (activeListeners.tradeNotifications) {
+        activeListeners.tradeNotifications.ref.off('child_added', activeListeners.tradeNotifications.callback);
+    }
+    activeListeners.tradeNotifications = { ref: notificationsRef, event: 'child_added', callback };
+    notificationsRef.on('child_added', callback);
+}
+
+// BU FONKSİYONU BULUP AŞAĞIDAKİ İLE DEĞİŞTİRİN
 function listenForForceUpdateSignal() {
-    if (isAdmin) return; // Adminler bu pencereyi görmez
+    if (isAdmin) return; 
 
     const updateRef = db.ref('gameConfig/updateRequiredTimestamp');
     
-    updateRef.on('value', async (snapshot) => {
+    const callback = async (snapshot) => {
         const requiredUpdateTimestamp = snapshot.val();
-
-        // Eğer bir güncelleme sinyali yoksa hiçbir şey yapma
         if (!requiredUpdateTimestamp) {
             return;
         }
-
-        // Kullanıcının en son gördüğü güncellemenin zamanını kendi profilinden al
         const userSeenTimestampSnap = await db.ref(`users/${currentUser}/lastSeenUpdateTimestamp`).once('value');
         const userSeenTimestamp = userSeenTimestampSnap.val() || 0;
-
-        // Sadece sunucudaki güncelleme, kullanıcının gördüğünden daha YENİ ise pencereyi göster
         if (requiredUpdateTimestamp > userSeenTimestamp) {
             document.getElementById('forceUpdateModal').style.display = 'flex';
         }
-    });
+    };
+    
+    // Dinleyiciyi tekrar tekrar eklememek için kontrol et ve kaydet
+    if (activeListeners.forceUpdate) {
+        activeListeners.forceUpdate.ref.off('value', activeListeners.forceUpdate.callback);
+    }
+    activeListeners.forceUpdate = { ref: updateRef, event: 'value', callback };
+    updateRef.on('value', callback);
 }
 
 async function loadCollectionLeaderboard() {
@@ -14486,30 +14592,6 @@ function showTradeCompleteModal(message) {
 // Takas bilgilendirme penceresini kapatır
 function closeTradeCompleteModal() {
     document.getElementById('tradeCompleteModal').style.display = 'none';
-}
-
-// Her oyuncu için kişisel takas bildirimlerini dinler
-function listenForTradeNotifications() {
-    if (isAdmin) return; // Adminler bu bildirimi almaz
-
-    const notificationsRef = db.ref(`tradeNotifications/${currentUser}`);
-    
-    // Bu listener, sadece BANA ÖZEL gelen yeni takas bildirimlerini yakalar
-    notificationsRef.on('child_added', (snapshot) => {
-        const notification = snapshot.val();
-        if (notification && notification.message) {
-            // 1. Ekranda anlık olarak bilgilendirme penceresini göster
-            showTradeCompleteModal(notification.message);
-
-            // 2. Eğer o an kart koleksiyonu sekmesindeysem, albümümü anında yenile
-            if (currentActiveSection === 'cardCollection') {
-                loadCollectionAlbum();
-            }
-
-            // 3. Gösterilen bildirimi veritabanından sil ki tekrar görünmesin
-            snapshot.ref.remove();
-        }
-    });
 }
 
       function openCollectionAdminModal() {
