@@ -3058,21 +3058,6 @@ body.modal-open .modal-content {
       </div>
   </div>
 </div>
-<div id="cardConversionModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[10002] hidden">
-    <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-green-500 w-11/12 max-w-lg text-center relative">
-        <button class="modal-close-button" onclick="closeCardConversionModal()">&times;</button>
-        <h3 class="text-green-300 text-3xl font-bold mb-4">Fazla Kartı Dönüştür</h3>
-        <p id="conversionInfoText" class="text-gray-300 mb-6"></p>
-        <div class="flex gap-4">
-            <button onclick="closeCardConversionModal()" class="flex-1 py-3 bg-gray-600 hover:bg-gray-500 text-white font-bold rounded-lg shadow-md">
-              İptal
-            </button>
-            <button id="confirmConversionBtn" class="flex-1 py-3 bg-green-700 hover:bg-green-600 text-white font-bold rounded-lg shadow-md">
-              Dönüştür
-            </button>
-        </div>
-    </div>
-</div>
   <script>
       // YENİ EKLENECEK GİZLİ ADMİN GİRİŞİ KODU
 const keyboardSecretCode = ['b', 'a', 'k', 'i', 'm'];
@@ -12515,7 +12500,6 @@ async function kasaTransferEt() {
     document.getElementById('kasaTransferInput').value = '';
 }
 
-// MEVCUT loadCollectionAlbum fonksiyonunu bununla DEĞİŞTİR
 async function loadCollectionAlbum() {
     const albumContainer = document.getElementById('cardCollectionAlbum');
     const statusOverlay = document.getElementById('collectionStatusOverlay');
@@ -12602,8 +12586,6 @@ async function loadCollectionAlbum() {
     const userSnap = await userRef.once('value');
     const userData = userSnap.val() || {};
     const userCards = userData.cardCollection || {};
-    // ★★★ YENİ EKLENEN KONTROL ★★★
-    const hasCompletedCollection = userData.completedCollection === true;
     
     const wildcardIndicator = document.getElementById('wildcardIndicator');
     const wildcardCountSpan = document.getElementById('wildcardCount');
@@ -12649,20 +12631,7 @@ async function loadCollectionAlbum() {
                 <img class="card-image" src="${cardInfo.imageUrl}">
                 <h4 class="card-name">${cardInfo.cardName}</h4>
             `;
-
-            // ★★★ EN KRİTİK DEĞİŞİKLİK BURADA ★★★
-            // Eğer kullanıcı albümü tamamlamışsa VE karttan 1'den fazla varsa, dönüştürme fonksiyonunu çağır.
-            if (hasCompletedCollection && userHasCard && userHasCard.count > 1) {
-                const rates = { normal: 1, gumus: 2, altin: 3, efsanevi: 5 };
-                const boxRightsToGain = rates[cardInfo.rarity] || 1;
-                cardItem.onclick = () => openCardConversionModal(cardId, cardInfo.cardName, cardInfo.rarity, boxRightsToGain);
-            }
-            // Eğer albümü tamamlamamışsa VE karttan 1'den fazla varsa, eskisi gibi takas menüsünü aç.
-            else if (!hasCompletedCollection && userHasCard && userHasCard.count > 1) {
-                cardItem.onclick = () => openTradeMenu(cardId, cardInfo.cardName);
-            }
-            // ★★★ DEĞİŞİKLİK SONU ★★★
-            
+            if (userHasCard && userHasCard.count > 1) { cardItem.onclick = () => openTradeMenu(cardId, cardInfo.cardName); }
             slot.appendChild(cardItem);
 
         } else {
@@ -12682,57 +12651,6 @@ async function loadCollectionAlbum() {
             `;
         }
         albumContainer.appendChild(slot);
-    }
-}
-
-// YENİ: Kart dönüştürme penceresini açar
-function openCardConversionModal(cardId, cardName, cardRarity, boxRightsToGain) {
-    const modal = document.getElementById('cardConversionModal');
-    const infoText = document.getElementById('conversionInfoText');
-    const confirmBtn = document.getElementById('confirmConversionBtn');
-    
-    infoText.innerHTML = `Fazla olan 1 adet <b class="text-white">'${cardName}'</b> (${cardRarity}) kartını <b class="text-yellow-300">+${boxRightsToGain} Kutu Hakkı</b>'na dönüştürmek istediğine emin misin?`;
-    
-    confirmBtn.onclick = () => convertDuplicateCard(cardId, boxRightsToGain);
-    
-    modal.style.display = 'flex';
-}
-
-// YENİ: Kart dönüştürme penceresini kapatır
-function closeCardConversionModal() {
-    document.getElementById('cardConversionModal').style.display = 'none';
-}
-
-// YENİ: Kartı Kutu Hakkına dönüştürme işlemini yapar
-async function convertDuplicateCard(cardId, boxRightsToGain) {
-    if(isTradeInProgress) return;
-    isTradeInProgress = true;
-    
-    const userRef = db.ref(`users/${currentUser}`);
-
-    try {
-        const { committed, snapshot } = await userRef.transaction(userData => {
-            if (userData && userData.completedCollection === true && userData.cardCollection?.[cardId]?.count > 1) {
-                userData.cardCollection[cardId].count--;
-                userData.kutuHakki = (userData.kutuHakki || 0) + boxRightsToGain;
-                return userData;
-            }
-            return; 
-        });
-
-        if (committed) {
-            displayMessage(`Başarılı! Kartın +${boxRightsToGain} Kutu Hakkı'na dönüştürüldü.`);
-            closeCardConversionModal();
-            loadCollectionAlbum();
-        } else {
-            throw new Error("Dönüştürme işlemi başarısız oldu. Kart durumu değişmiş olabilir.");
-        }
-
-    } catch (error) {
-        displayMessage(error.message);
-        closeCardConversionModal();
-    } finally {
-        isTradeInProgress = false;
     }
 }
 
