@@ -5412,8 +5412,8 @@ function handleRowTypeChange(selectElement) {
     }
 }
 
+// MEVCUT openBox FONKSİYONUNU SİLİP BUNU YAPIŞTIR
 async function openBox(index) {
-    // --- SÜRPRİZ KUTU UYARI SİSTEMİ ---
     const lastSurpriseSnap = await db.ref('gameStats/lastSurpriseInfo').once('value');
     const lastSurpriseData = lastSurpriseSnap.val();
     if (lastSurpriseData && lastSurpriseData.resettled === false) {
@@ -5424,7 +5424,6 @@ async function openBox(index) {
             return;
         }
     }
-    // --- UYARI SİSTEMİ SONU ---
 
     if (isGameLocked) {
         displayMessage("Kutular 1 saniye arayla açılıyor. Lütfen tekrar deneyin. Sorun devam ediyorsa, 'Sorunları Çöz' menüsüne göz atabilirsiniz.");
@@ -5570,6 +5569,7 @@ async function openBox(index) {
         if (shieldWasUsed) {
             updates['iflasShieldUses'] = user.iflasShieldUses - 1;
             updates['iflasShieldUsedCount'] = (user.iflasShieldUsedCount || 0) + 1;
+            updates['balance'] = user.balance; // Puanı değiştirme
             message = `İflas! 🛡️ Kalkanın seni korudu!`;
         } else {
             updates['balance'] = 0;
@@ -5592,6 +5592,7 @@ async function openBox(index) {
         const dbKeys = { wheelTicket: 'carkBileti', clickCatchTicket: 'clickCatchTickets', iflasShield: 'iflasShieldUses', wildcard: 'wildcards' };
         const itemName = itemNames[box.content] || 'Eşya';
         
+        // ★★★ DEĞİŞİKLİK BURADA: Artık albümü tamamlayanlar için puan dönüşümü yok. ★★★
         if (box.content.startsWith('card_pack')) {
             startCardPackOpening(itemsGained, `${box.id} numaralı kutu`, finalMultiplier, box.content);
             message = `Tebrikler! Kutudan ${itemsGained} adet ${itemName} buldun!`;
