@@ -1247,7 +1247,7 @@ body.modal-open .modal-content {
     <div id="cardCollectionContent" class="w-full hidden">
 
     <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-4 px-4">
-      
+
       <div class="flex items-center gap-4">
           <div>
               <div class="flex items-center gap-3">
@@ -1264,7 +1264,10 @@ body.modal-open .modal-content {
       <div class="w-full md:w-auto text-center md:text-right">
           <div class="flex justify-center md:justify-end gap-x-4 gap-y-1 flex-wrap mb-2">
               <p class="text-lg text-white">Tamamlanan: <span id="collectionProgress" class="font-bold text-green-400">0/0</span></p>
-              <p id="wildcardIndicator" class="text-lg text-purple-400 hidden">Joker Kart: <span id="wildcardCount" class="font-bold text-white">0</span> 🃏</p>
+              <div id="wildcardIndicator" class="text-lg text-purple-400 hidden items-center gap-2">
+                  <span>Joker Kart: <span id="wildcardCount" class="font-bold text-white">0</span> 🃏</span>
+                  <button id="convertWildcardBtn" onclick="convertWildcard()" class="hidden py-1 px-3 bg-green-600 hover:bg-green-500 rounded-lg text-xs font-bold">Dönüştür</button>
+              </div>
           </div>
           <button onclick="openTradeMarket()" class="w-full sm:w-auto py-2 px-4 bg-purple-600 hover:bg-purple-500 rounded-lg text-sm font-bold">Takas Pazarı</button>
       </div>
@@ -1281,7 +1284,7 @@ body.modal-open .modal-content {
         <div id="prizeList" class="flex flex-wrap justify-center items-center gap-x-8 gap-y-4">
             </div>
     </div>
-    
+
     <div id="collectionFinishersLeaderboard" class="hidden my-6 p-6 bg-gray-800 rounded-xl shadow-lg border-2 border-green-400 max-w-4xl mx-auto text-center">
     <h3 class="text-2xl font-bold text-green-300 mb-4">🏆 Koleksiyon Liderlik Sıralaması 🏆</h3>
     <div id="finishersList" class="space-y-3 text-left">
@@ -1291,17 +1294,17 @@ body.modal-open .modal-content {
         <div id="collectionAdminModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[50000] hidden">
   <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-purple-500 w-11/12 max-w-4xl text-left relative max-h-[90vh] overflow-y-auto scrollable-list">
     <button class="modal-close-button" onclick="closeCollectionAdminModal()">&times;</button>
-    
+
     <div id="collectionAdminModalContent">
       <h4 class="text-lg font-bold text-purple-300 mb-4 text-center border-b border-gray-700 pb-2">KOLEKSİYON SEZON YÖNETİMİ</h4>
       <p class="text-center text-gray-400 text-sm mb-4">Mevcut Sezon Durumu: <b id="collectionStatusText" class="text-white">Bilinmiyor</b></p>
-      
+
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div class="space-y-3">
               <button onclick="openCardCreatorModal()" class="w-full py-3 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg">Kart Ekle/Düzenle</button>
               <button onclick="openGrandPrizeSettings()" class="w-full py-3 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg">Büyük Ödülü Ayarla</button>
           </div>
-          
+
           <div class="space-y-3">
               <button onclick="toggleCollectionPause()" id="pauseResumeButton" class="w-full py-3 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-lg">Sezonu Duraklat</button>
               <button onclick="openTradeHistoryModal()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg">Takas Geçmişi</button>
@@ -1313,7 +1316,7 @@ body.modal-open .modal-content {
               </button>
           </div>
       </div>
-  
+
       <div class="mt-6 pt-4 border-t border-gray-700">
           <h4 class="text-lg font-bold text-purple-300 mb-3 text-center">PAZAR AYARLARI</h4>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
@@ -1331,7 +1334,7 @@ body.modal-open .modal-content {
 
   </div>
 </div>
-    
+
     <div id="cardCollectionAlbum" class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-6 p-4 bg-gray-900/50 rounded-xl border border-gray-700">
         </div>
 
@@ -1483,11 +1486,7 @@ body.modal-open .modal-content {
     <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700 text-center">
         <div class="flex justify-center items-center gap-4 mb-4">
             <h3 class="text-yellow-400 text-3xl font-bold">Şans Çarkı</h3>
-
-            <button onclick="openWheelLegendModal()" class="text-blue-400 hover:text-blue-300 transition-colors" title="Simge Anlamları">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            </button>
-
+            <button onclick="openWheelLegendModal()" class="info-button" title="Simge Anlamları">?</button>
             <button id="wheelSettingsButton" onclick="openWheelSettingsModal()" class="hidden py-1 px-3 text-sm bg-teal-600 hover:bg-teal-500 rounded-lg">Çark Ayarları</button>
         </div>
         
@@ -1574,105 +1573,101 @@ body.modal-open .modal-content {
 </div>
 
         <div id="clickCatchContent" class="w-full hidden">
-    
-            <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700 text-center">
-                <div class="flex justify-center items-center gap-4 mb-4">
+
+        <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700 text-center">
+            <div class="flex justify-center items-center gap-4 mb-4">
     <h3 class="text-yellow-400 text-3xl font-bold">Tıkla-Yakala</h3>
-    <button onclick="openClickCatchInfoModal()" class="text-blue-400 hover:text-blue-300 transition-colors" title="Oyun Modları Hakkında Bilgi">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-    </button>
+    <button onclick="openClickCatchInfoModal()" class="info-button" title="Oyun Modları Hakkında Bilgi">?</button>
 </div>
-                <div id="weeklyWinnerContainer" class="hidden w-full max-w-2xl mx-auto mt-6 mb-4 bg-gray-800 p-4 rounded-xl shadow-lg border-2 border-green-500 text-center relative">
-    <h4 class="text-green-300 text-xl font-bold mb-3">🏆 Haftanın Tıkla-Yakala Şampiyonu 🏆</h4>
-    <div id="weeklyWinnerInfo" class="text-lg text-gray-200 space-y-2">
-        </div>
-    <button id="clearWeeklyWinnerBtn" onclick="clearWeeklyWinnerDisplay()" class="hidden absolute -top-3 -right-3 bg-red-600 hover:bg-red-500 text-white rounded-full h-8 w-8 flex items-center justify-center text-lg font-bold" title="Kazanan Panelini Gizle">&times;</button>
+            <div id="weeklyWinnerContainer" class="hidden w-full max-w-2xl mx-auto mt-6 mb-4 bg-gray-800 p-4 rounded-xl shadow-lg border-2 border-green-500 text-center relative">
+<h4 class="text-green-300 text-xl font-bold mb-3">🏆 Haftanın Tıkla-Yakala Şampiyonu 🏆</h4>
+<div id="weeklyWinnerInfo" class="text-lg text-gray-200 space-y-2">
+    </div>
+<button id="clearWeeklyWinnerBtn" onclick="clearWeeklyWinnerDisplay()" class="hidden absolute -top-3 -right-3 bg-red-600 hover:bg-red-500 text-white rounded-full h-8 w-8 flex items-center justify-center text-lg font-bold" title="Kazanan Panelini Gizle">&times;</button>
 </div>
-        
-                <div id="clickCatchAdminButtonsContainer" class="hidden bg-gray-900/50 p-4 rounded-lg border border-yellow-500 mb-6 flex justify-center gap-4">
-                    <button onclick="openSoloGameSettingsModal()" class="py-3 px-6 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg shadow-md">
-                        Tekli Oyun Ayarları
-                    </button>
-                    <button onclick="openLobbySettingsModal()" class="py-3 px-6 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-md">
-                        Lobi Yönetim Paneli
-                    </button>
-                </div>
-        
-                <div id="lastWinnerContainer" class="hidden bg-gray-900/50 p-4 rounded-lg border border-yellow-400 mb-6 text-left">
-    <h4 id="lastWinnerInfo" class="text-yellow-300 text-xl font-semibold mb-3 border-b border-gray-700 pb-2"></h4>
-    <div id="lastGameDetailsList" class="space-y-2">
-        </div>
+
+            <div id="clickCatchAdminButtonsContainer" class="hidden bg-gray-900/50 p-4 rounded-lg border border-yellow-500 mb-6 flex justify-center gap-4">
+                <button onclick="openSoloGameSettingsModal()" class="py-3 px-6 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg shadow-md">
+                    Tekli Oyun Ayarları
+                </button>
+                <button onclick="openLobbySettingsModal()" class="py-3 px-6 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-md">
+                    Lobi Yönetim Paneli
+                </button>
+            </div>
+
+            <div id="lastWinnerContainer" class="hidden bg-gray-900/50 p-4 rounded-lg border border-yellow-400 mb-6 text-left">
+<h4 id="lastWinnerInfo" class="text-yellow-300 text-xl font-semibold mb-3 border-b border-gray-700 pb-2"></h4>
+<div id="lastGameDetailsList" class="space-y-2">
+    </div>
 </div>
-                
-                <div id="lobbyStatusContainer" class="hidden bg-blue-900/50 p-4 rounded-lg border border-blue-400 mb-6">
-                    <h4 id="lobbyStatusTitle" class="text-blue-300 text-xl font-semibold animate-pulse">Lobi Katılıma Açık!</h4>
-                    <p id="lobbyStatusInfo" class="mt-2 text-gray-200"></p>
-                    <div id="lobbyPlayerList" class="mt-2 text-sm text-gray-400"></div>
+
+            <div id="lobbyStatusContainer" class="hidden bg-blue-900/50 p-4 rounded-lg border border-blue-400 mb-6">
+                <h4 id="lobbyStatusTitle" class="text-blue-300 text-xl font-semibold animate-pulse">Lobi Katılıma Açık!</h4>
+                <p id="lobbyStatusInfo" class="mt-2 text-gray-200"></p>
+                <div id="lobbyPlayerList" class="mt-2 text-sm text-gray-400"></div>
+            </div>
+
+            <div class="flex justify-around items-center flex-wrap gap-y-2 mb-4 bg-gray-900 p-3 rounded-lg">
+                <div id="displayScore" class="hidden">
+                    <p class="text-gray-400 text-sm">Toplanan Skor</p>
+                    <p id="clickCatchScore" class="text-green-400 font-bold text-lg">0</p>
                 </div>
-                
-                <div class="flex justify-around items-center flex-wrap gap-y-2 mb-4 bg-gray-900 p-3 rounded-lg">
-                    <div id="displayScore" class="hidden">
-                        <p class="text-gray-400 text-sm">Toplanan Skor</p>
-                        <p id="clickCatchScore" class="text-green-400 font-bold text-lg">0</p>
-                    </div>
-                    <div id="displaySpecials" class="hidden">
-                        <p class="text-gray-400 text-sm">Alınan Ödüller</p>
-                        <div id="collectedSpecials" class="h-[28px] flex items-center justify-center gap-2"></div>
-                    </div>
-                    <div id="displayTarget" class="hidden">
-                        <p class="text-gray-400 text-sm">Hedef</p>
-                        <p id="clickCatchTarget" class="text-purple-400 font-bold text-lg">0 / 10</p>
-                    </div>
-                    <div id="displayTimer" class="hidden">
-                        <p class="text-gray-400 text-sm">Kalan Süre</p>
-                        <p id="clickCatchTimer" class="text-yellow-400 font-bold text-lg">30</p>
-                    </div>
+                <div id="displaySpecials" class="hidden">
+                    <p class="text-gray-400 text-sm">Alınan Ödüller</p>
+                    <div id="collectedSpecials" class="h-[28px] flex items-center justify-center gap-2"></div>
                 </div>
-                <div id="clickCatchGameAreaContainer" class="flex justify-center mb-4">
-                    <div id="clickCatchGameArea">
-                         <div id="clickCatchStartScreen" class="w-full h-full flex flex-col justify-center items-center bg-black bg-opacity-50">
-                            <p class="text-xl mb-6">Oyun Modunu Seç</p>
-                            <div class="flex gap-4">
-                               <button id="startSoloGameBtn" onclick="startSoloClickCatchGame()" class="py-3 px-10 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg shadow-md">Tek Oyna</button>
-                               <button id="joinLobbyBtn" onclick="joinLobby()" class="py-3 px-10 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-md disabled:bg-gray-600 disabled:cursor-not-allowed" disabled>Lobiye Katıl</button>
-                            </div>
+                <div id="displayTarget" class="hidden">
+                    <p class="text-gray-400 text-sm">Hedef</p>
+                    <p id="clickCatchTarget" class="text-purple-400 font-bold text-lg">0 / 10</p>
+                </div>
+                <div id="displayTimer" class="hidden">
+                    <p class="text-gray-400 text-sm">Kalan Süre</p>
+                    <p id="clickCatchTimer" class="text-yellow-400 font-bold text-lg">30</p>
+                </div>
+            </div>
+            <div id="clickCatchGameAreaContainer" class="flex justify-center mb-4">
+                <div id="clickCatchGameArea">
+                     <div id="clickCatchStartScreen" class="w-full h-full flex flex-col justify-center items-center bg-black bg-opacity-50">
+                        <p class="text-xl mb-6">Oyun Modunu Seç</p>
+                        <div class="flex gap-4">
+                           <button id="startSoloGameBtn" onclick="startSoloClickCatchGame()" class="py-3 px-10 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg shadow-md">Tek Oyna</button>
+                           <button id="joinLobbyBtn" onclick="joinLobby()" class="py-3 px-10 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg shadow-md disabled:bg-gray-600 disabled:cursor-not-allowed" disabled>Lobiye Katıl</button>
                         </div>
-                        
-                        <div id="gameCountdownOverlay" class="absolute inset-0 bg-gray-900/90 hidden flex-col justify-center items-center text-center z-20">
-                            <p class="text-6xl font-extrabold text-yellow-400 animate-pulse" id="countdownText"></p>
-                        </div>
-                        
-                        <div id="lobbyGameOverScreen" class="absolute inset-0 bg-gray-900/95 rounded-lg hidden flex flex-col items-center justify-center p-8 text-center border-4 border-gray-700">
-                            <h4 id="lobbyGameOverTitle" class="text-white text-3xl font-bold mb-4">Oyun Bitti!</h4>
-                            <p id="lobbyGameOverInfo" class="text-xl text-gray-200 mb-6"></p>
-                            <button onclick="closeLobbyGameOverScreen()" class="mt-4 py-2 px-6 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
-                                Oyun Ekranına Dön
-                            </button>
-                        </div>
+                    </div>
+
+                    <div id="gameCountdownOverlay" class="absolute inset-0 bg-gray-900/90 hidden flex-col justify-center items-center text-center z-20">
+                        <p class="text-6xl font-extrabold text-yellow-400 animate-pulse" id="countdownText"></p>
+                    </div>
+
+                    <div id="lobbyGameOverScreen" class="absolute inset-0 bg-gray-900/95 rounded-lg hidden flex flex-col items-center justify-center p-8 text-center border-4 border-gray-700">
+                        <h4 id="lobbyGameOverTitle" class="text-white text-3xl font-bold mb-4">Oyun Bitti!</h4>
+                        <p id="lobbyGameOverInfo" class="text-xl text-gray-200 mb-6"></p>
+                        <button onclick="closeLobbyGameOverScreen()" class="mt-4 py-2 px-6 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
+                            Oyun Ekranına Dön
+                        </button>
                     </div>
                 </div>
             </div>
-    
-            <div class="tableBox bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700 w-full md:flex-1 min-w-[280px] mt-6 mx-auto max-w-2xl">
-    <h3 class="text-yellow-400 text-xl font-bold border-b border-gray-600 pb-3 mb-4">TIKLA-YAKALA HAFTALIK SKOR SIRALAMASI 🎯</h3>
-    <input type="text" id="searchClickCatchRanking" oninput="loadClickCatchRankings()" placeholder="Sıralamada Kullanıcı Ara..." class="w-full p-3 mb-4 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
-    
-    <div id="weeklyResetCountdownContainer" class="hidden text-center bg-purple-900/50 border border-purple-400 text-purple-200 p-3 rounded-lg mb-4">
-        <div class="flex justify-center items-center gap-2">
-            <span>Haftalık Liderin Belirlenmesine: <span id="weeklyResetCountdown" class="font-bold text-white tracking-wider"></span></span>
-            <button onclick="openWeeklyResetInfoModal()" class="text-blue-400 hover:text-blue-300 transition-colors" title="Haftalık Sıfırlama Hakkında Bilgi">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-            </button>
         </div>
-    </div>
 
-    <div id="clickCatchRankings" class="scrollable-list max-h-80 overflow-y-auto border border-gray-600 rounded-lg p-3 bg-gray-900 text-sm leading-relaxed">Yükleniyor...</div>
+        <div class="tableBox bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700 w-full md:flex-1 min-w-[280px] mt-6 mx-auto max-w-2xl">
+<h3 class="text-yellow-400 text-xl font-bold border-b border-gray-600 pb-3 mb-4">TIKLA-YAKALA HAFTALIK SKOR SIRALAMASI 🎯</h3>
+<input type="text" id="searchClickCatchRanking" oninput="loadClickCatchRankings()" placeholder="Sıralamada Kullanıcı Ara..." class="w-full p-3 mb-4 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
+
+<div id="weeklyResetCountdownContainer" class="hidden text-center bg-purple-900/50 border border-purple-400 text-purple-200 p-3 rounded-lg mb-4">
+    <div class="flex justify-center items-center gap-2">
+        <span>Haftalık Liderin Belirlenmesine: <span id="weeklyResetCountdown" class="font-bold text-white tracking-wider"></span></span>
+        <button onclick="openWeeklyResetInfoModal()" class="text-blue-400 hover:text-blue-300 transition-colors" title="Haftalık Sıfırlama Hakkında Bilgi">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+        </button>
+    </div>
 </div>
-        
+
+<div id="clickCatchRankings" class="scrollable-list max-h-80 overflow-y-auto border border-gray-600 rounded-lg p-3 bg-gray-900 text-sm leading-relaxed">Yükleniyor...</div>
+</div>
+
         </div>
             
         <div id="storeSection" class="w-full hidden">
@@ -2916,7 +2911,21 @@ body.modal-open .modal-content {
                 <div class="flex items-center gap-3"><span class="text-2xl w-6 text-center">💰</span><span><strong>Yüksek Skor:</strong> Normal hedeften daha fazla skor kazandırır.</span></div>
                 <div class="flex items-center gap-3"><span class="text-2xl w-6 text-center">💣</span><span><strong>Bomba:</strong> DİKKAT! Tıklanıldığında toplam skorunuzdan -skor düşürür.</span></div>
                 <div class="flex items-center gap-3"><span class="text-2xl w-6 text-center">⏰</span><span><strong>Ekstra Süre:</strong> Kalan oyun sürenize bonus saniyeler ekler.</span></div>
-                <div class="flex items-center gap-3"><span class="text-2xl w-6 text-center">🎁</span><span><strong>Özel Hedef:</strong> Nadiren belirir. Kutu Hakkı (📦), İflas Kalkanı (🛡️), Joker Kart (🃏) veya çeşitli Kart Paketleri (🎴🥉🥈🥇🏆) gibi çok değerli ödüller kazandırır.</span></div>
+                <div class="flex items-start gap-3"><span class="text-2xl w-6 text-center pt-1">🎁</span>
+                    <div>
+                        <strong>Özel Hedef:</strong> Nadiren belirir. Aşağıdaki çok değerli ödüllerden birini kazandırır:
+                        <ul class="list-disc list-inside ml-4 mt-1 text-sm text-cyan-300">
+                            <li>Kutu Hakkı (📦)</li>
+                            <li>Çark Bileti (🎫)</li>
+                            <li>Çarpan (✖️)</li>
+                            <li>İflas Kalkanı (🛡️)</li>
+                            <li>Joker Kart (🃏)</li>
+                            <li>Tüm Kart Paketleri (🎴🥉🥈🥇🏆)</li>
+                            <li>Tüm Canavar Savaşı İksirleri (🧪⚔️🛡️💥)</li>
+                            <li>Dirilme Taşı (💎)</li>
+                        </ul>
+                    </div>
+                </div>
                 <hr class="border-gray-600">
                 <p class="font-semibold text-green-400">-- Lobi Oyununda Geçerli --</p>
                 <div class="flex items-center gap-3"><span class="text-2xl w-6 text-center">🎯</span><span><strong>Hedef:</strong> Hedef skora ulaşmak için tıklamanız gereken ana hedeftir. (+1 Skor)</span></div>
@@ -3157,13 +3166,13 @@ body.modal-open .modal-content {
   <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-blue-500 w-11/12 max-w-2xl text-left relative max-h-[90vh] flex flex-col">
     <button class="modal-close-button" onclick="closeCollectionInfoModal()">&times;</button>
     <h3 class="text-blue-300 text-3xl font-bold mb-6 text-center">Kart Koleksiyonu Rehberi</h3>
-    
+
     <div class="space-y-4 text-gray-300 overflow-y-auto scrollable-list pr-4">
-        <div_>
+        <div>
             <h4 class="font-bold text-lg text-yellow-300">🏆 Amaç Nedir?</h4>
             <p>Oyunun amacı, tüm kartları toplayarak koleksiyon albümünü tamamlamaktır. Albümü tamamlayan herkes, admin tarafından belirlenen büyük ödülleri kazanır!</p>
-        </div_>
-        
+        </div>
+
         <div>
             <h4 class="font-bold text-lg text-yellow-300">🎴 Nasıl Kart Kazanılır?</h4>
             <p>Koleksiyon kartları doğrudan bulunmaz. Bunun yerine, oyunun çeşitli yerlerinden **"Kart Paketi"** kazanırsın. Her paket, içinden rastgele bir koleksiyon kartı çıkarır.</p>
@@ -3173,7 +3182,7 @@ body.modal-open .modal-content {
                 <li><b>Mağaza:</b> Puanlarınla Mağaza'dan Kart Paketi satın alabilirsin.</li>
             </ul>
         </div>
-        
+
         <div>
             <h4 class="font-bold text-lg text-yellow-300">⇄ Fazla Kartlar ve Takas</h4>
             <p>Aynı karttan birden fazla kazandığında, bu kartlar "fazla" olarak birikir. Fazla kartların en önemli amacı takas yapmaktır! **"Takas Pazarı"**'na giderek elindeki fazla kartları, koleksiyonundaki eksik kartlar karşılığında diğer oyuncularla takas edebilirsin.</p>
@@ -3182,6 +3191,11 @@ body.modal-open .modal-content {
         <div>
             <h4 class="font-bold text-lg text-yellow-300">🃏 Joker Kart Nedir?</h4>
             <p>Joker Kart, oyundaki en nadir ve en özel karttır. Bu kart, koleksiyonundaki herhangi bir eksik kartın yerine geçer. Eksik bir kartın üzerine tıklayarak Joker Kart'ını kullanabilir ve o kartı anında koleksiyonuna ekleyebilirsin!</p>
+        </div>
+
+        <div class="mt-4 pt-4 border-t border-gray-600">
+            <h4 class="font-bold text-lg text-amber-400">⚠️ Önemli Bilgi: Koleksiyonu Tamamladıktan Sonra</h4>
+            <p>Koleksiyonu tamamladıktan sonra kazandığın fazla kartlar, takas edilemez. Bunun yerine, bu kartları belirli bir miktar <b>Kutu Hakkı</b>'na dönüştürebilirsin. Aynı şekilde, kazandığın yeni Kart Paketleri ve Joker Kartlar da otomatik olarak <b>Puan</b> ve <b>Kutu Hakkı</b>'na dönüşecektir.</p>
         </div>
 
     </div>
@@ -5252,7 +5266,6 @@ async function confirmSendItem(isAdding = true) {
             notificationMessage = `Yönetici sana '${avatarName}' avatarını hediye etti! Envanterinden seçebilirsin.`;
         
         } else {
-            // ★★★ SORUNU ÇÖZEN DEĞİŞİKLİK BURADA ★★★
             await userRef.transaction(userData => {
                 if (userData) {
                     const op = isAdding ? 1 : -1;
@@ -5267,21 +5280,21 @@ async function confirmSendItem(isAdding = true) {
                     if (type === 'points') {
                         userData.balance = (userData.balance || 0) + (value * op);
                         if (isAdding) userData.kariyerPuani = (userData.kariyerPuani || 0) + value;
-                        notificationMessage = `Yönetici hesabına ${value} Puan ${actionVerb}.`;
+                        notificationMessage = `Yönetici hesabın${isAdding ? 'a' : 'dan'} ${value} Puan ${actionVerb}.`;
                     } else if (type === 'revival_stone') {
                         if (!userData.inventory) userData.inventory = {};
                         userData.inventory.revival_stone = Math.max(0, (userData.inventory.revival_stone || 0) + (value * op));
-                        notificationMessage = `Yönetici envanterine ${value} adet ${typeToName[type]} ${actionVerb}.`;
+                        notificationMessage = `Yönetici envanterin${isAdding ? 'e' : 'den'} ${value} adet ${typeToName[type]} ${actionVerb}.`;
                     } else if (dbKey) {
                         userData[dbKey] = Math.max(0, (userData[dbKey] || 0) + (value * op));
-                        notificationMessage = `Yönetici envanterine ${value} adet ${typeToName[type]} ${actionVerb}.`;
+                        notificationMessage = `Yönetici envanterin${isAdding ? 'e' : 'den'} ${value} adet ${typeToName[type]} ${actionVerb}.`;
                     } else if (type === 'tempMultiplier') {
                          if (isAdding) {
                             userData.activeMultiplier = value;
                             userData.multiplierRemainingUses = uses;
-                            userData.multiplierSource = 'store'; // Admin hediyeleri mağaza gibi davranır
+                            userData.multiplierSource = 'store';
                             notificationMessage = `Yönetici sana ${uses} adet ${value}x Çarpan hediye etti.`;
-                        } else { // Çarpan silme işlemi
+                        } else {
                             userData.activeMultiplier = 1;
                             userData.multiplierRemainingUses = 0;
                             userData.multiplierSource = 'none';
@@ -5330,9 +5343,8 @@ async function confirmBulkSendItem(isAdding = true) {
         displayMessage("Lütfen bir eşya tipi seçin.");
         return;
     }
-
+    
     const value = parseInt(document.getElementById('bulkSendItemValue').value);
-    // ★★★ DEĞİŞİKLİK BURADA: Çarpan için "uses" değerini de alıyoruz. ★★★
     const usesInput = document.getElementById('bulkSendItemUses');
     const uses = usesInput ? parseInt(usesInput.value) : 0;
 
@@ -5340,7 +5352,6 @@ async function confirmBulkSendItem(isAdding = true) {
         displayMessage("Lütfen geçerli bir Miktar/Adet girin.");
         return;
     }
-    // ★★★ DEĞİŞİKLİK BURADA: Eğer çarpan ise, "uses" değerini de kontrol ediyoruz. ★★★
     if (type === 'tempMultiplier' && (isNaN(uses) || uses <= 0)) {
         displayMessage("Lütfen geçerli bir Kullanım Hakkı girin.");
         return;
@@ -5387,7 +5398,6 @@ async function confirmBulkSendItem(isAdding = true) {
                     updates[`${userPath}/kariyerPuani`] = (user.kariyerPuani || 0) + value;
                 }
             } 
-            // ★★★ SORUNU ÇÖZEN DEĞİŞİKLİK BURADA ★★★
             else if (type === 'tempMultiplier') {
                 if (isAdding) {
                     updates[`${userPath}/activeMultiplier`] = value;
@@ -9384,10 +9394,7 @@ async function spinWheel() {
         return;
     }
 
-    // --- YENİ EKLENEN KİLİT KODU (1. DEĞİŞİKLİK) ---
-    // Yarış Durumunu (Race Condition) engellemek için çark dönerken oyunu kilitliyoruz.
     await db.ref('gameLock').set(true);
-    // ---------------------------------------------
 
     const userRef = db.ref('users/' + currentUser);
     const userSnap = await userRef.once('value');
@@ -9395,18 +9402,18 @@ async function spinWheel() {
 
     if (!userData || (userData.carkBileti || 0) < 1) {
         displayMessage("Çarkı çevirmek için yeterli biletiniz yok.");
-        await db.ref('gameLock').set(false); // Bilet yoksa kilidi aç.
+        await db.ref('gameLock').set(false);
         return;
     }
 
     const hasActiveMultiplier =
         (userData.multiplierSource === 'store' && (userData.multiplierRemainingUses || 0) > 0) ||
         (userData.multiplierSource === 'box');
-        
+
     if (hasActiveMultiplier) {
         const confirmSpin = await customConfirm("Aktif bir çarpanınız var. Çarktan yeni bir çarpan çıkarsa, mevcut çarpanınızın üzerine yazılır. Devam etmek istiyor musunuz?");
         if (!confirmSpin) {
-            await db.ref('gameLock').set(false); // Kullanıcı vazgeçerse kilidi aç.
+            await db.ref('gameLock').set(false);
             return;
         }
     }
@@ -9432,18 +9439,18 @@ async function spinWheel() {
     }
     if (winningIndex === -1) winningIndex = 0;
     const winningSegment = wheelSegments[winningIndex];
-    
+
     const totalSegments = wheelSegments.length;
     const degreesPerSegment = 360 / totalSegments;
     const winningAngle = (winningIndex * degreesPerSegment) + (degreesPerSegment / 2);
 
     const spinCycles = 5 + Math.floor(Math.random() * 3);
-    
+
     const finalRotation = (spinCycles * 360) - winningAngle + 80;
 
     wheel.style.transition = 'transform 5s cubic-bezier(0.25, 0.1, 0.25, 1)';
     wheel.style.transform = `rotate(${finalRotation}deg)`;
-    
+
     setTimeout(async () => {
         isWheelSpinning = false;
         spinBtn.disabled = false;
@@ -9455,14 +9462,14 @@ async function spinWheel() {
         if (!currentUserData) {
             console.error("Çark sonucu işlenirken kullanıcı verisi bulunamadı!");
             displayMessage("Bir hata oluştu, ödülünüz işlenemedi. Lütfen sayfayı yenileyin.");
-            await db.ref('gameLock').set(false); // Hata durumunda kilidi aç.
+            await db.ref('gameLock').set(false);
             return;
         }
 
         let message = '';
         let updates = {};
         let shouldLogActivity = true;
-        
+
         switch(winningSegment.type) {
             case 'points':
                 message = `Tebrikler, çarktan <b>+${winningSegment.value} Puan</b> kazandın!`;
@@ -9507,17 +9514,10 @@ async function spinWheel() {
                  message = "Vay canına! Çarktan Sürpriz Kutu çıktı! Şimdi bir kart seç.";
                  shouldLogActivity = false;
                  break;
+            // ★★★ DEĞİŞİKLİK BURADA: Joker Kart için dönüşüm kontrolü kaldırıldı ★★★
             case 'wildcard':
-                const userSnapForCheckWC = await userRef.once('value');
-                const userForCheckWC = userSnapForCheckWC.val();
-                if (userForCheckWC.completedCollection === true) {
-                    const boxRightsToGain = (winningSegment.value || 1) * 5;
-                    message = `Harika! Koleksiyonu zaten tamamladığın için kazandığın Joker Kart, hesabına <b class="text-green-400">+${boxRightsToGain} Kutu Hakkı</b> olarak eklendi!`;
-                    updates.kutuHakki = (currentUserData.kutuHakki || 0) + boxRightsToGain;
-                } else {
-                    message = `HARİKA! Çarktan en nadir ödül olan <b class="text-purple-400">+${winningSegment.value} JOKER KART</b> kazandın!`;
-                    updates.wildcards = (currentUserData.wildcards || 0) + winningSegment.value;
-                }
+                message = `HARİKA! Çarktan en nadir ödül olan <b class="text-purple-400">+${winningSegment.value} JOKER KART</b> kazandın!`;
+                updates.wildcards = (currentUserData.wildcards || 0) + winningSegment.value;
                 break;
             case 'card_pack':
             case 'card_pack_normal':
@@ -9533,14 +9533,9 @@ async function spinWheel() {
                     'card_pack_efsanevi': `+${packsToOpen} Efsanevi Kart Paketi`
                 };
                 const prizeText = packNames[winningSegment.type] || `+${packsToOpen} Kart Paketi`;
-                
+
                 message = `Tebrikler! Çarktan <b class="text-yellow-300">${prizeText}</b> kazandın!`;
-                
-                // --- DÜZELTME BURADA ---
-                // Oluşturduğumuz doğru ödül ismini, daha sonra loglama sisteminin kullanabilmesi için
-                // kazanan segment objesine manuel olarak ekliyoruz.
                 winningSegment.prizeName = prizeText;
-                // -------------------------
 
                 startCardPackOpening(packsToOpen, 'Şans Çarkı', 1, winningSegment.type);
                 break;
@@ -9575,21 +9570,20 @@ async function spinWheel() {
             result: winningSegment.prizeName || winningSegment.label,
             type: winningSegment.type,
             value: winningSegment.value !== undefined ? winningSegment.value : null,
-            // YENİ EKLENEN SATIR: Kullanım hakkını da log detaylarına ekliyoruz
             duration: winningSegment.duration !== undefined ? winningSegment.duration : null
         };
         if (winningSegment.type === 'points') {
             logDetails.newBalance = updates.balance;
         }
-        
+
         if (shouldLogActivity) {
             logActivity('spinWheel', currentUser, logDetails);
         }
-        
+
         if(Object.keys(updates).length > 0) await userRef.update(updates);
-        
+
         displayMessage(message);
-        
+
         const normalizedRotation = finalRotation % 360;
         wheel.style.transition = 'none';
         wheel.style.transform = `rotate(${normalizedRotation}deg)`;
@@ -11664,7 +11658,6 @@ async function selectAvatar(itemId, imageUrl) {
     closeAvatarSelectionModal();
 }
 
-// MEVCUT buyItem FONKSİYONUNU SİLİP BUNU YAPIŞTIR
 async function buyItem(itemId) {
     if (isAdmin) {
         displayMessage("Adminler alışveriş yapamaz.");
@@ -11677,7 +11670,7 @@ async function buyItem(itemId) {
     const item = itemSnap.val();
 
     if (!user || !item) return;
-    
+
     const isPotion = ['health_potion', 'damage_potion', 'defense_potion', 'crit_potion'].includes(item.type);
 
     if (isPotion) {
@@ -11703,11 +11696,11 @@ async function buyItem(itemId) {
             displayMessage("Geçersiz iksir türü, işlem iptal edildi.");
             return;
         }
-        
+
         const statRef = db.ref(`users/${currentUser}/avatarStats/${avatarId}/${statKey}`);
-        
+
         await statRef.transaction(currentValue => (currentValue || 0) + value);
-        
+
         await userRef.update({
             balance: user.balance - item.cost,
             totalSpentPoints: (user.totalSpentPoints || 0) + item.cost
@@ -11722,7 +11715,7 @@ async function buyItem(itemId) {
         displayMessage(`Başarılı! Avatarınızın '${statToUpdate}' özelliği kalıcı olarak +${value} arttı.`);
         return; 
     }
-    
+
     if ((user.balance || 0) < item.cost) {
         displayMessage("Yetersiz Puan!");
         return;
@@ -11770,7 +11763,7 @@ async function buyItem(itemId) {
         displayMessage(`'${item.name}' talebiniz admine iletildi. Onaylandığında hesabınıza eklenecek. Kasa'nızdan ${item.cost} KP düşüldü.`);
         return;
     }
-    
+
     if (item.type === 'tempMultiplier') {
         if (typeof item.value !== 'number' || typeof item.duration !== 'number') {
             displayMessage("Mağaza Hatası: Bu çarpan ürününde eksik bilgi var. Lütfen yönetici ile iletişime geçin.");
@@ -11812,7 +11805,7 @@ async function buyItem(itemId) {
     const confirmed = await customConfirm(`${item.name} ürününü ${item.cost} puana almak istiyor musunuz?`);
     if (confirmed) {
         const itemValue = parseInt(item.value) || 0;
-        
+
         if (item.type.startsWith('card_pack')) {
             await userRef.update({ balance: user.balance - item.cost, totalSpentPoints: (user.totalSpentPoints || 0) + item.cost });
             await itemRef.transaction(currentItem => { if (currentItem) { if (currentItem.stock !== undefined && currentItem.stock !== null) { currentItem.stock--; } currentItem.purchaseCount = (currentItem.purchaseCount || 0) + 1; } return currentItem; });
@@ -11839,8 +11832,8 @@ async function buyItem(itemId) {
             updates.multiplierRemainingUses = itemDuration;
             updates.activeStoreMultiplierItemId = itemId;
         } 
+        // ★★★ DEĞİŞİKLİK BURADA: Joker Kart için dönüşüm kontrolü kaldırıldı ★★★
         else if (item.type === 'wildcard') {
-            // JOKER KART İÇİN DÖNÜŞÜM KONTROLÜ KALDIRILDI
             updates.wildcards = (user.wildcards || 0) + itemValue;
             message = `Tebrikler! Mağazadan ${itemValue} adet Joker Kart satın aldın!`;
         } 
@@ -11849,7 +11842,7 @@ async function buyItem(itemId) {
             updates[`avatars/${itemId}`] = { id: itemId, name: item.name, imageUrl: item.imageUrl };
             message = `'${item.name}' avatarı koleksiyonuna eklendi!`;
         }
-        
+
         let itemUpdates = {};
         if (item.stock !== undefined && item.stock !== null) itemUpdates.stock = item.stock - 1;
         itemUpdates.purchaseCount = (item.purchaseCount || 0) + 1;
@@ -12900,7 +12893,6 @@ async function kasaTransferEt() {
     document.getElementById('kasaTransferInput').value = '';
 }
 
-// MEVCUT loadCollectionAlbum fonksiyonunu bununla DEĞİŞTİR
 async function loadCollectionAlbum() {
     const albumContainer = document.getElementById('cardCollectionAlbum');
     const statusOverlay = document.getElementById('collectionStatusOverlay');
@@ -12997,6 +12989,19 @@ async function loadCollectionAlbum() {
         if (userWildcards > 0 || isAdmin) {
             wildcardCountSpan.textContent = userWildcards;
             wildcardIndicator.classList.remove('hidden');
+            
+            // ★★★ SORUNU ÇÖZEN DEĞİŞİKLİK BURADA ★★★
+            const convertBtn = document.getElementById('convertWildcardBtn');
+            if (convertBtn) {
+                // Eğer kullanıcı koleksiyonu tamamladıysa VE en az 1 joker kartı varsa butonu göster
+                if (hasCompletedCollection && userWildcards > 0) {
+                    convertBtn.classList.remove('hidden');
+                } else {
+                    convertBtn.classList.add('hidden');
+                }
+            }
+            // ★★★ DEĞİŞİKLİK SONU ★★★
+
         } else {
             wildcardIndicator.classList.add('hidden');
         }
@@ -13034,18 +13039,14 @@ async function loadCollectionAlbum() {
                 <h4 class="card-name">${cardInfo.cardName}</h4>
             `;
 
-            // ★★★ İSTEĞİNE GÖRE GÜNCELLENEN AKILLI TIKLAMA MANTIĞI ★★★
-            // 1. Durum: Koleksiyonu tamamlamış VE bu karttan fazlası var -> DÖNÜŞTÜRME penceresini açar.
             if (hasCompletedCollection && userHasCard && userHasCard.count > 1) {
                 const rates = { normal: 1, gumus: 2, altin: 3, efsanevi: 5 };
                 const boxRightsToGain = rates[cardInfo.rarity] || 1;
                 cardItem.onclick = () => openCardConversionModal(cardId, cardInfo.cardName, cardInfo.rarity, boxRightsToGain);
             }
-            // 2. Durum: Koleksiyonu tamamlamamış VE bu karttan fazlası var -> TAKAS menüsünü açar.
             else if (!hasCompletedCollection && userHasCard && userHasCard.count > 1) {
                 cardItem.onclick = () => openTradeMenu(cardId, cardInfo.cardName);
             }
-            // 3. Durum: Diğer tüm hallerde kart tıklanamazdır.
             
             slot.appendChild(cardItem);
 
@@ -14193,8 +14194,6 @@ async function loadGrandPrizeDisplay() {
     displayContainer.classList.remove('hidden');
 }
 
-// checkAndGrantPrize FONKSİYONUNU BULUP BU BLOK İLE DEĞİŞTİRİN
-
 async function checkAndGrantPrize(username) {
     const userRef = db.ref(`users/${username}`);
     const userSnap = await userRef.once('value');
@@ -14242,14 +14241,12 @@ async function checkAndGrantPrize(username) {
                 imageUrl: prizeData.avatarImageUrl
             };
         }
-        
-        // YENİ EKLENEN KISIM BAŞLANGICI: Başarım sadece İLK KAZANANA verilir.
+
         if (isFirstWinner) {
             await userRef.child('collectionChampionshipsWon').transaction(currentCount => {
                 return (currentCount || 0) + 1;
             });
         }
-        // YENİ EKLENEN KISIM SONU
 
         await userRef.update(updates);
 
@@ -14259,7 +14256,7 @@ async function checkAndGrantPrize(username) {
         } else {
             prizeMessage += `TEBRİKLER! Tüm koleksiyonu tamamladın ve büyük ödülleri kazandın:`;
         }
-        
+
         let prizeParts = [];
         if (prizeData.points > 0) prizeParts.push(` ${formatNumber(prizeData.points)} Puan`);
         if (prizeData.boxRights > 0) prizeParts.push(` ${formatNumber(prizeData.boxRights)} Kutu Hakkı`);
@@ -14267,19 +14264,14 @@ async function checkAndGrantPrize(username) {
         if (prizeData.wheelTickets > 0) prizeParts.push(` ${formatNumber(prizeData.wheelTickets)} Çark Bileti`);
         if (prizeData.clickCatchTickets > 0) prizeParts.push(` ${formatNumber(prizeData.clickCatchTickets)} T-Y Bileti`);
         if (prizeData.avatarName) prizeParts.push(` '${prizeData.avatarName}' Avatarı`);
-        
-        prizeMessage += prizeParts.join(',');
 
-        if (prizeData.description) {
-            prizeMessage += ` ve "${prizeData.description}" unvanı!`;
-        } else {
-            prizeMessage += `!`;
-        }
-        
+        prizeMessage += prizeParts.join(',');
+        prizeMessage += `!`; // Özel hediye metnini kaldırdık.
+
         displayMessage(prizeMessage);
 
         logActivity('collectionCompleted', username, { 
-            prizeText: prizeData.description || 'Büyük Ödül',
+            prizeText: 'Büyük Ödül',
             isFirst: isFirstWinner 
         });
     }
@@ -16436,6 +16428,44 @@ function customAlert(message) {
             resolve(true); // "Tamam" butonuna basıldığında Promise'i çözerek beklemenin bitmesini sağlıyoruz.
         };
     });
+}
+
+// ★★★ YENİ EKLENECEK FONKSİYON ★★★
+async function convertWildcard() {
+    if (isAdmin) return;
+
+    const confirmed = await customConfirm("1 adet Joker Kart'ı 2.500 Puana dönüştürmek istediğinize emin misiniz? Bu işlem geri alınamaz!");
+    if (!confirmed) return;
+
+    const userRef = db.ref(`users/${currentUser}`);
+
+    try {
+        const { committed, snapshot } = await userRef.transaction(userData => {
+            if (userData && (userData.wildcards || 0) > 0) {
+                userData.wildcards--;
+                userData.balance = (userData.balance || 0) + 2500;
+                userData.kariyerPuani = (userData.kariyerPuani || 0) + 2500;
+                return userData;
+            }
+            return; // Koşul sağlanmıyorsa işlemi iptal et
+        });
+
+        if (committed) {
+            displayMessage("Başarılı! 1 Joker Kart, 2.500 Puana dönüştürüldü.");
+            logActivity('wildcardConvertedToPoints', currentUser, {
+                points: 2500,
+                newBalance: snapshot.val().balance
+            });
+            // Arayüzü anında güncelle
+            if (currentActiveSection === 'cardCollection') {
+                loadCollectionAlbum();
+            }
+        } else {
+            throw new Error("Dönüştürme işlemi başarısız oldu. Yeterli Joker Kartınız olmayabilir.");
+        }
+    } catch (error) {
+        displayMessage(error.message);
+    }
 }
       
 // ★★★ YENİ EKLENECEK FONKSİYONLAR SONU ★★★
