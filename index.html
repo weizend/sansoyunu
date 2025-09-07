@@ -4281,10 +4281,6 @@ async function afterLogin() {
     }
   }
 
-// ESKİ showSection FONKSİYONUNU SİL
-// ...eski fonksiyonu sil...
-
-// YENİ showSection FONKSİYONUNU YAPIŞTIR
 function showSection(sectionId) {
     if (currentActiveSection === 'cardCollection' && sectionId !== 'cardCollection') {
         newlyAcquiredCards.clear();
@@ -4302,7 +4298,6 @@ function showSection(sectionId) {
         }
     });
 
-    // ★★★ YENİ EKLENEN ADIM: Sekme değiştiğinde tüm admin kontrollerini gizle ★★★
     hideAllAdminControls();
 
     document.getElementById(`${sectionId}Content`)?.classList.remove('hidden');
@@ -4314,6 +4309,12 @@ function showSection(sectionId) {
         activeBtn.classList.remove('bg-gray-700', 'hover:bg-gray-600');
     }
 
+    // ★★★ SORUNU ÇÖZEN DEĞİŞİKLİK BURADA ★★★
+    if (sectionId === 'game' && isAdmin) {
+        document.getElementById('boxSettingsButton').classList.remove('hidden');
+    }
+    // ★★★ DEĞİŞİKLİK SONU ★★★
+
     if (sectionId === 'store') {
         loadStoreItems();
         if (isAdmin) {
@@ -4323,7 +4324,7 @@ function showSection(sectionId) {
             document.getElementById('storeIndicator').classList.add('hidden');
             db.ref(`users/${currentUser}/lastSeenStoreTimestamp`).set(latestStoreItemTimestamp);
         }
-        switchStoreTab('game'); 
+        switchStoreTab('game');
     } else if (sectionId === 'announcements') {
         loadAnnouncements();
         if (isAdmin) {
@@ -4334,10 +4335,10 @@ function showSection(sectionId) {
         }
     } else if (sectionId === 'clickCatch') {
         loadClickCatchRankings();
-        listenForLastGameSummary(); 
+        listenForLastGameSummary();
         if (isAdmin) {
             document.getElementById('clickCatchAdminButtonsContainer').classList.remove('hidden');
-            loadSoloGameSettings(); 
+            loadSoloGameSettings();
         }
     } else if (sectionId === 'chanceWheel') {
         loadWheelHistory();
@@ -5169,8 +5170,6 @@ function handleSendItemTypeChange(selectElement) {
     }
 }
 
-// MEVCUT confirmSendItem FONKSİYONUNU SİL VE BU YENİ VERSİYONU YAPIŞTIR
-
 async function confirmSendItem(isAdding = true) {
     if (!isAdmin || !targetUserForSend) return;
 
@@ -5240,12 +5239,9 @@ async function confirmSendItem(isAdding = true) {
             notificationMessage = `Yönetici, seçili avatarının '${statInfo.name}' özelliğine işlem yaptı ve ${value} iksir etkisi ${actionVerb}.`;
         
         } else if (type.startsWith('card_pack')) {
-            // ★★★ SORUNU ÇÖZEN DEĞİŞİKLİK BURADA ★★★
             if (!isAdding) throw new Error("Kart paketleri sadece gönderilebilir, silinemez.");
-            // Paketi direkt envantere eklemek yerine, kullanıcının "bekleyen eylemler" kuyruğuna yazıyoruz.
             await db.ref(`users/${targetUserForSend}/pendingActions/cardPacks`).push({ type: type, count: value });
             successMessage = `${targetUserForSend} kullanıcısına ${value} adet ${typeToName[type]} gönderildi ve açması için bildirim iletildi.`;
-            // Kullanıcıya ayrıca bir bildirim göndermeye gerek yok, çünkü paket açma ekranı zaten bir bildirim görevi görecek.
             notificationMessage = null; 
         
         } else if (type === 'avatar') {
@@ -5256,7 +5252,7 @@ async function confirmSendItem(isAdding = true) {
             notificationMessage = `Yönetici sana '${avatarName}' avatarını hediye etti! Envanterinden seçebilirsin.`;
         
         } else {
-            // Geri kalan tüm envanter eşyaları için transaction
+            // ★★★ SORUNU ÇÖZEN DEĞİŞİKLİK BURADA ★★★
             await userRef.transaction(userData => {
                 if (userData) {
                     const op = isAdding ? 1 : -1;
@@ -5279,6 +5275,18 @@ async function confirmSendItem(isAdding = true) {
                     } else if (dbKey) {
                         userData[dbKey] = Math.max(0, (userData[dbKey] || 0) + (value * op));
                         notificationMessage = `Yönetici envanterine ${value} adet ${typeToName[type]} ${actionVerb}.`;
+                    } else if (type === 'tempMultiplier') {
+                         if (isAdding) {
+                            userData.activeMultiplier = value;
+                            userData.multiplierRemainingUses = uses;
+                            userData.multiplierSource = 'store'; // Admin hediyeleri mağaza gibi davranır
+                            notificationMessage = `Yönetici sana ${uses} adet ${value}x Çarpan hediye etti.`;
+                        } else { // Çarpan silme işlemi
+                            userData.activeMultiplier = 1;
+                            userData.multiplierRemainingUses = 0;
+                            userData.multiplierSource = 'none';
+                            notificationMessage = `Yönetici aktif çarpanını sildi.`;
+                        }
                     }
                 }
                 return userData;
@@ -5286,7 +5294,6 @@ async function confirmSendItem(isAdding = true) {
             successMessage = `${targetUserForSend} kullanıcısının envanteri başarıyla güncellendi.`;
         }
 
-        // Başarılı olursa bildirim gönder (Kart paketi hariç)
         if (notificationMessage) {
             notifyUser(targetUserForSend, notificationMessage);
         }
@@ -5315,8 +5322,6 @@ function handleBulkSendItemTypeChange(selectElement) {
     }
 }
 
-// MEVCUT confirmBulkSendItem FONKSİYONUNU SİL VE BU YENİ VERSİYONU YAPIŞTIR
-
 async function confirmBulkSendItem(isAdding = true) {
     if (!isAdmin) return;
 
@@ -5325,16 +5330,26 @@ async function confirmBulkSendItem(isAdding = true) {
         displayMessage("Lütfen bir eşya tipi seçin.");
         return;
     }
-    
+
     const value = parseInt(document.getElementById('bulkSendItemValue').value);
+    // ★★★ DEĞİŞİKLİK BURADA: Çarpan için "uses" değerini de alıyoruz. ★★★
+    const usesInput = document.getElementById('bulkSendItemUses');
+    const uses = usesInput ? parseInt(usesInput.value) : 0;
+
     if (isNaN(value) || value <= 0) {
         displayMessage("Lütfen geçerli bir Miktar/Adet girin.");
         return;
     }
+    // ★★★ DEĞİŞİKLİK BURADA: Eğer çarpan ise, "uses" değerini de kontrol ediyoruz. ★★★
+    if (type === 'tempMultiplier' && (isNaN(uses) || uses <= 0)) {
+        displayMessage("Lütfen geçerli bir Kullanım Hakkı girin.");
+        return;
+    }
 
-    const itemText = `${value} ${typeToName[type]}`;
+    const itemText = (type === 'tempMultiplier') 
+        ? `${uses} adet ${value}x Çarpan`
+        : `${value} ${typeToName[type]}`;
     
-    // Cümle yapısını düzeltmek için yeni değişkenler
     const actionText = isAdding ? "eklenecek" : "silinecek";
     const targetText = isAdding ? "Tüm aktif kullanıcılara" : "Tüm aktif kullanıcılardan";
 
@@ -5371,9 +5386,21 @@ async function confirmBulkSendItem(isAdding = true) {
                 if (type === 'points' && isAdding) {
                     updates[`${userPath}/kariyerPuani`] = (user.kariyerPuani || 0) + value;
                 }
+            } 
+            // ★★★ SORUNU ÇÖZEN DEĞİŞİKLİK BURADA ★★★
+            else if (type === 'tempMultiplier') {
+                if (isAdding) {
+                    updates[`${userPath}/activeMultiplier`] = value;
+                    updates[`${userPath}/multiplierRemainingUses`] = uses;
+                    updates[`${userPath}/multiplierSource`] = 'store';
+                } else {
+                    updates[`${userPath}/activeMultiplier`] = 1;
+                    updates[`${userPath}/multiplierRemainingUses`] = 0;
+                    updates[`${userPath}/multiplierSource`] = 'none';
+                }
             }
             
-            const notificationMessage = `Yönetici, tüm kullanıcıların ${individualTargetText} ${value} adet ${typeToName[type]} ${individualVerb}.`;
+            const notificationMessage = `Yönetici, tüm kullanıcıların ${individualTargetText} ${itemText} ${individualVerb}.`;
             const notifKey = db.ref().push().key;
             updates[`${userPath}/notifications/${notifKey}`] = { message: notificationMessage, timestamp: firebase.database.ServerValue.TIMESTAMP };
         }
@@ -5381,11 +5408,9 @@ async function confirmBulkSendItem(isAdding = true) {
     
     await db.ref().update(updates);
     
-    // İsteğine göre güncellenmiş global bildirim mesajları
     const globalVerb = isAdding ? 'ekledi' : 'sildi';
     const globalNotificationMessage = `Yönetici, tüm kullanıcılara ${itemText} ${globalVerb}.`;
     
-    // Pop-up yerine sadece üstteki mavi bandı kullan
     displayGlobalNotification(globalNotificationMessage);
 }
 
@@ -11836,7 +11861,6 @@ async function buyItem(itemId) {
     }
 }
 
-// YENİ KODU YAPIŞTIR
 async function renderMonsterBattleUI() {
     const battleArenaContainer = document.getElementById('battleArenaContainer');
     if (!battleArenaContainer) return;
@@ -11957,18 +11981,23 @@ async function renderMonsterBattleUI() {
             playerHealthBar.classList.add('bg-gray-500');
             playerHealthBar.classList.remove('bg-green-500');
             attackBtn.classList.add('hidden');
-
-            if (playerRevivalStones > 0) {
-                reviveBtn.classList.remove('hidden');
-                reviveBtn.textContent = `💎 Dirilme Taşı Kullan (${playerRevivalStones})`;
-            } else {
-                reviveBtn.classList.add('hidden');
-            }
-        } else {
-            // ★★★ DEĞİŞİKLİK BURADA ★★★
-            // Oyuncu hayattayken "Dirilme Taşı" sayısını gösteriyoruz.
-            potionsContainer.innerHTML = `<p class="text-lg font-bold text-cyan-300">💎 Dirilme Taşı: ${playerRevivalStones}</p>`;
             
+            // ★★★ SORUNU ÇÖZEN DEĞİŞİKLİK BURADA ★★★
+            reviveBtn.classList.remove('hidden'); // Butonu her zaman göster
+            reviveBtn.textContent = `💎 Dirilme Taşı Kullan (${playerRevivalStones})`; // Yazıyı dinamik yap
+            if (playerRevivalStones > 0) {
+                reviveBtn.disabled = false; // Taş varsa tıklanabilir yap
+                reviveBtn.classList.add('bg-cyan-600', 'hover:bg-cyan-500');
+                reviveBtn.classList.remove('bg-gray-600', 'cursor-not-allowed');
+            } else {
+                reviveBtn.disabled = true; // Taş yoksa tıklanamaz yap
+                reviveBtn.classList.add('bg-gray-600', 'cursor-not-allowed');
+                reviveBtn.classList.remove('bg-cyan-600', 'hover:bg-cyan-500');
+            }
+            // ★★★ DEĞİŞİKLİK SONU ★★★
+
+        } else {
+            potionsContainer.innerHTML = `<p class="text-lg font-bold text-cyan-300">💎 Dirilme Taşı: ${playerRevivalStones}</p>`;
             playerHealthBar.classList.add('bg-green-500');
             playerHealthBar.classList.remove('bg-gray-500');
             attackBtn.classList.remove('hidden');
