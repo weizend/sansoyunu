@@ -5048,46 +5048,33 @@ function listenForAdminNotifications() {
       
 // MEVCUT listenForPendingActions FONKSİYONUNU SİL VE BU YENİ VERSİYONU YAPIŞTIR
 
+// MEVCUT listenForPendingActions FONKSİYONUNU SİL VE BU YENİ VERSİYONU YAPIŞTİR
+
 async function listenForPendingActions() {
     if (isAdmin) return;
 
     const ref = db.ref(`users/${currentUser}/pendingActions/cardPacks`);
     
+    // Fonksiyonu 'async' olarak güncelledik çünkü artık içinde 'await' kullanacağız.
     const callback = async (snapshot) => {
-        // Gelen görevin referansını alıyoruz.
-        const actionRef = snapshot.ref;
+        const action = snapshot.val(); 
         
-        // 1. Güvenli işlem (Transaction) başlatılıyor.
-        // Bu, birden fazla sekme olsa bile sadece BİR tanesinin bu işlemi tamamlayabilmesini garanti eder.
-        const { committed, snapshot: finalSnapshot } = await actionRef.transaction(currentAction => {
-            // Eğer başka bir sekme bu veriyi çoktan sildiyse (null ise), işlemi iptal et.
-            if (currentAction === null) {
-                return; // İşlem iptal edilir.
-            }
-            // Bu sekme yarışı kazandı. Veriyi silerek diğer sekmelerin almasını engelle.
-            return null; 
-        });
+        if (action && action.type && action.count > 0) {
+            // ÖNEMLİ: Görevi, tekrar tetiklenmemesi için en başta kuyruktan siliyoruz.
+            await snapshot.ref.remove();
 
-        // 2. Sadece yarışı kazanan sekme bu bloğun içine girebilir.
-        if (committed) {
-            const action = finalSnapshot.val(); // Silinmeden hemen önceki veriyi al
+            // Kullanıcıya gösterilecek mesajı oluşturuyoruz.
+            const packName = typeToName[action.type] || 'Kart Paketi';
+            const message = `Yönetici size <b>${action.count} adet ${packName}</b> hediye etti. Paketi açmak için tamama tıklayın.`;
             
-            // 3. İşte senin istediğin bildirim ekranı!
-            // Gelen verinin geçerli olup olmadığını kontrol et.
-            if (action && action.type && action.count > 0) {
-                const packName = typeToName[action.type] || 'Kart Paketi';
-                const message = `Yönetici size <b>${action.count} adet ${packName}</b> hediye etti. Paketi açmak için tamama tıklayın.`;
-                
-                // Kullanıcıya hediyesini bildiren ve onayını bekleyen o meşhur ekran.
-                await customAlert(message);
+            // Yeni customAlert fonksiyonumuzu çağırıyoruz ve kullanıcının "Tamam" butonuna basmasını BEKLİYORUZ.
+            await customAlert(message);
 
-                // 4. Kullanıcı "Tamam" butonuna bastıktan sonra paket açma ekranı başlar.
-                startCardPackOpening(action.count, 'Admin Hediyesi', 1, action.type);
-            }
+            // Kullanıcı butona bastıktan SONRA paket açma ekranını tetikliyoruz.
+            startCardPackOpening(action.count, 'Admin Hediyesi', 1, action.type);
         }
     };
 
-    // Dinleyiciyi tekrar tekrar eklememek için kontrol et ve kaydet
     if (activeListeners.pendingActions) {
         activeListeners.pendingActions.ref.off('child_added', activeListeners.pendingActions.callback);
     }
