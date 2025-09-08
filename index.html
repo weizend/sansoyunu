@@ -4118,6 +4118,7 @@ function listenForWeeklyCountdown() {
 }
 
 // YENİ KODU YAPIŞTIR
+// BU FONKSİYONU BUL VE TAMAMEN DEĞİŞTİR
 async function executeWeeklyReset() {
     console.log("Haftalık sıfırlama işlemi tetiklendi...");
     const seasonEndDateSnap = await db.ref('gameConfig/seasonEndDate').once('value');
@@ -4154,9 +4155,16 @@ async function executeWeeklyReset() {
     if (prize.type === 'tempMultiplier') {
         prizeAwardedText = `${prize.amount}x Çarpan (${prize.uses} kullanım)`;
     } else {
-        const prizeNames = { boxRights: "Kutu Hakkı", points: "Puan", wheelTicket: "Çark Bileti", iflasShield: "İflas Kalkanı", clickCatchTicket: "T-Y Bileti", wildcard: "Joker Kart" };
-        prizeAwardedText = `${prize.amount} ${prizeNames[prize.type] || prize.type}`;
+        const prizeName = typeToName[prize.type] || prize.type;
+        prizeAwardedText = `${prize.amount} ${prizeName}`;
     }
+
+    // YENİ AKTİVİTE KAYDI
+    logActivity('weeklyChampion', 'WeizendTv', {
+        winner: winner.username,
+        score: winner.score,
+        prize: prizeAwardedText
+    });
 
     await db.ref('gameStats/weeklyClickCatchWinner').set({
         winnerName: winner.username,
@@ -4184,7 +4192,7 @@ async function executeWeeklyReset() {
             } else if (prize.type === 'tempMultiplier') {
                 updates[`${userPath}/activeMultiplier`] = prize.amount;
                 updates[`${userPath}/multiplierRemainingUses`] = prize.uses;
-                updates[`${userPath}/multiplierSource`] = 'store'; // Mağaza gibi davransın
+                updates[`${userPath}/multiplierSource`] = 'store'; 
             } else {
                 const prizeKey = prize.type === 'iflasShield' ? 'iflasShieldUses' : prize.type;
                 updates[`${userPath}/${prizeKey}`] = (allUsers[username][prizeKey] || 0) + prize.amount;
@@ -6065,12 +6073,20 @@ function closeMultiplierChoiceModal() {
     pendingMultiplierChoice = null; 
 }
 
+// BU FONKSİYONU BUL VE TAMAMEN DEĞİŞTİR
 function getActivityIcon(type, details = {}) {
     let icon = '🔔';
     let bgColor = 'bg-gray-500';
 
     switch (type) {
-        // YENİ EKLENECEK CASE
+        case 'monsterDefeated': // YENİ
+            icon = '☠️';
+            bgColor = 'bg-red-900';
+            break;
+        case 'weeklyChampion': // YENİ
+            icon = '👑';
+            bgColor = 'bg-amber-500';
+            break;
         case 'wildcardConvertedToPoints':
             icon = '🃏';
             bgColor = 'bg-purple-600';
@@ -6192,6 +6208,7 @@ function getActivityIcon(type, details = {}) {
     `;
 }
 
+// BU FONKSİYONU BUL VE TAMAMEN DEĞİŞTİR
 function renderActivityFeed(activities) {
     const activityFeedList = document.getElementById('activityFeedList');
     activityFeedList.innerHTML = '';
@@ -6230,7 +6247,12 @@ function renderActivityFeed(activities) {
                 : '';
 
             switch (activity.type) {
-                // YENİ EKLENECEK CASE
+                case 'monsterDefeated': // YENİ
+                    message = `Canavar Savaşı bitti! <b class="text-red-300">${details.monsterName}</b> yok edildi. En yüksek hasarı veren <b class="text-yellow-300">${details.winner}</b>, <b class="text-green-300">${details.prize}</b> ile ödüllendirildi.`;
+                    break;
+                case 'weeklyChampion': // YENİ
+                    message = `Tıkla-Yakala haftası sona erdi! <b class="text-amber-300">${details.winner}</b>, <b class="text-white">${details.score} skorla</b> şampiyon oldu ve <b class="text-green-300">${details.prize}</b> kazandı. Tüm katılımcılara +1 bilet hediye edildi.`;
+                    break;
                 case 'wildcardConvertedToPoints':
                     message = `${userHtml}, 1 Joker Kart'ı <b class="text-green-300 font-bold">${details.points} Puana</b> dönüştürdü. <span class="text-gray-400">(Mevcut Puan: ${formatNumber(details.newBalance)})</span>`;
                     break;
@@ -8891,6 +8913,7 @@ async function claimDailyReward(rewardId) {
         if (reward.type === 'points') logDetails.newBalance = updates.balance;
         
         logActivity('dailyReward', currentUser, logDetails);
+        if (isPotion && currentActiveSection === 'monsterBattle') { renderMonsterBattleUI(); }
         
         await userRef.update(updates);
         await db.ref(`users/${currentUser}/dailyRewardsClaimed/${rewardId}`).set(firebase.database.ServerValue.TIMESTAMP);
@@ -11732,6 +11755,8 @@ async function buyItem(itemId) {
         // ====================================================================
 
         displayMessage(`Başarılı! Hesabınıza kalıcı olarak +${value} ${statToUpdate} bonusu eklendi.`);
+        if (currentActiveSection === 'monsterBattle') { renderMonsterBattleUI(); }
+
         return; 
     }
 
@@ -15589,6 +15614,8 @@ async function claimLoginStreakReward(day) {
                 day: day,
                 packageName: dayData.name || `${day}. Gün Paketi`
             });
+          const hasPotion = dayData.rewards.some(r => r.type.includes('_potion'));
+            if (hasPotion && currentActiveSection === 'monsterBattle') { renderMonsterBattleUI(); }
 
             for (const pack of cardPacksToOpen) {
                 await startCardPackOpening(pack.value || 1, `${day}. Gün Ödülü`, 1, pack.type);
@@ -16034,6 +16061,7 @@ function addRewardToTier(element, rewardData = {}) {
     rewardsListContainer.appendChild(rewardRow);
 }
 
+// BU FONKSİYONU BUL VE TAMAMEN DEĞİŞTİR
 async function attackMonster() {
     if (isAdmin) {
         displayMessage("Adminler saldıramaz.");
@@ -16083,7 +16111,6 @@ async function attackMonster() {
         const sanitizedPlayerAvatarId = sanitizeFirebaseKey(playerAvatarUrl);
         const playerBaseStats = avatarBaseStats[sanitizedPlayerAvatarId] || {};
         
-        // ★★★ DEĞİŞİKLİK BURADA: Artık avatara özel 'avatarStats' yerine, genel 'globalPotionBuffs' okunuyor. ★★★
         const globalBuffs = userData.globalPotionBuffs || {};
         const buffs = playerBattleData?.buffs || {};
         const now = getSyncedTime();
@@ -16104,12 +16131,12 @@ async function attackMonster() {
 
         const randomPlayerDamage = Math.floor(Math.random() * (playerStats.maxDamage - playerStats.minDamage + 1)) + playerStats.minDamage;
         const isPlayerCrit = Math.random() * 100 < playerStats.critChance;
-        const playerTotalDamage = Math.floor(randomPlayerDamage * (isPlayerCrit ? 1.5 : 1));
+        const playerTotalDamage = isPlayerCrit ? Math.floor(playerStats.maxDamage * 1.5) : randomPlayerDamage; // KRİTİK VURUŞ MANTIĞI DÜZELTİLDİ
         const finalDamageToMonster = Math.max(1, playerTotalDamage - monsterStats.defense);
 
         const randomMonsterDamage = Math.floor(Math.random() * (monsterStats.maxDamage - monsterStats.minDamage + 1)) + monsterStats.minDamage;
         const isMonsterCrit = Math.random() * 100 < (monsterStats.critChance || 5);
-        const monsterTotalDamage = Math.floor(randomMonsterDamage * (isMonsterCrit ? 1.5 : 1));
+        const monsterTotalDamage = isMonsterCrit ? Math.floor(monsterStats.maxDamage * 1.5) : randomMonsterDamage; // KRİTİK VURUŞ MANTIĞI DÜZELTİLDİ
         const finalDamageToPlayer = Math.max(1, monsterTotalDamage - playerStats.defense);
         
         let randomReward = null;
@@ -16205,6 +16232,15 @@ async function attackMonster() {
             const prize = finalBattleData.rewards?.onKillLeader;
 
             if (winner && prize) {
+                const prizeName = typeToName[prize.type] || prize.type;
+                const prizeText = `${prize.value} ${prizeName}`;
+                // YENİ AKTİVİTE KAYDI
+                logActivity('monsterDefeated', 'WeizendTv', { // "WeizendTv" sistem mesajı gibi görünmesini sağlar
+                    monsterName: finalBattleData.monsterDetails.name,
+                    winner: winner,
+                    prize: prizeText
+                });
+
                 const winnerRef = db.ref(`users/${winner}`);
                 await winnerRef.transaction(winnerData => {
                     if (winnerData) {
@@ -16213,6 +16249,12 @@ async function attackMonster() {
                          if (type === 'points') {
                             winnerData.balance = (winnerData.balance || 0) + value;
                             winnerData.kariyerPuani = (winnerData.kariyerPuani || 0) + value;
+                         } else if (type.startsWith('card_pack')) {
+                             // Ödül eğer kart paketi ise, oyuncunun beklemedeki görevlerine eklenir.
+                             const packKey = db.ref().push().key;
+                             if (!winnerData.pendingActions) winnerData.pendingActions = {};
+                             if (!winnerData.pendingActions.cardPacks) winnerData.pendingActions.cardPacks = {};
+                             winnerData.pendingActions.cardPacks[packKey] = { type: type, count: value };
                          } else if (dbKeyMap[type]) {
                              winnerData[dbKeyMap[type]] = (winnerData[dbKeyMap[type]] || 0) + value;
                          }
@@ -16237,7 +16279,6 @@ async function attackMonster() {
         }, 1000);
     }
 }
-
 // YENİ: Canavar Savaşı Bilgi Modal'ını açar ve kapatır
 function openMonsterBattleInfoModal() {
     document.getElementById('monsterBattleInfoModal').style.display = 'flex';
@@ -16476,6 +16517,53 @@ async function convertWildcard() {
         }
     } catch (error) {
         displayMessage(error.message);
+    }
+}
+
+      // YENİ FONKSİYON: Kullanıcı Sıfırlama
+async function resetUser(username) {
+    if (!isAdmin || !username) return;
+
+    const confirmed = await customConfirm(
+        `<b>${username}</b> adlı kullanıcıyı sıfırlamak istediğinize emin misiniz? Bu işlem, kullanıcının Avatarları, Kasa Puanları ve Kalıcı İksir Bonusları DIŞINDAKİ tüm verilerini (puanlar, envanter, istatistikler, sıralamalar, kartlar vb.) kalıcı olarak silecektir!`
+    );
+
+    if (!confirmed) return;
+
+    try {
+        const userRef = db.ref(`users/${username}`);
+        const userSnap = await userRef.once('value');
+        if (!userSnap.exists()) {
+            throw new Error("Kullanıcı bulunamadı.");
+        }
+        const userData = userSnap.val();
+
+        // KORUNACAK VERİLERİ YEDEKLE
+        const preservedData = {
+            kasaPuani: userData.kasaPuani || 0,
+            avatars: userData.avatars || null,
+            globalPotionBuffs: userData.globalPotionBuffs || null,
+            // Kullanıcının temel kimlik bilgilerini de koruyalım
+            password: userData.password,
+            pin: userData.pin,
+            approved: userData.approved,
+            registeredAt: userData.registeredAt || new Date().toLocaleString()
+        };
+
+        // KULLANICIYI SİLİP KORUNAN VERİLERLE YENİDEN OLUŞTUR
+        const updates = {};
+        updates[`/users/${username}`] = preservedData; // Önce tamamen sil
+        updates[`/clickCatchWeeklyScores/${username}`] = null;
+        updates[`/gameConfig/monsterBattle/damageLeaderboard/${username}`] = null;
+        
+        await db.ref().update(updates);
+        
+        displayMessage(`${username} başarıyla sıfırlandı. Kasa Puanı, avatarları ve iksir bonusları korundu.`);
+        closeUserManagementModal();
+        
+    } catch (error) {
+        console.error("Kullanıcı sıfırlanırken hata oluştu:", error);
+        displayMessage("Kullanıcı sıfırlanırken bir hata meydana geldi: " + error.message);
     }
 }
       
