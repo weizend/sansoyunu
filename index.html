@@ -6226,24 +6226,25 @@ function renderActivityFeed(activities) {
                 : '';
 
             switch (activity.type) {
-                // ... Diğer case'leriniz aynı kalacak ...
-
+                
+                // DEĞİŞTİRİLECEK OLAN KISIM BURASI
                 case 'clickCatchSolo':
                     if (details.score > 0) { message = `${userHtml}, Tıkla-Yakala oynadı ve <span class="text-green-300 font-bold">+${details.score} Skor</span> topladı.${weeklyScoreText}`; } 
                     else if (details.score < 0) { message = `${userHtml}, Tıkla-Yakala oynadı ve <span class="text-red-400 font-bold">${details.score} Skor</span> kaybetti.${weeklyScoreText}`; } 
                     else { message = `${userHtml}, Tıkla-Yakala oynadı ancak skor toplayamadı.${weeklyScoreText}`; }
                     
-                    // DEĞİŞİKLİK BURADA: Özel eşya metnini isteğine göre formatlıyoruz.
                     let specialItemsText = '';
+                    // Eğer specialItems dizisi doluysa, içindekileri yazdır.
                     if (details.specialItems && details.specialItems.length > 0) {
                         specialItemsText = ` - (Ayrıca, <b class="text-cyan-300">${details.specialItems.join(', ')}</b>) kazandı.`;
                     } else {
+                    // Eğer specialItems dizisi boşsa, "yakalanmadı" yazdır.
                         specialItemsText = ' - (Özel eşya yakalanmadı)';
                     }
                     message += specialItemsText;
                     break;
                 
-                // ... Diğer case'leriniz aynı kalacak ...
+                // ... Diğer case'leriniz aynı şekilde kalabilir ...
 
                 case 'monsterAttack':
                     let attackMessage = `${userHtml}, <b class="text-red-300">${details.monsterName}</b>'a saldırdı: `;
@@ -10708,14 +10709,14 @@ async function endSoloClickCatchGame() {
     document.getElementById('displaySpecials').classList.add('hidden');
     document.getElementById('displayTimer').classList.add('hidden');
 
+    // KAZANILAN TÜM ÖZEL EŞYALARI BU DİZİDE TOPLUYORUZ
     const specialItemsWonLog = [];
     if (collectedBoxRights > 0) specialItemsWonLog.push(`+${collectedBoxRights} Kutu Hakkı`);
     if (collectedIflasShields > 0) specialItemsWonLog.push(`+${collectedIflasShields} İflas Kalkanı`);
     if (collectedWheelTickets > 0) specialItemsWonLog.push(`+${collectedWheelTickets} Çark Bileti`);
-    
-    // Geçici olarak toplanan çarpanları burada tutalım
-    const tempCollectedMultipliers = [...collectedMultipliers];
-
+    if (collectedMultipliers.length > 0) {
+        collectedMultipliers.forEach(m => specialItemsWonLog.push(`${m.value}x Çarpan / ${m.uses} kullanım`));
+    }
     if (collectedCardPacks.length > 0) {
         const packNames = {
             'card_pack': 'Standart Kart Paketi', 'card_pack_normal': 'Bronz Kart Paketi',
@@ -10736,8 +10737,8 @@ async function endSoloClickCatchGame() {
         endMessage += `<br>Ayrıca, <b>${specialItemsWonLog.join(', ')}</b> kazandın!`;
     }
     
-    // Çarpan ödülü varsa, mesajı en son ekleyeceğiz.
-    if (tempCollectedMultipliers.length === 0 && collectedCardPacks.length === 0) {
+    // Sadece paket açma gibi özel bir durum yoksa mesajı hemen göster
+    if (collectedCardPacks.length === 0) {
         displayMessage(endMessage);
     }
 
@@ -10750,6 +10751,7 @@ async function endSoloClickCatchGame() {
     const newTotalWeeklyScore = currentWeeklyScore + Math.max(0, clickCatchScore);
     const user = userSnap.val();
 
+    // AKTİVİTE KAYDINI OLUŞTURURKEN `specialItemsWonLog` DİZİSİNİ GÖNDERİYORUZ
     logActivity('clickCatchSolo', currentUser, {
         score: clickCatchScore,
         specialItems: specialItemsWonLog,
@@ -10763,31 +10765,25 @@ async function endSoloClickCatchGame() {
     updates[`users/${currentUser}/iflasShieldUses`] = (user.iflasShieldUses || 0) + collectedIflasShields;
     updates[`users/${currentUser}/carkBileti`] = (user.carkBileti || 0) + collectedWheelTickets;
     
-    if(tempCollectedMultipliers.length > 0){
+    if(collectedMultipliers.length > 0){
         let currentUserMultiplier = user.activeMultiplier || 1;
         let currentUserUses = user.multiplierRemainingUses || 0;
         let currentUserSource = user.multiplierSource || 'none';
         const hasActiveMultiplier = currentUserSource !== 'none' && currentUserMultiplier > 1;
 
-        for (const newMultiplier of tempCollectedMultipliers) {
+        for (const newMultiplier of collectedMultipliers) {
             if (!hasActiveMultiplier) {
                 currentUserMultiplier = newMultiplier.value;
                 currentUserUses = newMultiplier.uses;
                 currentUserSource = 'store';
-                endMessage += `<br><b>+${newMultiplier.uses} adet ${newMultiplier.value}x Çarpan</b> kazandın!`;
             } else if (newMultiplier.value === currentUserMultiplier) {
-                const usesToAdd = newMultiplier.uses;
-                currentUserUses += usesToAdd;
-                
-                // DEĞİŞİKLİK 1: Aktivite kaydını doğru tip ve detaylarla oluşturuyoruz.
+                currentUserUses += newMultiplier.uses;
                 logActivity('dailyRewardMultiplierStacked', currentUser, {
-                    source: "Tıkla-Yakala'dan", // Kaynağı belirtiyoruz
+                    source: "Tıkla-Yakala'dan",
                     multiplierValue: newMultiplier.value,
-                    usesAdded: usesToAdd,
+                    usesAdded: newMultiplier.uses,
                     newTotalUses: currentUserUses
                 });
-                endMessage += `<br>Mevcut ${newMultiplier.value}x çarpanına <b>+${usesToAdd} kullanım hakkı</b> eklendi!`;
-
             } else if (newMultiplier.value > currentUserMultiplier) {
                 const kutuHakkiDonusum = currentUserUses || 0;
                 updates[`users/${currentUser}/kutuHakki`] = (updates[`users/${currentUser}/kutuHakki`] || user.kutuHakki) + kutuHakkiDonusum;
@@ -10799,7 +10795,6 @@ async function endSoloClickCatchGame() {
                 });
                 currentUserMultiplier = newMultiplier.value;
                 currentUserUses = newMultiplier.uses;
-                endMessage += `<br>Daha güçlü bir <b>${newMultiplier.value}x Çarpan</b> kazandın! Eski çarpanın <b>+${kutuHakkiDonusum} Kutu Hakkı</b>'na dönüştürüldü.`;
             } else {
                 const kutuHakkiDonusum = newMultiplier.uses || 0;
                 updates[`users/${currentUser}/kutuHakki`] = (updates[`users/${currentUser}/kutuHakki`] || user.kutuHakki) + kutuHakkiDonusum;
@@ -10809,16 +10804,11 @@ async function endSoloClickCatchGame() {
                     keptMultiplierValue: currentUserMultiplier,
                     source: "Tıkla-Yakala'dan"
                 });
-                endMessage += `<br>Daha zayıf olan <b>${newMultiplier.value}x Çarpan</b> ödülü <b>+${kutuHakkiDonusum} Kutu Hakkı</b>'na dönüştürüldü.`;
             }
         }
         updates[`users/${currentUser}/activeMultiplier`] = currentUserMultiplier;
         updates[`users/${currentUser}/multiplierRemainingUses`] = currentUserUses;
         updates[`users/${currentUser}/multiplierSource`] = currentUserSource;
-    }
-
-    if (tempCollectedMultipliers.length > 0) {
-        displayMessage(endMessage); // Çarpan mesajı varsa en son göster
     }
 
     await db.ref().update(updates);
