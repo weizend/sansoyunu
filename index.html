@@ -5705,10 +5705,7 @@ function handleRowTypeChange(selectElement) {
     }
 }
 
-// MEVCUT openBox FONKSİYONUNU SİL VE BU YENİ VERSİYONU YAPIŞTIR
-
 async function openBox(index) {
-    // --- SÜRPRİZ KUTU UYARI SİSTEMİ ---
     const lastSurpriseSnap = await db.ref('gameStats/lastSurpriseInfo').once('value');
     const lastSurpriseData = lastSurpriseSnap.val();
     if (lastSurpriseData && lastSurpriseData.resettled === false) {
@@ -5719,7 +5716,6 @@ async function openBox(index) {
             return;
         }
     }
-    // --- UYARI SİSTEMİ SONU ---
 
     if (isGameLocked) {
         displayMessage("Kutular 1 saniye arayla açılıyor. Lütfen tekrar deneyin. Sorun devam ediyorsa, 'Sorunları Çöz' menüsüne göz atabilirsiniz.");
@@ -5761,7 +5757,7 @@ async function openBox(index) {
     const boxRef = db.ref('boxes/' + index);
     const transactionResult = await boxRef.transaction(currentBoxData => {
         if (currentBoxData && currentBoxData.opened) {
-            return; 
+            return;
         }
         if (currentBoxData) {
             currentBoxData.opened = true;
@@ -5774,24 +5770,27 @@ async function openBox(index) {
         displayMessage(`Seçtiğiniz kutu <b>${transactionResult.snapshot.val().opener}</b> tarafından açıldı. Haklarınız ve çarpanınız kullanılmadı.`);
         return;
     }
-    
+
     await db.ref('gameLock').set(true);
     isGameLocked = true;
-    
+
     userSnap = await userRef.once('value');
     user = userSnap.val();
 
     const box = boxes[index];
     const updates = {};
     let message = '';
-    
+
     updates['kutuHakki'] = (user.kutuHakki || 0) - BOX_RIGHTS_COST_PER_BOX;
     updates['boxesOpenedCount'] = (user.boxesOpenedCount || 0) + 1;
     await db.ref(`gameStats/boxesOpenedByUsers/${currentUser}`).transaction(currentValue => (currentValue || 0) + 1);
-
+    
+    // ================== ÇARPAN DÜZELTMESİ BURADA ==================
     let finalMultiplier = 1;
-    const wasMultiplierUsed = useMultiplier || user.multiplierSource === 'box';
-    if (wasMultiplierUsed) {
+    const multiplierWasActive = useMultiplier || user.multiplierSource === 'box';
+
+    // Sadece kutu sürpriz değilse çarpanı kullan ve sıfırla
+    if (multiplierWasActive && box.content !== 'surpriz') {
         finalMultiplier = user.activeMultiplier;
         if (user.multiplierSource === 'box') {
             updates['activeMultiplier'] = 1;
@@ -5804,20 +5803,32 @@ async function openBox(index) {
                 updates['activeStoreMultiplierItemId'] = null;
             }
         }
+    } else if (multiplierWasActive && box.content === 'surpriz') {
+        // Eğer kutu sürprizse, çarpanı KULLANMA, sadece finalMultiplier'ı ata
+        // böylece session'a doğru değer yazılır ama kullanıcının çarpanı SIFIRLANMAZ.
+        finalMultiplier = user.activeMultiplier;
     }
+    // ================== DÜZELTME SONU ==================
 
     const boxUpdate = {
-        opened: true,
-        opener: currentUser,
-        id: box.id,
-        content: box.content,
-        value: box.value
+        opened: true, opener: currentUser, id: box.id,
+        content: box.content, value: box.value
     };
     if (finalMultiplier > 1) {
         boxUpdate.multiplierApplied = finalMultiplier;
     }
 
-    if (box.content === 'multiplier') {
+    if (box.content === 'surpriz') {
+        updates['surpriseBoxesOpened'] = (user.surpriseBoxesOpened || 0) + 1;
+        const openedInTurnSnap = await db.ref(`gameStats/boxesOpenedByUsers/${currentUser}`).once('value');
+        const openedBoxesThisRound = openedInTurnSnap.val() || 1;
+        const sessionRef = db.ref('surprise_box_session');
+        await sessionRef.set({ active: true, user: currentUser, boxId: box.id, multiplier: finalMultiplier, cards: shuffleArray([...cardValues]), selection: null, result: null, timestamp: firebase.database.ServerValue.TIMESTAMP, boxesOpenedThisRound: openedBoxesThisRound });
+        const snap = await sessionRef.once('value');
+        await sessionRef.update({ expirationTimestamp: snap.val().timestamp + 60000 });
+    }
+    // ... (Geri kalan kod aynı, değişiklik yapmana gerek yok) ...
+    else if (box.content === 'multiplier') {
         updates['multiplierFoundCount'] = (user.multiplierFoundCount || 0) + 1;
         const foundMultiplierValue = box.value;
         const existingMultiplierValue = user.activeMultiplier || 1;
@@ -5838,7 +5849,7 @@ async function openBox(index) {
             updates.activeMultiplier = combinedValue;
             updates.multiplierSource = 'box';
             updates.multiplierRemainingUses = 0;
-            const refundedBoxRights = wasMultiplierUsed ? existingMultiplierUses + 1 : existingMultiplierUses;
+            const refundedBoxRights = multiplierWasActive ? existingMultiplierUses + 1 : existingMultiplierUses;
             updates.kutuHakki += refundedBoxRights;
             
             message = `İNANILMAZ! Mevcut ${existingMultiplierValue}x çarpanın, bulduğun ${foundMultiplierValue}x ile birleşerek tek kullanımlık <b class="text-purple-400">${combinedValue}x</b> gücüne ulaştı! Eski çarpan hakların için <b class="text-green-400">+${refundedBoxRights} Kutu Hakkı</b> iade edildi!`;
@@ -5878,14 +5889,6 @@ async function openBox(index) {
             boxUpdate.lostPoints = lostPoints;
             logActivity('iflas', currentUser, { shieldUsed: false, lostPoints: lostPoints, boxId: box.id, multiplier: finalMultiplier, newBalance: 0 });
         }
-    } else if (box.content === 'surpriz') {
-        updates['surpriseBoxesOpened'] = (user.surpriseBoxesOpened || 0) + 1;
-        const openedInTurnSnap = await db.ref(`gameStats/boxesOpenedByUsers/${currentUser}`).once('value');
-        const openedBoxesThisRound = openedInTurnSnap.val() || 1;
-        const sessionRef = db.ref('surprise_box_session');
-        await sessionRef.set({ active: true, user: currentUser, boxId: box.id, multiplier: finalMultiplier, cards: shuffleArray([...cardValues]), selection: null, result: null, timestamp: firebase.database.ServerValue.TIMESTAMP, boxesOpenedThisRound: openedBoxesThisRound });
-        const snap = await sessionRef.once('value');
-        await sessionRef.update({ expirationTimestamp: snap.val().timestamp + 60000 });
     } else {
         const itemsGained = (box.value || 1) * finalMultiplier;
         const itemNames = { wheelTicket: 'Şans Çarkı Bileti', clickCatchTicket: 'Tıkla-Yakala Bileti', iflasShield: 'İflas Kalkanı', wildcard: 'Joker Kart', card_pack: 'Standart Kart Paketi', card_pack_normal: 'Bronz Kart Paketi', card_pack_gumus: 'Gümüş Kart Paketi', card_pack_altin: 'Altın Kart Paketi', card_pack_efsanevi: 'Efsanevi Kart Paketi' };
@@ -6842,9 +6845,6 @@ function revealMyCardChoice(sessionData) {
     });
 }
 
-
-// YENİ, GÜVENLİ VE DÜZELTİLMİŞ KOD
-// YENİ, GÜVENLİ VE DÜZELTİLMİŞ KOD
 async function selectCard(selectedCardDiv, userId) {
     // Anında koruma: Bir kart seçildiği anda diğer tüm kartların tıklanmasını engelle.
     const cardContainer = document.getElementById('playerCardContainer');
@@ -6876,11 +6876,11 @@ async function selectCard(selectedCardDiv, userId) {
 
     const updatedSessionData = transactionResult.snapshot.val();
     
-    // !!!!!!!!!!!!!  PUAN BUG'INI ÇÖZEN KRİTİK DÜZELTME BURADA  !!!!!!!!!!!!!
-    // Puan hesaplanırken artık sessionData.multiplier ile ÇARPILMIYOR. Sadece kartın kendi değeri alınıyor.
-    // Böylece çarpan ne olursa olsun, sürpriz kutu puanı sabit kalır.
-    let points = parseInt(selectedCardDiv.dataset.value);
-    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    // ================== İSTEDİĞİN ÇÖZÜM BURADA ==================
+    // Artık puanı hesaplarken Sürpriz Kutu oturumuna kaydettiğimiz çarpanı da hesaba katıyoruz.
+    // Eğer çarpan yoksa, varsayılan olarak 1 ile çarpıyoruz.
+    let points = parseInt(selectedCardDiv.dataset.value) * (updatedSessionData.multiplier || 1);
+    // ==========================================================
     
     const userRef = db.ref('users/' + userId);
 
@@ -6888,9 +6888,10 @@ async function selectCard(selectedCardDiv, userId) {
     await userRef.transaction(user => {
         if (user) {
             user.balance = (user.balance || 0) + points;
-            if (user.balance > (user.highestBalanceEver || 0)) {
-                user.highestBalanceEver = user.balance;
-            }
+            // Bu satır artık gerekli değil çünkü kariyer puanı her zaman güncelleniyor.
+            // if (user.balance > (user.highestBalanceEver || 0)) {
+            //     user.highestBalanceEver = user.balance;
+            // }
             user.kariyerPuani = (user.kariyerPuani || 0) + points;
         }
         return user;
@@ -6900,7 +6901,7 @@ async function selectCard(selectedCardDiv, userId) {
     const finalUserData = finalUserSnap.val();
     let newBalance = finalUserData.balance || 0;
  
-    // Sonucu Firebase'e yaz
+    // Sonucu (artık doğru olan çarpılmış puanı) Firebase'e yaz
     await sessionRef.child('result').set({ points: points, newBalance: newBalance });
 }
 
@@ -7305,7 +7306,6 @@ function renderStoreItems(items) {
         const seconds = parseInt(document.getElementById('storeItemCountdownSeconds').value) || 0;
         const totalMinutes = (days * 24 * 60) + (hours * 60) + minutes + Math.round(seconds / 60);
 
-        // Temel alanların kontrolü
         if (!name || !description || isNaN(cost) || !type) {
             displayMessage("Lütfen Ad, Açıklama, Maliyet ve Tip alanlarını doldurun.");
             return;
@@ -7318,32 +7318,33 @@ function renderStoreItems(items) {
             imageUrl: imageUrl || 'https://via.placeholder.com/150',
         };
 
-        // Her ürün tipi için Değer ve Süre kontrolünü ayrı ayrı ve daha güvenli yapıyoruz.
+        // ================== SORUNU ÇÖZEN DEĞİŞİKLİK BURADA ==================
         if (type === 'tempMultiplier') {
             const value = parseInt(document.getElementById('newItemValue').value);
             const multiplierDuration = parseInt(document.getElementById('newItemMultiplierDuration').value);
-
-            if (isNaN(value) || value <= 0) {
-                displayMessage("Çarpan için geçerli bir 'Değer' (2x, 3x gibi) girmelisiniz.");
-                return;
-            }
-            if (isNaN(multiplierDuration) || multiplierDuration <= 0) {
-                displayMessage("Çarpan için geçerli bir 'Kullanım Sayısı' girmelisiniz.");
-                return;
-            }
+            if (isNaN(value) || value <= 0) { throw new Error("Çarpan için geçerli bir 'Değer' (2x, 3x gibi) girmelisiniz."); }
+            if (isNaN(multiplierDuration) || multiplierDuration <= 0) { throw new Error("Çarpan için geçerli bir 'Kullanım Sayısı' girmelisiniz."); }
             itemData.value = value;
             itemData.duration = multiplierDuration;
         } else {
-            const typesThatNeedValue = ['boxRights', 'wheelTicket', 'clickCatchTicket', 'iflasShield'];
+            // "Değer/Adet" gerektiren TÜM ürün tiplerini bu listeye ekliyoruz
+            const typesThatNeedValue = [
+                'boxRights', 'wheelTicket', 'clickCatchTicket', 'iflasShield', 'wildcard', 
+                'card_pack', 'card_pack_normal', 'card_pack_gumus', 'card_pack_altin', 'card_pack_efsanevi',
+                'health_potion', 'revival_stone', 'defense_potion', 'damage_potion', 'crit_potion'
+            ];
+
             if (typesThatNeedValue.includes(type)) {
                 const value = parseInt(document.getElementById('newItemValue').value);
                 if (isNaN(value) || value <= 0) {
-                    displayMessage(`'${type}' tipi için geçerli bir 'Değer' girmelisiniz.`);
-                    return;
+                    // typeToName haritasını kullanarak kullanıcıya daha anlaşılır bir hata mesajı veriyoruz
+                    const friendlyName = typeToName[type] || type;
+                    throw new Error(`'${friendlyName}' tipi için geçerli bir 'Değer/Adet' girmelisiniz.`);
                 }
                 itemData.value = value;
             }
         }
+        // ================== DÜZELTME SONU ==================
 
         if (totalMinutes > 0) {
             itemData.countdownDurationMinutes = totalMinutes;
@@ -11667,34 +11668,34 @@ async function buyItem(itemId) {
     const item = itemSnap.val();
 
     if (!user || !item) return;
-
-    // ★★★ DEĞİŞİKLİK BURADA BAŞLIYOR ★★★
-    // Artık iksirler avatara değil, kullanıcıya genel bonus veriyor.
+    
+    // ================== SORUNU ÇÖZEN DEĞİŞİKLİK BURADA ==================
     const isPotion = ['health_potion', 'damage_potion', 'defense_potion', 'crit_potion'].includes(item.type);
 
     if (isPotion) {
-        // Avatar seçme zorunluluğunu kaldırıyoruz. Bonuslar artık globale işleniyor.
         if ((user.balance || 0) < item.cost) {
             displayMessage("Yetersiz Puan!");
             return;
         }
+        // "item.value"yu en başta ve güvenli bir şekilde alıyoruz
+        const value = parseInt(item.value) || 0;
+        if (value <= 0) {
+            displayMessage("Mağaza Hatası: Bu iksirin değeri 0 olarak ayarlanmış. Lütfen yöneticiye bildirin.");
+            return;
+        }
+
         const confirmed = await customConfirm(`'${item.name}' iksirini satın almak üzeresiniz. Bu, hesabınıza <b class="text-red-400">KALICI BİR BONUS</b> olarak eklenecek ve tüm avatarlarınıza etki edecektir. Onaylıyor musunuz?`);
         if (!confirmed) return;
 
         const statToUpdate = item.type.replace('_potion', ''); 
-        const value = parseInt(item.value) || 0;
-
         const statKeyMap = { 'health': 'hp', 'damage': 'damage', 'defense': 'defense', 'crit': 'critChance' };
         const statKey = statKeyMap[statToUpdate];
-
         if (!statKey) {
             displayMessage("Geçersiz iksir türü, işlem iptal edildi.");
             return;
         }
-
-        // Bonus artık avatara özel 'avatarStats' yerine, kullanıcıya özel 'globalPotionBuffs' altına yazılıyor.
+        
         const statRef = db.ref(`users/${currentUser}/globalPotionBuffs/${statKey}`);
-
         await statRef.transaction(currentValue => (currentValue || 0) + value);
 
         await userRef.update({
@@ -11707,11 +11708,12 @@ async function buyItem(itemId) {
                 currentItem.purchaseCount = (currentItem.purchaseCount || 0) + 1; 
             } return currentItem; 
         });
-
+        
+        // Başarı mesajında artık doğru "value" değerini gösteriyoruz
         displayMessage(`Başarılı! Hesabınıza kalıcı olarak +${value} ${statToUpdate} bonusu eklendi.`);
         return; 
     }
-    // ★★★ DEĞİŞİKLİK BURADA BİTİYOR ★★★
+    // ================== DÜZELTME SONU ==================
 
     if ((user.balance || 0) < item.cost) {
         displayMessage("Yetersiz Puan!");
