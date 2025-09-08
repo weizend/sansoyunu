@@ -11668,8 +11668,7 @@ async function buyItem(itemId) {
     const item = itemSnap.val();
 
     if (!user || !item) return;
-    
-    // ================== SORUNU ÇÖZEN DEĞİŞİKLİK BURADA ==================
+
     const isPotion = ['health_potion', 'damage_potion', 'defense_potion', 'crit_potion'].includes(item.type);
 
     if (isPotion) {
@@ -11677,7 +11676,6 @@ async function buyItem(itemId) {
             displayMessage("Yetersiz Puan!");
             return;
         }
-        // "item.value"yu en başta ve güvenli bir şekilde alıyoruz
         const value = parseInt(item.value) || 0;
         if (value <= 0) {
             displayMessage("Mağaza Hatası: Bu iksirin değeri 0 olarak ayarlanmış. Lütfen yöneticiye bildirin.");
@@ -11698,8 +11696,9 @@ async function buyItem(itemId) {
         const statRef = db.ref(`users/${currentUser}/globalPotionBuffs/${statKey}`);
         await statRef.transaction(currentValue => (currentValue || 0) + value);
 
+        const newBalance = user.balance - item.cost;
         await userRef.update({
-            balance: user.balance - item.cost,
+            balance: newBalance,
             totalSpentPoints: (user.totalSpentPoints || 0) + item.cost
         });
         await itemRef.transaction(currentItem => { 
@@ -11708,12 +11707,21 @@ async function buyItem(itemId) {
                 currentItem.purchaseCount = (currentItem.purchaseCount || 0) + 1; 
             } return currentItem; 
         });
-        
-        // Başarı mesajında artık doğru "value" değerini gösteriyoruz
+
+        // ================== EKSİK OLAN KISIM BURADA EKLENDİ ==================
+        logActivity('buyItem', currentUser, {
+            itemName: item.name,
+            itemCost: item.cost,
+            itemType: item.type,
+            itemValue: value,
+            itemDuration: null,
+            newBalance: newBalance
+        });
+        // ====================================================================
+
         displayMessage(`Başarılı! Hesabınıza kalıcı olarak +${value} ${statToUpdate} bonusu eklendi.`);
         return; 
     }
-    // ================== DÜZELTME SONU ==================
 
     if ((user.balance || 0) < item.cost) {
         displayMessage("Yetersiz Puan!");
