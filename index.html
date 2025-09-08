@@ -6065,13 +6065,17 @@ function closeMultiplierChoiceModal() {
     pendingMultiplierChoice = null; 
 }
 
-// MEVCUT getActivityIcon FONKSİYONUNU SİLİP BUNU YAPIŞTIR
 function getActivityIcon(type, details = {}) {
     let icon = '🔔';
     let bgColor = 'bg-gray-500';
 
     switch (type) {
-        case 'monsterAttack': // YENİ EKLENEN CASE
+        // YENİ EKLENECEK CASE
+        case 'wildcardConvertedToPoints':
+            icon = '🃏';
+            bgColor = 'bg-purple-600';
+            break;
+        case 'monsterAttack': 
             icon = details.playerDied ? '☠️' : '⚔️';
             bgColor = details.playerDied ? 'bg-black' : 'bg-orange-600';
             break;
@@ -6226,26 +6230,11 @@ function renderActivityFeed(activities) {
                 : '';
 
             switch (activity.type) {
-                
-                // DEĞİŞTİRİLECEK OLAN KISIM BURASI
-                case 'clickCatchSolo':
-                    if (details.score > 0) { message = `${userHtml}, Tıkla-Yakala oynadı ve <span class="text-green-300 font-bold">+${details.score} Skor</span> topladı.${weeklyScoreText}`; } 
-                    else if (details.score < 0) { message = `${userHtml}, Tıkla-Yakala oynadı ve <span class="text-red-400 font-bold">${details.score} Skor</span> kaybetti.${weeklyScoreText}`; } 
-                    else { message = `${userHtml}, Tıkla-Yakala oynadı ancak skor toplayamadı.${weeklyScoreText}`; }
-                    
-                    let specialItemsText = '';
-                    // Eğer specialItems dizisi doluysa, içindekileri yazdır.
-                    if (details.specialItems && details.specialItems.length > 0) {
-                        specialItemsText = ` - (Ayrıca, <b class="text-cyan-300">${details.specialItems.join(', ')}</b>) kazandı.`;
-                    } else {
-                    // Eğer specialItems dizisi boşsa, "yakalanmadı" yazdır.
-                        specialItemsText = ' - (Özel eşya yakalanmadı)';
-                    }
-                    message += specialItemsText;
+                // YENİ EKLENECEK CASE
+                case 'wildcardConvertedToPoints':
+                    message = `${userHtml}, 1 Joker Kart'ı <b class="text-green-300 font-bold">${details.points} Puana</b> dönüştürdü. <span class="text-gray-400">(Mevcut Puan: ${formatNumber(details.newBalance)})</span>`;
                     break;
                 
-                // ... Diğer case'leriniz aynı şekilde kalabilir ...
-
                 case 'monsterAttack':
                     let attackMessage = `${userHtml}, <b class="text-red-300">${details.monsterName}</b>'a saldırdı: `;
                     attackMessage += details.isPlayerCrit ? `💥 <b class="text-green-300">+${details.damageDealt} KRİTİK HASAR</b>` : `<b class="text-green-300">+${details.damageDealt} hasar</b>`;
@@ -6350,6 +6339,18 @@ function renderActivityFeed(activities) {
                         else { prizeText = `+${prizeValue} ${typeToName[prizeType] || prizeType}`; }
                         message = `${userHtml}, çarkı çevirerek <span class="text-pink-300 font-bold">${prizeText}</span> kazandı.${wheelBalanceText}`;
                     }
+                    break;
+                case 'clickCatchSolo':
+                    if (details.score > 0) { message = `${userHtml}, Tıkla-Yakala oynadı ve <span class="text-green-300 font-bold">+${details.score} Skor</span> topladı.${weeklyScoreText}`; } 
+                    else if (details.score < 0) { message = `${userHtml}, Tıkla-Yakala oynadı ve <span class="text-red-400 font-bold">${details.score} Skor</span> kaybetti.${weeklyScoreText}`; } 
+                    else { message = `${userHtml}, Tıkla-Yakala oynadı ancak skor toplayamadı.${weeklyScoreText}`; }
+                    let specialItemsText = '';
+                    if (details.specialItems && details.specialItems.length > 0) {
+                        specialItemsText = ` - (Ayrıca, <b class="text-cyan-300">${details.specialItems.join(', ')}</b>) kazandı.`;
+                    } else {
+                        specialItemsText = ' - (Özel eşya yakalanmadı)';
+                    }
+                    message += specialItemsText;
                     break;
                 case 'clickCatchLobby':
                     message = `${userHtml}, lobi oyununu kazanarak <span class="text-yellow-300 font-bold">+${details.prize} Puan</span> ödül aldı! <span class="text-gray-400">(Mevcut Puan: ${details.newBalance})</span>`;
