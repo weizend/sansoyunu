@@ -1353,14 +1353,21 @@ body.modal-open .modal-content {
         <div id="monsterAdminControls" class="hidden bg-gray-900/50 p-4 rounded-lg border border-purple-500 mb-6 text-left space-y-3">
     <h4 class="text-purple-300 text-xl font-bold text-center mb-2">Canavar Yönetim Paneli</h4>
     <input type="text" id="adminMonsterName" class="box-setting-input" placeholder="Canavar Adı">
+    <input type="text" id="adminMonsterImageUrl" class="box-setting-input" placeholder="Canavar Resim URL">
     <input type="number" id="adminMonsterMaxHP" class="box-setting-input" placeholder="Canavar Maksimum Can">
     <div class="grid grid-cols-2 gap-2">
         <input type="number" id="adminMonsterMinDamage" class="box-setting-input" placeholder="Min Hasar">
         <input type="number" id="adminMonsterMaxDamage" class="box-setting-input" placeholder="Max Hasar">
     </div>
     <input type="number" id="adminMonsterDefense" class="box-setting-input" placeholder="Canavar Savunması">
-    <input type="number" id="adminMonsterCritChance" class="box-setting-input" placeholder="Kritik Vuruş Şansı (%)">
-    <input type="text" id="adminMonsterImageUrl" class="box-setting-input" placeholder="Canavar Resim URL">
+    <div class="grid grid-cols-2 gap-2">
+        <input type="number" id="adminMonsterCritChance" class="box-setting-input" placeholder="Kritik Şansı (%)">
+        <input type="number" id="adminMonsterCritDamage" class="box-setting-input" placeholder="Kritik Hasar (%)">
+    </div>
+    <div class="grid grid-cols-2 gap-2">
+        <input type="number" id="adminMonsterDodgeChance" class="box-setting-input" placeholder="Sıyrılma Şansı (%)">
+        <input type="number" id="adminMonsterPierceChance" class="box-setting-input" placeholder="Delici Şansı (%)">
+    </div>
     <hr class="border-gray-600">
     <h5 class="text-yellow-300 font-bold">Ödüller</h5>
     <label class="block text-sm font-medium text-gray-300 mb-1">Canavar Ölünce Lidere Verilecek Ödül:</label>
@@ -1785,11 +1792,14 @@ body.modal-open .modal-content {
   <option value="card_pack_gumus">🥈 Gümüş Kart Paketi</option>
   <option value="card_pack_altin">🥇 Altın Kart Paketi</option>
   <option value="card_pack_efsanevi">🏆 Efsanevi Kart Paketi</option>
-  <option value="health_potion">🧪 Can İksiri</option>
   <option value="revival_stone">💎 Dirilme Taşı</option>
+  <option value="health_potion">🧪 Can İksiri</option>
   <option value="defense_potion">🛡️ Savunma İksiri</option>
   <option value="damage_potion">⚔️ Hasar İksiri</option>
-  <option value="crit_potion">💥 Kritik Vuruş İksiri</option>
+  <option value="crit_damage_potion">🎯 Kritik Hasar İksiri</option>
+  <option value="dodge_potion">💨 Sıyrılma Şansı İksiri</option>
+  <option value="pierce_potion">📌 Delici Şansı İksiri</option>
+  <option value="crit_potion">💥 Kritik Şansı İksiri</option>
   <option value="special">🚀 Özel Ürün (Onay Gerektirir)</option>
 </select>
             <input type="number" id="newItemValue" placeholder="Değer (Kutu Hakkı Adedi / Çarpan Değeri / Kalkan Sayısı)" class="w-full p-2 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
@@ -2163,27 +2173,30 @@ body.modal-open .modal-content {
       <div>
         <label for="sendItemType" class="block text-sm font-medium text-gray-300 mb-1">Gönderilecek Eşya/Ödül:</label>
         <select id="sendItemType" class="box-setting-input" onchange="handleSendItemTypeChange(this)">
-            <option value="">-- Tip Seçin --</option>
-            <option value="points">💰 Puan</option>
-            <option value="kasaPuani">🏦 Kasa Puanı</option>
-            <option value="boxRights">📦 Kutu Hakkı</option>
-            <option value="wheelTicket">🎫 Çark Bileti</option>
-            <option value="clickCatchTicket">🎟️ Tıkla-Yakala Bileti</option>
-            <option value="iflasShield">🛡️ İflas Kalkanı</option>
-            <option value="tempMultiplier">✖️ Çarpan</option>
-            <option value="avatar">👤 Avatar</option>
-            <option value="wildcard">🃏 Joker Kart</option>
-            <option value="card_pack">🎴 Standart Kart Paketi</option>
-            <option value="card_pack_normal">🥉 Bronz Kart Paketi</option>
-            <option value="card_pack_gumus">🥈 Gümüş Kart Paketi</option>
-            <option value="card_pack_altin">🥇 Altın Kart Paketi</option>
-            <option value="card_pack_efsanevi">🏆 Efsanevi Kart Paketi</option>
-            <option value="health_potion">🧪 Can İksiri</option>
-            <option value="revival_stone">💎 Dirilme Taşı</option>
-            <option value="defense_potion">🛡️ Savunma İksiri</option>
-            <option value="damage_potion">⚔️ Hasar İksiri</option>
-            <option value="crit_potion">💥 Kritik Vuruş İksiri</option>
-        </select>
+    <option value="">-- Tip Seçin --</option>
+    <option value="points">💰 Puan</option>
+    <option value="kasaPuani">🏦 Kasa Puanı</option>
+    <option value="boxRights">📦 Kutu Hakkı</option>
+    <option value="wheelTicket">🎫 Çark Bileti</option>
+    <option value="clickCatchTicket">🎟️ Tıkla-Yakala Bileti</option>
+    <option value="iflasShield">🛡️ İflas Kalkanı</option>
+    <option value="tempMultiplier">✖️ Çarpan</option>
+    <option value="avatar">👤 Avatar</option>
+    <option value="wildcard">🃏 Joker Kart</option>
+    <option value="card_pack">🎴 Standart Kart Paketi</option>
+    <option value="card_pack_normal">🥉 Bronz Kart Paketi</option>
+    <option value="card_pack_gumus">🥈 Gümüş Kart Paketi</option>
+    <option value="card_pack_altin">🥇 Altın Kart Paketi</option>
+    <option value="card_pack_efsanevi">🏆 Efsanevi Kart Paketi</option>
+    <option value="revival_stone">💎 Dirilme Taşı</option>
+    <option value="health_potion">🧪 Can İksiri</option>
+    <option value="damage_potion">⚔️ Hasar İksiri</option>
+    <option value="crit_damage_potion">🎯 Kritik Hasar İksiri</option>
+    <option value="defense_potion">🛡️ Savunma İksiri</option>
+    <option value="dodge_potion">💨 Sıyrılma Şansı İksiri</option>
+    <option value="pierce_potion">📌 Delici Şansı İksiri</option>
+    <option value="crit_potion">💥 Kritik Şansı İksiri</option>
+</select>
       </div>
       
       <div id="sendItemFieldsContainer" class="space-y-3">
@@ -2835,11 +2848,14 @@ body.modal-open .modal-content {
     <option value="card_pack_gumus">🥈 Gümüş Kart Paketi</option>
     <option value="card_pack_altin">🥇 Altın Kart Paketi</option>
     <option value="card_pack_efsanevi">🏆 Efsanevi Kart Paketi</option>
-    <option value="health_potion">🧪 Can İksiri</option>
     <option value="revival_stone">💎 Dirilme Taşı</option>
-    <option value="defense_potion">🛡️ Savunma İksiri</option>
+    <option value="health_potion">🧪 Can İksiri</option>
     <option value="damage_potion">⚔️ Hasar İksiri</option>
-    <option value="crit_potion">💥 Kritik Vuruş İksiri</option>
+    <option value="crit_damage_potion">🎯 Kritik Hasar İksiri</option>
+    <option value="defense_potion">🛡️ Savunma İksiri</option>
+    <option value="dodge_potion">💨 Sıyrılma Şansı İksiri</option>
+    <option value="pierce_potion">📌 Delici Şansı İksiri</option>
+    <option value="crit_potion">💥 Kritik Şansı İksiri</option>
 </select>
               
               <div id="dailyRewardAvatarFields" class="hidden space-y-2">
@@ -3342,22 +3358,33 @@ body.modal-open .modal-content {
         </div>
         
         <div>
-            <h4 class="font-bold text-lg text-yellow-300">🛡️ Savaş Mekanikleri</h4>
-            <p>Her oyuncunun gücü, seçili olan avatarının istatistiklerine bağlıdır. Avatarların Can, Hasar, Savunma ve Kritik Vuruş Şansı gibi özellikleri vardır. Canavara saldırdığında hem sen ona hasar verirsin hem de o sana hasar verir.</p>
-            <ul class="list-disc list-inside ml-4 mt-2">
-                <li><b>Avatar Kilidi:</b> Canavara ilk saldırını yaptığın anda, o an seçili olan avatarın bu savaş için kilitlenir. Canavar ölene veya etkinlik bitene kadar başka bir avatarla savaşa devam edemezsin. Stratejini iyi belirle!</li>
-                <li><b>Ölüm ve Dirilme:</b> Canın sıfıra düştüğünde ölürsün ve artık saldıramazsın. Ancak envanterinde "Dirilme Taşı" varsa, bunu kullanarak canını tamamen doldurabilir ve savaşa geri dönebilirsin.</li>
-            </ul>
-        </div>
+    <div>
+    <h4 class="font-bold text-lg text-yellow-300">🛡️ Savaş Mekanikleri</h4>
+    <p>Her oyuncunun gücü, seçili olan avatarının istatistiklerine bağlıdır. Avatarların Can, Hasar, Savunma ve diğer özellikleri vardır.</p>
+    <ul class="list-disc list-inside ml-4 mt-2 space-y-2">
+        <li><b class="text-white">Can:</b> Savaşta hayatta kalmanı sağlayan can puanındır. Sıfıra düştüğünde mağlup olursun.</li>
+        <li><b class="text-white">Hasar:</b> Rakibe verdiğin temel vuruş gücüdür. Genellikle minimum ve maksimum olarak bir aralıkta belirlenir.</li>
+        <li><b class="text-white">Savunma:</b> Rakibin saldırısından aldığın hasarı azaltır. Savunman ne kadar yüksekse o kadar az hasar alırsın.</li>
+        <li><b class="text-white">Kritik Hasar:</b> Kritik vuruşun ne kadar EKSTRA hasar vereceğini belirler. Örneğin, %50 Kritik Hasarın varsa, kritik vuruşların normalden %50 daha fazla vurur.</li>
+        <li><b class="text-white">Sıyrılma Şansı:</b> Rakibin saldırısından hiç hasar almadan kurtulma ihtimalin.</li>
+        <li><b class="text-white">Delici Vuruş Şansı:</b> Saldırırken rakibin "Sıyrılma Şansı"nı yok sayma ihtimalin. Eğer Delici Vuruşun başarılı olursa, rakip sıyrılamaz!</li>
+        <li><b class="text-white">Kritik Vuruş Şansı:</b> Normal hasar yerine çok daha güçlü bir kritik vuruş yapma ihtimalin.</li>
+        <li><b>Avatar Kilidi:</b> Canavara ilk saldırını yaptığın anda, o an seçili olan avatarın bu canavar ölene kadar kilitlenir. Canavar ölene veya etkinlik bitene kadar başka bir avatarla savaşa devam edemezsin. Stratejini iyi belirle!</li>
+        <li><b>Ölüm ve Dirilme:</b> Canın sıfıra düştüğünde ölürsün ve artık saldıramazsın. Ancak envanterinde "Dirilme Taşı" varsa, bunu kullanarak canını tamamen doldurabilir ve savaşa geri dönebilirsin.</li>
+    </ul>
+</div>
         
         <div>
             <h4 class="font-bold text-lg text-yellow-300">🧪 İksirler ve Kalıcı Güçlendirmeler</h4>
-            <p>Mağazadan veya diğer etkinliklerden kazandığın iksirler, bonus olarak avatalarlarını <b class="text-red-400">KALICI OLARAK</b> güçlendirir. Bu güçlendirmeler sadece sana özeldir ve sahip olduğun tüm avatarların temel istatistiklerini artırır.</p>
+            <p>Mağazadan veya diğer etkinliklerden kazandığın iksirler, hesabına <b class="text-red-400">KALICI OLARAK</b> bonuslar ekler. Bu güçlendirmeler tüm avatarlarının temel istatistiklerini artırır.</p>
              <ul class="list-disc list-inside ml-4 mt-2">
-                <li><b>Can İksiri:</b> Seçili avatarının maksimum canını kalıcı olarak artırır.</li>
-                <li><b>Hasar İksiri:</b> Seçili avatarının minimum ve maksimum hasarını kalıcı olarak artırır.</li>
-                <li><b>Savunma İksiri:</b> Seçili avatarının savunmasını kalıcı olarak artırır.</li>
-                <li><b>Kritik Vuruş İksiri:</b> Seçili avatarının kritik vuruş şansını kalıcı olarak artırır.</li>
+                <li><b>Can İksiri:</b> Maksimum canını kalıcı olarak artırır.</li>
+                <li><b>Hasar İksiri:</b> Minimum ve maksimum hasarını kalıcı olarak artırır.</li>
+                <li><b>Savunma İksiri:</b> Savunmanı kalıcı olarak artırır.</li>
+                <li><b>Kritik Hasar İksiri:</b> Kritik hasar yüzdeni kalıcı olarak artırır.</li>
+                <li><b>Sıyrılma Şansı İksiri:</b> Sıyrılma şansını kalıcı olarak artırır.</li>
+                <li><b>Delici Şansı İksiri:</b> Delici vuruş şansını kalıcı olarak artırır.</li>
+               <li><b>Kritik Şansı İksiri:</b> Kritik vuruş şansını kalıcı olarak artırır.</li>
             </ul>
         </div>
 
@@ -5232,19 +5259,20 @@ async function confirmSendItem(isAdding = true) {
     let notificationMessage = '';
 
     try {
-        // ★★★ DEĞİŞİKLİK BURADA BAŞLIYOR ★★★
         if (type.endsWith('_potion')) {
-            // Artık avatar seçme kontrolü yok. Bonuslar globale işleniyor.
+            // YENİ EKLENEN İKSİRLER BURADA TANIMLANDI
             const statKeyMap = { 
                 'health_potion': { key: 'hp', name: 'Can' }, 
                 'damage_potion': { key: 'damage', name: 'Hasar' }, 
                 'defense_potion': { key: 'defense', name: 'Savunma' }, 
-                'crit_potion': { key: 'critChance', name: 'Kritik Şans' }
+                'crit_potion': { key: 'critChance', name: 'Kritik Vuruş' },
+                'dodge_potion': { key: 'dodgeChance', name: 'Sıyrılma' },
+                'crit_damage_potion': { key: 'critDamage', name: 'Kritik Hasar' },
+                'pierce_potion': { key: 'pierceChance', name: 'Delici Vuruş' }
             };
             const statInfo = statKeyMap[type];
             if (!statInfo) throw new Error("Geçersiz iksir tipi.");
 
-            // Bonus artık avatara özel 'avatarStats' yerine, kullanıcıya özel 'globalPotionBuffs' altına yazılıyor.
             const statRef = userRef.child(`globalPotionBuffs/${statInfo.key}`);
             
             await statRef.transaction(currentValue => {
@@ -5256,7 +5284,6 @@ async function confirmSendItem(isAdding = true) {
             notificationMessage = `Yönetici, genel bonuslarına işlem yaptı ve ${value} iksir etkisi ${actionVerb}.`;
         
         } 
-        // ★★★ DEĞİŞİKLİK BURADA BİTİYOR ★★★
         else if (type.startsWith('card_pack')) {
             if (!isAdding) throw new Error("Kart paketleri sadece gönderilebilir, silinemez.");
             await db.ref(`users/${targetUserForSend}/pendingActions/cardPacks`).push({ type: type, count: value });
@@ -11524,12 +11551,15 @@ function loadWheelHistory() {
     card_pack_gumus: 'Gümüş Kart Paketi',
     card_pack_altin: 'Altın Kart Paketi',
     card_pack_efsanevi: 'Efsanevi Kart Paketi',
-    // --- YENİ EKLENEN İKSİR İSİMLERİ ---
     health_potion: 'Can İksiri',
     revival_stone: 'Dirilme Taşı',
     defense_potion: 'Savunma İksiri',
     damage_potion: 'Hasar İksiri',
-    crit_potion: 'Kritik Vuruş İksiri'
+    crit_potion: 'Kritik Vuruş İksiri',
+    // YENİ EKLENEN İKSİRLER
+    dodge_potion: 'Sıyrılma İksiri',
+    crit_damage_potion: 'Kritik Hasar İksiri',
+    pierce_potion: 'Delici Vuruş İksiri'
 };
 
         const typeToIcon = {
@@ -15088,12 +15118,15 @@ const typeToName = {
     card_pack_gumus: 'Gümüş Kart Paketi',
     card_pack_altin: 'Altın Kart Paketi',
     card_pack_efsanevi: 'Efsanevi Kart Paketi',
-    // --- YENİ EKLENEN İKSİR İSİMLERİ ---
     health_potion: 'Can İksiri',
     revival_stone: 'Dirilme Taşı',
     defense_potion: 'Savunma İksiri',
     damage_potion: 'Hasar İksiri',
-    crit_potion: 'Kritik Vuruş İksiri'
+    crit_potion: 'Kritik Vuruş İksiri',
+    // YENİ EKLENEN İKSİRLER
+    dodge_potion: 'Sıyrılma İksiri',
+    crit_damage_potion: 'Kritik Hasar İksiri',
+    pierce_potion: 'Delici Vuruş İksiri'
 };
       
 // Giriş Serisi penceresini kapatır (Zamanlayıcıları temizler)
@@ -15732,7 +15765,6 @@ async function openAvatarStatsModal(username) {
         const sanitizedId = sanitizeFirebaseKey(avatarUrl);
 
         const baseStats = avatarBaseStats[sanitizedId] || {};
-        // ★★★ DEĞİŞİKLİK BURADA: Artık avatara özel 'avatarStats' yerine, genel 'globalPotionBuffs' okunuyor. ★★★
         const globalBuffs = userData.globalPotionBuffs || {};
 
         const finalStats = {
@@ -15741,28 +15773,38 @@ async function openAvatarStatsModal(username) {
             maxDamage: (baseStats.maxDamage || 100) + (globalBuffs.damage || 0),
             defense: (baseStats.defense || 10) + (globalBuffs.defense || 0),
             critChance: (baseStats.critChance || 5) + (globalBuffs.critChance || 0),
+            critDamage: (baseStats.critDamage || 10) + (globalBuffs.critDamage || 0),
+            dodgeChance: (baseStats.dodgeChance || 5) + (globalBuffs.dodgeChance || 0),
+            pierceChance: (baseStats.pierceChance || 5) + (globalBuffs.pierceChance || 0),
         };
         
         let permanentStatsHtml = '';
-        if (globalBuffs && Object.keys(globalBuffs).length > 0 && (globalBuffs.hp || globalBuffs.damage || globalBuffs.defense || globalBuffs.critChance)) {
+        if (globalBuffs && Object.keys(globalBuffs).length > 0) {
             permanentStatsHtml += `<div class="mt-4 pt-3 border-t border-gray-600 text-sm">`;
             permanentStatsHtml += `<h5 class="font-bold text-teal-300 mb-1">Kalıcı İksir Bonusları:</h5>`;
             if(globalBuffs.hp) permanentStatsHtml += `<p>❤️ +${formatNumber(globalBuffs.hp)} Can</p>`;
             if(globalBuffs.damage) permanentStatsHtml += `<p>⚔️ +${formatNumber(globalBuffs.damage)} Hasar</p>`;
             if(globalBuffs.defense) permanentStatsHtml += `<p>🛡️ +${formatNumber(globalBuffs.defense)} Savunma</p>`;
-            if(globalBuffs.critChance) permanentStatsHtml += `<p>💥 +%${globalBuffs.critChance} Kritik Şans</p>`;
+            if(globalBuffs.critDamage) permanentStatsHtml += `<p>🎯 +%${globalBuffs.critDamage} Kritik Hasar</p>`;
+            if(globalBuffs.dodgeChance) permanentStatsHtml += `<p>💨 +%${globalBuffs.dodgeChance} Sıyrılma</p>`;
+            if(globalBuffs.pierceChance) permanentStatsHtml += `<p>📌 +%${globalBuffs.pierceChance} Delici Vuruş</p>`;
+            if(globalBuffs.critChance) permanentStatsHtml += `<p>💥 +%${globalBuffs.critChance} Kritik Vuruş</p>`;
             permanentStatsHtml += `</div>`;
         }
 
+        // DEĞİŞİKLİK BURADA: İsimlendirme ve sıralama güncellendi.
         contentEl.innerHTML = `
             <div class="flex flex-col items-center mb-4">
                 <img src="${userData.selectedAvatar.url}" alt="${userData.selectedAvatar.name || 'Avatar'}" class="w-24 h-24 rounded-full border-2 border-green-500 mb-2">
                 <span class="text-lg font-bold text-white">${userData.selectedAvatar.name || 'Seçili Avatar'}</span>
             </div>
-            <p>❤️ Toplam Can: <b class="text-white">${formatNumber(finalStats.hp)}</b></p>
-            <p>⚔️ Toplam Hasar: <b class="text-white">${formatNumber(finalStats.minDamage)} - ${formatNumber(finalStats.maxDamage)}</b></p>
-            <p>🛡️ Toplam Savunma: <b class="text-white">${formatNumber(finalStats.defense)}</b></p>
-            <p>💥 Toplam Kritik Şans: <b class="text-white">%${finalStats.critChance}</b></p>
+            <p>❤️ Can: <b class="text-white">${formatNumber(finalStats.hp)}</b></p>
+            <p>⚔️ Hasar: <b class="text-white">${formatNumber(finalStats.minDamage)} - ${formatNumber(finalStats.maxDamage)}</b></p>
+            <p>🛡️ Savunma: <b class="text-white">${formatNumber(finalStats.defense)}</b></p>
+            <p>🎯 Kritik Hasar: <b class="text-white">+%${finalStats.critDamage}</b></p>
+            <p>💨 Sıyrılma Şansı: <b class="text-white">%${finalStats.dodgeChance}</b></p>
+            <p>📌 Delici Vuruş Şansı: <b class="text-white">%${finalStats.pierceChance}</b></p>
+            <p>💥 Kritik Vuruş Şansı: <b class="text-white">%${finalStats.critChance}</b></p>
             ${permanentStatsHtml}
         `;
     };
@@ -15770,7 +15812,7 @@ async function openAvatarStatsModal(username) {
     userRef.on('value', userProfileCallback);
     activeProfileListener = { ref: userRef, callback: userProfileCallback };
 }
-
+      
 function closeAvatarStatsModal() {
     document.getElementById('avatarStatsModal').style.display = 'none';
 
@@ -15795,18 +15837,6 @@ function toggleAvatarAdminPanel() {
     panel.classList.toggle('hidden');
 }
 
-/**
- * NİHAİ VE DÜZELTİLMİŞ: Resim URL'si bazında duplikasyonları engelleyerek
- * sistemdeki TÜM benzersiz avatarları listeler.
- */
-/**
- * NİHAİ VE DÜZELTİLMİŞ: Resim URL'si bazında duplikasyonları engelleyerek
- * ve anahtarları temizleyerek sistemdeki TÜM benzersiz avatarları listeler.
- */
-/**
- * NİHAİ VE DÜZELTİLMİŞ: Resim URL'si bazında duplikasyonları engelleyerek
- * ve anahtarları temizleyerek sistemdeki TÜM benzersiz avatarları listeler.
- */
 async function loadAvatarStatsForAdmin() {
     const editorEl = document.getElementById('avatarStatEditor');
     editorEl.innerHTML = '<p class="text-gray-400">Tüm benzersiz avatarlar taranıyor...</p>';
@@ -15864,8 +15894,6 @@ async function loadAvatarStatsForAdmin() {
 
     editorEl.innerHTML = '';
     for (const avatar of allAvatars.values()) {
-        // ★★★ EN KRİTİK DEĞİŞİKLİK BURADA ★★★
-        // Artık ID olarak, resim URL'sinin temizlenmiş halini kullanıyoruz.
         const sanitizedId = sanitizeFirebaseKey(avatar.imageUrl);
         const currentStats = avatarBaseStats[sanitizedId] || {};
 
@@ -15875,56 +15903,25 @@ async function loadAvatarStatsForAdmin() {
                     <img src="${avatar.imageUrl}" class="w-12 h-12 rounded-md object-cover">
                     <h5 class="text-lg font-bold text-white">${avatar.name}</h5>
                 </div>
-                <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
                     <input type="number" class="box-setting-input stat-hp" placeholder="Can" value="${currentStats.hp || ''}">
                     <input type="number" class="box-setting-input stat-min-damage" placeholder="Min Hasar" value="${currentStats.minDamage || ''}">
                     <input type="number" class="box-setting-input stat-max-damage" placeholder="Max Hasar" value="${currentStats.maxDamage || ''}">
+                    <input type="number" class="box-setting-input stat-crit-damage" placeholder="Kritik Hasar (%)" value="${currentStats.critDamage || ''}">
                     <input type="number" class="box-setting-input stat-defense" placeholder="Savunma" value="${currentStats.defense || ''}">
-                    <input type="number" class="box-setting-input stat-crit" placeholder="Kritik (%)" value="${currentStats.critChance || ''}">
+                    <input type="number" class="box-setting-input stat-dodge" placeholder="Sıyrılma Şansı (%)" value="${currentStats.dodgeChance || ''}">
+                    <input type="number" class="box-setting-input stat-pierce" placeholder="Delici Şansı (%)" value="${currentStats.pierceChance || ''}">
+                    <input type="number" class="box-setting-input stat-crit" placeholder="Kritik Şansı (%)" value="${currentStats.critChance || ''}">
                 </div>
             </div>
         `;
         editorEl.innerHTML += avatarHtml;
     }
 }
+      
 /**
  * Adminin girdiği avatar istatistiklerini Firebase'e kaydeder.
  */
-async function saveAvatarStats() {
-    if (!isAdmin) return;
-    const editorEl = document.getElementById('avatarStatEditor');
-    const updates = {};
-    let hasError = false;
-
-    editorEl.querySelectorAll('[data-avatar-id]').forEach(avatarRow => {
-        const avatarId = avatarRow.dataset.avatarId;
-        const minDamage = parseInt(avatarRow.querySelector('.stat-min-damage').value) || 50;
-        const maxDamage = parseInt(avatarRow.querySelector('.stat-max-damage').value) || 100;
-
-        if (minDamage > maxDamage) {
-            displayMessage("Minimum hasar, maksimum hasardan büyük olamaz.");
-            hasError = true;
-            return;
-        }
-
-        const stats = {
-            hp: parseInt(avatarRow.querySelector('.stat-hp').value) || 1000,
-            minDamage: minDamage,
-            maxDamage: maxDamage,
-            defense: parseInt(avatarRow.querySelector('.stat-defense').value) || 10,
-            critChance: parseInt(avatarRow.querySelector('.stat-crit').value) || 5,
-        };
-        updates[avatarId] = stats;
-    });
-
-    if (hasError) return;
-
-    await db.ref('gameConfig/avatarBaseStats').set(updates);
-    displayMessage("Tüm avatarların istatistikleri başarıyla kaydedildi.");
-    toggleAvatarAdminPanel();
-}
-
-// BU YENİ VE DÜZELTİLMİŞ KODU KULLANIN
 async function saveAndSpawnMonster() {
     if (!isAdmin) return;
 
@@ -15943,11 +15940,13 @@ async function saveAndSpawnMonster() {
         maxDamage: maxDamage,
         defense: parseInt(document.getElementById('adminMonsterDefense').value) || 100,
         critChance: parseInt(document.getElementById('adminMonsterCritChance').value) || 5,
+        critDamage: parseInt(document.getElementById('adminMonsterCritDamage').value) || 10,
+        dodgeChance: parseInt(document.getElementById('adminMonsterDodgeChance').value) || 5,
+        pierceChance: parseInt(document.getElementById('adminMonsterPierceChance').value) || 5,
         imageUrl: document.getElementById('adminMonsterImageUrl').value.trim(),
     };
     monsterDetails.currentHP = monsterDetails.maxHP;
 
-    // Hatalı olan 'perAttack' satırı kaldırıldı.
     const rewards = {
         onKillLeader: {
             type: document.getElementById('adminMonsterKillRewardType').value,
@@ -15988,6 +15987,43 @@ async function saveAndSpawnMonster() {
 
     displayMessage("Canavar başarıyla çağrıldı ve savaş başladı!");
     toggleMonsterAdminPanel();
+}
+
+async function saveAvatarStats() {
+    if (!isAdmin) return;
+    const editorEl = document.getElementById('avatarStatEditor');
+    const updates = {};
+    let hasError = false;
+
+    editorEl.querySelectorAll('[data-avatar-id]').forEach(avatarRow => {
+        const avatarId = avatarRow.dataset.avatarId;
+        const minDamage = parseInt(avatarRow.querySelector('.stat-min-damage').value) || 50;
+        const maxDamage = parseInt(avatarRow.querySelector('.stat-max-damage').value) || 100;
+
+        if (minDamage > maxDamage) {
+            displayMessage("Minimum hasar, maksimum hasardan büyük olamaz.");
+            hasError = true;
+            return;
+        }
+
+        const stats = {
+            hp: parseInt(avatarRow.querySelector('.stat-hp').value) || 1000,
+            minDamage: minDamage,
+            maxDamage: maxDamage,
+            defense: parseInt(avatarRow.querySelector('.stat-defense').value) || 10,
+            critChance: parseInt(avatarRow.querySelector('.stat-crit').value) || 5,
+            critDamage: parseInt(avatarRow.querySelector('.stat-crit-damage').value) || 10,
+            dodgeChance: parseInt(avatarRow.querySelector('.stat-dodge').value) || 5,
+            pierceChance: parseInt(avatarRow.querySelector('.stat-pierce').value) || 5,
+        };
+        updates[avatarId] = stats;
+    });
+
+    if (hasError) return;
+
+    await db.ref('gameConfig/avatarBaseStats').set(updates);
+    displayMessage("Tüm avatarların istatistikleri başarıyla kaydedildi.");
+    toggleAvatarAdminPanel();
 }
 
 function updateHealthBar(currentHP, maxHP) {
@@ -16061,7 +16097,6 @@ function addRewardToTier(element, rewardData = {}) {
     rewardsListContainer.appendChild(rewardRow);
 }
 
-// BU FONKSİYONU BUL VE TAMAMEN DEĞİŞTİR
 async function attackMonster() {
     if (isAdmin) {
         displayMessage("Adminler saldıramaz.");
@@ -16112,32 +16147,48 @@ async function attackMonster() {
         const playerBaseStats = avatarBaseStats[sanitizedPlayerAvatarId] || {};
         
         const globalBuffs = userData.globalPotionBuffs || {};
-        const buffs = playerBattleData?.buffs || {};
-        const now = getSyncedTime();
-        let damageBuff = 0, defenseBuff = 0, critBuff = 0;
-
-        if (buffs.damage_potion && buffs.damage_potion.expiresAt > now) damageBuff = buffs.damage_potion.value;
-        if (buffs.defense_potion && buffs.defense_potion.expiresAt > now) defenseBuff = buffs.defense_potion.value;
-        if (buffs.crit_potion && buffs.crit_potion.expiresAt > now) critBuff = buffs.crit_potion.value;
 
         const playerStats = {
             hp: (playerBaseStats.hp || 1000) + (globalBuffs.hp || 0),
-            minDamage: (playerBaseStats.minDamage || 50) + (globalBuffs.damage || 0) + damageBuff,
-            maxDamage: (playerBaseStats.maxDamage || 100) + (globalBuffs.damage || 0) + damageBuff,
-            defense: (playerBaseStats.defense || 10) + (globalBuffs.defense || 0) + defenseBuff,
-            critChance: (playerBaseStats.critChance || 5) + (globalBuffs.critChance || 0) + critBuff,
+            minDamage: (playerBaseStats.minDamage || 50) + (globalBuffs.damage || 0),
+            maxDamage: (playerBaseStats.maxDamage || 100) + (globalBuffs.damage || 0),
+            defense: (playerBaseStats.defense || 10) + (globalBuffs.defense || 0),
+            critChance: (playerBaseStats.critChance || 5) + (globalBuffs.critChance || 0),
+            critDamage: (playerBaseStats.critDamage || 10) + (globalBuffs.critDamage || 0),
+            dodgeChance: (playerBaseStats.dodgeChance || 5) + (globalBuffs.dodgeChance || 0),
+            pierceChance: (playerBaseStats.pierceChance || 5) + (globalBuffs.pierceChance || 0),
         };
         const monsterStats = battleData.monsterDetails;
 
-        const randomPlayerDamage = Math.floor(Math.random() * (playerStats.maxDamage - playerStats.minDamage + 1)) + playerStats.minDamage;
-        const isPlayerCrit = Math.random() * 100 < playerStats.critChance;
-        const playerTotalDamage = isPlayerCrit ? Math.floor(playerStats.maxDamage * 1.5) : randomPlayerDamage; // KRİTİK VURUŞ MANTIĞI DÜZELTİLDİ
-        const finalDamageToMonster = Math.max(1, playerTotalDamage - monsterStats.defense);
+        // --- YENİ SAVAŞ HESAPLAMALARI ---
 
-        const randomMonsterDamage = Math.floor(Math.random() * (monsterStats.maxDamage - monsterStats.minDamage + 1)) + monsterStats.minDamage;
-        const isMonsterCrit = Math.random() * 100 < (monsterStats.critChance || 5);
-        const monsterTotalDamage = isMonsterCrit ? Math.floor(monsterStats.maxDamage * 1.5) : randomMonsterDamage; // KRİTİK VURUŞ MANTIĞI DÜZELTİLDİ
-        const finalDamageToPlayer = Math.max(1, monsterTotalDamage - playerStats.defense);
+        // Oyuncunun Canavara Saldırısı
+        const isPlayerPierce = Math.random() * 100 < playerStats.pierceChance;
+        const canMonsterDodge = !isPlayerPierce && (Math.random() * 100 < (monsterStats.dodgeChance || 5));
+        
+        let finalDamageToMonster = 0;
+        if (!canMonsterDodge) {
+            const randomPlayerDamage = Math.floor(Math.random() * (playerStats.maxDamage - playerStats.minDamage + 1)) + playerStats.minDamage;
+            const isPlayerCrit = Math.random() * 100 < playerStats.critChance;
+            const critBonus = isPlayerCrit ? Math.floor(playerStats.maxDamage * (playerStats.critDamage / 100)) : 0;
+            const playerTotalDamage = randomPlayerDamage + critBonus;
+            finalDamageToMonster = Math.max(1, playerTotalDamage - monsterStats.defense);
+        }
+
+        // Canavarın Oyuncuya Saldırısı
+        const isMonsterPierce = Math.random() * 100 < (monsterStats.pierceChance || 5);
+        const canPlayerDodge = !isMonsterPierce && (Math.random() * 100 < playerStats.dodgeChance);
+
+        let finalDamageToPlayer = 0;
+        if (!canPlayerDodge) {
+            const randomMonsterDamage = Math.floor(Math.random() * (monsterStats.maxDamage - monsterStats.minDamage + 1)) + monsterStats.minDamage;
+            const isMonsterCrit = Math.random() * 100 < (monsterStats.critChance || 5);
+            const critBonus = isMonsterCrit ? Math.floor(monsterStats.maxDamage * (monsterStats.critDamage / 100)) : 0;
+            const monsterTotalDamage = randomMonsterDamage + critBonus;
+            finalDamageToPlayer = Math.max(1, monsterTotalDamage - playerStats.defense);
+        }
+
+        // --- HESAPLAMALAR BİTTİ ---
         
         let randomReward = null;
         let rewardMessage = '';
@@ -16171,7 +16222,6 @@ async function attackMonster() {
                 currentBattleData.damageLeaderboard[currentUser] = { 
                     totalDamage: 0, 
                     currentHP: playerStats.hp, 
-                    buffs: {},
                     lockedAvatarUrl: playerAvatarUrl
                 };
             }
@@ -16181,12 +16231,6 @@ async function attackMonster() {
             
             finalPlayerHP = currentPlayerBattleData.currentHP;
             if (finalPlayerHP <= 0) playerDiedInAttack = true;
-
-            for(const buffType in (currentPlayerBattleData.buffs || {})) {
-                if(currentPlayerBattleData.buffs[buffType].expiresAt <= now) {
-                    delete currentPlayerBattleData.buffs[buffType];
-                }
-            }
             
             return currentBattleData;
         });
@@ -16220,9 +16264,12 @@ async function attackMonster() {
             rewardWon: rewardLogText,
             playerDied: playerDiedInAttack
         });
-
-        showFloatingText(isPlayerCrit ? `💥 KRİTİK! -${finalDamageToMonster}` : `-${finalDamageToMonster}`, document.getElementById('monsterImage').getBoundingClientRect().left + 100, document.getElementById('monsterImage').getBoundingClientRect().top + 100);
-        displayMessage(`Canavara <b>${finalDamageToMonster} hasar</b> verdin ve canavardan <b>${finalDamageToPlayer} hasar</b> aldın.${rewardMessage}`);
+        
+        // Saldırı bilgilendirme mesajını oluştur
+        let attackInfoMessage = `Canavara <b>${finalDamageToMonster} hasar</b> verdin ${canMonsterDodge ? '(Sıyrıldı!)' : ''} ve canavardan <b>${finalDamageToPlayer} hasar</b> aldın ${canPlayerDodge ? '(Sıyrıldın!)' : ''}.${rewardMessage}`;
+        
+        showFloatingText(canMonsterDodge ? 'SIYRILDI!' : `-${finalDamageToMonster}`, document.getElementById('monsterImage').getBoundingClientRect().left + 100, document.getElementById('monsterImage').getBoundingClientRect().top + 100);
+        displayMessage(attackInfoMessage);
         
         const finalBattleSnap = await battleRef.once('value');
         const finalBattleData = finalBattleSnap.val();
@@ -16234,8 +16281,7 @@ async function attackMonster() {
             if (winner && prize) {
                 const prizeName = typeToName[prize.type] || prize.type;
                 const prizeText = `${prize.value} ${prizeName}`;
-                // YENİ AKTİVİTE KAYDI
-                logActivity('monsterDefeated', 'WeizendTv', { // "WeizendTv" sistem mesajı gibi görünmesini sağlar
+                logActivity('monsterDefeated', 'WeizendTv', { 
                     monsterName: finalBattleData.monsterDetails.name,
                     winner: winner,
                     prize: prizeText
@@ -16250,7 +16296,6 @@ async function attackMonster() {
                             winnerData.balance = (winnerData.balance || 0) + value;
                             winnerData.kariyerPuani = (winnerData.kariyerPuani || 0) + value;
                          } else if (type.startsWith('card_pack')) {
-                             // Ödül eğer kart paketi ise, oyuncunun beklemedeki görevlerine eklenir.
                              const packKey = db.ref().push().key;
                              if (!winnerData.pendingActions) winnerData.pendingActions = {};
                              if (!winnerData.pendingActions.cardPacks) winnerData.pendingActions.cardPacks = {};
@@ -16279,6 +16324,7 @@ async function attackMonster() {
         }, 1000);
     }
 }
+      
 // YENİ: Canavar Savaşı Bilgi Modal'ını açar ve kapatır
 function openMonsterBattleInfoModal() {
     document.getElementById('monsterBattleInfoModal').style.display = 'flex';
@@ -16384,9 +16430,6 @@ async function deleteCurrentMonster() {
     }
 }
 
-/**
- * Canavar bilgi penceresini açar ve doldurur.
- */
 function openMonsterInfoModal() {
     const monster = monsterBattleData.monsterDetails;
     if (!monster) return;
@@ -16394,10 +16437,14 @@ function openMonsterInfoModal() {
     document.getElementById('modalMonsterName').textContent = monster.name;
     
     const statsEl = document.getElementById('modalMonsterStats');
+    // DEĞİŞİKLİK BURADA: İsimlendirme ve sıralama güncellendi.
     statsEl.innerHTML = `
-        <p>❤️ Maksimum Can: <b class="text-white">${formatNumber(monster.maxHP)}</b></p>
-        <p>⚔️ Hasar Aralığı: <b class="text-white">${formatNumber(monster.minDamage)} - ${formatNumber(monster.maxDamage)}</b></p>
+        <p>❤️ Can: <b class="text-white">${formatNumber(monster.maxHP)}</b></p>
+        <p>⚔️ Hasar: <b class="text-white">${formatNumber(monster.minDamage)} - ${formatNumber(monster.maxDamage)}</b></p>
         <p>🛡️ Savunma: <b class="text-white">${formatNumber(monster.defense)}</b></p>
+        <p>🎯 Kritik Hasar: <b class="text-white">+%${monster.critDamage || 10}</b></p>
+        <p>💨 Sıyrılma Şansı: <b class="text-white">%${monster.dodgeChance || 5}</b></p>
+        <p>📌 Delici Vuruş Şansı: <b class="text-white">%${monster.pierceChance || 5}</b></p>
         <p>💥 Kritik Vuruş Şansı: <b class="text-white">%${monster.critChance || 5}</b></p>
     `;
 
@@ -16424,7 +16471,6 @@ function openMonsterInfoModal() {
 
     document.getElementById('monsterInfoModal').style.display = 'flex';
 }
-
 /**
  * Canavar bilgi penceresini kapatır.
  */
