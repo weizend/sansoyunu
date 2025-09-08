@@ -6226,7 +6226,25 @@ function renderActivityFeed(activities) {
                 : '';
 
             switch (activity.type) {
-                // ... Diğer case'leriniz burada aynı kalacak ...
+                // ... Diğer case'leriniz aynı kalacak ...
+
+                case 'clickCatchSolo':
+                    if (details.score > 0) { message = `${userHtml}, Tıkla-Yakala oynadı ve <span class="text-green-300 font-bold">+${details.score} Skor</span> topladı.${weeklyScoreText}`; } 
+                    else if (details.score < 0) { message = `${userHtml}, Tıkla-Yakala oynadı ve <span class="text-red-400 font-bold">${details.score} Skor</span> kaybetti.${weeklyScoreText}`; } 
+                    else { message = `${userHtml}, Tıkla-Yakala oynadı ancak skor toplayamadı.${weeklyScoreText}`; }
+                    
+                    // DEĞİŞİKLİK BURADA: Özel eşya metnini isteğine göre formatlıyoruz.
+                    let specialItemsText = '';
+                    if (details.specialItems && details.specialItems.length > 0) {
+                        specialItemsText = ` - (Ayrıca, <b class="text-cyan-300">${details.specialItems.join(', ')}</b>) kazandı.`;
+                    } else {
+                        specialItemsText = ' - (Özel eşya yakalanmadı)';
+                    }
+                    message += specialItemsText;
+                    break;
+                
+                // ... Diğer case'leriniz aynı kalacak ...
+
                 case 'monsterAttack':
                     let attackMessage = `${userHtml}, <b class="text-red-300">${details.monsterName}</b>'a saldırdı: `;
                     attackMessage += details.isPlayerCrit ? `💥 <b class="text-green-300">+${details.damageDealt} KRİTİK HASAR</b>` : `<b class="text-green-300">+${details.damageDealt} hasar</b>`;
@@ -6258,21 +6276,13 @@ function renderActivityFeed(activities) {
                     let displayItemAmount = details.itemName ? details.itemName.split(' ')[0] : '+1'; 
                     message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-cyan-300 font-bold">${displayItemAmount} ${displayItemName}</span> buldu.${newItemMultiplierText}`;
                     break;
-                
-                // DEĞİŞİKLİK 2: Bu case'i güncelleyerek daha esnek hale getiriyoruz.
                 case 'dailyRewardMultiplierStacked':
-                    // Eğer `details.source` varsa onu kullan, yoksa varsayılan olarak "Günlük Ödül'den" yaz.
                     const sourceText = details.source || "Günlük Ödül'den";
                     message = `${userHtml}, ${sourceText} mevcut <b>${details.multiplierValue}x</b> çarpanıyla aynı değerde bir çarpan daha aldı. Kullanım hakkı <b class="text-teal-300 font-bold">+${details.usesAdded}</b> artırılarak toplam <b class="text-teal-300 font-bold">${details.newTotalUses}</b> oldu.`;
                     break;
-
-                // DEĞİŞİKLİK 3: Hatalı metin üreten 'multiplierStacked' case'ini kaldırıyoruz veya düzeltiyoruz.
-                // Artık Tıkla-Yakala için 'dailyRewardMultiplierStacked' tipini kullandığımızdan, bu case'i Tıkla-Yakala'yı
-                // destekleyecek şekilde güncelleyebiliriz. Ya da en temizi, sadece kutular için bırakmaktır.
                 case 'multiplierStacked':
                     message = `${userHtml}, <b>${details.boxId} numaralı kutudan</b> mevcut <b>${details.value}x</b> çarpanıyla aynı değerde bir çarpan daha buldu. Kullanım hakkı <b class="text-teal-300 font-bold">+1</b> artırıldı.`;
                     break;
-
                 case 'collectionCompleted':
                     message = details.isFirst ? `${userHtml}, koleksiyonu tamamlayan <b class="text-amber-400">İLK KİŞİ</b> oldu ve büyük ödülü kazandı!` : `${userHtml}, koleksiyonu tamamlayarak büyük ödülü kazandı!`;
                     break;
@@ -6285,7 +6295,6 @@ function renderActivityFeed(activities) {
                 case 'multiplierCombined':
                     message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <b>${details.foundValue}x çarpan</b> buldu. Mevcut çarpanıyla birleştirerek tek kullanımlık <b class="text-teal-300 font-bold">${details.combinedValue}x</b> gücüne ulaştı ve <span class="text-green-300 font-bold">+1 Kutu Hakkı</span> iade aldı.`;
                     break;
-                
                 case 'multiplierConvertedToBoxRights':
                 case 'multiplierConvertedOnUsedOpen':
                 case 'multiplierConvertedOnUnusedOpen':
@@ -6340,12 +6349,6 @@ function renderActivityFeed(activities) {
                         else { prizeText = `+${prizeValue} ${typeToName[prizeType] || prizeType}`; }
                         message = `${userHtml}, çarkı çevirerek <span class="text-pink-300 font-bold">${prizeText}</span> kazandı.${wheelBalanceText}`;
                     }
-                    break;
-                case 'clickCatchSolo':
-                    if (details.score > 0) { message = `${userHtml}, Tıkla-Yakala oynadı ve <span class="text-green-300 font-bold">+${details.score} Skor</span> topladı.${weeklyScoreText}`; } 
-                    else if (details.score < 0) { message = `${userHtml}, Tıkla-Yakala oynadı ve <span class="text-red-400 font-bold">${details.score} Skor</span> kaybetti.${weeklyScoreText}`; } 
-                    else { message = `${userHtml}, Tıkla-Yakala oynadı ancak skor toplayamadı.${weeklyScoreText}`; }
-                    if (details.specialItems && details.specialItems.length > 0) { message += ` Ayrıca, <span class="text-cyan-300 font-bold">${details.specialItems.join(', ')}</span> kazandı.`; }
                     break;
                 case 'clickCatchLobby':
                     message = `${userHtml}, lobi oyununu kazanarak <span class="text-yellow-300 font-bold">+${details.prize} Puan</span> ödül aldı! <span class="text-gray-400">(Mevcut Puan: ${details.newBalance})</span>`;
