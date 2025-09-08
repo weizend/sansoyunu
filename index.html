@@ -8132,24 +8132,30 @@ function listenForLastSurpriseFinderPanel() {
             boxesOpenedText = `<p class="text-sm text-gray-300">Bu tur toplam <b class="text-white">${data.boxesOpenedThisRound}</b> kutu açtı.</p>`;
         }
         
-        let multiplierText = '';
+        // --- YENİ GÖRÜNÜM İÇİN DÜZENLENEN KOD ---
+        let detailsText = '';
+        // Eğer çarpan kullanıldıysa
         if (data.multiplier && data.multiplier > 1) {
-            const basePoints = Math.round(data.points / data.multiplier);
-            multiplierText = `<p class="text-xs text-purple-400">(${basePoints} Puan x ${data.multiplier} Çarpan)</p>`;
-        } else {
-            multiplierText = `<p class="text-xs text-gray-400">(Çarpan kullanılmadı)</p>`;
+            const finalPoints = data.points * data.multiplier; // Nihai puanı hesapla
+            detailsText = `<p class="text-xs text-purple-400">(${formatNumber(finalPoints)} Puan / ${data.multiplier}x Çarpan Kullanıldı) - (Mevcut Puanı: ${formatNumber(data.newBalance)})</p>`;
+        } 
+        // Çarpan kullanılmadıysa
+        else {
+            detailsText = `<p class="text-xs text-gray-400">(Mevcut Puanı: ${formatNumber(data.newBalance)})</p>`;
         }
+        // --- DÜZENLEME SONU ---
 
         let messageHtml = `
             ${adminDeleteButton}
             <h4 class="text-amber-300 text-xl font-bold">🎉 SON SÜRPRİZ KUTUSU BULUNDU! 🎉</h4>
             <p><b class="text-white text-lg">${data.finder}</b>, ${data.boxId} numaralı kutudan Sürpriz Kutu buldu!</p>
             ${boxesOpenedText} 
-            <p>Kart seçiminden <b class="text-green-400">+${data.points} Puan</b> kazandı.</p>
-            ${multiplierText} 
+            // Ana metin karttan çıkan ham puanı gösteriyor
+            <p>Kart seçiminden <b class="text-green-400">+${formatNumber(data.points)} Puan</b> kazandı.</p>
+            // Alt metin yeni istediğiniz formatta gösteriliyor
+            ${detailsText} 
         `;
 
-        // Sıfırlanma durumunu kontrol et ve mesajı ona göre düzenle
         if (data.resettled === true && data.resettledBy) {
              messageHtml += `
                 <hr class="border-gray-600 my-2">
