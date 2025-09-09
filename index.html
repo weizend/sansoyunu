@@ -6332,23 +6332,43 @@ function renderActivityFeed(activities) {
                 : '';
 
             switch (activity.type) {
-                case 'monsterDefeated': // YENİ EKLENDİ
+                case 'monsterDefeated':
                     message = `Canavar Savaşı bitti! <b class="text-red-300">${details.monsterName}</b> yok edildi. En yüksek hasarı veren <b class="text-yellow-300">${details.winner}</b>, <b class="text-green-300">${details.prize}</b> ile ödüllendirildi.`;
                     break;
-                case 'monsterAttack': // YENİ EKLENDİ
-                    let attackMessage = `${userHtml}, <b class="text-red-300">${details.monsterName}</b>'a saldırdı: `;
-                    attackMessage += details.isPlayerCrit ? `💥 <b class="text-green-300">+${details.damageDealt} KRİTİK HASAR</b>` : `<b class="text-green-300">+${details.damageDealt} hasar</b>`;
-                    attackMessage += ` verdi, <b class="text-red-400">-${details.damageTaken} hasar</b> aldı.`;
+                case 'monsterAttack':
+                    let attackMessage = `${userHtml}, <b class="text-red-300">${details.monsterName}</b>'a saldırdı. `;
+                    
+                    // Oyuncunun vuruşunu açıkla
+                    if (details.playerAttackType === 'pierce') {
+                        attackMessage += `🛡️ <b class="text-purple-400">+${details.damageDealt} DELİCİ VURUŞ</b> yaptı. `;
+                    } else if (details.playerAttackType === 'crit') {
+                        attackMessage += `💥 <b class="text-green-300">+${details.damageDealt} KRİTİK HASAR</b> verdi. `;
+                    } else {
+                        attackMessage += `<b class="text-green-300">+${details.damageDealt} hasar</b> verdi. `;
+                    }
+
+                    // Canavarın vuruşunu açıkla
+                    if (details.didPlayerDodge) {
+                        attackMessage += `Canavarın saldırısından <b class="text-cyan-300">sıyrıldı!</b>`;
+                    } else {
+                        if (details.monsterAttackType === 'pierce') {
+                            attackMessage += `Canavardan 🛡️ <b class="text-red-500">-${details.damageTaken} DELİCİ VURUŞ</b> yedi.`;
+                        } else if (details.monsterAttackType === 'crit') {
+                            attackMessage += `Canavardan 💥 <b class="text-red-400">-${details.damageTaken} KRİTİK HASAR</b> aldı.`;
+                        } else {
+                            attackMessage += `Canavardan <b class="text-red-400">-${details.damageTaken} hasar</b> aldı.`;
+                        }
+                    }
+                    
                     if (details.rewardWon) {
-                        attackMessage += ` <b class="text-cyan-300">${details.rewardWon}</b> kazandı.`;
+                        attackMessage += ` Ek olarak <b class="text-yellow-300">${details.rewardWon}</b> kazandı.`;
                     }
                     if (details.playerDied) {
                         attackMessage += ` <b class="text-black bg-red-500 px-1 rounded">MAĞLUP OLDU!</b>`;
-                    } else {
-                        attackMessage += ` (Kalan Can: ${details.playerRemainingHP})`;
                     }
                     message = attackMessage;
                     break;
+                // ... diğer case'ler aynı kalacak ...
                 case 'weeklyChampion': 
                     message = `Tıkla-Yakala haftası sona erdi! <b class="text-amber-300">${details.winner}</b>, <b class="text-white">${details.score} skorla</b> şampiyon oldu ve <b class="text-green-300">${details.prize}</b> kazandı. Tüm katılımcılara +1 bilet hediye edildi.`;
                     break;
@@ -16268,9 +16288,7 @@ async function attackMonster() {
             const confirmed = await customConfirm(
                 `Canavara ilk saldırını yapıyorsun! Bu saldırıdan sonra, şu an seçili olan avatarın bu canavar ölene kadar kilitlenecek ve değiştirilemeyecek. Devam etmek istiyor musun?`
             );
-            if (!confirmed) {
-                return; 
-            }
+            if (!confirmed) return; 
         }
 
         if (playerBattleData && playerBattleData.currentHP <= 0) {
@@ -16283,7 +16301,6 @@ async function attackMonster() {
         const playerAvatarUrl = playerBattleData?.lockedAvatarUrl || userData.selectedAvatar?.url || defaultAvatarUrl;
         const sanitizedPlayerAvatarId = sanitizeFirebaseKey(playerAvatarUrl);
         const playerBaseStats = avatarBaseStats[sanitizedPlayerAvatarId] || {};
-        
         const globalBuffs = userData.globalPotionBuffs || {};
 
         const playerStats = {
@@ -16298,36 +16315,58 @@ async function attackMonster() {
         };
         const monsterStats = battleData.monsterDetails;
 
-        // --- SAVAŞ HESAPLAMALARI ---
+        // --- YENİ SAVAŞ HESAPLAMA MANTIĞI ---
+
+        // Oyuncunun Saldırısı
         let finalDamageToMonster = 0;
-        let isPlayerCrit = false; // DEĞİŞİKLİK: Kritik vuruş durumunu saklamak için
-
-        const isPlayerPierce = Math.random() * 100 < playerStats.pierceChance;
-        const canMonsterDodge = !isPlayerPierce && (Math.random() * 100 < (monsterStats.dodgeChance || 5));
+        let playerAttackType = 'normal';
+        const randomPlayerDamage = Math.floor(Math.random() * (playerStats.maxDamage - playerStats.minDamage + 1)) + playerStats.minDamage;
         
-        if (!canMonsterDodge) {
-            const randomPlayerDamage = Math.floor(Math.random() * (playerStats.maxDamage - playerStats.minDamage + 1)) + playerStats.minDamage;
-            isPlayerCrit = Math.random() * 100 < playerStats.critChance; // DEĞİŞİKLİK: Kritik vuruş burada belirleniyor
-            const critBonus = isPlayerCrit ? Math.floor(playerStats.maxDamage * (playerStats.critDamage / 100)) : 0;
-            const playerTotalDamage = randomPlayerDamage + critBonus;
-            finalDamageToMonster = Math.max(1, playerTotalDamage - monsterStats.defense);
+        const playerAttackRoll = Math.random() * 100;
+        if (playerAttackRoll < playerStats.pierceChance) {
+            playerAttackType = 'pierce';
+            finalDamageToMonster = randomPlayerDamage; // Savunma ve sıyrılma yok sayılır
+        } else if (playerAttackRoll < playerStats.pierceChance + playerStats.critChance) {
+            playerAttackType = 'crit';
+            const critBonus = Math.floor(playerStats.maxDamage * (playerStats.critDamage / 100));
+            const totalDamage = randomPlayerDamage + critBonus;
+            finalDamageToMonster = Math.max(1, totalDamage - monsterStats.defense);
+        } else {
+            playerAttackType = 'normal';
+            finalDamageToMonster = Math.max(1, randomPlayerDamage - monsterStats.defense);
         }
 
+        // Canavarın Saldırısı
         let finalDamageToPlayer = 0;
-        const isMonsterPierce = Math.random() * 100 < (monsterStats.pierceChance || 5);
-        const canPlayerDodge = !isMonsterPierce && (Math.random() * 100 < playerStats.dodgeChance);
+        let monsterAttackType = 'normal';
+        let didPlayerDodge = false;
+        const randomMonsterDamage = Math.floor(Math.random() * (monsterStats.maxDamage - monsterStats.minDamage + 1)) + monsterStats.minDamage;
 
-        if (!canPlayerDodge) {
-            const randomMonsterDamage = Math.floor(Math.random() * (monsterStats.maxDamage - monsterStats.minDamage + 1)) + monsterStats.minDamage;
-            const isMonsterCrit = Math.random() * 100 < (monsterStats.critChance || 5);
-            const critBonus = isMonsterCrit ? Math.floor(monsterStats.maxDamage * (monsterStats.critDamage / 100)) : 0;
-            const monsterTotalDamage = randomMonsterDamage + critBonus;
-            finalDamageToPlayer = Math.max(1, monsterTotalDamage - playerStats.defense);
+        const monsterAttackRoll = Math.random() * 100;
+        if (monsterAttackRoll < (monsterStats.pierceChance || 5)) {
+            monsterAttackType = 'pierce';
+            finalDamageToPlayer = randomMonsterDamage; // Oyuncunun savunması ve sıyrılması yok sayılır
+        } else {
+            // Sadece delici değilse sıyrılma şansı vardır
+            if (Math.random() * 100 < playerStats.dodgeChance) {
+                didPlayerDodge = true;
+                finalDamageToPlayer = 0;
+            } else {
+                if (monsterAttackRoll < (monsterStats.pierceChance || 5) + (monsterStats.critChance || 5)) {
+                    monsterAttackType = 'crit';
+                    const critBonus = Math.floor(monsterStats.maxDamage * ((monsterStats.critDamage || 10) / 100));
+                    const totalDamage = randomMonsterDamage + critBonus;
+                    finalDamageToPlayer = Math.max(1, totalDamage - playerStats.defense);
+                } else {
+                    monsterAttackType = 'normal';
+                    finalDamageToPlayer = Math.max(1, randomMonsterDamage - playerStats.defense);
+                }
+            }
         }
-
+        
+        // Ödül hesaplama kısmı aynı kalıyor
         let randomReward = null;
         let rewardMessage = '';
-        
         const damageTiers = (battleData.damageTiers || []).sort((a, b) => b.minDamage - a.minDamage);
         for (const tier of damageTiers) {
             if (finalDamageToMonster >= tier.minDamage) {
@@ -16349,24 +16388,16 @@ async function attackMonster() {
 
         await battleRef.transaction(currentBattleData => {
             if (!currentBattleData || !currentBattleData.monsterDetails || currentBattleData.monsterDetails.currentHP <= 0) return;
-
             currentBattleData.monsterDetails.currentHP = Math.max(0, currentBattleData.monsterDetails.currentHP - finalDamageToMonster);
-
             if (!currentBattleData.damageLeaderboard) currentBattleData.damageLeaderboard = {};
             if (!currentBattleData.damageLeaderboard[currentUser]) {
-                currentBattleData.damageLeaderboard[currentUser] = { 
-                    totalDamage: 0, 
-                    currentHP: playerStats.hp, 
-                    lockedAvatarUrl: playerAvatarUrl
-                };
+                currentBattleData.damageLeaderboard[currentUser] = { totalDamage: 0, currentHP: playerStats.hp, lockedAvatarUrl: playerAvatarUrl };
             }
             const currentPlayerBattleData = currentBattleData.damageLeaderboard[currentUser];
             currentPlayerBattleData.totalDamage += finalDamageToMonster;
             currentPlayerBattleData.currentHP = Math.max(0, currentPlayerBattleData.currentHP - finalDamageToPlayer);
-            
             finalPlayerHP = currentPlayerBattleData.currentHP;
             if (finalPlayerHP <= 0) playerDiedInAttack = true;
-            
             return currentBattleData;
         });
         
@@ -16377,7 +16408,6 @@ async function attackMonster() {
             const prizeName = typeToName[type] || 'Ödül';
             rewardMessage = ` Ek olarak <b class="text-green-400">+${value} ${prizeName}</b> kazandın!`;
             rewardLogText = `+${value} ${prizeName}`;
-
             const dbKeyMap = { points: 'balance', boxRights: 'kutuHakki', wheelTicket: 'carkBileti', clickCatchTicket: 'clickCatchTickets', iflasShield: 'iflasShieldUses', wildcard: 'wildcards' };
             if (type === 'points') {
                 updates[`/users/${currentUser}/balance`] = (userData.balance || 0) + value;
@@ -16390,41 +16420,34 @@ async function attackMonster() {
         }
         if (Object.keys(updates).length > 0) await db.ref().update(updates);
         
-        // YENİ: Saldırı logunu oluşturuyoruz
+        // GÜNCELLENMİŞ AKTİVİTE KAYDI
         logActivity('monsterAttack', currentUser, {
             monsterName: monsterStats.name,
             damageDealt: finalDamageToMonster,
             damageTaken: finalDamageToPlayer,
-            isPlayerCrit: isPlayerCrit,
+            playerAttackType: playerAttackType,
+            monsterAttackType: monsterAttackType,
+            didPlayerDodge: didPlayerDodge,
             playerRemainingHP: finalPlayerHP,
             rewardWon: rewardLogText,
             playerDied: playerDiedInAttack
         });
         
-        let attackInfoMessage = `Canavara <b>${finalDamageToMonster} hasar</b> verdin ${canMonsterDodge ? '(Sıyrıldı!)' : ''} ve canavardan <b>${finalDamageToPlayer} hasar</b> aldın ${canPlayerDodge ? '(Sıyrıldın!)' : ''}.${rewardMessage}`;
-        
-        showFloatingText(canMonsterDodge ? 'SIYRILDI!' : `-${finalDamageToMonster}`, document.getElementById('monsterImage').getBoundingClientRect().left + 100, document.getElementById('monsterImage').getBoundingClientRect().top + 100);
+        let attackInfoMessage = `Canavara <b>${finalDamageToMonster} hasar</b> verdin ve canavardan <b>${finalDamageToPlayer} hasar</b> aldın.${rewardMessage}`;
+        showFloatingText(`-${finalDamageToMonster}`, document.getElementById('monsterImage').getBoundingClientRect().left + 100, document.getElementById('monsterImage').getBoundingClientRect().top + 100);
         displayMessage(attackInfoMessage);
         
         const finalBattleSnap = await battleRef.once('value');
         const finalBattleData = finalBattleSnap.val();
 
-        // YENİ: Canavarın ölme durumunu kontrol edip kazananı ve ödülünü logluyoruz
         if (finalBattleData && finalBattleData.monsterDetails.currentHP <= 0) {
             const sortedLeaderboard = Object.entries(finalBattleData.damageLeaderboard || {}).sort((a,b) => b[1].totalDamage - a[1].totalDamage);
             const winner = sortedLeaderboard.length > 0 ? sortedLeaderboard[0][0] : null;
             const prize = finalBattleData.rewards?.onKillLeader;
-
             if (winner && prize) {
                 const prizeName = typeToName[prize.type] || prize.type;
                 const prizeText = `${prize.value} ${prizeName}`;
-                
-                logActivity('monsterDefeated', 'WeizendTv', { 
-                    monsterName: finalBattleData.monsterDetails.name,
-                    winner: winner,
-                    prize: prizeText
-                });
-
+                logActivity('monsterDefeated', 'WeizendTv', { monsterName: finalBattleData.monsterDetails.name, winner: winner, prize: prizeText });
                 const winnerRef = db.ref(`users/${winner}`);
                 await winnerRef.transaction(winnerData => {
                     if (winnerData) {
