@@ -1943,8 +1943,15 @@ body.modal-open .modal-content {
         <div id="bulkSendItemFieldsContainer" class="space-y-3">
             </div>
         <div class="mt-4 flex gap-4">
+    <div class="mt-4 flex flex-col sm:flex-row gap-4">
     <button onclick="confirmBulkSendItem(false)" class="flex-1 py-3 bg-red-800 hover:bg-red-700 text-white font-bold rounded-lg shadow-md">TÜM KULLANICILARDAN SİL</button>
     <button onclick="confirmBulkSendItem(true)" class="flex-1 py-3 bg-green-800 hover:bg-green-700 text-white font-bold rounded-lg shadow-md">TÜM KULLANICILARA GÖNDER</button>
+</div>
+
+<div class="mt-4 pt-4 border-t border-gray-600">
+    <button onclick="resetAllPotionBonuses()" class="w-full py-3 bg-pink-800 hover:bg-pink-700 text-white font-bold rounded-lg shadow-md">
+        🧪 Tüm Kullanıcıların İksir Bonuslarını Sıfırla
+    </button>
 </div>
     </div>
 </div>
@@ -2223,6 +2230,8 @@ body.modal-open .modal-content {
     <button id="toggleBlockUserBtn" class="py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg shadow-md">Engelle / Engeli Kaldır</button>
     <button onclick="resetUser(selectedUserForManagement)" class="py-3 bg-orange-600 hover:bg-orange-500 text-white font-bold rounded-lg shadow-md">Kullanıcıyı Sıfırla</button>
     <button onclick="denyUser(selectedUserForManagement, false, true)" class="py-3 bg-gray-600 hover:bg-gray-500 text-white font-bold rounded-lg shadow-md">Kullanıcıyı Sil</button>
+    
+    <button onclick="resetUserPotionBonuses(selectedUserForManagement)" class="py-3 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-lg shadow-md lg:col-span-3">🧪 İksir Bonuslarını Sıfırla</button>
 </div>
         <div class="bg-gray-900 p-6 rounded-lg border border-gray-700 mt-6">
             <h4 class="text-yellow-300 text-xl font-semibold mb-4">Avatar Yönetimi</h4>
@@ -7186,15 +7195,51 @@ function closeAdminStoreModal() {
     resetStoreItemForm();
 }
   
-  function loadStoreItems() {
-    const ref = storeItemsRef;
-    const callback = snap => {
-        const items = snap.val();
-        renderStoreItems(items);
+  // ESKİ loadStoreItems FONKSİYONUNU SİLİN VE BUNU EKLEYİN
+
+function loadStoreItems() {
+    // Önceki dinleyicileri temizle
+    if (activeListeners.storeItems) {
+        activeListeners.storeItems.ref.off('value', activeListeners.storeItems.callback);
+    }
+    if (activeListeners.userPotionCounts) {
+        activeListeners.userPotionCounts.ref.off('value', activeListeners.userPotionCounts.callback);
+    }
+
+    const itemsRef = db.ref('storeItems');
+    const userRef = db.ref(`users/${currentUser}`);
+
+    // Tüm verileri tek bir yerde tutmak için bir obje
+    let combinedData = {
+        items: null,
+        userData: null
     };
-    activeListeners.storeItems = { ref, event: 'value', callback };
-    ref.on('value', callback);
-  }
+
+    // Her iki veri de yüklendiğinde mağazayı yeniden çizen fonksiyon
+    const renderIfReady = () => {
+        if (combinedData.items !== null && combinedData.userData !== null) {
+            renderStoreItems(combinedData.items, combinedData.userData);
+        }
+    };
+    
+    // 1. Mağaza ürünlerini dinle
+    const itemsCallback = snap => {
+        combinedData.items = snap.val();
+        renderIfReady();
+    };
+    activeListeners.storeItems = { ref: itemsRef, event: 'value', callback: itemsCallback };
+    itemsRef.on('value', itemsCallback);
+
+    // 2. Kullanıcının iksir satın alma sayılarını dinle
+    const userCallback = snap => {
+        combinedData.userData = snap.val();
+        renderIfReady();
+    };
+    activeListeners.userPotionCounts = { ref: userRef, event: 'value', callback: userCallback };
+    userRef.on('value', userCallback);
+}
+
+
   
   function updateStoreCountdowns() {
       const now = Date.now();
@@ -7234,8 +7279,9 @@ function closeAdminStoreModal() {
       }
   }
 
-  // DEĞİŞTİRİLECEK FONKSİYON
-function renderStoreItems(items) { 
+  // ESKİ renderStoreItems FONKSİYONUNU SİL VE BUNU EKLEYİN
+
+async function renderStoreItems(items, userData = {}) { 
     const gameContainer = document.getElementById('gameStoreItemsContainer');
     const specialContainer = document.getElementById('specialStoreItemsContainer');
     gameContainer.innerHTML = '';
@@ -7251,7 +7297,6 @@ function renderStoreItems(items) {
         return;
     }
     
-    // Ürünleri önce kategoriye ayır, sonra sırala
     let allItemsArray = Object.entries(items);
     let gameItems = allItemsArray
         .filter(([, item]) => item.type !== 'special')
@@ -7277,12 +7322,23 @@ function renderStoreItems(items) {
       }
     }
 
+    const potionPurchaseCounts = userData.potionPurchaseCounts || {};
+
     const renderItem = (itemData, container) => {
-        const [itemId, item] = itemData; // itemID ve item objesini ayır
+        const [itemId, item] = itemData;
         const isSpecial = item.type === 'special';
         const list = isSpecial ? specialItems : gameItems;
-        const index = list.findIndex(([id]) => id === itemId); // Kendi listesindeki index'i bul
+        const index = list.findIndex(([id]) => id === itemId);
         const isBestSeller = isSpecial ? itemId === bestSellerSpecialItemId : itemId === bestSellerGameItemId;
+
+        // ★★★ YENİ KOD BAŞLANGICI: DİNAMİK FİYAT HESAPLAMA ★★★
+        const isPotion = ['health_potion', 'damage_potion', 'defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion'].includes(item.type);
+        let currentCost = item.cost;
+        if (isPotion && !isSpecial) { // İksirlerin fiyatı sadece normal mağazada artar
+            const purchaseCount = potionPurchaseCounts[itemId] || 0;
+            currentCost = item.cost + (purchaseCount * 1000);
+        }
+        // ★★★ YENİ KOD SONU ★★★
 
         const outOfStock = item.stock !== undefined && item.stock <= 0;
         let isExpired = false;
@@ -7326,6 +7382,9 @@ function renderStoreItems(items) {
         const popularityHtml = `<p class="text-blue-300 text-sm mb-2">🔥 ${item.purchaseCount || 0} kez satın alındı</p>`;
         const bestSellerBadge = isBestSeller ? `<span class="best-seller-badge absolute top-2 left-2 bg-yellow-500 text-gray-900 text-xs font-bold px-2 py-1 rounded-full z-10">ÇOK SATAN</span>` : '';
         const cardClass = isBestSeller ? 'glowing-border' : 'border-red-700';
+        
+        // ★★★ FİYAT GÖSTERİMİ GÜNCELLENDİ ★★★
+        const priceText = isSpecial ? `${currentCost} Kasa Puanı` : `${currentCost} Puan`;
 
         const cardDiv = document.createElement('div');
         cardDiv.className = `relative bg-gray-800 p-6 rounded-xl shadow-lg border-2 ${cardClass} text-center flex flex-col justify-between`;
@@ -7341,7 +7400,7 @@ function renderStoreItems(items) {
               ${countdownHtml}
               ${popularityHtml}
               <p class="text-gray-400 text-sm mb-2">Stok: ${item.stock !== undefined && item.stock !== null ? item.stock : 'Sınırsız'}</p>
-              <p class="text-green-400 text-2xl font-bold mb-4">${item.cost} Puan</p>
+              <p class="text-green-400 text-2xl font-bold mb-4" id="price-${itemId}">${priceText}</p>
               <button id="buy-btn-${itemId}" onclick="buyItem('${itemId}')" ${disabled ? 'disabled' : ''} class="w-full py-3 mt-auto ${disabled ? 'bg-gray-600 cursor-not-allowed' : 'bg-red-700 hover:bg-red-600'} text-white font-bold rounded-lg transition duration-300">
                 ${isExpired ? 'Süre Doldu' : (outOfStock ? 'Stok Tükendi' : 'Satın Al')}
               </button>
@@ -7397,7 +7456,9 @@ function renderStoreItems(items) {
       }
   });
 
-  async function saveStoreItem() {
+  // ESKİ saveStoreItem FONKSİYONUNU SİLİN VE BUNU EKLEYİN
+
+async function saveStoreItem() {
     if (!isAdmin) return;
 
     try {
@@ -7426,7 +7487,6 @@ function renderStoreItems(items) {
             imageUrl: imageUrl || 'https://via.placeholder.com/150',
         };
 
-        // ================== SORUNU ÇÖZEN DEĞİŞİKLİK BURADA ==================
         if (type === 'tempMultiplier') {
             const value = parseInt(document.getElementById('newItemValue').value);
             const multiplierDuration = parseInt(document.getElementById('newItemMultiplierDuration').value);
@@ -7435,24 +7495,25 @@ function renderStoreItems(items) {
             itemData.value = value;
             itemData.duration = multiplierDuration;
         } else {
-            // "Değer/Adet" gerektiren TÜM ürün tiplerini bu listeye ekliyoruz
+            // ★★★ SORUNU ÇÖZEN DEĞİŞİKLİK BURADA ★★★
+            // "Değer/Adet" gerektiren TÜM ürün tiplerini bu listeye ekliyoruz.
+            // Yeni eklenen 3 iksir de artık bu listede.
             const typesThatNeedValue = [
                 'boxRights', 'wheelTicket', 'clickCatchTicket', 'iflasShield', 'wildcard', 
                 'card_pack', 'card_pack_normal', 'card_pack_gumus', 'card_pack_altin', 'card_pack_efsanevi',
-                'health_potion', 'revival_stone', 'defense_potion', 'damage_potion', 'crit_potion'
+                'revival_stone', 'health_potion', 'damage_potion', 'defense_potion', 'crit_potion',
+                'crit_damage_potion', 'dodge_potion', 'pierce_potion'
             ];
 
             if (typesThatNeedValue.includes(type)) {
                 const value = parseInt(document.getElementById('newItemValue').value);
                 if (isNaN(value) || value <= 0) {
-                    // typeToName haritasını kullanarak kullanıcıya daha anlaşılır bir hata mesajı veriyoruz
                     const friendlyName = typeToName[type] || type;
                     throw new Error(`'${friendlyName}' tipi için geçerli bir 'Değer/Adet' girmelisiniz.`);
                 }
                 itemData.value = value;
             }
         }
-        // ================== DÜZELTME SONU ==================
 
         if (totalMinutes > 0) {
             itemData.countdownDurationMinutes = totalMinutes;
@@ -11775,6 +11836,8 @@ async function selectAvatar(itemId, imageUrl) {
     closeAvatarSelectionModal();
 }
 
+// ESKİ buyItem FONKSİYONUNU SİLİN VE BUNU EKLEYİN
+
 async function buyItem(itemId) {
     if (isAdmin) {
         displayMessage("Adminler alışveriş yapamaz.");
@@ -11788,24 +11851,38 @@ async function buyItem(itemId) {
 
     if (!user || !item) return;
 
-    const isPotion = ['health_potion', 'damage_potion', 'defense_potion', 'crit_potion'].includes(item.type);
+    // ★★★ YENİ KOD BAŞLANGICI: DİNAMİK FİYATLANDIRMA İÇİN GÜNCELLENMİŞ İKSİR KONTROLÜ ★★★
+    const isPotion = ['health_potion', 'damage_potion', 'defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion'].includes(item.type);
 
     if (isPotion) {
-        if ((user.balance || 0) < item.cost) {
-            displayMessage("Yetersiz Puan!");
+        // 1. Kullanıcının bu iksiri kaç kez aldığını bul
+        const purchaseCount = user.potionPurchaseCounts?.[itemId] || 0;
+        
+        // 2. Mevcut fiyatı hesapla
+        const currentCost = item.cost + (purchaseCount * 1000);
+        
+        // 3. Yeterli puanı olup olmadığını yeni fiyata göre kontrol et
+        if ((user.balance || 0) < currentCost) {
+            displayMessage(`Yetersiz Puan! Bu iksirin şu anki fiyatı ${currentCost} Puandır.`);
             return;
         }
+
         const value = parseInt(item.value) || 0;
         if (value <= 0) {
             displayMessage("Mağaza Hatası: Bu iksirin değeri 0 olarak ayarlanmış. Lütfen yöneticiye bildirin.");
             return;
         }
-
-        const confirmed = await customConfirm(`'${item.name}' iksirini satın almak üzeresiniz. Bu, hesabınıza <b class="text-red-400">KALICI BİR BONUS</b> olarak eklenecek ve tüm avatarlarınıza etki edecektir. Onaylıyor musunuz?`);
+        
+        // 4. Bir sonraki fiyatı hesapla ve uyarı mesajını güncelle
+        const nextCost = currentCost + 1000;
+        const confirmed = await customConfirm(`'${item.name}' iksirini satın almak üzeresiniz. Bu, hesabınıza <b class="text-red-400">KALICI BİR BONUS</b> olarak eklenecektir.<br><br>Bu alımdan sonra bu iksirin fiyatı sizin için <b class="text-yellow-400">${nextCost} Puana</b> yükselecektir. Onaylıyor musunuz?`);
         if (!confirmed) return;
 
         const statToUpdate = item.type.replace('_potion', ''); 
-        const statKeyMap = { 'health': 'hp', 'damage': 'damage', 'defense': 'defense', 'crit': 'critChance' };
+        const statKeyMap = { 
+            'health': 'hp', 'damage': 'damage', 'defense': 'defense', 'crit': 'critChance',
+            'crit_damage': 'critDamage', 'dodge': 'dodgeChance', 'pierce': 'pierceChance'
+        };
         const statKey = statKeyMap[statToUpdate];
         if (!statKey) {
             displayMessage("Geçersiz iksir türü, işlem iptal edildi.");
@@ -11815,11 +11892,16 @@ async function buyItem(itemId) {
         const statRef = db.ref(`users/${currentUser}/globalPotionBuffs/${statKey}`);
         await statRef.transaction(currentValue => (currentValue || 0) + value);
 
-        const newBalance = user.balance - item.cost;
-        await userRef.update({
+        const newBalance = user.balance - currentCost;
+        
+        // 5. Güncelleme objesine satın alma sayısını artırmayı ekle
+        const updates = {
             balance: newBalance,
-            totalSpentPoints: (user.totalSpentPoints || 0) + item.cost
-        });
+            totalSpentPoints: (user.totalSpentPoints || 0) + currentCost,
+            [`potionPurchaseCounts/${itemId}`]: purchaseCount + 1 // Dinamik anahtar kullanarak sayıyı artır
+        };
+        await userRef.update(updates);
+
         await itemRef.transaction(currentItem => { 
             if (currentItem) { 
                 if (currentItem.stock !== undefined && currentItem.stock !== null) { currentItem.stock--; } 
@@ -11827,28 +11909,28 @@ async function buyItem(itemId) {
             } return currentItem; 
         });
 
-        // ================== EKSİK OLAN KISIM BURADA EKLENDİ ==================
         logActivity('buyItem', currentUser, {
             itemName: item.name,
-            itemCost: item.cost,
+            itemCost: currentCost, // Dinamik fiyatı logla
             itemType: item.type,
             itemValue: value,
             itemDuration: null,
             newBalance: newBalance
         });
-        // ====================================================================
 
         displayMessage(`Başarılı! Hesabınıza kalıcı olarak +${value} ${statToUpdate} bonusu eklendi.`);
         if (currentActiveSection === 'monsterBattle') { renderMonsterBattleUI(); }
 
         return; 
     }
+    // ★★★ YENİ KOD SONU ★★★
 
+    // (İksir olmayan diğer ürünler için eski kod aynı şekilde devam ediyor)
     if ((user.balance || 0) < item.cost) {
         displayMessage("Yetersiz Puan!");
         return;
     }
-
+    // ... (geri kalan kod aynı)
     if (item.type === 'special') {
         const kasaPuani = user.kasaPuani || 0;
         if (kasaPuani < item.cost) {
@@ -16666,6 +16748,81 @@ async function resetUser(username) {
     } catch (error) {
         console.error("Kullanıcı sıfırlanırken hata oluştu:", error);
         displayMessage("Kullanıcı sıfırlanırken bir hata meydana geldi: " + error.message);
+    }
+}
+
+// BU YEPYENİ FONKSİYONU SCRIPT BLOĞUNUZA EKLEYİN
+
+async function resetUserPotionBonuses(username) {
+    if (!isAdmin || !username) return;
+
+    const confirmed = await customConfirm(
+        `<b>${username}</b> adlı kullanıcının mağazadan aldığı <b>tüm kalıcı iksir bonuslarını</b> sıfırlamak istediğinize emin misiniz? Bu işlem geri alınamaz!`
+    );
+
+    if (!confirmed) return;
+
+    try {
+        const userRef = db.ref(`users/${username}`);
+        
+        // Kullanıcının globalPotionBuffs anahtarını silerek tüm bonusları sıfırla
+        await userRef.child('globalPotionBuffs').remove();
+        
+        displayMessage(`${username} adlı kullanıcının tüm kalıcı iksir bonusları başarıyla sıfırlandı.`);
+        
+        // Arayüzü anında güncellemek için yönetim modalını yeniden aç
+        openUserManagementModal(event, username);
+        
+    } catch (error) {
+        console.error("İksir bonusları sıfırlanırken hata oluştu:", error);
+        displayMessage("Bonuslar sıfırlanırken bir hata meydana geldi: " + error.message);
+    }
+}
+
+// BU YEPYENİ FONKSİYONU SCRIPT BLOĞUNUZA EKLEYİN
+
+/**
+ * Adminin, tüm kullanıcıların kalıcı iksir bonuslarını tek seferde sıfırlamasını sağlar.
+ */
+async function resetAllPotionBonuses() {
+    if (!isAdmin) return;
+
+    // Bu, çok güçlü bir işlem olduğu için net bir onay mesajı gösteriyoruz.
+    const confirmed = await customConfirm(
+        "TÜM kullanıcıların sahip olduğu KALICI iksir bonuslarını sıfırlamak istediğinize emin misiniz? Bu işlem geri alınamaz!"
+    );
+
+    if (!confirmed) return;
+
+    try {
+        const usersRef = db.ref('users');
+        const usersSnap = await usersRef.once('value');
+        const usersData = usersSnap.val();
+
+        // Tek seferde yapılacak tüm güncellemeleri bu objede toplayacağız.
+        const updates = {};
+        
+        if (usersData) {
+            for (const username in usersData) {
+                // Sadece iksir bonusu olan kullanıcılar için silme işlemi hazırla
+                if (usersData[username] && usersData[username].globalPotionBuffs) {
+                    // globalPotionBuffs anahtarını null olarak ayarlamak, onu veritabanından siler.
+                    updates[`/users/${username}/globalPotionBuffs`] = null;
+                }
+            }
+        }
+
+        // Eğer güncellenecek bir şey varsa (yani en az bir kullanıcının bonusu varsa)
+        if (Object.keys(updates).length > 0) {
+            await db.ref().update(updates);
+            displayMessage("Tüm kullanıcıların kalıcı iksir bonusları başarıyla sıfırlandı.");
+        } else {
+            displayMessage("Sıfırlanacak iksir bonusuna sahip hiçbir kullanıcı bulunamadı.");
+        }
+
+    } catch (error) {
+        console.error("Toplu iksir bonusu sıfırlama hatası:", error);
+        displayMessage("İşlem sırasında bir hata meydana geldi: " + error.message);
     }
 }
       
