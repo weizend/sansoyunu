@@ -1815,6 +1815,12 @@ body.modal-open .modal-content {
             <select id="newItemType" class="w-full p-2 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500">
   <option value="">Ürün Tipi Seçin</option>
   <option value="boxRights">📦 Kutu Hakkı</option>
+  <option value="special">🚀 Özel Ürün (Onay Gerektirir)</option>
+</select>
+
+<select id="newItemType" class="w-full p-2 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500">
+  <option value="">Ürün Tipi Seçin</option>
+  <option value="boxRights">📦 Kutu Hakkı</option>
   <option value="wheelTicket">️🎫 Çark Bileti</option>
   <option value="clickCatchTicket">🎟️ Tıkla-Yakala Bileti</option>
   <option value="tempMultiplier">✖️ Geçici Çarpan</option>
@@ -1825,7 +1831,7 @@ body.modal-open .modal-content {
   <option value="card_pack_gumus">🥈 Gümüş Kart Paketi</option>
   <option value="card_pack_altin">🥇 Altın Kart Paketi</option>
   <option value="card_pack_efsanevi">🏆 Efsanevi Kart Paketi</option>
-  <option value="revival_stone">💎 Dirilme Taşı</option>
+  <option value="health_regen_potion">🧪 Can Yenileme İksiri</option> <option value="revival_stone">💎 Dirilme Taşı</option>
   <option value="health_potion">🧪 Can İksiri</option>
   <option value="defense_potion">🛡️ Savunma İksiri</option>
   <option value="damage_potion">⚔️ Hasar İksiri</option>
@@ -1963,8 +1969,7 @@ body.modal-open .modal-content {
     <option value="iflasShield">🛡️ İflas Kalkanı</option>
     <option value="tempMultiplier">✖️ Çarpan</option>
     <option value="wildcard">🃏 Joker Kart</option>
-    <option value="health_regen_potion">🧪 Can Yenileme İksiri</option>
-    <option value="revival_stone">💎 Dirilme Taşı</option>
+    <option value="health_regen_potion">🧪 Can Yenileme İksiri</option> <option value="revival_stone">💎 Dirilme Taşı</option>
     <option value="health_potion">🧪 Can İksiri</option>
     <option value="damage_potion">⚔️ Hasar İksiri</option>
     <option value="defense_potion">🛡️ Savunma İksiri</option>
@@ -2237,8 +2242,7 @@ body.modal-open .modal-content {
     <option value="card_pack_gumus">🥈 Gümüş Kart Paketi</option>
     <option value="card_pack_altin">🥇 Altın Kart Paketi</option>
     <option value="card_pack_efsanevi">🏆 Efsanevi Kart Paketi</option>
-    <option value="health_regen_potion">🧪 Can Yenileme İksiri</option>
-    <option value="revival_stone">💎 Dirilme Taşı</option>
+    <option value="health_regen_potion">🧪 Can Yenileme İksiri</option> <option value="revival_stone">💎 Dirilme Taşı</option>
     <option value="health_potion">🧪 Can İksiri</option>
     <option value="damage_potion">⚔️ Hasar İksiri</option>
     <option value="crit_damage_potion">🎯 Kritik Hasar İksiri</option>
@@ -7588,6 +7592,7 @@ async function saveStoreItem() {
             const typesThatNeedValue = [
                 'boxRights', 'wheelTicket', 'clickCatchTicket', 'iflasShield', 'wildcard', 
                 'card_pack', 'card_pack_normal', 'card_pack_gumus', 'card_pack_altin', 'card_pack_efsanevi',
+                'health_regen_potion', // YENİ EKLENEN SATIR
                 'revival_stone', 'health_potion', 'damage_potion', 'defense_potion', 'crit_potion',
                 'crit_damage_potion', 'dodge_potion', 'pierce_potion'
             ];
@@ -11791,6 +11796,7 @@ function loadWheelHistory() {
     card_pack_gumus: 'Gümüş Kart Paketi',
     card_pack_altin: 'Altın Kart Paketi',
     card_pack_efsanevi: 'Efsanevi Kart Paketi',
+    health_regen_potion: 'Can Yenileme İksiri',
     health_potion: 'Can İksiri',
     revival_stone: 'Dirilme Taşı',
     defense_potion: 'Savunma İksiri',
@@ -11961,6 +11967,7 @@ async function selectAvatar(itemId, imageUrl) {
     closeAvatarSelectionModal();
 }
 
+// ESKİ buyItem FONKSİYONUNU SİL VE BUNU YAPIŞTIR
 async function buyItem(itemId) {
     if (isAdmin) {
         displayMessage("Adminler alışveriş yapamaz.");
@@ -12124,6 +12131,16 @@ async function buyItem(itemId) {
         else if (item.type === 'wheelTicket') updates.carkBileti = (user.carkBileti || 0) + itemValue;
         else if (item.type === 'clickCatchTicket') updates.clickCatchTickets = (user.clickCatchTickets || 0) + itemValue;
         else if (item.type === 'iflasShield') updates.iflasShieldUses = (user.iflasShieldUses || 0) + itemValue;
+        
+        // YENİ EKLENEN BLOK BAŞLANGICI
+        else if (item.type === 'health_regen_potion') {
+            if (!updates.inventory.health_regen_potion) updates.inventory.health_regen_potion = {};
+            const currentPotions = user.inventory?.health_regen_potion?.[itemValue] || 0;
+            updates.inventory.health_regen_potion[itemValue] = currentPotions + 1; // Her alımda 1 adet eklenir, itemValue yüzdeyi belirtir
+            message = `Başarılı! Envanterine 1 adet %${itemValue} Can Yenileme İksiri eklendi.`;
+        }
+        // YENİ EKLENEN BLOK SONU
+
         else if (item.type === 'revival_stone') updates.inventory.revival_stone = (user.inventory?.revival_stone || 0) + itemValue;
         else if (item.type === 'tempMultiplier') {
             updates.activeMultiplier = itemValue;
