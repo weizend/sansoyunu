@@ -11,6 +11,20 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
 <style>
+/* --- YENİ EKLENECEK KOD: ÖNCEKİ ŞAMPİYON PANELİ STİLİ --- */
+#lastChampionPanel .champion-avatar {
+    width: 64px; /* w-16 */
+    height: 64px; /* h-16 */
+    border-radius: 50%; /* rounded-full */
+    border: 3px solid #fde047; /* border-4 border-yellow-300 */
+    object-fit: cover;
+    cursor: pointer;
+    transition: transform 0.2s ease-in-out;
+}
+#lastChampionPanel .champion-avatar:hover {
+    transform: scale(1.1);
+}
+/* --- YENİ EKLENECEK KOD SONU --- */
 /* --- CANAVAR SAVAŞI STİLLERİ --- */
 .health-bar-container {
     width: 100%;
@@ -1426,6 +1440,8 @@ body.modal-open .modal-content {
 </div>
             <button onclick="saveAvatarStats()" class="w-full py-2 bg-green-700 hover:bg-green-600 rounded-lg font-bold mt-2">Tüm Avatar İstatistiklerini Kaydet</button>
         </div>
+        <div id="lastChampionPanel" class="hidden w-full max-w-2xl mx-auto mb-6 bg-gray-800 p-4 rounded-xl shadow-lg border-2 border-amber-500 text-center relative">
+    </div>
 
         <div id="battleArenaContainer">
     <div id="battleArena" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -2479,6 +2495,7 @@ body.modal-open .modal-content {
             <li><b class="text-green-400">Liderlik Tablolarında Yükselmek:</b> "Aylık Sezon Sıralaması" ve "Haftalık Tıkla-Yakala Sıralaması" gibi tablolarda en tepeye tırmanarak sezonun en iyisi olduğunu kanıtla ve özel ödüller kazan.</li>
             <li><b class="text-purple-400">Kart Koleksiyonu Albümünü Tamamlamak:</b> Oyunun en büyük ve en prestijli hedefi! Sezon bitmeden tüm kartları toplayan herkes, admin tarafından belirlenen büyük ödülleri kazanır.</li>
              <li><b class="text-yellow-200">Gerçek Ödüller Kazanmak:</b> Oyun içinde kazandığın puanları biriktirerek "Özel Ürün Mağazası"ndan gerçek dünyada geçerli ödüller (oyun, hediye kartı vb.) alabilirsin.</li>
+            <li><b class="text-red-400">Kalıcı Başarımlar Kazanmak:</b> Canavar Savaşları ve Tıkla-Yakala'da şampiyon olarak profiline kalıcı, artan seviyeli başarımlar ekleyerek adını efsaneler arasına yazdır.</li>
         </ul>
     </div>
 
@@ -2961,12 +2978,18 @@ body.modal-open .modal-content {
             <p class="mb-2">Bu mod, haftalık liderlik tablosunda en yüksek skoru elde etme yarışmasıdır.</p>
             <ul class="list-disc list-inside space-y-1 pl-2">
                 <li>Oyuna girmek <strong>1 Tıkla-Yakala Bileti</strong> gerektirir.</li>
-                <li>Oyun sırasında topladığınız skorlar, ana Puanınıza değil, o haftaki toplam skorunuza eklenir.</li>
+                <li>Oyun sırasında topladığınız skorlar, o haftaki toplam skorunuza eklenir.</li>
                 <li>Hafta sonunda, en yüksek skoru yapan oyuncu "Haftanın Şampiyonu" seçilir ve <strong>özel bir ödül</strong> kazanır.</li>
+                <li><b class="text-amber-300">Haftalık Şampiyon Başarımı:</b> Haftanın birincisi olan oyuncu, profiline kalıcı olarak işlenen "T-Y Yakalayıcı Şampiyonu" başarımını kazanır. Bu başarım, her yeni şampiyonlukta seviye atlar.</li>
                 <li>Kazanan seçildikten sonra, o hafta yarışmaya katılmış olan <strong>tüm oyunculara +1 Bilet</strong> hediye edilir.</li>
-                <li>Sıralama, tüm kişisel skorlar ve mevcut biletleriniz sıfırlanarak yeni bir haftaya başlanır.</li>
             </ul>
         </div>
+        
+        ```
+
+***
+
+İşte hepsi bu kadar kanka. Bu değişikliklerle birlikte tüm isteklerin tamamlanmış olacak. Kodları dikkatlice değiştirirsen herhangi bir sorun yaşamazsın. Bol şans!
         <div>
             <h5 class="text-xl font-bold text-green-400 mb-2">Lobi Oyunu (Rekabetçi Mod)</h5>
             <p class="mb-2">Admin tarafından kurulan bu mod, diğer oyuncularla gerçek zamanlı bir skor yarışıdır.</p>
@@ -3269,7 +3292,7 @@ body.modal-open .modal-content {
 
         <div class="mt-4 pt-4 border-t border-gray-600">
             <h4 class="font-bold text-lg text-amber-400">⚠️ Önemli Bilgi: Koleksiyonu Tamamladıktan Sonra</h4>
-            <p>Koleksiyonu tamamladıktan sonra kazandığın fazla kartlar, takas edilemez. Bunun yerine, fazla kartların üzerine tıklayıp belirli bir miktar <b>Kutu Hakkı</b>'na dönüştürebilirsin. Aynı şekilde, kazandığın Joker Kartlarıda <b>Puan</b>'a dönüştürebilirsin.</p>
+            <p>Koleksiyonu tamamladıktan sonra kazandığın fazla kartlar, takas edilemez. Bunun yerine, fazla kartların üzerine tıklayıp belirli bir miktar <b>Kutu Hakkı</b>'na dönüştürebilirsin. Aynı şekilde, kazandığın Joker Kartlarıda <b>10 kutu hakkın</b>'a dönüştürebilirsin.</p>
         </div>
 
     </div>
@@ -3416,42 +3439,26 @@ body.modal-open .modal-content {
         </div>
         
         <div>
-    <div>
-    <h4 class="font-bold text-lg text-yellow-300">🛡️ Savaş Mekanikleri</h4>
-    <p>Her oyuncunun gücü, seçili olan avatarının istatistiklerine bağlıdır. Avatarların Can, Hasar, Savunma ve diğer özellikleri vardır.</p>
-    <ul class="list-disc list-inside ml-4 mt-2 space-y-2">
-        <li><b class="text-white">Can:</b> Savaşta hayatta kalmanı sağlayan can puanındır. Sıfıra düştüğünde mağlup olursun.</li>
-        <li><b class="text-white">Hasar:</b> Rakibe verdiğin temel vuruş gücüdür. Genellikle minimum ve maksimum olarak bir aralıkta belirlenir.</li>
-        <li><b class="text-white">Savunma:</b> Rakibin saldırısından aldığın hasarı azaltır. Savunman ne kadar yüksekse o kadar az hasar alırsın.</li>
-        <li><b class="text-white">Kritik Hasar:</b> Kritik vuruşun ne kadar EKSTRA hasar vereceğini belirler. Örneğin, %50 Kritik Hasarın varsa, kritik vuruşların normalden %50 daha fazla vurur.</li>
-        <li><b class="text-white">Sıyrılma Şansı:</b> Rakibin saldırısından hiç hasar almadan kurtulma ihtimalin.</li>
-        <li><b class="text-white">Delici Vuruş Şansı:</b> Saldırırken rakibin "Sıyrılma Şansı"nı yok sayma ihtimalin. Eğer Delici Vuruşun başarılı olursa, rakip sıyrılamaz!</li>
-        <li><b class="text-white">Kritik Vuruş Şansı:</b> Normal hasar yerine çok daha güçlü bir kritik vuruş yapma ihtimalin.</li>
-        <li><b>Avatar Kilidi:</b> Canavara ilk saldırını yaptığın anda, o an seçili olan avatarın bu canavar ölene kadar kilitlenir. Canavar ölene veya etkinlik bitene kadar başka bir avatarla savaşa devam edemezsin. Stratejini iyi belirle!</li>
-        <li><b>Ölüm ve Dirilme:</b> Canın sıfıra düştüğünde ölürsün ve artık saldıramazsın. Ancak envanterinde "Dirilme Taşı" varsa, bunu kullanarak canını tamamen doldurabilir ve savaşa geri dönebilirsin.</li>
-    </ul>
-</div>
+            <h4 class="font-bold text-lg text-yellow-300">🛡️ Savaş Mekanikleri</h4>
+            <p>Her oyuncunun gücü, seçili olan avatarının istatistiklerine bağlıdır. Avatarların Can, Hasar, Savunma ve diğer özellikleri vardır.</p>
+            <ul class="list-disc list-inside ml-4 mt-2 space-y-2">
+                <li><b class="text-white">Can Yenileme İksiri:</b> Savaş sırasında canını anında yenilemek için kullanılır. Bu iksirler, maksimum canının belirli bir yüzdesi (%) kadar iyileştirir.</li>
+                <li><b class="text-white">Avatar Kilidi:</b> Canavara ilk saldırını yaptığın anda, o an seçili olan avatarın bu canavar ölene kadar kilitlenir. Stratejini iyi belirle!</li>
+                <li><b class="text-white">Dirilme Taşı:</b> Canın sıfıra düştüğünde ölürsün. "Dirilme Taşı" kullanarak canını tamamen doldurabilir ve savaşa geri dönebilirsin.</li>
+            </ul>
+        </div>
         
         <div>
             <h4 class="font-bold text-lg text-yellow-300">🧪 İksirler ve Kalıcı Güçlendirmeler</h4>
             <p>Mağazadan veya diğer etkinliklerden kazandığın iksirler, hesabına <b class="text-red-400">KALICI OLARAK</b> bonuslar ekler. Bu güçlendirmeler tüm avatarlarının temel istatistiklerini artırır.</p>
-             <ul class="list-disc list-inside ml-4 mt-2">
-                <li><b>Can İksiri:</b> Maksimum canını kalıcı olarak artırır.</li>
-                <li><b>Hasar İksiri:</b> Minimum ve maksimum hasarını kalıcı olarak artırır.</li>
-                <li><b>Savunma İksiri:</b> Savunmanı kalıcı olarak artırır.</li>
-                <li><b>Kritik Hasar İksiri:</b> Kritik hasar yüzdeni kalıcı olarak artırır.</li>
-                <li><b>Sıyrılma Şansı İksiri:</b> Sıyrılma şansını kalıcı olarak artırır.</li>
-                <li><b>Delici Şansı İksiri:</b> Delici vuruş şansını kalıcı olarak artırır.</li>
-               <li><b>Kritik Şansı İksiri:</b> Kritik vuruş şansını kalıcı olarak artırır.</li>
-            </ul>
         </div>
 
         <div>
-            <h4 class="font-bold text-lg text-yellow-300">🏆 Ödüller</h4>
-            <p>Canavarla savaşırken iki tür ödül kazanabilirsin:</p>
-             <ul class="list-disc list-inside ml-4 mt-2">
-                <li><b>Hasar Eşiği Ödülleri:</b> Canavara belirli bir hasar miktarını tek seferde geçtiğinde, rastgele ödüller (Puan, Kutu Hakkı, Kart Paketi vb.) kazanma şansı yakalarsın.</li>
-                <li><b>Liderlik Ödülü:</b> Canavar öldüğünde, ona en çok toplam hasarı vermiş olan oyuncu, admin tarafından belirlenen büyük liderlik ödülünü kazanır!</li>
+            <h4 class="font-bold text-lg text-yellow-300">🏆 Ödüller ve Başarımlar</h4>
+            <ul class="list-disc list-inside ml-4 mt-2 space-y-2">
+                <li><b>Hasar Eşiği Ödülleri:</b> Canavara belirli bir hasar miktarını tek seferde geçtiğinde, rastgele ödüller kazanma şansı yakalarsın.</li>
+                <li><b>Liderlik Ödülü:</b> Canavar öldüğünde, ona en çok toplam hasarı vermiş olan oyuncu, büyük liderlik ödülünü kazanır!</li>
+                <li><b class="text-amber-300">Canavar Şampiyonu Başarımı:</b> Canavara en çok hasarı veren oyuncu, profiline kalıcı olarak işlenen "Canavar Şampiyonu" başarımını kazanır. Bu başarım, her yeni şampiyonlukta seviye atlar (1. Kez, 2. Kez vb.).</li>
             </ul>
         </div>
     </div>
@@ -4208,6 +4215,7 @@ function listenForWeeklyCountdown() {
     ref.on('value', callback);
 }
 
+// MEVCUT executeWeeklyReset FONKSİYONUNU SİLİP BUNU YAPIŞTIR
 async function executeWeeklyReset() {
     console.log("Haftalık sıfırlama işlemi tetiklendi...");
     const seasonEndDateSnap = await db.ref('gameConfig/seasonEndDate').once('value');
@@ -4268,18 +4276,15 @@ async function executeWeeklyReset() {
         if (!allUsers[username].approved) continue;
         const userPath = `/users/${username}`;
         
-        // ÖNCE HERKESİN SKORUNU VE BİLETİNİ SIFIRLA
         if (allUsers[username].clickCatchHighestScore) {
             updates[`${userPath}/clickCatchHighestScore`] = 0;
         }
         updates[`${userPath}/clickCatchTickets`] = 0;
 
-        // SONRA SADECE KATILIMCILARA +1 BİLET VER
         if (participants.includes(username)) {
-            updates[`${userPath}/clickCatchTickets`] = 1; // Sıfırlanan değeri 1 ile değiştir
+            updates[`${userPath}/clickCatchTickets`] = 1;
         }
         
-        // KAZANANA ÖDÜLÜNÜ VER
         if (username === winner.username) {
             if (prize.type.endsWith('_potion')) {
                 const statKeyMap = { health_potion: 'hp', damage_potion: 'damage', defense_potion: 'defense', crit_potion: 'critChance', crit_damage_potion: 'critDamage', dodge_potion: 'dodgeChance', pierce_potion: 'pierceChance' };
@@ -4299,6 +4304,15 @@ async function executeWeeklyReset() {
                 const prizeKey = prize.type === 'iflasShield' ? 'iflasShieldUses' : prize.type;
                 updates[`${userPath}/${prizeKey}`] = (allUsers[username][prizeKey] || 0) + prize.amount;
             }
+
+            // ★★★ YENİ BAŞARIM EKLEME KODU ★★★
+            const tyChampionships = allUsers[username].tyChampionships || [];
+            tyChampionships.push({
+                timestamp: firebase.database.ServerValue.TIMESTAMP,
+                score: winner.score
+            });
+            updates[`${userPath}/tyChampionships`] = tyChampionships;
+            // ★★★ BAŞARIM KODU SONU ★★★
         }
     }
     updates['/clickCatchWeeklyScores'] = null;
@@ -6394,7 +6408,14 @@ function renderActivityFeed(activities) {
             const deleteButtonHtml = isAdmin ? `<button onclick="deleteActivity('${activity.id}')" class="ml-2 p-1 rounded-full text-gray-500 hover:text-red-500 hover:bg-white/10 transition-colors" title="Bu Eylemi Sil"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1-1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>` : '';
             const userHtml = `<b class="text-yellow-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${activity.username}')">${activity.username}</b>`;
 
+            // ★★★ YENİ KOD: Yüzdelik iksirleri ayırt etmek için bir liste oluşturuyoruz ★★★
+            const percentPotions = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion', 'health_regen_potion'];
+
             switch (activity.type) {
+                // ★★★ YENİ KOD BAŞLANGICI: Canavar Savaşı eylemleri için yeni case'ler ★★★
+                case 'useRegenPotion':
+                     message = `${userHtml}, <b class="text-cyan-300">%${details.percentage} Can Yenileme İksiri</b> kullanarak <b class="text-green-300">${details.healed} can</b> yeniledi.`;
+                     break;
                 case 'monsterAttack':
                     let attackMessage = `${userHtml}, <b class="text-red-300">${details.monsterName}</b>'a saldırdı. `;
                     
@@ -6419,8 +6440,9 @@ function renderActivityFeed(activities) {
                     message = attackMessage;
                     break;
                 case 'monsterDefeated':
-                    message = `Canavar Savaşı bitti! <b class="text-red-300">${details.monsterName}</b> yok edildi. En yüksek hasarı veren <b class="text-yellow-300">${details.winner}</b>, <b class="text-green-300">${details.prize}</b> ile ödüllendirildi.`;
+                    message = `<b class="text-red-400">${details.monsterName}</b> mağlup edildi! En çok hasarı veren ${userHtml.replace(activity.username, details.winner)}, <b class="text-green-300">${details.prize}</b> ödülünü kazandı.`;
                     break;
+                // ★★★ YENİ KOD SONU ★★★
                 case 'clickCatchSolo':
                     const { baseScore, finalScore, ticketsUsed, specialItems, newWeeklyScore } = details;
                     message = `${userHtml}, Tıkla-Yakala oyununda <b class="text-white">${ticketsUsed} bilet</b> kullandı ve <span class="text-green-300 font-bold">${finalScore} Skor</span> topladı. <small class="text-gray-400">(Skor: ${baseScore} x ${ticketsUsed} Bilet)</small>`;
@@ -6507,12 +6529,24 @@ function renderActivityFeed(activities) {
                     message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-purple-300 font-bold">${details.value}x Çarpan</span> buldu.`;
                     break;
                 case 'buyItem':
+                    // ★★★ DEĞİŞEN KISIM BAŞLANGICI ★★★
+                    const isPercentBuy = percentPotions.includes(details.itemType);
+                    const valuePrefixBuy = isPercentBuy ? '%' : '+';
+                    // ★★★ DEĞİŞEN KISIM SONU ★★★
+                    
                     let balanceText = details.itemType === 'special' ? `<span class="text-gray-400">(Kalan Kasa Puanı: ${details.newKasaBalance})</span>` : `<span class="text-gray-400">(Kalan Puan: ${details.newBalance})</span>`;
                     let costText = details.itemType === 'special' ? `-${details.itemCost} KP` : `-${details.itemCost} Puan`;
                     let purchasedItemText = '';
-                    if (details.itemType === 'tempMultiplier') { purchasedItemText = `<span class="text-indigo-300 font-bold">+${details.itemDuration} adet ${details.itemValue}x Çarpan</span>`; } 
-                    else if (details.itemValue) { const itemName = typeToName[details.itemType] || details.itemName; purchasedItemText = `<span class="text-indigo-300 font-bold">+${details.itemValue} ${itemName}</span>`; } 
-                    else { purchasedItemText = `<span class="text-indigo-300 font-bold">${details.itemName}</span>`; }
+
+                    if (details.itemType === 'tempMultiplier') {
+                        purchasedItemText = `<span class="text-indigo-300 font-bold">+${details.itemDuration} adet ${details.itemValue}x Çarpan</span>`;
+                    } else if (details.itemValue) {
+                        const itemName = typeToName[details.itemType] || details.itemName;
+                        // ★★★ DEĞİŞEN SATIR ★★★
+                        purchasedItemText = `<span class="text-indigo-300 font-bold">${valuePrefixBuy}${details.itemValue} ${itemName}</span>`;
+                    } else {
+                        purchasedItemText = `<span class="text-indigo-300 font-bold">${details.itemName}</span>`;
+                    }
                     message = `${userHtml}, mağazadan <span class="text-red-400 font-bold">${costText}</span> harcayarak ${purchasedItemText} aldı. ${balanceText}`;
                     break;
                 case 'lobbyJoined':
@@ -6546,15 +6580,13 @@ function renderActivityFeed(activities) {
                         rewardText = `<span class="text-sky-300 font-bold">'${rewardValue}' avatarını</span>`;
                         message = `${userHtml}, günlük ödül olarak ${rewardText} kazandı.`;
                     } else {
-                        // ★★★ YÜZDE GÖSTERİMİ İÇİN GÜNCELLENEN KISIM BAŞLANGICI ★★★
-                        const isPercent = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion', 'health_regen_potion'].includes(rewardType);
-                        const valuePrefix = isPercent ? `+%` : `+`;
+                        const isPercentDaily = percentPotions.includes(rewardType);
+                        const valuePrefixDaily = isPercentDaily ? `+%` : `+`;
                         if (rewardType === 'tempMultiplier') { 
                             rewardText = `${rewardValue}x Çarpan (${details.rewardUses} kullanım)`;
                         } else { 
-                            rewardText = `${valuePrefix}${rewardValue} ${typeToName[rewardType] || details.rewardName}`;
+                            rewardText = `${valuePrefixDaily}${rewardValue} ${typeToName[rewardType] || details.rewardName}`;
                         }
-                        // ★★★ GÜNCELLENEN KISIM SONU ★★★
                         message = `${userHtml}, günlük ödül olarak <span class="text-teal-300 font-bold">${rewardText}</span> aldı.${dailyBalanceText}`;
                     }
                     break;
@@ -7893,7 +7925,6 @@ async function deletePurchase(purchaseId) {
   function closeBadgeInfoModal() { badgeInfoModal.style.display = 'none'; }
 
 // openPublicUserDetailModal FONKSİYONUNU BULUP BU BLOK İLE DEĞİŞTİRİN
-
 async function openPublicUserDetailModal(username) {
     if (!username) return;
 
@@ -7949,11 +7980,9 @@ async function openPublicUserDetailModal(username) {
         const badges = getUserBadgesHtml(userData, userLeaderStatus, true);
         document.getElementById('publicUserProfileBadges').innerHTML = badges.crown + badges.others;
         
-        // YENİ EKLENEN KISIM BAŞLANGICI: Avatar resmini ayarla VE tıklama özelliği ekle
         const avatarEl = document.getElementById('publicUserAvatar');
         avatarEl.src = userData.selectedAvatar ? userData.selectedAvatar.url : defaultAvatarUrl;
-        avatarEl.onclick = () => openAvatarStatsModal(username); // Tıklama özelliği eklendi
-        // YENİ EKLENEN KISIM SONU
+        avatarEl.onclick = () => openAvatarStatsModal(username);
 
         document.getElementById('publicUserName').textContent = username;
         
@@ -7984,9 +8013,32 @@ async function openPublicUserDetailModal(username) {
 
         const championshipsDiv = document.getElementById('publicUserChampionships');
         let championshipsHtml = '';
-        if (userData.rozetChampionshipsWon > 0) championshipsHtml += `<p>👑 ${userData.rozetChampionshipsWon} kez 'LİDERLER SIRALAMASI' aylık sezon şampiyonu oldu.</p>`;
-        if (userData.puanChampionshipsWon > 0) championshipsHtml += `<p>🏆 ${userData.puanChampionshipsWon} kez 'KARİYER PUAN SIRALAMASI' aylık sezon şampiyonu oldu.</p>`;
-        if (userData.collectionChampionshipsWon > 0) championshipsHtml += `<p>🃏 ${userData.collectionChampionshipsWon} kez 'KART KOLEKSİYONU' şampiyonu oldu.</p>`;
+
+        // ★★★ DEĞİŞEN KISIM BAŞLANGICI: Detaylı başarım gösterimi ★★★
+        if (userData.puanChampionships && userData.puanChampionships.length > 0) {
+            const count = userData.puanChampionships.length;
+            const lastWin = userData.puanChampionships[count - 1];
+            championshipsHtml += `<p>🏆 ${count}. Kez 'KARİYER PUANI' aylık sezon şampiyonu oldu. <small class="text-gray-400">(${formatNumber(lastWin.score)} Puan ile)</small></p>`;
+        }
+        if (userData.rozetChampionships && userData.rozetChampionships.length > 0) {
+            const count = userData.rozetChampionships.length;
+            const lastWin = userData.rozetChampionships[count - 1];
+            championshipsHtml += `<p>👑 ${count}. Kez 'LİDERLER SIRALAMASI' aylık sezon şampiyonu oldu. <small class="text-gray-400">(${lastWin.badgeCount} Rozet ile)</small></p>`;
+        }
+        if (userData.collectionChampionshipsWon > 0) {
+             championshipsHtml += `<p>🃏 ${userData.collectionChampionshipsWon} kez 'KART KOLEKSİYONU' şampiyonu oldu.</p>`;
+        }
+        if (userData.monsterChampionships && userData.monsterChampionships.length > 0) {
+            const count = userData.monsterChampionships.length;
+            const lastWin = userData.monsterChampionships[count - 1];
+            championshipsHtml += `<p>👹 ${count}. Kez 'CANAVAR SAVAŞI HASAR' şampiyonu oldu. <small class="text-gray-400">(${formatNumber(lastWin.damage)} Hasar ile)</small></p>`;
+        }
+        if (userData.tyChampionships && userData.tyChampionships.length > 0) {
+            const count = userData.tyChampionships.length;
+            const lastWin = userData.tyChampionships[count - 1];
+            championshipsHtml += `<p>🎯 ${count}. kez 'T-Y SKOR SIRALAMASI' haftalık yakalayıcı şampiyonu oldu. <small class="text-gray-400">(${formatNumber(lastWin.score)} Skor ile)</small></p>`;
+        }
+        // ★★★ DEĞİŞEN KISIM SONU ★★★
         
         if (championshipsHtml) {
             championshipsDiv.innerHTML = championshipsHtml;
@@ -11830,13 +11882,12 @@ function loadWheelHistory() {
     card_pack_gumus: 'Gümüş Kart Paketi',
     card_pack_altin: 'Altın Kart Paketi',
     card_pack_efsanevi: 'Efsanevi Kart Paketi',
-    health_regen_potion: 'Can Yenileme İksiri',
+    health_regen_potion: 'Can Yenileme İksiri', // ★★★ BU SATIRIN EKLİ OLDUĞUNDAN EMİN OL ★★★
     health_potion: 'Can İksiri',
     revival_stone: 'Dirilme Taşı',
     defense_potion: 'Savunma İksiri',
     damage_potion: 'Hasar İksiri',
     crit_potion: 'Kritik Vuruş İksiri',
-    // YENİ EKLENEN İKSİRLER
     dodge_potion: 'Sıyrılma İksiri',
     crit_damage_potion: 'Kritik Hasar İksiri',
     pierce_potion: 'Delici Vuruş İksiri'
@@ -12221,6 +12272,12 @@ async function renderMonsterBattleUI() {
     const battleArenaContainer = document.getElementById('battleArenaContainer');
     if (!battleArenaContainer) return;
 
+    // ★★★ YENİ KOD BAŞLANGICI: Önceki şampiyon panelini yönet ★★★
+    const lastChampionPanel = document.getElementById('lastChampionPanel');
+    const lastChampionSnap = await db.ref('gameStats/lastMonsterChampion').once('value');
+    const lastChampionData = lastChampionSnap.val();
+    // ★★★ YENİ KOD SONU ★★★
+
     const monster = monsterBattleData.monsterDetails;
     const leaderboard = monsterBattleData.damageLeaderboard || {};
     const battleArena = document.getElementById('battleArena');
@@ -12236,21 +12293,50 @@ async function renderMonsterBattleUI() {
     if (isAdmin) {
         document.getElementById('monsterBattleAdminToggles')?.classList.toggle('hidden', !isAdmin);
     }
+    
+    // ★★★ YENİ KOD BAŞLANGICI: Şampiyon panelini göster/gizle ★★★
+    if (lastChampionData && monster && monster.currentHP > 0) {
+        lastChampionPanel.innerHTML = `
+            <h4 class="text-amber-300 text-lg font-bold mb-3">Önceki Canavarın Şampiyonu</h4>
+            <div class="flex items-center justify-center gap-4">
+                <img src="${lastChampionData.lockedAvatarUrl}" class="champion-avatar" onclick="openAvatarStatsModal('${lastChampionData.username}')">
+                <div>
+                    <p class="text-xl font-bold text-white cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${lastChampionData.username}')">${lastChampionData.username}</p>
+                    <p class="text-gray-300">Toplam Hasar: <b class="text-yellow-400">${formatNumber(lastChampionData.totalDamage)}</b></p>
+                </div>
+            </div>
+        `;
+        lastChampionPanel.classList.remove('hidden');
+    } else {
+        lastChampionPanel.classList.add('hidden');
+    }
+    // ★★★ YENİ KOD SONU ★★★
 
     if (!monster || monster.currentHP <= 0) {
         battleArena.style.display = 'none';
         defeatedScreen.classList.remove('hidden');
         const sortedLeaderboard = Object.entries(leaderboard).sort((a, b) => b[1].totalDamage - a[1].totalDamage);
         const winner = sortedLeaderboard.length > 0 ? sortedLeaderboard[0][0] : null;
+        const winnerData = winner ? leaderboard[winner] : null;
         const prize = monsterBattleData.rewards?.onKillLeader;
         
         document.getElementById('monsterDefeatedTitle').textContent = `${monster?.name || 'Canavar'} Mağlup Edildi!`;
-        if (winner && prize) {
+        
+        if (winner && prize && winnerData) {
             const prizeName = typeToName[prize.type] || prize.type;
-            document.getElementById('monsterDefeatedMessage').innerHTML = `En çok hasarı veren <b class="text-yellow-300">${winner}</b> oldu ve <b class="text-green-400">${formatNumber(prize.value)} ${prizeName}</b> ödülünü kazandı!<br><br><span class="text-gray-400">Adminin yeni bir canavar çağırması bekleniyor...</span>`;
+            const winnerAvatarUrl = winnerData.lockedAvatarUrl || defaultAvatarUrl;
+            document.getElementById('monsterDefeatedMessage').innerHTML = `
+                <div class="flex flex-col items-center justify-center gap-4">
+                    <img src="${winnerAvatarUrl}" class="w-24 h-24 rounded-full border-4 border-yellow-400 object-cover cursor-pointer" onclick="openAvatarStatsModal('${winner}')">
+                    <p>En çok hasarı veren <b class="text-yellow-300 text-xl cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${winner}')">${winner}</b> oldu ve <b class="text-green-400">${formatNumber(prize.value)} ${prizeName}</b> ödülünü kazandı!</p>
+                </div>
+                <br>
+                <span class="text-gray-400">Adminin yeni bir canavar çağırması bekleniyor...</span>
+            `;
         } else {
             document.getElementById('monsterDefeatedMessage').textContent = 'Adminin yeni bir canavar çağırması bekleniyor.';
         }
+        
         if(monsterInstanceControls) monsterInstanceControls.classList.add('hidden');
         return;
     }
@@ -12346,7 +12432,6 @@ async function renderMonsterBattleUI() {
             optionsHtml = '<option value="">Can Yenileme İksiri Yok</option>';
         }
         
-        // ★★★ DEĞİŞİKLİK: Butonun HTML'inden "disabled" özelliği kaldırıldı. Artık hep tıklanabilir. ★★★
         regenPotionContainer.innerHTML = `
             <div class="flex items-center justify-center gap-2">
                 <select id="regenPotionSelector" class="box-setting-input flex-grow" onchange="handlePotionSelectionChange()" ${!hasPotions ? 'disabled' : ''}>
@@ -12393,7 +12478,6 @@ async function renderMonsterBattleUI() {
             reviveBtn.classList.add('hidden');
         }
         
-        // ★★★ DEĞİŞİKLİK: Sayfa yüklendiğinde butonun rengini doğru ayarlamak için fonksiyonu çağırıyoruz ★★★
         handlePotionSelectionChange();
     }
 
@@ -13025,7 +13109,8 @@ async function executeSeasonReset(isManual = false) {
     const seasonSettings = settingsSnap.val();
     
     const puanLeader = leaders.highEverBalanceUser; 
-    const rozetLeader = (await getTopBadgeHolder(allUsersData, leaders)).username;
+    const rozetLeaderData = await getTopBadgeHolder(allUsersData, leaders); // ★★★ YENİ: Hem ismi hem rozet sayısını al
+    const rozetLeader = rozetLeaderData.username;
     
     const puanAvatar = seasonSettings?.rewards?.puanLeaderAvatarUrl;
     const rozetAvatar = seasonSettings?.rewards?.rozetLeaderAvatarUrl;
@@ -13049,30 +13134,34 @@ async function executeSeasonReset(isManual = false) {
         updates[`${userPath}/clickCatchTickets`] = (userData.clickCatchTickets || 0) + giftPackage.clickCatchTickets;
         updates[`${userPath}/iflasShieldUses`] = (userData.iflasShieldUses || 0) + giftPackage.iflasShieldUses;
         
-        // ★★★ DEĞİŞİKLİK BURADA BAŞLIYOR ★★★
+        // ★★★ DEĞİŞEN KISIM BAŞLANGICI: Detaylı başarım verisi kaydediliyor ★★★
         if (username === puanLeader) {
             if(puanAvatar) {
-                // Benzersiz bir ID oluşturuyoruz
                 const newAvatarId = `sezon_odul_puan_${Date.now()}`;
-                // Hem seçili avatar yapıyoruz...
                 updates[`${userPath}/selectedAvatar`] = { id: newAvatarId, url: puanAvatar };
-                // ...HEM DE KALICI KOLEKSİYONA EKLİYORUZ!
                 updates[`${userPath}/avatars/${newAvatarId}`] = { id: newAvatarId, name: 'Puan Şampiyonu Avatarı', imageUrl: puanAvatar };
             }
-            updates[`${userPath}/puanChampionshipsWon`] = (userData.puanChampionshipsWon || 0) + 1;
+            const puanChampionships = userData.puanChampionships || [];
+            puanChampionships.push({
+                timestamp: firebase.database.ServerValue.TIMESTAMP,
+                score: leaders.highestEverBalance // Kazandığı anki kariyer puanı
+            });
+            updates[`${userPath}/puanChampionships`] = puanChampionships;
         }
         if (username === rozetLeader) {
             if(rozetAvatar) {
-                // Benzersiz bir ID oluşturuyoruz
                 const newAvatarId = `sezon_odul_rozet_${Date.now()}`;
-                // Hem seçili avatar yapıyoruz...
                 updates[`${userPath}/selectedAvatar`] = { id: newAvatarId, url: rozetAvatar };
-                // ...HEM DE KALICI KOLEKSİYONA EKLİYORUZ!
                 updates[`${userPath}/avatars/${newAvatarId}`] = { id: newAvatarId, name: 'Rozet Şampiyonu Avatarı', imageUrl: rozetAvatar };
             }
-            updates[`${userPath}/rozetChampionshipsWon`] = (userData.rozetChampionshipsWon || 0) + 1;
+            const rozetChampionships = userData.rozetChampionships || [];
+            rozetChampionships.push({
+                timestamp: firebase.database.ServerValue.TIMESTAMP,
+                badgeCount: rozetLeaderData.badgeCount // Kazandığı anki rozet sayısı
+            });
+            updates[`${userPath}/rozetChampionships`] = rozetChampionships;
         }
-        // ★★★ DEĞİŞİKLİK BURADA BİTİYOR ★★★
+        // ★★★ DEĞİŞEN KISIM SONU ★★★
         
         updates[`${userPath}/balance`] = 0;
         updates[`${userPath}/kariyerPuani`] = 0;
@@ -13086,6 +13175,9 @@ async function executeSeasonReset(isManual = false) {
         updates[`${userPath}/clickCatchHighestScore`] = 0;
         updates[`${userPath}/cardCollection`] = null;
         updates[`${userPath}/completedCollection`] = null;
+        // Eski sayaçları da sıfırla (isteğe bağlı ama tutarlılık için iyi)
+        updates[`${userPath}/puanChampionshipsWon`] = null;
+        updates[`${userPath}/rozetChampionshipsWon`] = null;
     }
     
     updates['purchaseHistory'] = null;
@@ -15552,12 +15644,12 @@ const typeToName = {
     card_pack_gumus: 'Gümüş Kart Paketi',
     card_pack_altin: 'Altın Kart Paketi',
     card_pack_efsanevi: 'Efsanevi Kart Paketi',
+    health_regen_potion: 'Can Yenileme İksiri', // ★★★ BU SATIRIN EKLİ OLDUĞUNDAN EMİN OL ★★★
     health_potion: 'Can İksiri',
     revival_stone: 'Dirilme Taşı',
     defense_potion: 'Savunma İksiri',
     damage_potion: 'Hasar İksiri',
     crit_potion: 'Kritik Vuruş İksiri',
-    // YENİ EKLENEN İKSİRLER
     dodge_potion: 'Sıyrılma İksiri',
     crit_damage_potion: 'Kritik Hasar İksiri',
     pierce_potion: 'Delici Vuruş İksiri'
@@ -16391,9 +16483,13 @@ async function loadAvatarStatsForAdmin() {
     }
 }
       
-// ESKİ saveAndSpawnMonster FONKSİYONUNU SİL VE BUNU YAPIŞTIR
+// MEVCUT saveAndSpawnMonster FONKSİYONUNU SİL VE BUNU YAPIŞTIR
 async function saveAndSpawnMonster() {
     if (!isAdmin) return;
+
+    // ★★★ YENİ KOD BAŞLANGICI: Yeni canavar gelmeden önce eski şampiyonu temizle ★★★
+    await db.ref('gameStats/lastMonsterChampion').remove();
+    // ★★★ YENİ KOD SONU ★★★
 
     const minDamage = parseInt(document.getElementById('adminMonsterMinDamage').value) || 500;
     const maxDamage = parseInt(document.getElementById('adminMonsterMaxDamage').value) || 1000;
@@ -16539,8 +16635,7 @@ function addRewardToTier(element, rewardData = {}) {
     rewardsListContainer.appendChild(rewardRow);
 }
 
-// ESKİ attackMonster FONKSİYONUNU SİL VE YERİNE BUNU YAPIŞTIR
-// --- YEPYENİ SAVAŞ SİSTEMİ FONKSİYONU ---
+// MEVCUT attackMonster FONKSİYONUNU SİL VE BUNU YAPIŞTIR
 async function attackMonster() {
     if (isAdmin) {
         displayMessage("Adminler saldıramaz.");
@@ -16600,33 +16695,20 @@ async function attackMonster() {
             pierceChance: (playerBaseStats.pierceChance || 5) + (globalBuffs.pierceChance || 0),
         };
         const monsterStats = battleData.monsterDetails;
-
-        // Savunma artık hasarı yüzdelik olarak azaltacak. Maksimum %80 azaltabilir.
+        
         const monsterDefenseReduction = Math.min((monsterStats.defense || 0) / 100, 0.8);
         const playerDefenseReduction = Math.min((playerStats.defense || 0) / 100, 0.8);
 
-        // --- Oyuncunun Saldırısı ---
         let finalDamageToMonster = 0;
         let playerAttackType = 'normal';
         let didMonsterDodge = false;
         const randomPlayerDamage = Math.floor(Math.random() * (playerStats.maxDamage - playerStats.minDamage + 1)) + playerStats.minDamage;
-        
         const playerPierced = (Math.random() * 100) < playerStats.pierceChance;
-        
-        if (!playerPierced) { // Eğer delici vuruş başarısız olursa, canavar sıyrılmayı deneyebilir.
-            didMonsterDodge = (Math.random() * 100) < (monsterStats.dodgeChance || 0);
-        }
-
-        if (didMonsterDodge) {
-            finalDamageToMonster = 0;
-        } else {
+        if (!playerPierced) { didMonsterDodge = (Math.random() * 100) < (monsterStats.dodgeChance || 0); }
+        if (!didMonsterDodge) {
             const playerCritted = (Math.random() * 100) < playerStats.critChance;
             let totalDamage = randomPlayerDamage;
-            if (playerCritted) {
-                totalDamage += Math.floor(totalDamage * (playerStats.critDamage / 100));
-            }
-            
-            // Delici vuruş, savunmayı yok sayar. Diğer durumlarda savunma hasarı azaltır.
+            if (playerCritted) { totalDamage += Math.floor(totalDamage * (playerStats.critDamage / 100)); }
             if (playerPierced) {
                 finalDamageToMonster = Math.max(1, Math.floor(totalDamage));
                 playerAttackType = 'pierce';
@@ -16636,27 +16718,16 @@ async function attackMonster() {
             }
         }
         
-        // --- Canavarın Saldırısı ---
         let finalDamageToPlayer = 0;
         let monsterAttackType = 'normal';
         let didPlayerDodge = false;
         const randomMonsterDamage = Math.floor(Math.random() * (monsterStats.maxDamage - monsterStats.minDamage + 1)) + monsterStats.minDamage;
-        
         const monsterPierced = (Math.random() * 100) < (monsterStats.pierceChance || 5);
-
-        if (!monsterPierced) {
-            didPlayerDodge = (Math.random() * 100) < playerStats.dodgeChance;
-        }
-        
-        if (didPlayerDodge) {
-            finalDamageToPlayer = 0;
-        } else {
+        if (!monsterPierced) { didPlayerDodge = (Math.random() * 100) < playerStats.dodgeChance; }
+        if (!didPlayerDodge) {
             const monsterCritted = (Math.random() * 100) < (monsterStats.critChance || 5);
             let totalDamage = randomMonsterDamage;
-            if (monsterCritted) {
-                totalDamage += Math.floor(totalDamage * ((monsterStats.critDamage || 10) / 100));
-            }
-
+            if (monsterCritted) { totalDamage += Math.floor(totalDamage * ((monsterStats.critDamage || 10) / 100)); }
             if (monsterPierced) {
                 finalDamageToPlayer = Math.max(1, Math.floor(totalDamage));
                 monsterAttackType = 'pierce';
@@ -16674,10 +16745,7 @@ async function attackMonster() {
                 let randomRoll = Math.random() * totalChance;
                 for (const reward of tier.rewards) {
                     randomRoll -= reward.chance;
-                    if (randomRoll <= 0) {
-                        randomReward = reward;
-                        break;
-                    }
+                    if (randomRoll <= 0) { randomReward = reward; break; }
                 }
                 break; 
             }
@@ -16744,7 +16812,6 @@ async function attackMonster() {
         }
         if (Object.keys(updates).length > 0) await db.ref().update(updates);
         
-        // İSTEĞİN: Yeni ve detaylı loglama sistemi
         logActivity('monsterAttack', currentUser, {
             monsterName: monsterStats.name,
             damageDealt: finalDamageToMonster,
@@ -16768,51 +16835,71 @@ async function attackMonster() {
         if (finalBattleData && finalBattleData.monsterDetails.currentHP <= 0) {
             const sortedLeaderboard = Object.entries(finalBattleData.damageLeaderboard || {}).sort((a,b) => b[1].totalDamage - a[1].totalDamage);
             const winner = sortedLeaderboard.length > 0 ? sortedLeaderboard[0][0] : null;
+            const winnerData = winner ? finalBattleData.damageLeaderboard[winner] : null;
             const prize = finalBattleData.rewards?.onKillLeader;
-            if (winner && prize) {
+
+            if (winner && prize && winnerData) {
+                // ★★★ YENİ KOD BAŞLANGICI: Önceki şampiyon bilgisini kaydet ★★★
+                await db.ref('gameStats/lastMonsterChampion').set({
+                    username: winner,
+                    totalDamage: winnerData.totalDamage,
+                    lockedAvatarUrl: winnerData.lockedAvatarUrl
+                });
+                // ★★★ YENİ KOD SONU ★★★
+
                 const prizeName = typeToName[prize.type] || prize.type;
                 const prizeText = `${prize.value} ${prizeName}`;
                 logActivity('monsterDefeated', 'WeizendTv', { monsterName: finalBattleData.monsterDetails.name, winner: winner, prize: prizeText });
+                
                 const winnerRef = db.ref(`users/${winner}`);
-                await winnerRef.transaction(winnerData => {
-                    if (winnerData) {
+                await winnerRef.transaction(winnerDataFromDB => {
+                    if (winnerDataFromDB) {
                          const { type, value } = prize;
                          if(type === 'health_regen_potion'){
-                            if(!winnerData.inventory) winnerData.inventory = {};
-                            if(!winnerData.inventory.health_regen_potion) winnerData.inventory.health_regen_potion = {};
-                            const currentPotions = winnerData.inventory.health_regen_potion[value] || 0;
-                            winnerData.inventory.health_regen_potion[value] = currentPotions + 1;
+                            if(!winnerDataFromDB.inventory) winnerDataFromDB.inventory = {};
+                            if(!winnerDataFromDB.inventory.health_regen_potion) winnerDataFromDB.inventory.health_regen_potion = {};
+                            const currentPotions = winnerDataFromDB.inventory.health_regen_potion[value] || 0;
+                            winnerDataFromDB.inventory.health_regen_potion[value] = currentPotions + 1;
                          } else {
                              const dbKeyMap = { points: 'balance', boxRights: 'kutuHakki', wheelTicket: 'carkBileti', clickCatchTicket: 'clickCatchTickets', iflasShield: 'iflasShieldUses', wildcard: 'wildcards', revival_stone: 'inventory/revival_stone' };
                              const statKeyMap = { health_potion: 'hp', damage_potion: 'damage', defense_potion: 'defense', crit_potion: 'critChance', crit_damage_potion: 'critDamage', dodge_potion: 'dodgeChance', pierce_potion: 'pierceChance' };
                              
                              if (type === 'points') {
-                                winnerData.balance = (winnerData.balance || 0) + value;
-                                winnerData.kariyerPuani = (winnerData.kariyerPuani || 0) + value;
+                                winnerDataFromDB.balance = (winnerDataFromDB.balance || 0) + value;
+                                winnerDataFromDB.kariyerPuani = (winnerDataFromDB.kariyerPuani || 0) + value;
                              } else if (type.startsWith('card_pack')) {
                                  const packKey = db.ref().push().key;
-                                 if (!winnerData.pendingActions) winnerData.pendingActions = {};
-                                 if (!winnerData.pendingActions.cardPacks) winnerData.pendingActions.cardPacks = {};
-                                 winnerData.pendingActions.cardPacks[packKey] = { type: type, count: value };
+                                 if (!winnerDataFromDB.pendingActions) winnerDataFromDB.pendingActions = {};
+                                 if (!winnerDataFromDB.pendingActions.cardPacks) winnerDataFromDB.pendingActions.cardPacks = {};
+                                 winnerDataFromDB.pendingActions.cardPacks[packKey] = { type: type, count: value };
                              } else if (dbKeyMap[type]) {
                                  const pathParts = dbKeyMap[type].split('/');
                                  if (pathParts.length > 1) {
-                                     if (!winnerData[pathParts[0]]) winnerData[pathParts[0]] = {};
-                                     winnerData[pathParts[0]][pathParts[1]] = (winnerData[pathParts[0]][pathParts[1]] || 0) + value;
+                                     if (!winnerDataFromDB[pathParts[0]]) winnerDataFromDB[pathParts[0]] = {};
+                                     winnerDataFromDB[pathParts[0]][pathParts[1]] = (winnerDataFromDB[pathParts[0]][pathParts[1]] || 0) + value;
                                  } else {
-                                     winnerData[dbKeyMap[type]] = (winnerData[dbKeyMap[type]] || 0) + value;
+                                     winnerDataFromDB[dbKeyMap[type]] = (winnerDataFromDB[dbKeyMap[type]] || 0) + value;
                                  }
                              } else if (statKeyMap[type]) {
                                 const statKey = statKeyMap[type];
-                                const capCheck = checkPotionCap(winnerData, type, value);
+                                const capCheck = checkPotionCap(winnerDataFromDB, type, value);
                                 if (capCheck.canAdd && capCheck.amount > 0) {
-                                    if (!winnerData.globalPotionBuffs) winnerData.globalPotionBuffs = {};
-                                    winnerData.globalPotionBuffs[statKey] = (winnerData.globalPotionBuffs[statKey] || 0) + capCheck.amount;
+                                    if (!winnerDataFromDB.globalPotionBuffs) winnerDataFromDB.globalPotionBuffs = {};
+                                    winnerDataFromDB.globalPotionBuffs[statKey] = (winnerDataFromDB.globalPotionBuffs[statKey] || 0) + capCheck.amount;
                                 }
                              }
                          }
+
+                         if (!winnerDataFromDB.monsterChampionships) {
+                             winnerDataFromDB.monsterChampionships = [];
+                         }
+                         winnerDataFromDB.monsterChampionships.push({
+                             timestamp: firebase.database.ServerValue.TIMESTAMP,
+                             monsterName: finalBattleData.monsterDetails.name,
+                             damage: winnerData.totalDamage
+                         });
                     }
-                    return winnerData;
+                    return winnerDataFromDB;
                 });
             }
         }
@@ -16939,6 +17026,8 @@ async function deleteCurrentMonster() {
     }
 }
 
+// MEVCUT openMonsterInfoModal FONKSİYONUNU SİLİP BUNU YAPIŞTIR
+
 function openMonsterInfoModal() {
     const monster = monsterBattleData.monsterDetails;
     if (!monster) return;
@@ -16946,7 +17035,6 @@ function openMonsterInfoModal() {
     document.getElementById('modalMonsterName').textContent = monster.name;
     
     const statsEl = document.getElementById('modalMonsterStats');
-    // DEĞİŞİKLİK BURADA: İsimlendirme ve sıralama güncellendi.
     statsEl.innerHTML = `
         <p>❤️ Can: <b class="text-white">${formatNumber(monster.maxHP)}</b></p>
         <p>⚔️ Hasar: <b class="text-white">${formatNumber(monster.minDamage)} - ${formatNumber(monster.maxDamage)}</b></p>
@@ -16971,7 +17059,27 @@ function openMonsterInfoModal() {
     if (tiers.length > 0) {
         tiersEl.innerHTML = '';
         tiers.sort((a,b) => a.minDamage - b.minDamage).forEach(tier => {
-            const rewardTexts = tier.rewards.map(r => `${typeToName[r.type]} (%${r.chance})`).join(', ');
+            
+            // ★★★ DEĞİŞEN KISIM BAŞLANGICI: Ödül metinlerini daha detaylı oluşturuyoruz ★★★
+            const rewardTexts = tier.rewards.map(r => {
+                const isPercent = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion', 'health_regen_potion'].includes(r.type);
+                const name = typeToName[r.type] || r.type; // typeToName'den ismi al
+                let valueText = '';
+
+                // Eğer yüzde ile gösterilecek bir iksirse, başına +% koy
+                if (isPercent) {
+                    valueText = `+%${r.value} ${name}`;
+                } 
+                // Diğer tüm ödüller için başına + koy
+                else {
+                    valueText = `+${r.value} ${name}`;
+                }
+                
+                // Son olarak, şans yüzdesini de ekle
+                return `${valueText} (%${r.chance})`;
+            }).join(', ');
+            // ★★★ DEĞİŞEN KISIM SONU ★★★
+            
             tiersEl.innerHTML += `<div><b class="text-white">${formatNumber(tier.minDamage)}+ Hasar</b> vuranlar şu ödüllerden birini kazanma şansı yakalar: <span class="text-cyan-300">${rewardTexts}</span></div>`;
         });
     } else {
@@ -16980,6 +17088,7 @@ function openMonsterInfoModal() {
 
     document.getElementById('monsterInfoModal').style.display = 'flex';
 }
+
 /**
  * Canavar bilgi penceresini kapatır.
  */
