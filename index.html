@@ -6582,7 +6582,6 @@ function renderActivityFeed(activities) {
     });
 }
 
-// BU YENİ FONKSİYONU SCRIPT BLOĞUNUZUN UYGUN BİR YERİNE (ÖRNEĞİN DİĞER YARDIMCI FONKSİYONLARIN YANINA) EKLEYİN
 /**
  * Verilen değere göre bir değeri tamsayı veya ondalıklı sayıya çevirir.
  * Yüzdelik iksirler için ondalıklı, diğerleri için tamsayı kullanılır.
@@ -6591,7 +6590,7 @@ function renderActivityFeed(activities) {
  * @returns {number} İşlenmiş sayısal değer.
  */
 function parseStatValue(type, valueString) {
-    const isPercentPotion = ['crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion'].includes(type);
+    const isPercentPotion = ['crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion', 'defense_potion'].includes(type);
     if (isPercentPotion) {
         // Virgülü noktaya çevirerek uluslararası uyumluluk sağlar ve ondalıklı sayıya çevirir.
         return parseFloat(String(valueString).replace(',', '.'));
@@ -9020,8 +9019,6 @@ async function openDailyRewardModal() {
     }
 }
       
-// --- YENİ VE TÜM EŞYALARI TANIYAN FONKSİYON ---
-// --- YENİ VE TÜM EŞYALARI TANIYAN FONKSİYON ---
 async function claimDailyReward(rewardId) {
     if (isAdmin) {
         displayMessage("Adminler ödül alamaz.");
@@ -9134,15 +9131,25 @@ async function claimDailyReward(rewardId) {
                     case 'card_pack_gumus':
                     case 'card_pack_altin':
                     case 'card_pack_efsanevi':
-                        cardPacksToOpen.push({ type: reward.type, value: reward.value });
+                        cardPacksToOpen.push(reward);
                         break;
                     case 'revival_stone':
                         if (!userData.inventory) userData.inventory = {};
                         userData.inventory.revival_stone = (userData.inventory.revival_stone || 0) + reward.value;
                         break;
+                    case 'health_regen_potion':
+                        if(!userData.inventory) userData.inventory = {};
+                        if(!userData.inventory.health_regen_potion) userData.inventory.health_regen_potion = {};
+                        const currentPotions = userData.inventory.health_regen_potion[reward.value] || 0;
+                        userData.inventory.health_regen_potion[reward.value] = currentPotions + 1; // Her alımda 1 adet
+                        break;
                     case 'health_potion': case 'damage_potion': case 'defense_potion':
                     case 'crit_potion': case 'crit_damage_potion': case 'dodge_potion': case 'pierce_potion':
-                        const statKeyMap = { 'health_potion': 'hp', 'damage_potion': 'damage', 'defense_potion': 'defense', 'crit_potion': 'critChance', 'crit_damage_potion': 'critDamage', 'dodge_potion': 'dodgeChance', 'pierce_potion': 'pierceChance' };
+                        const statKeyMap = { 
+                            'health_potion': 'hp', 'damage_potion': 'damage', 'defense_potion': 'defense', 
+                            'crit_potion': 'critChance', 'crit_damage_potion': 'critDamage', 
+                            'dodge_potion': 'dodgeChance', 'pierce_potion': 'pierceChance' 
+                        };
                         const statKey = statKeyMap[reward.type];
                         if (statKey) {
                             if (!userData.globalPotionBuffs) userData.globalPotionBuffs = {};
@@ -9155,7 +9162,11 @@ async function claimDailyReward(rewardId) {
         });
 
         if (committed) {
-            displayMessage(`Tebrikler! '${reward.name}' ödülünü başarıyla aldın.`);
+             const isPercent = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion'].includes(reward.type);
+             const valuePrefix = isPercent ? `+%${reward.value}` : `+${reward.value}`;
+             const rewardNameForMessage = reward.type === 'avatar' ? `'${reward.avatarName}' Avatarı` : `${valuePrefix} ${typeToName[reward.type] || 'Ödül'}`;
+
+            displayMessage(`Tebrikler! '${reward.name}' ödülünü başarıyla aldın: ${rewardNameForMessage}`);
             logActivity('dailyReward', currentUser, { ...activityLogDetails, rewardName: reward.name, rewardType: reward.type, rewardValue: reward.value });
             
             const hasPotion = reward.type.includes('_potion');
@@ -9168,7 +9179,7 @@ async function claimDailyReward(rewardId) {
             await openDailyRewardModal();
             await checkAvailableDailyRewards();
         } else {
-            throw new Error("Ödül alınamadı. Lütfen sayfayı yenileyip tekrar deneyin.");
+            throw new Error("Ödül alınamadı. Koşullar sağlanmıyor olabilir, lütfen sayfayı yenileyip tekrar deneyin.");
         }
 
     } catch (error) {
@@ -13392,17 +13403,14 @@ async function loadCollectionAlbum() {
             wildcardCountSpan.textContent = userWildcards;
             wildcardIndicator.classList.remove('hidden');
             
-            // ★★★ SORUNU ÇÖZEN DEĞİŞİKLİK BURADA ★★★
             const convertBtn = document.getElementById('convertWildcardBtn');
             if (convertBtn) {
-                // Eğer kullanıcı koleksiyonu tamamladıysa VE en az 1 joker kartı varsa butonu göster
                 if (hasCompletedCollection && userWildcards > 0) {
                     convertBtn.classList.remove('hidden');
                 } else {
                     convertBtn.classList.add('hidden');
                 }
             }
-            // ★★★ DEĞİŞİKLİK SONU ★★★
 
         } else {
             wildcardIndicator.classList.add('hidden');
@@ -13441,6 +13449,7 @@ async function loadCollectionAlbum() {
                 <h4 class="card-name">${cardInfo.cardName}</h4>
             `;
 
+            // GÜNCELLENEN KISIM: Artık kartları doğru fonksiyonlara yönlendiriyor
             if (hasCompletedCollection && userHasCard && userHasCard.count > 1) {
                 const rates = { normal: 1, gumus: 2, altin: 3, efsanevi: 5 };
                 const boxRightsToGain = rates[cardInfo.rarity] || 1;
@@ -15585,11 +15594,12 @@ function addRewardToDay(element, rewardData = {}) {
     handleAdminRewardTypeChange(selectElement, rewardData); // Mevcut veriyi de gönder
 }
       
-// Admin panelinde ödül tipi değiştikçe ilgili inputları gösterir/gizler (Güncellendi)
 function handleAdminRewardTypeChange(selectElement, rewardData = {}) {
     const type = selectElement.value;
     const container = selectElement.closest('.grid').querySelector('.reward-fields-container');
     let fieldsHtml = '';
+    const isPercent = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion'].includes(type);
+    const valuePlaceholder = isPercent ? 'Değer (örn: 2.5)' : 'Miktar / Adet';
 
     if (type === 'tempMultiplier') {
         fieldsHtml = `
@@ -15605,7 +15615,7 @@ function handleAdminRewardTypeChange(selectElement, rewardData = {}) {
         `;
     } else {
         fieldsHtml = `
-            <input type="number" class="box-setting-input reward-value col-span-2 sm:col-span-1" placeholder="Miktar / Adet" value="${rewardData.value || ''}">
+            <input type="text" class="box-setting-input reward-value col-span-2 sm:col-span-1" placeholder="${valuePlaceholder}" value="${rewardData.value || ''}">
             <button onclick="this.parentElement.parentElement.remove()" class="py-1 px-2 bg-red-600 hover:bg-red-500 rounded-md text-xs sm:col-span-1">Sil</button>
         `;
     }
@@ -16933,11 +16943,11 @@ function customAlert(message) {
     });
 }
 
-// ★★★ YENİ EKLENECEK FONKSİYON ★★★
 async function convertWildcard() {
     if (isAdmin) return;
 
-    const confirmed = await customConfirm("1 adet Joker Kart'ı 2.500 Puana dönüştürmek istediğinize emin misiniz? Bu işlem geri alınamaz!");
+    // GÜNCELLENDİ: Artık Puan yerine Kutu Hakkı veriyor
+    const confirmed = await customConfirm("1 adet Joker Kart'ı 10 Kutu Hakkı'na dönüştürmek istediğinize emin misiniz? Bu işlem geri alınamaz!");
     if (!confirmed) return;
 
     const userRef = db.ref(`users/${currentUser}`);
@@ -16946,20 +16956,20 @@ async function convertWildcard() {
         const { committed, snapshot } = await userRef.transaction(userData => {
             if (userData && (userData.wildcards || 0) > 0) {
                 userData.wildcards--;
-                userData.balance = (userData.balance || 0) + 2500;
-                userData.kariyerPuani = (userData.kariyerPuani || 0) + 2500;
+                // GÜNCELLENDİ: Puan yerine kutuHakki artırılıyor
+                userData.kutuHakki = (userData.kutuHakki || 0) + 10;
                 return userData;
             }
-            return; // Koşul sağlanmıyorsa işlemi iptal et
+            return; 
         });
 
         if (committed) {
-            displayMessage("Başarılı! 1 Joker Kart, 2.500 Puana dönüştürüldü.");
-            logActivity('wildcardConvertedToPoints', currentUser, {
-                points: 2500,
-                newBalance: snapshot.val().balance
+            // GÜNCELLENDİ: Mesaj da Kutu Hakkı'na göre güncellendi
+            displayMessage("Başarılı! 1 Joker Kart, 10 Kutu Hakkı'na dönüştürüldü.");
+            logActivity('wildcardConvertedToBoxRights', currentUser, {
+                boxRights: 10,
+                newBoxRights: snapshot.val().kutuHakki
             });
-            // Arayüzü anında güncelle
             if (currentActiveSection === 'cardCollection') {
                 loadCollectionAlbum();
             }
@@ -16971,8 +16981,7 @@ async function convertWildcard() {
     }
 }
 
-      // YENİ FONKSİYON: Kullanıcı Sıfırlama
-async function resetUser(username) {
+      async function resetUser(username) {
     if (!isAdmin || !username) return;
 
     const confirmed = await customConfirm(
@@ -16994,7 +17003,6 @@ async function resetUser(username) {
             kasaPuani: userData.kasaPuani || 0,
             avatars: userData.avatars || null,
             globalPotionBuffs: userData.globalPotionBuffs || null,
-            // Kullanıcının temel kimlik bilgilerini de koruyalım
             password: userData.password,
             pin: userData.pin,
             approved: userData.approved,
@@ -17003,7 +17011,8 @@ async function resetUser(username) {
 
         // KULLANICIYI SİLİP KORUNAN VERİLERLE YENİDEN OLUŞTUR
         const updates = {};
-        updates[`/users/${username}`] = preservedData; // Önce tamamen sil
+        updates[`/users/${username}`] = preservedData;
+        // GÜNCELLENEN KISIM: İlgili tüm liderlik tablolarından kullanıcıyı temizle
         updates[`/clickCatchWeeklyScores/${username}`] = null;
         updates[`/gameConfig/monsterBattle/damageLeaderboard/${username}`] = null;
         
