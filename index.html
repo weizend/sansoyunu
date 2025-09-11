@@ -16981,6 +16981,8 @@ async function useRevivalStone() {
     }
 }
 
+// MEVCUT editCurrentMonster FONKSİYONUNU SİL VE BUNU YAPIŞTIR
+
 /**
  * Adminin mevcut canavarı düzenlemek için yönetim panelini açmasını sağlar.
  */
@@ -16993,12 +16995,18 @@ async function editCurrentMonster() {
 
     // Formu mevcut canavarın bilgileriyle doldur
     document.getElementById('adminMonsterName').value = monster.name || '';
+    document.getElementById('adminMonsterImageUrl').value = monster.imageUrl || '';
     document.getElementById('adminMonsterMaxHP').value = monster.maxHP || '';
     document.getElementById('adminMonsterMinDamage').value = monster.minDamage || '';
     document.getElementById('adminMonsterMaxDamage').value = monster.maxDamage || '';
     document.getElementById('adminMonsterDefense').value = monster.defense || '';
     document.getElementById('adminMonsterCritChance').value = monster.critChance || '';
-    document.getElementById('adminMonsterImageUrl').value = monster.imageUrl || '';
+    
+    // ★★★ EKSİK OLAN VE YENİ EKLENEN SATIRLAR ★★★
+    document.getElementById('adminMonsterCritDamage').value = monster.critDamage || '';
+    document.getElementById('adminMonsterDodgeChance').value = monster.dodgeChance || '';
+    document.getElementById('adminMonsterPierceChance').value = monster.pierceChance || '';
+    // ★★★ EKLENEN SATIRLARIN SONU ★★★
 
     if (rewards.onKillLeader) {
         document.getElementById('adminMonsterKillRewardType').value = rewards.onKillLeader.type || 'points';
