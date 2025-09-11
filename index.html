@@ -12442,17 +12442,53 @@ function hideAllAdminControls() {
     document.getElementById('avatarAdminControls')?.classList.add('hidden');
 }
 
-// YENİ: Kart dönüştürme penceresini açar
+// Kart dönüştürme onay penceresini açar
 function openCardConversionModal(cardId, cardName, cardRarity, boxRightsToGain) {
     const modal = document.getElementById('cardConversionModal');
     const infoText = document.getElementById('conversionInfoText');
     const confirmBtn = document.getElementById('confirmConversionBtn');
     
-    infoText.innerHTML = `Fazla olan 1 adet <b class="text-white">'${cardName}'</b> (${cardRarity}) kartını <b class="text-yellow-300">+${boxRightsToGain} Kutu Hakkı</b>'na dönüştürmek istediğine emin misin?`;
+    const rarityNames = { normal: 'Bronz', gumus: 'Gümüş', altin: 'Altın', efsanevi: 'Efsanevi' };
+    const displayRarity = rarityNames[cardRarity] || cardRarity;
+
+    infoText.innerHTML = `Fazla olan 1 adet <b class="text-white">'${cardName}'</b> (${displayRarity}) kartını <b class="text-yellow-300">+${boxRightsToGain} Kutu Hakkı</b>'na dönüştürmek istediğine emin misin?`;
     
     confirmBtn.onclick = () => convertDuplicateCard(cardId, boxRightsToGain);
     
     modal.style.display = 'flex';
+}
+
+// Kartı Kutu Hakkına dönüştürme işlemini yapar
+async function convertDuplicateCard(cardId, boxRightsToGain) {
+    if(isTradeInProgress) return;
+    isTradeInProgress = true;
+    
+    const userRef = db.ref(`users/${currentUser}`);
+
+    try {
+        const { committed, snapshot } = await userRef.transaction(userData => {
+            if (userData && userData.completedCollection === true && userData.cardCollection?.[cardId]?.count > 1) {
+                userData.cardCollection[cardId].count--;
+                userData.kutuHakki = (userData.kutuHakki || 0) + boxRightsToGain;
+                return userData;
+            }
+            return; // Koşullar sağlanmazsa işlemi iptal et
+        });
+
+        if (committed) {
+            displayMessage(`Başarılı! Kartın +${boxRightsToGain} Kutu Hakkı'na dönüştürüldü.`);
+            closeCardConversionModal();
+            loadCollectionAlbum(); // Arayüzü anında güncelle
+        } else {
+            throw new Error("Dönüştürme işlemi başarısız oldu. Kart durumu değişmiş veya koleksiyon tamamlanmamış olabilir.");
+        }
+
+    } catch (error) {
+        displayMessage(error.message);
+        closeCardConversionModal();
+    } finally {
+        isTradeInProgress = false;
+    }
 }
 
 // YENİ: Kart dönüştürme penceresini kapatır
@@ -13318,15 +13354,11 @@ async function loadCollectionAlbum() {
     const currentStatus = statusSnap.val() || 'inactive';
 
     if(isAdmin) {
+        // ... (Admin kontrolleri aynı kalacak, buraya dokunmuyoruz) ...
         const statusTextEl = document.getElementById('collectionStatusText');
         const pauseBtn = document.getElementById('pauseResumeButton');
         if (statusTextEl && pauseBtn) {
-            statusTextEl.textContent = {
-                'active': 'Aktif',
-                'paused': 'Duraklatıldı (Bakımda)',
-                'inactive': 'Bitti / Başlamadı'
-            }[currentStatus];
-            
+            statusTextEl.textContent = {'active': 'Aktif', 'paused': 'Duraklatıldı (Bakımda)', 'inactive': 'Bitti / Başlamadı'}[currentStatus];
             if(currentStatus === 'paused') {
                 pauseBtn.textContent = 'Sezonu Devam Ettir';
                 pauseBtn.classList.replace('bg-orange-600', 'bg-green-600');
@@ -13337,33 +13369,24 @@ async function loadCollectionAlbum() {
                 pauseBtn.classList.replace('hover:bg-green-500', 'hover:bg-orange-500');
             }
         }
-        
         const toggleBtn = document.getElementById('toggleSeasonBtn');
         if (toggleBtn) {
             if (currentStatus === 'active') {
                 toggleBtn.textContent = '⛔ Sezonu Bitir';
-                toggleBtn.classList.remove('bg-green-700', 'hover:bg-green-600', 'animate-pulse');
                 toggleBtn.classList.add('bg-red-700', 'hover:bg-red-600');
+                toggleBtn.classList.remove('bg-green-700', 'hover:bg-green-600', 'animate-pulse');
             } else {
                 toggleBtn.textContent = '💥 YENİ SEZONU BAŞLAT 💥';
-                toggleBtn.classList.remove('bg-red-700', 'hover:bg-red-600');
                 toggleBtn.classList.add('bg-green-700', 'hover:bg-green-600', 'animate-pulse');
+                toggleBtn.classList.remove('bg-red-700', 'hover:bg-red-600');
             }
         }
     }
 
     if (!isAdmin) {
-        if (currentStatus === 'paused') {
-            statusTitle.textContent = '🔧 Bakımdayız 🔧';
-            statusMessage.textContent = 'Kart Koleksiyonu sezonu şu anda kısa bir bakımda. Lütfen daha sonra tekrar kontrol et.';
-            statusOverlay.classList.remove('hidden');
-            albumContainer.classList.add('hidden');
-            grandPrizeDisplay.classList.add('hidden');
-            return;
-        }
-        if (currentStatus === 'inactive') {
-            statusTitle.textContent = '🚀 Yeni Sezon Çok Yakında! 🚀';
-            statusMessage.textContent = 'Adminin yeni kartları hazırlayıp yeni sezonu başlatmasını bekle. Takipte kal!';
+        if (currentStatus === 'paused' || currentStatus === 'inactive') {
+            statusTitle.textContent = currentStatus === 'paused' ? '🔧 Bakımdayız 🔧' : '🚀 Yeni Sezon Çok Yakında! 🚀';
+            statusMessage.textContent = currentStatus === 'paused' ? 'Kart Koleksiyonu sezonu şu anda kısa bir bakımda.' : 'Adminin yeni sezonu başlatmasını bekle.';
             statusOverlay.classList.remove('hidden');
             albumContainer.classList.add('hidden');
             grandPrizeDisplay.classList.add('hidden');
@@ -13381,7 +13404,7 @@ async function loadCollectionAlbum() {
     const masterListSnap = await masterListRef.orderByChild('order').once('value');
     
     if (!masterListSnap.exists()) {
-        albumContainer.innerHTML = '<p class="text-center col-span-full text-gray-400">Yönetici henüz bir koleksiyon oluşturmadı.</p>';
+        albumContainer.innerHTML = '<p class="text-center col-span-full">Yönetici henüz bir koleksiyon oluşturmadı.</p>';
         if(progressSpan) progressSpan.textContent = '0/0';
         return;
     }
@@ -13402,16 +13425,10 @@ async function loadCollectionAlbum() {
         if (userWildcards > 0 || isAdmin) {
             wildcardCountSpan.textContent = userWildcards;
             wildcardIndicator.classList.remove('hidden');
-            
             const convertBtn = document.getElementById('convertWildcardBtn');
             if (convertBtn) {
-                if (hasCompletedCollection && userWildcards > 0) {
-                    convertBtn.classList.remove('hidden');
-                } else {
-                    convertBtn.classList.add('hidden');
-                }
+                convertBtn.classList.toggle('hidden', !(hasCompletedCollection && userWildcards > 0));
             }
-
         } else {
             wildcardIndicator.classList.add('hidden');
         }
@@ -13433,49 +13450,42 @@ async function loadCollectionAlbum() {
             const cardItem = document.createElement('div');
             cardItem.className = `card-item rarity-${cardInfo.rarity || 'normal'}`;
             
-            let newBadge = '';
-            if (newlyAcquiredCards.has(cardId)) {
-                newBadge = `<div class="new-card-badge">YENİ</div>`;
-            }
-            
             let duplicateBadge = userHasCard && userHasCard.count > 1 ? `<div class="duplicate-badge">+${userHasCard.count - 1}</div>` : '';
-            let adminCardControls = isAdmin ? `<div class="card-admin-buttons"><button onclick="openCardCreatorModal('${cardId}')" title="Düzenle">✏️</button><button onclick="deleteCard('${cardId}')" title="Sil">🗑️</button></div>` : '';
+            let adminCardControls = isAdmin ? `<div class="card-admin-buttons"><button onclick="openCardCreatorModal('${cardId}')">✏️</button><button onclick="deleteCard('${cardId}')">🗑️</button></div>` : '';
             
             cardItem.innerHTML = `
-                ${newBadge}
+                ${newlyAcquiredCards.has(cardId) ? `<div class="new-card-badge">YENİ</div>` : ''}
                 ${duplicateBadge}
                 ${adminCardControls}
                 <img class="card-image" src="${cardInfo.imageUrl}">
                 <h4 class="card-name">${cardInfo.cardName}</h4>
             `;
 
-            // GÜNCELLENEN KISIM: Artık kartları doğru fonksiyonlara yönlendiriyor
-            if (hasCompletedCollection && userHasCard && userHasCard.count > 1) {
-                const rates = { normal: 1, gumus: 2, altin: 3, efsanevi: 5 };
-                const boxRightsToGain = rates[cardInfo.rarity] || 1;
-                cardItem.onclick = () => openCardConversionModal(cardId, cardInfo.cardName, cardInfo.rarity, boxRightsToGain);
-            }
-            else if (!hasCompletedCollection && userHasCard && userHasCard.count > 1) {
-                cardItem.onclick = () => openTradeMenu(cardId, cardInfo.cardName);
+            // ### EN ÖNEMLİ DEĞİŞİKLİK BURADA ###
+            // Artık tek bir tıklama olayı var ve bu olay yeni ve akıllı bir fonksiyonu çağırıyor.
+            if (userHasCard && userHasCard.count > 1) {
+                if (hasCompletedCollection) {
+                    // Koleksiyonu tamamladıysa, dönüştürme fonksiyonunu çağır
+                    cardItem.onclick = () => handleDuplicateCardClick(cardId);
+                } else {
+                    // Tamamlamadıysa, takas menüsünü aç
+                    cardItem.onclick = () => openTradeMenu(cardId, cardInfo.cardName);
+                }
             }
             
             slot.appendChild(cardItem);
 
         } else {
             let wildcardButton = '';
-            if (userWildcards > 0) {
+            if (userWildcards > 0 && !hasCompletedCollection) {
                 wildcardButton = `<button class="absolute bottom-2 left-1/2 -translate-x-1/2 w-11/12 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-lg animate-pulse" onclick="useWildcard('${cardId}', '${cardInfo.cardName}')">Joker Kullan</button>`;
             }
-
             slot.innerHTML = `
                 <div class="card-item missing relative rarity-${cardInfo.rarity || 'normal'}">
-                    <div class="card-image flex items-center justify-center">
-                         <span class="missing-text">?</span>
-                    </div>
+                    <div class="card-image flex items-center justify-center"><span class="missing-text">?</span></div>
                     <h4 class="card-name text-gray-500">${cardInfo.cardName}</h4>
                     ${wildcardButton}
-                </div>
-            `;
+                </div>`;
         }
         albumContainer.appendChild(slot);
     }
@@ -13486,6 +13496,65 @@ function openTradeMenu(cardId, cardName) {
     if (!cardId) return;
     // Teklif penceresini, bu kart önceden seçili olacak şekilde aç
     openCreateOfferModal(cardId);
+}
+
+// YENİ VE TÜM MANTIĞI İÇEREN FONKSİYON
+async function handleDuplicateCardClick(cardId) {
+    if (isTradeInProgress) return; // Başka bir işlem devam ediyorsa bekle
+    isTradeInProgress = true;
+
+    try {
+        // Gerekli tüm verileri tek seferde çekelim
+        const [userSnap, cardInfoSnap] = await Promise.all([
+            db.ref(`users/${currentUser}`).once('value'),
+            db.ref(`gameConfig/cardCollection/${cardId}`).once('value')
+        ]);
+
+        const userData = userSnap.val();
+        const cardInfo = cardInfoSnap.val();
+
+        // Sunucu tarafı gibi davranıp tüm kontrolleri yapalım
+        if (!userData || !cardInfo || userData.completedCollection !== true || !userData.cardCollection?.[cardId] || userData.cardCollection[cardId].count <= 1) {
+            throw new Error("Bu kart dönüştürülemez. Sayfayı yenileyip tekrar deneyin.");
+        }
+
+        // İsteğine göre oranları belirleyelim
+        const rates = { normal: 1, gumus: 2, altin: 3, efsanevi: 5 };
+        const boxRightsToGain = rates[cardInfo.rarity] || 1; // Bilinmeyen bir nadirlik varsa 1 ver
+        
+        const rarityNames = { normal: 'Bronz', gumus: 'Gümüş', altin: 'Altın', efsanevi: 'Efsanevi' };
+        const displayRarity = rarityNames[cardInfo.rarity] || cardInfo.rarity;
+
+        // Kullanıcıya onay soralım
+        const confirmed = await customConfirm(`Fazla olan 1 adet <b class="text-white">'${cardInfo.cardName}'</b> (${displayRarity}) kartını <b class="text-yellow-300">+${boxRightsToGain} Kutu Hakkı</b>'na dönüştürmek istediğine emin misin?`);
+        if (!confirmed) {
+            isTradeInProgress = false;
+            return;
+        }
+
+        // Veritabanı işlemini Transaction ile güvenli bir şekilde yapalım
+        const userRef = db.ref(`users/${currentUser}`);
+        const { committed } = await userRef.transaction(currentData => {
+            if (currentData && currentData.completedCollection === true && currentData.cardCollection?.[cardId]?.count > 1) {
+                currentData.cardCollection[cardId].count--;
+                currentData.kutuHakki = (currentData.kutuHakki || 0) + boxRightsToGain;
+                return currentData;
+            }
+            return; // Koşul sağlanmazsa işlemi iptal et
+        });
+
+        if (committed) {
+            displayMessage(`Başarılı! Kartın +${boxRightsToGain} Kutu Hakkı'na dönüştürüldü.`);
+            loadCollectionAlbum(); // Arayüzü anında yenile
+        } else {
+            throw new Error("Dönüştürme işlemi başarısız oldu. Kart durumu değişmiş olabilir.");
+        }
+
+    } catch (error) {
+        displayMessage(error.message);
+    } finally {
+        isTradeInProgress = false; // İşlem bitince kilidi kaldır
+    }
 }
 
 // JOKER KART KULLANMA FONKSİYONU
@@ -16946,7 +17015,6 @@ function customAlert(message) {
 async function convertWildcard() {
     if (isAdmin) return;
 
-    // GÜNCELLENDİ: Artık Puan yerine Kutu Hakkı veriyor
     const confirmed = await customConfirm("1 adet Joker Kart'ı 10 Kutu Hakkı'na dönüştürmek istediğinize emin misiniz? Bu işlem geri alınamaz!");
     if (!confirmed) return;
 
@@ -16956,7 +17024,6 @@ async function convertWildcard() {
         const { committed, snapshot } = await userRef.transaction(userData => {
             if (userData && (userData.wildcards || 0) > 0) {
                 userData.wildcards--;
-                // GÜNCELLENDİ: Puan yerine kutuHakki artırılıyor
                 userData.kutuHakki = (userData.kutuHakki || 0) + 10;
                 return userData;
             }
@@ -16964,7 +17031,6 @@ async function convertWildcard() {
         });
 
         if (committed) {
-            // GÜNCELLENDİ: Mesaj da Kutu Hakkı'na göre güncellendi
             displayMessage("Başarılı! 1 Joker Kart, 10 Kutu Hakkı'na dönüştürüldü.");
             logActivity('wildcardConvertedToBoxRights', currentUser, {
                 boxRights: 10,
