@@ -6392,8 +6392,6 @@ function getActivityIcon(type, details = {}) {
     `;
 }
       
-// MEVCUT renderActivityFeed FONKSİYONUNU SİL VE BU YENİ VERSİYONU YAPIŞTIR
-
 function renderActivityFeed(activities) {
     const activityFeedList = document.getElementById('activityFeedList');
     activityFeedList.innerHTML = '';
@@ -6431,45 +6429,23 @@ function renderActivityFeed(activities) {
             const userHtml = `<b class="text-yellow-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${activity.username}')">${activity.username}</b>`;
 
             switch (activity.type) {
-                // ★★★ YENİ EKLENEN KISIM BAŞLANGICI ★★★
-                case 'monsterDefeated':
-                    const winnerHtml = `<b class="text-yellow-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${details.winner}')">${details.winner}</b>`;
-                    message = `<b class="text-red-400">${details.monsterName}</b> mağlup edildi! En çok hasarı veren ${winnerHtml} (<b class="text-white">${formatNumber(details.totalDamage)} Hasar</b>), <b class="text-green-300">${details.prize}</b> ödülünü kazandı.`;
-                    break;
-                // ★★★ YENİ EKLENEN KISIM SONU ★★★
-                
-                // ★★★ DEĞİŞTİRİLEN KISIM BAŞLANGICI ★★★
-                case 'collectionCompleted':
-                    if (details.isFirst) {
-                        message = `${userHtml}, koleksiyonu tamamlayan <b class="text-amber-400">İLK KİŞİ</b> oldu ve büyük ödülü kazandı!`;
-                    } else {
-                        message = `${userHtml}, koleksiyonu tamamlayan <b class="text-amber-400">${details.rank}. KİŞİ</b> oldu. Tebrikler!`;
-                    }
-                    break;
-                // ★★★ DEĞİŞTİRİLEN KISIM SONU ★★★
-
-                // ... (Fonksiyonun geri kalan case'leri aynı kalacak, onlara dokunma) ...
-                case 'wildcardConvertedToBoxRights':
-                    message = `${userHtml}, 1 Joker Kart'ı <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b>'na dönüştürdü.`;
-                    break;
-                case 'useRegenPotion':
-                     message = `${userHtml}, <b class="text-cyan-300">%${details.percentage} Can Yenileme İksiri</b> kullanarak <b class="text-green-300">${details.healed} can</b> yeniledi.`;
-                     break;
                 case 'monsterAttack':
-                    let attackMessage = `${userHtml}, <b class="text-red-300">${details.monsterName}</b>'a saldırdı. `;
+                    let attackSummary = `${userHtml}, <b class="text-red-300">${details.monsterName}</b>'a saldırdı. `;
                     
+                    // Oyuncunun saldırı detayları
                     if (details.didMonsterDodge) {
-                        attackMessage += `Canavar <b class="text-cyan-400">sıyrıldı!</b>`;
+                        attackSummary += `Canavar <b class="text-cyan-400">sıyrıldı!</b>`;
                     } else if (details.playerAttackType === 'pierce') {
-                        attackMessage += `🛡️ <b class="text-purple-400">Delici Vuruş</b> ile <b class="text-green-300">${details.damageDealt} hasar</b> verdi. `;
+                        attackSummary += `🛡️ <b class="text-purple-400">Delici Vuruş</b> ile <b class="text-green-300">${details.damageDealt} hasar</b> verdi. `;
                     } else if (details.playerAttackType === 'crit') {
-                        attackMessage += `💥 <b class="text-green-300">Kritik Vuruş</b> ile <b class="text-green-300">${details.damageDealt} hasar</b> verdi. `;
+                        attackSummary += `💥 <b class="text-green-300">Kritik Vuruş</b> ile <b class="text-green-300">${details.damageDealt} hasar</b> verdi. `;
                     } else {
-                        attackMessage += `<b class="text-green-300">${details.damageDealt} hasar</b> verdi. `;
+                        attackSummary += `<b class="text-green-300">${details.damageDealt} hasar</b> verdi. `;
                     }
                     
+                    // Canavarın saldırı detayları
                     if (details.didPlayerDodge) {
-                        attackMessage += `Canavarın saldırısından <b class="text-cyan-300">sıyrıldı!</b>`;
+                        attackSummary += `Canavarın saldırısından <b class="text-cyan-300">sıyrıldı!</b>`;
                     } else {
                         let monsterAttackText = 'saldırısıyla';
                         if (details.monsterAttackType === 'crit') {
@@ -6477,24 +6453,48 @@ function renderActivityFeed(activities) {
                         } else if (details.monsterAttackType === 'pierce') {
                             monsterAttackText = `🛡️ <b class="text-purple-500">delici saldırısıyla</b>`;
                         }
-                        attackMessage += ` Canavarın ${monsterAttackText} <b class="text-red-400">${details.damageTaken} hasar</b> aldı.`;
-                    }
-                    
-                    if (details.rewardWon) {
-                        let rewardWonText = details.rewardWon;
-                        if (percentPotions.some(p => details.rewardWon.includes(typeToName[p]))) {
-                            rewardWonText = rewardWonText.replace('+', '+%');
-                        }
-                        attackMessage += ` Ek olarak <b class="text-yellow-300">${rewardWonText}</b> kazandı.`;
+                        attackSummary += ` Canavarın ${monsterAttackText} <b class="text-red-400">${details.damageTaken} hasar</b> aldı.`;
                     }
 
-                    if (details.playerDied) attackMessage += ` <b class="text-black bg-red-500 px-1 rounded">MAĞLUP OLDU!</b>`;
-                    message = attackMessage;
+                    // Kalan can ve toplam hasar bilgileri
+                    attackSummary += `<div class="text-xs mt-1 text-gray-400">
+                        Canavar Canı: ${formatNumber(details.monsterRemainingHP)}/${formatNumber(details.monsterMaxHP)} | 
+                        ${activity.username} Canı: ${formatNumber(details.playerRemainingHP)}/${formatNumber(details.playerMaxHP)} | 
+                        Toplam Hasar: ${formatNumber(details.playerTotalDamage)}
+                    </div>`;
+                    
+                    // Kazanılan ödül
+                    if (details.rewardWon) {
+                        attackSummary += ` Ek olarak <b class="text-yellow-300">${details.rewardWon}</b> kazandı.`;
+                    }
+
+                    // Ölüm durumu
+                    if (details.playerDied) attackSummary += ` <b class="text-black bg-red-500 px-1 rounded">MAĞLUP OLDU!</b>`;
+
+                    message = attackSummary;
                     break;
-                case 'multiplierUpgraded':
-                case 'multiplierUpgradedFromStore':
-                    message = `${userHtml}, ${details.source}'dan <b>${details.newValue}x çarpan (${details.newUses} kullanım)</b> kazandı. Mevcut ${details.oldValue}x çarpanının kalan ${details.oldUses} hakkı <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b>'na dönüştürüldü.`;
+
+                case 'monsterDefeated':
+                    const winnerHtml = `<b class="text-yellow-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${details.winner}')">${details.winner}</b>`;
+                    message = `<b class="text-red-400">${details.monsterName}</b> mağlup edildi! En çok hasarı veren ${winnerHtml} (<b class="text-white">${formatNumber(details.totalDamage)} Hasar</b>), <b class="text-green-300">${details.prize}</b> ödülünü kazandı.`;
                     break;
+                
+                case 'collectionCompleted':
+                    if (details.isFirst) {
+                        message = `${userHtml}, koleksiyonu tamamlayan <b class="text-amber-400">İLK KİŞİ</b> oldu ve büyük ödülü kazandı!`;
+                    } else {
+                        message = `${userHtml}, koleksiyonu tamamlayan <b class="text-amber-400">${details.rank}. KİŞİ</b> oldu. Tebrikler!`;
+                    }
+                    break;
+
+                case 'wildcardConvertedToBoxRights':
+                    message = `${userHtml}, 1 Joker Kart'ı <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b>'na dönüştürdü.`;
+                    break;
+
+                case 'useRegenPotion':
+                     message = `${userHtml}, <b class="text-cyan-300">%${details.percentage} Can Yenileme İksiri</b> kullanarak <b class="text-green-300">${details.healed} can</b> yeniledi.`;
+                     break;
+
                 case 'clickCatchSolo':
                     const { baseScore, finalScore, ticketsUsed, specialItems, newWeeklyScore } = details;
                     message = `${userHtml}, Tıkla-Yakala oyununda <b class="text-white">${ticketsUsed} bilet</b> kullandı ve <span class="text-green-300 font-bold">${finalScore} Skor</span> topladı. <small class="text-gray-400">(Skor: ${baseScore} x ${ticketsUsed} Bilet)</small>`;
@@ -6508,21 +6508,26 @@ function renderActivityFeed(activities) {
                     const weeklyScoreText = (newWeeklyScore !== undefined) ? ` <span class="text-gray-400">(Haftalık Skor: ${newWeeklyScore})</span>` : '';
                     message += weeklyScoreText;
                     break;
+
                 case 'weeklyChampion':
                     const championHtml = `<b class="text-amber-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${details.winner}')">${details.winner}</b>`;
                     message = `Tıkla-Yakala haftası sona erdi! ${championHtml}, <b class="text-white">${details.score} skorla</b> şampiyon oldu ve <b class="text-green-300">${details.prize}</b> kazandı. Tüm katılımcılara +1 bilet hediye edildi.`;
                     break; 
+
                 case 'loginStreakClaim':
                     message = `${userHtml}, giriş serisinde <b class="text-teal-300 font-bold">${details.day}. gün</b> <b class="text-white">'${details.packageName}'</b> ödülünü aldı.`;
                     break;
+
                 case 'tradeOfferCreated':
                     message = `${userHtml}, <b class="text-red-400">-${details.fee} Puan</b> ödeyip pazara yeni bir takas teklifi koydu: <b class="text-cyan-300">${details.offeredCardName}</b> karşılığında <b class="text-pink-300">${details.requestedCardName}</b> istiyor.`;
                     if (details.status === 'completed') { message += ` <span class="text-green-400 font-bold">(Takas Yapıldı)</span>`; } 
                     else if (details.status === 'cancelled') { message += ` <span class="text-red-500 font-bold">(İşlem İptal Edildi)</span>`; }
                     break;
+
                 case 'tradeOfferAccepted':
                     message = `${userHtml}, <b class="text-red-400">-${details.fee} Puan</b> ödeyip, ${details.offerer}'in <b class="text-cyan-300">'${details.offeredCardName}'</b> kartı teklifini kabul etti ve karşılığında <b class="text-pink-300">'${details.requestedCardName}'</b> kartını verdi. <span class="text-gray-400">(Kalan Puan: ${formatNumber(details.newBalance)})</span>`;
                     break;
+
                 case 'newItemFound':
                     let newItemMultiplierText = (details.multiplier && details.multiplier > 1) ? ` <span class="text-xs text-purple-400">(${details.multiplier}x çarpan kullandı)</span>` : ` <span class="text-xs text-gray-400">(çarpan kullanmadı)</span>`;
                     let displayItemName = details.itemType ? typeToName[details.itemType] : details.itemName;
@@ -6540,6 +6545,7 @@ function renderActivityFeed(activities) {
 
                     message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-cyan-300 font-bold">${displayItemAmount} ${displayItemName}</span> buldu.${newItemMultiplierText}`;
                     break;
+
                 case 'dailyRewardMultiplierStacked':
                     const sourceText = details.source || "Günlük Ödül'den";
                     message = `${userHtml}, ${sourceText} mevcut <b>${details.multiplierValue}x</b> çarpanıyla aynı değerde bir çarpan daha aldı. Kullanım hakkı <b class="text-teal-300 font-bold">+${details.usesAdded}</b> artırılarak toplam <b class="text-teal-300 font-bold">${details.newTotalUses}</b> oldu.`;
@@ -6547,15 +6553,18 @@ function renderActivityFeed(activities) {
                 case 'multiplierStacked':
                     message = `${userHtml}, <b>${details.boxId} numaralı kutudan</b> mevcut <b>${details.value}x</b> çarpanıyla aynı değerde bir çarpan daha buldu. Kullanım hakkı <b class="text-teal-300 font-bold">+1</b> artırıldı.`;
                     break;
+
                 case 'wildcardConverted':
                     message = `${userHtml}, Koleksiyonu tamamladığı için ${details.source}'dan aldığı ${details.wildcards} Joker Kart'ı <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b>'na dönüştürdü.`;
                     break;
                 case 'cardPackConverted':
                     message = `${userHtml}, Koleksiyonu tamamladığı için ${details.source}'dan aldığı ${details.packs} Kart Paketi'ni <b class="text-green-300 font-bold">+${details.points} Puana</b> dönüştürdü.`;
                     break;
+
                 case 'multiplierCombined':
                     message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <b>${details.foundValue}x çarpan</b> buldu. Mevcut çarpanıyla birleştirerek tek kullanımlık <b class="text-teal-300 font-bold">${details.combinedValue}x</b> gücüne ulaştı ve <span class="text-green-300 font-bold">+1 Kutu Hakkı</span> iade aldı.`;
                     break;
+
                 case 'multiplierConvertedToBoxRights':
                 case 'multiplierConvertedOnUsedOpen':
                 case 'multiplierConvertedOnUnusedOpen':
@@ -6567,6 +6576,7 @@ function renderActivityFeed(activities) {
                     const keptMultiplierText = details.keptMultiplierValue ? ` mevcut <b>${details.keptMultiplierValue}x</b> çarpanını koruyarak` : '';
                     message = `${userHtml}, ${conversionSourceText} kazandığı <b>${details.rewardValue || details.foundValue}x</b> çarpanı,${keptMultiplierText} <span class="text-lime-300 font-bold">+${details.boxRights} Kutu Hakkı</span>'na dönüştürdü.`;
                     break;
+
                 case 'openBox':
                     let openBoxMultiplierText = (details.multiplier && details.multiplier > 1) ? ` <span class="text-xs text-purple-400">(${details.multiplier}x çarpan kullandı)</span>` : ` <span class="text-xs text-gray-400">(çarpan kullanmadı)</span>`;
                     message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-green-300 font-bold">+${details.points} Puan</span> kazandı.${openBoxMultiplierText} <span class="text-gray-400">(Mevcut Puan: ${details.newBalance})</span>`;
@@ -8080,7 +8090,7 @@ async function openPublicUserDetailModal(username) {
         if (userData.monsterChampionships && userData.monsterChampionships.length > 0) {
             const count = userData.monsterChampionships.length;
             const lastWin = userData.monsterChampionships[count - 1];
-            championshipsHtml += `<p>👹 ${count}. Kez 'CANAVAR SAVAŞI HASAR' şampiyonu oldu. <small class="text-gray-400">(${formatNumber(lastWin.damage)} Hasar ile)</small></p>`;
+            championshipsHtml += `<p>👹 ${count}. kez 'CANAVAR SAVAŞI' şampiyonu oldu. <small class="text-gray-400">(${formatNumber(lastWin.damage)} Hasar)</small></p>`;
         }
         if (userData.tyChampionships && userData.tyChampionships.length > 0) {
             const count = userData.tyChampionships.length;
@@ -16976,7 +16986,6 @@ function addRewardToTier(element, rewardData = {}) {
     rewardsListContainer.appendChild(rewardRow);
 }
 
-// MEVCUT attackMonster FONKSİYONUNU SİL VE BUNU YAPIŞTIR
 async function attackMonster() {
     if (isAdmin) {
         displayMessage("Adminler saldıramaz.");
@@ -17037,46 +17046,68 @@ async function attackMonster() {
         };
         const monsterStats = battleData.monsterDetails;
         
-        const monsterDefenseReduction = Math.min((monsterStats.defense || 0) / 100, 0.8);
-        const playerDefenseReduction = Math.min((playerStats.defense || 0) / 100, 0.8);
+        // --- YENİ SAVAŞ MEKANİKLERİ BAŞLANGICI ---
 
+        // Oyuncunun Saldırısı
         let finalDamageToMonster = 0;
         let playerAttackType = 'normal';
         let didMonsterDodge = false;
-        const randomPlayerDamage = Math.floor(Math.random() * (playerStats.maxDamage - playerStats.minDamage + 1)) + playerStats.minDamage;
         const playerPierced = (Math.random() * 100) < playerStats.pierceChance;
-        if (!playerPierced) { didMonsterDodge = (Math.random() * 100) < (monsterStats.dodgeChance || 0); }
-        if (!didMonsterDodge) {
-            const playerCritted = (Math.random() * 100) < playerStats.critChance;
-            let totalDamage = randomPlayerDamage;
-            if (playerCritted) { totalDamage += Math.floor(totalDamage * (playerStats.critDamage / 100)); }
-            if (playerPierced) {
-                finalDamageToMonster = Math.max(1, Math.floor(totalDamage));
-                playerAttackType = 'pierce';
-            } else {
-                finalDamageToMonster = Math.max(1, Math.floor(totalDamage * (1 - monsterDefenseReduction)));
-                playerAttackType = playerCritted ? 'crit' : 'normal';
+        const monsterWillDefend = (monsterStats.dodgeChance || 0) > playerStats.pierceChance;
+
+        if (playerPierced) {
+            playerAttackType = 'pierce';
+            finalDamageToMonster = playerStats.maxDamage; // Delici vuruş, savunmayı yok sayar ve max hasar verir.
+        } else {
+            didMonsterDodge = (Math.random() * 100) < (monsterStats.dodgeChance || 0);
+            if (!didMonsterDodge) {
+                const playerCritted = (Math.random() * 100) < playerStats.critChance;
+                let baseDamage = Math.floor(Math.random() * (playerStats.maxDamage - playerStats.minDamage + 1)) + playerStats.minDamage;
+
+                if (playerCritted && baseDamage > playerStats.maxDamage * 0.8) { // Kritik için hasarın max hasara yakın olması şartı
+                    playerAttackType = 'crit';
+                    baseDamage = playerStats.maxDamage; // Kritik hasar max hasar üzerinden hesaplanır
+                    finalDamageToMonster = Math.floor(baseDamage + (baseDamage * (playerStats.critDamage / 100)));
+                } else {
+                    finalDamageToMonster = baseDamage;
+                }
+
+                // Savunma Azaltması: Sadece delici vuruş gelmediyse ve canavar sıyrılmadıysa ve savunma aktifse uygulanır.
+                if (monsterWillDefend) {
+                    const monsterDefenseReduction = Math.min((monsterStats.defense || 0) / 100, 0.8);
+                    finalDamageToMonster = Math.max(1, Math.floor(finalDamageToMonster * (1 - monsterDefenseReduction)));
+                }
             }
         }
         
+        // Canavarın Saldırısı
         let finalDamageToPlayer = 0;
         let monsterAttackType = 'normal';
         let didPlayerDodge = false;
-        const randomMonsterDamage = Math.floor(Math.random() * (monsterStats.maxDamage - monsterStats.minDamage + 1)) + monsterStats.minDamage;
         const monsterPierced = (Math.random() * 100) < (monsterStats.pierceChance || 5);
-        if (!monsterPierced) { didPlayerDodge = (Math.random() * 100) < playerStats.dodgeChance; }
-        if (!didPlayerDodge) {
-            const monsterCritted = (Math.random() * 100) < (monsterStats.critChance || 5);
-            let totalDamage = randomMonsterDamage;
-            if (monsterCritted) { totalDamage += Math.floor(totalDamage * ((monsterStats.critDamage || 10) / 100)); }
-            if (monsterPierced) {
-                finalDamageToPlayer = Math.max(1, Math.floor(totalDamage));
-                monsterAttackType = 'pierce';
-            } else {
-                finalDamageToPlayer = Math.max(1, Math.floor(totalDamage * (1 - playerDefenseReduction)));
-                monsterAttackType = monsterCritted ? 'crit' : 'normal';
+
+        if (monsterPierced) {
+            monsterAttackType = 'pierce';
+            finalDamageToPlayer = monsterStats.maxDamage;
+        } else {
+            didPlayerDodge = (Math.random() * 100) < playerStats.dodgeChance;
+            if (!didPlayerDodge) {
+                const monsterCritted = (Math.random() * 100) < (monsterStats.critChance || 5);
+                let baseDamage = Math.floor(Math.random() * (monsterStats.maxDamage - monsterStats.minDamage + 1)) + monsterStats.minDamage;
+
+                if (monsterCritted && baseDamage > monsterStats.maxDamage * 0.8) {
+                    monsterAttackType = 'crit';
+                    baseDamage = monsterStats.maxDamage;
+                    finalDamageToPlayer = Math.floor(baseDamage + (baseDamage * ((monsterStats.critDamage || 10) / 100)));
+                } else {
+                    finalDamageToPlayer = baseDamage;
+                }
+                const playerDefenseReduction = Math.min((playerStats.defense || 0) / 100, 0.8);
+                finalDamageToPlayer = Math.max(1, Math.floor(finalDamageToPlayer * (1 - playerDefenseReduction)));
             }
         }
+
+        // --- YENİ SAVAŞ MEKANİKLERİ SONU ---
         
         let randomReward = null;
         const damageTiers = (battleData.damageTiers || []).sort((a, b) => b.minDamage - a.minDamage);
@@ -17093,33 +17124,40 @@ async function attackMonster() {
         }
         
         let finalPlayerHP = 0;
+        let finalMonsterHP = 0;
+        let finalTotalDamage = 0;
         let playerDiedInAttack = false;
 
         await battleRef.transaction(currentBattleData => {
             if (!currentBattleData || !currentBattleData.monsterDetails || currentBattleData.monsterDetails.currentHP <= 0) return;
-            currentBattleData.monsterDetails.currentHP = Math.max(0, currentBattleData.monsterDetails.currentHP - finalDamageToMonster);
+            
+            finalMonsterHP = Math.max(0, currentBattleData.monsterDetails.currentHP - finalDamageToMonster);
+            currentBattleData.monsterDetails.currentHP = finalMonsterHP;
+            
             if (!currentBattleData.damageLeaderboard) currentBattleData.damageLeaderboard = {};
             if (!currentBattleData.damageLeaderboard[currentUser]) {
                 currentBattleData.damageLeaderboard[currentUser] = { totalDamage: 0, currentHP: playerStats.hp, lockedAvatarUrl: playerAvatarUrl };
             }
+
             const currentPlayerBattleData = currentBattleData.damageLeaderboard[currentUser];
             currentPlayerBattleData.totalDamage += finalDamageToMonster;
+            finalTotalDamage = currentPlayerBattleData.totalDamage;
+            
             currentPlayerBattleData.currentHP = Math.max(0, currentPlayerBattleData.currentHP - finalDamageToPlayer);
             finalPlayerHP = currentPlayerBattleData.currentHP;
+            
             if (finalPlayerHP <= 0) playerDiedInAttack = true;
+            
             return currentBattleData;
         });
         
         const updates = {};
-        let rewardMessage = '';
         let rewardLogText = '';
         if (randomReward) {
             const { type, value } = randomReward;
             const prizeName = typeToName[type] || 'Ödül';
-            rewardMessage = ` Ek olarak <b class="text-green-400">+${value} ${prizeName}</b> kazandın!`;
             rewardLogText = `+${value} ${prizeName}`;
             
-            // ★★★ DEĞİŞİKLİK BURADA: Ancestor path hatasını önlemek için `inventory` objesini direkt set etmekten kaçınıyoruz. ★★★
             if (type === 'health_regen_potion') {
                 const currentPotions = userData.inventory?.health_regen_potion?.[value] || 0;
                 updates[`/users/${currentUser}/inventory/health_regen_potion/${value}`] = currentPotions + 1;
@@ -17143,30 +17181,30 @@ async function attackMonster() {
                         const path = `/users/${currentUser}/globalPotionBuffs/${statKey}`;
                         const currentValue = userData.globalPotionBuffs?.[statKey] || 0;
                         updates[path] = currentValue + capCheck.amount;
-                        if(capCheck.isCapped) rewardMessage += ` (Limite ulaşıldı!)`;
-                    } else {
-                        rewardMessage += ` (Limitte olduğu için kazanılamadı!)`;
                     }
                 }
             }
         }
         if (Object.keys(updates).length > 0) await db.ref().update(updates);
         
-        // ★★★ DEĞİŞİKLİK BURADA: Canavarın saldırı türü aktivite kaydına ekleniyor. ★★★
         logActivity('monsterAttack', currentUser, {
             monsterName: monsterStats.name,
             damageDealt: finalDamageToMonster,
             damageTaken: finalDamageToPlayer,
             playerAttackType: playerAttackType,
-            monsterAttackType: monsterAttackType, // Bu yeni satır eklendi
+            monsterAttackType: monsterAttackType,
             didPlayerDodge: didPlayerDodge,
             didMonsterDodge: didMonsterDodge,
             playerRemainingHP: finalPlayerHP,
+            playerMaxHP: playerStats.hp,
+            monsterRemainingHP: finalMonsterHP,
+            monsterMaxHP: monsterStats.maxHP,
+            playerTotalDamage: finalTotalDamage,
             rewardWon: rewardLogText,
             playerDied: playerDiedInAttack
         });
         
-        let attackInfoMessage = `Canavara <b>${finalDamageToMonster} hasar</b> verdin ve canavardan <b>${finalDamageToPlayer} hasar</b> aldın.${rewardMessage}`;
+        let attackInfoMessage = `Canavara <b>${finalDamageToMonster} hasar</b> verdin ve canavardan <b>${finalDamageToPlayer} hasar</b> aldın.`;
         showFloatingText(`-${finalDamageToMonster}`, document.getElementById('monsterImage').getBoundingClientRect().left + 100, document.getElementById('monsterImage').getBoundingClientRect().top + 100);
         displayMessage(attackInfoMessage);
         
@@ -17174,31 +17212,30 @@ async function attackMonster() {
         const finalBattleData = finalBattleSnap.val();
 
         if (finalBattleData && finalBattleData.monsterDetails.currentHP <= 0) {
-    const sortedLeaderboard = Object.entries(finalBattleData.damageLeaderboard || {}).sort((a,b) => b[1].totalDamage - a[1].totalDamage);
-    const winner = sortedLeaderboard.length > 0 ? sortedLeaderboard[0][0] : null;
-    const winnerData = winner ? finalBattleData.damageLeaderboard[winner] : null;
-    const prize = finalBattleData.rewards?.onKillLeader;
+            const sortedLeaderboard = Object.entries(finalBattleData.damageLeaderboard || {}).sort((a,b) => b[1].totalDamage - a[1].totalDamage);
+            const winner = sortedLeaderboard.length > 0 ? sortedLeaderboard[0][0] : null;
+            const winnerData = winner ? finalBattleData.damageLeaderboard[winner] : null;
+            const prize = finalBattleData.rewards?.onKillLeader;
 
-    if (winner && prize && winnerData) {
-        await db.ref('gameStats/lastMonsterChampion').set({
-            username: winner,
-            totalDamage: winnerData.totalDamage,
-            lockedAvatarUrl: winnerData.lockedAvatarUrl
-        });
+            if (winner && prize && winnerData) {
+                await db.ref('gameStats/lastMonsterChampion').set({
+                    username: winner,
+                    totalDamage: winnerData.totalDamage,
+                    lockedAvatarUrl: winnerData.lockedAvatarUrl
+                });
 
-        const prizeName = typeToName[prize.type] || prize.type;
-        const prizeText = `${prize.value} ${prizeName}`;
-        
-        // ★★★ DEĞİŞİKLİK BURADA: logActivity çağrısına totalDamage'ı ekliyoruz ★★★
-        logActivity('monsterDefeated', 'WeizendTv', { 
-            monsterName: finalBattleData.monsterDetails.name, 
-            winner: winner, 
-            prize: prizeText,
-            totalDamage: winnerData.totalDamage // Bu satırı ekle
-        });
-        
-        const winnerRef = db.ref(`users/${winner}`);
-        await winnerRef.transaction(winnerDataFromDB => {
+                const prizeName = typeToName[prize.type] || prize.type;
+                const prizeText = `${prize.value} ${prizeName}`;
+                
+                logActivity('monsterDefeated', 'WeizendTv', { 
+                    monsterName: finalBattleData.monsterDetails.name, 
+                    winner: winner, 
+                    prize: prizeText,
+                    totalDamage: winnerData.totalDamage
+                });
+                
+                const winnerRef = db.ref(`users/${winner}`);
+                await winnerRef.transaction(winnerDataFromDB => {
                     if (winnerDataFromDB) {
                          const { type, value } = prize;
                          if(type === 'health_regen_potion'){
