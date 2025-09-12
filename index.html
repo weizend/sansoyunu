@@ -1279,6 +1279,10 @@ body.modal-open .modal-content {
           <div class="flex justify-center md:justify-end gap-x-4 gap-y-1 flex-wrap mb-2">
               <p class="text-lg text-white">Tamamlanan: <span id="collectionProgress" class="font-bold text-green-400">0/0</span></p>
               <div id="wildcardIndicator" class="text-lg text-purple-400 hidden items-center gap-2">
+    <span>Joker Kart: <span id="wildcardCount" class="font-bold text-white">0</span> 🃏</span>
+    <button id="convertWildcardBtn" onclick="convertWildcard()" class="hidden py-1 px-3 bg-green-600 hover:bg-green-500 rounded-lg text-xs font-bold">Dönüştür</button>
+</div>
+              <div id="wildcardIndicator" class="text-lg text-purple-400 hidden items-center gap-2">
                   <span>Joker Kart: <span id="wildcardCount" class="font-bold text-white">0</span> 🃏</span>
                   <button id="convertWildcardBtn" onclick="convertWildcard()" class="hidden py-1 px-3 bg-green-600 hover:bg-green-500 rounded-lg text-xs font-bold">Dönüştür</button>
               </div>
@@ -2207,6 +2211,8 @@ body.modal-open .modal-content {
 
     <div class="overflow-y-auto px-8 pb-8">
         <div id="managedUserDetails" class="text-left text-gray-300 mb-6 space-y-1">
+            <p>Kasa Puanı: <span id="managedUserKasaBalance" class="font-bold text-purple-400"></span></p>
+          <p>Joker Kart: <span id="managedUserWildcards" class="font-bold text-purple-400"></span></p>
             <p><span id="managedBadgeBalance" class="inline-block w-6 text-center"></span>Mevcut Puanı: <span id="managedUserBalance" class="font-bold text-yellow-300"></span></p>
             <p><span id="managedBadgeHighest" class="inline-block w-6 text-center"></span>Kariyer Puanı: <span id="managedUserHighestBalance" class="font-bold text-green-400"></span></p>
             <p>Kutu Hakkı: <span id="managedUserBoxRight" class="font-bold text-green-400"></span></p>
@@ -3071,11 +3077,11 @@ body.modal-open .modal-content {
                 <input type="number" id="rewardBoxRights" value="0" min="0" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
             </div>
             <div>
-                <label for="rewardWheelTickets" class="block text-gray-300 mb-1 text-sm">🎡 Çark Bileti</label>
+                <label for="rewardWheelTickets" class="block text-gray-300 mb-1 text-sm">️🎫 Çark Bileti</label>
                 <input type="number" id="rewardWheelTickets" value="0" min="0" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
             </div>
             <div>
-                <label for="rewardClickCatchTickets" class="block text-gray-300 mb-1 text-sm">🎯 Tıkla-Yakala Bileti</label>
+                <label for="rewardClickCatchTickets" class="block text-gray-300 mb-1 text-sm">🎟️ Tıkla-Yakala Bileti</label>
                 <input type="number" id="rewardClickCatchTickets" value="0" min="0" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
             </div>
             <div>
@@ -3353,7 +3359,9 @@ body.modal-open .modal-content {
     <div id="userAlbumViewerModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-[10002] hidden">
   <div class="modal-content bg-gray-900/95 backdrop-blur-sm p-6 rounded-2xl shadow-2xl border border-teal-500 w-11/12 max-w-5xl h-[90vh] text-center relative flex flex-col">
     <button class="modal-close-button" onclick="closeUserAlbumViewerModal()">&times;</button>
-    <h3 id="userAlbumViewerTitle" class="text-teal-300 text-3xl font-bold mb-4 flex-shrink-0">Kullanıcının Albümü</h3>
+    <h3 id="userAlbumViewerTitle" class="text-teal-300 text-3xl font-bold mb-2 flex-shrink-0">Kullanıcının Albümü</h3>
+    
+    <p id="userAlbumViewerWildcardCount" class="text-lg text-purple-400 mb-4 hidden">Joker Kart: 0</p>
     
     <div id="userAlbumViewerGrid" class="flex-grow overflow-y-auto scrollable-list pr-2 grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-6 p-4 bg-gray-900/50 rounded-xl border border-gray-700">
         </div>
@@ -6383,7 +6391,6 @@ function getActivityIcon(type, details = {}) {
 }
       
 // MEVCUT renderActivityFeed FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
-// MEVCUT renderActivityFeed FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
 function renderActivityFeed(activities) {
     const activityFeedList = document.getElementById('activityFeedList');
     activityFeedList.innerHTML = '';
@@ -6404,6 +6411,8 @@ function renderActivityFeed(activities) {
         return;
     }
 
+    const percentPotions = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion', 'health_regen_potion'];
+
     activities.forEach(activity => {
         try {
             if (!activity || !activity.username || !activity.type) { 
@@ -6415,11 +6424,14 @@ function renderActivityFeed(activities) {
             let message = '';
             const timeAgo = formatTimeAgo(activity.timestamp);
             const deleteButtonHtml = isAdmin ? `<button onclick="deleteActivity('${activity.id}')" class="ml-2 p-1 rounded-full text-gray-500 hover:text-red-500 hover:bg-white/10 transition-colors" title="Bu Eylemi Sil"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1-1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>` : '';
+            
+            // --- DEĞİŞİKLİK BURADA: Tıklanabilir kullanıcı adını bir değişkene atıyoruz ---
             const userHtml = `<b class="text-yellow-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${activity.username}')">${activity.username}</b>`;
 
-            const percentPotions = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion'];
-
             switch (activity.type) {
+                case 'wildcardConvertedToBoxRights':
+                    message = `${userHtml}, 1 Joker Kart'ı <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b>'na dönüştürdü.`;
+                    break;
                 case 'useRegenPotion':
                      message = `${userHtml}, <b class="text-cyan-300">%${details.percentage} Can Yenileme İksiri</b> kullanarak <b class="text-green-300">${details.healed} can</b> yeniledi.`;
                      break;
@@ -6459,14 +6471,14 @@ function renderActivityFeed(activities) {
                     if (details.playerDied) attackMessage += ` <b class="text-black bg-red-500 px-1 rounded">MAĞLUP OLDU!</b>`;
                     message = attackMessage;
                     break;
-                // ★★★ DEĞİŞİKLİK BURADA BAŞLIYOR ★★★
                 case 'multiplierUpgraded':
                 case 'multiplierUpgradedFromStore':
                     message = `${userHtml}, ${details.source}'dan <b>${details.newValue}x çarpan (${details.newUses} kullanım)</b> kazandı. Mevcut ${details.oldValue}x çarpanının kalan ${details.oldUses} hakkı <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b>'na dönüştürüldü.`;
                     break;
-                // ★★★ DEĞİŞİKLİK BURADA BİTİYOR ★★★
                 case 'monsterDefeated':
-                    message = `<b class="text-red-400">${details.monsterName}</b> mağlup edildi! En çok hasarı veren ${userHtml.replace(activity.username, details.winner)}, <b class="text-green-300">${details.prize}</b> ödülünü kazandı.`;
+                    // --- DEĞİŞİKLİK BURADA: Kazananın adı da artık tıklanabilir ---
+                    const winnerHtml = `<b class="text-yellow-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${details.winner}')">${details.winner}</b>`;
+                    message = `<b class="text-red-400">${details.monsterName}</b> mağlup edildi! En çok hasarı veren ${winnerHtml}, <b class="text-green-300">${details.prize}</b> ödülünü kazandı.`;
                     break;
                 case 'clickCatchSolo':
                     const { baseScore, finalScore, ticketsUsed, specialItems, newWeeklyScore } = details;
@@ -6481,12 +6493,11 @@ function renderActivityFeed(activities) {
                     const weeklyScoreText = (newWeeklyScore !== undefined) ? ` <span class="text-gray-400">(Haftalık Skor: ${newWeeklyScore})</span>` : '';
                     message += weeklyScoreText;
                     break;
-                case 'weeklyChampion': 
-                    message = `Tıkla-Yakala haftası sona erdi! <b class="text-amber-300">${details.winner}</b>, <b class="text-white">${details.score} skorla</b> şampiyon oldu ve <b class="text-green-300">${details.prize}</b> kazandı. Tüm katılımcılara +1 bilet hediye edildi.`;
-                    break;
-                case 'wildcardConvertedToPoints':
-                    message = `${userHtml}, 1 Joker Kart'ı <b class="text-green-300 font-bold">${details.points} Puana</b> dönüştürdü. <span class="text-gray-400">(Mevcut Puan: ${formatNumber(details.newBalance)})</span>`;
-                    break;
+                case 'weeklyChampion':
+                    // --- DEĞİŞİKLİK BURADA: Şampiyonun adı da artık tıklanabilir ---
+                    const championHtml = `<b class="text-amber-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${details.winner}')">${details.winner}</b>`;
+                    message = `Tıkla-Yakala haftası sona erdi! ${championHtml}, <b class="text-white">${details.score} skorla</b> şampiyon oldu ve <b class="text-green-300">${details.prize}</b> kazandı. Tüm katılımcılara +1 bilet hediye edildi.`;
+                    break; 
                 case 'loginStreakClaim':
                     message = `${userHtml}, giriş serisinde <b class="text-teal-300 font-bold">${details.day}. gün</b> <b class="text-white">'${details.packageName}'</b> ödülünü aldı.`;
                     break;
@@ -6565,21 +6576,12 @@ function renderActivityFeed(activities) {
                     message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-purple-300 font-bold">${details.value}x Çarpan</span> buldu.`;
                     break;
                 case 'buyItem':
-                    const isPercentBuy = percentPotions.includes(details.itemType);
-                    const valuePrefixBuy = isPercentBuy ? '%' : '';
-                    let balanceText = details.itemType === 'special' ? `<span class="text-gray-400">(Kalan Kasa Puanı: ${details.newKasaBalance})</span>` : `<span class="text-gray-400">(Kalan Puan: ${details.newBalance})</span>`;
-                    let costText = details.itemType === 'special' ? `-${details.itemCost} KP` : `-${details.itemCost} Puan`;
-                    let purchasedItemText = '';
-
-                    if (details.itemType === 'tempMultiplier') {
-                        purchasedItemText = `<span class="text-indigo-300 font-bold">+${details.itemDuration} adet ${details.itemValue}x Çarpan</span>`;
-                    } else if (details.itemValue) {
-                        const itemName = typeToName[details.itemType] || details.itemName;
-                        purchasedItemText = `<span class="text-indigo-300 font-bold">+${valuePrefixBuy}${details.itemValue} ${itemName}</span>`;
-                    } else {
-                        purchasedItemText = `<span class="text-indigo-300 font-bold">${details.itemName}</span>`;
-                    }
-                    message = `${userHtml}, mağazadan <span class="text-red-400 font-bold">${costText}</span> harcayarak ${purchasedItemText} aldı. ${balanceText}`;
+                    // --- DEĞİŞİKLİK BURADA: Artık userHtml değişkenini kullanıyor ---
+                    const isKP = details.itemCost.toString().includes('KP');
+                    const costText = isKP ? details.itemCost : `${formatNumber(details.itemCost)} Puan`;
+                    const balance = isKP ? details.newKasaBalance : details.newBalance;
+                    const balanceUnit = isKP ? 'KP' : 'Puanı';
+                    message = `${userHtml}, mağazadan <b class="text-red-500">-${costText}</b> harcayarak <b class="text-green-400">${details.itemName}</b> aldı. (Mevcut ${balanceUnit}: ${formatNumber(balance)})`;
                     break;
                 case 'lobbyJoined':
                     message = `${userHtml}, Tıkla-Yakala lobisine <span class="text-red-400 font-bold">-${details.cost} Puan</span> karşılığında katıldı. <span class="text-gray-400">(Kalan Puan: ${details.newBalance})</span>`;
@@ -7955,7 +7957,7 @@ async function deletePurchase(purchaseId) {
   function openBadgeInfoModal() { badgeInfoModal.style.display = 'flex'; }
   function closeBadgeInfoModal() { badgeInfoModal.style.display = 'none'; }
 
-// openPublicUserDetailModal FONKSİYONUNU BULUP BU BLOK İLE DEĞİŞTİRİN
+// MEVCUT openPublicUserDetailModal FONKSİYONUNU SİL VE BUNU YAPIŞTIR
 async function openPublicUserDetailModal(username) {
     if (!username) return;
 
@@ -7997,17 +7999,6 @@ async function openPublicUserDetailModal(username) {
             isWheelSpinLeader: username === leaders.wheelSpinUser
         };
 
-        document.getElementById('publicBadgeBalance').innerHTML = userLeaderStatus.isCurrentLeader ? '🥇' : '';
-        document.getElementById('publicBadgeHighest').innerHTML = userLeaderStatus.isHighLeader ? '🏆' : '';
-        document.getElementById('badge-stat-box').innerHTML = userLeaderStatus.isBoxLeader ? '📦' : '';
-        document.getElementById('badge-stat-wheel').innerHTML = userLeaderStatus.isWheelSpinLeader ? '🎡' : '';
-        document.getElementById('badge-stat-clickcatch').innerHTML = userLeaderStatus.isClickCatchLeader ? '🎯' : '';
-        document.getElementById('badge-stat-surprise').innerHTML = userLeaderStatus.isSurpriseLeader ? '🎉' : '';
-        document.getElementById('badge-stat-bomb').innerHTML = userLeaderStatus.isBombLeader ? '💣' : '';
-        document.getElementById('badge-stat-multiplier').innerHTML = userLeaderStatus.isMultiplierLeader ? '✖️' : '';
-        document.getElementById('badge-stat-shield').innerHTML = userLeaderStatus.isShieldLeader ? '🛡️' : '';
-        document.getElementById('badge-stat-store').innerHTML = userLeaderStatus.isStoreLeader ? '🛒' : '';
-
         const badges = getUserBadgesHtml(userData, userLeaderStatus, true);
         document.getElementById('publicUserProfileBadges').innerHTML = badges.crown + badges.others;
         
@@ -8017,14 +8008,32 @@ async function openPublicUserDetailModal(username) {
 
         document.getElementById('publicUserName').textContent = username;
         
-        document.getElementById('publicUserBalance').textContent = formatNumber(userData.balance || 0);
-        document.getElementById('publicUserHighestBalance').textContent = formatNumber(userData.kariyerPuani || 0);
-        document.getElementById('publicUserKasaBalance').textContent = formatNumber(userData.kasaPuani || 0);
-        document.getElementById('publicUserBoxRight').textContent = formatNumber(userData.kutuHakki || 0);
-        document.getElementById('publicUserWheelTickets').textContent = formatNumber(userData.carkBileti || 0);
-        document.getElementById('publicUserClickCatchTickets').textContent = formatNumber(userData.clickCatchTickets || 0);
-        document.getElementById('publicUserIflasShield').textContent = formatNumber(userData.iflasShieldUses || 0);
+        const puanVeEnvanterDiv = document.querySelector('#publicUserDetailModal .grid .bg-gray-800\\/70:first-child .space-y-3');
+        if (puanVeEnvanterDiv) {
+            // --- DEĞİŞİKLİK BURADA: Rozetler artık doğrudan HTML'in içine ekleniyor ---
+            puanVeEnvanterDiv.innerHTML = `
+                <p class="flex justify-between items-center"><span>🃏 Joker Kart:</span> <span class="font-bold text-purple-400 text-lg">${formatNumber(userData.wildcards || 0)}</span></p>
+                <p class="flex justify-between items-center"><span>🏦 Kasa Puanı:</span> <span class="font-bold text-purple-400 text-lg">${formatNumber(userData.kasaPuani || 0)}</span></p>
+                <p class="flex justify-between items-center"><span><span class="inline-block w-6 text-center">${userLeaderStatus.isCurrentLeader ? '🥇' : ''}</span>Mevcut Puanı:</span> <span class="font-bold text-yellow-300 text-lg">${formatNumber(userData.balance || 0)}</span></p>
+                <p class="flex justify-between items-center"><span><span class="inline-block w-6 text-center">${userLeaderStatus.isHighLeader ? '🏆' : ''}</span>Kariyer Puanı:</span> <span class="font-bold text-green-400 text-lg">${formatNumber(userData.kariyerPuani || 0)}</span></p>
+                <hr class="border-gray-600 !my-2">
+                <p class="flex justify-between items-center"><span>📦 Kutu Hakkı:</span> <span class="font-bold text-green-400 text-lg">${formatNumber(userData.kutuHakki || 0)}</span></p>
+                <p class="flex justify-between items-center"><span>️🎫 Şans Çarkı Bileti:</span> <span class="font-bold text-yellow-400 text-lg">${formatNumber(userData.carkBileti || 0)}</span></p>
+                <p class="flex justify-between items-center"><span>🎟️ Tıkla-Yakala Bileti:</span> <span class="font-bold text-fuchsia-400 text-lg">${formatNumber(userData.clickCatchTickets || 0)}</span></p>
+                <p class="flex justify-between items-center"><span>🛡️ İflas Kalkanı:</span> <span class="font-bold text-blue-400 text-lg">${formatNumber(userData.iflasShieldUses || 0)}</span></p>
+                <p class="flex justify-between items-center"><span>✖️ Aktif Çarpan:</span> <span id="publicUserMultiplier" class="font-bold text-purple-400 text-lg text-right"></span></p>
+            `;
+        }
         
+        document.getElementById('badge-stat-box').innerHTML = userLeaderStatus.isBoxLeader ? '📦' : '';
+        document.getElementById('badge-stat-wheel').innerHTML = userLeaderStatus.isWheelSpinLeader ? '🎡' : '';
+        document.getElementById('badge-stat-clickcatch').innerHTML = userLeaderStatus.isClickCatchLeader ? '🎯' : '';
+        document.getElementById('badge-stat-surprise').innerHTML = userLeaderStatus.isSurpriseLeader ? '🎉' : '';
+        document.getElementById('badge-stat-bomb').innerHTML = userLeaderStatus.isBombLeader ? '💣' : '';
+        document.getElementById('badge-stat-multiplier').innerHTML = userLeaderStatus.isMultiplierLeader ? '✖️' : '';
+        document.getElementById('badge-stat-shield').innerHTML = userLeaderStatus.isShieldLeader ? '🛡️' : '';
+        document.getElementById('badge-stat-store').innerHTML = userLeaderStatus.isStoreLeader ? '🛒' : '';
+
         document.getElementById('publicUserBoxesOpened').textContent = formatNumber(userData.boxesOpenedCount || 0);
         document.getElementById('publicUserWheelSpins').textContent = formatNumber(userData.wheelSpinsCount || 0);
         document.getElementById('publicUserClickCatchScore').textContent = formatNumber(userData.clickCatchHighestScore || 0);
@@ -8045,7 +8054,6 @@ async function openPublicUserDetailModal(username) {
         const championshipsDiv = document.getElementById('publicUserChampionships');
         let championshipsHtml = '';
 
-        // ★★★ DEĞİŞEN KISIM BAŞLANGICI: Detaylı başarım gösterimi ★★★
         if (userData.puanChampionships && userData.puanChampionships.length > 0) {
             const count = userData.puanChampionships.length;
             const lastWin = userData.puanChampionships[count - 1];
@@ -8069,7 +8077,6 @@ async function openPublicUserDetailModal(username) {
             const lastWin = userData.tyChampionships[count - 1];
             championshipsHtml += `<p>🎯 ${count}. kez 'T-Y SKOR SIRALAMASI' haftalık yakalayıcı şampiyonu oldu. <small class="text-gray-400">(${formatNumber(lastWin.score)} Skor ile)</small></p>`;
         }
-        // ★★★ DEĞİŞEN KISIM SONU ★★★
         
         if (championshipsHtml) {
             championshipsDiv.innerHTML = championshipsHtml;
@@ -8083,10 +8090,10 @@ async function openPublicUserDetailModal(username) {
     activeUserProfileListener = { ref: userRef, callback: userProfileCallback };
 }
 
+// MEVCUT openUserManagementModal FONKSİYONUNU SİL VE BUNU YAPIŞTIR
 async function openUserManagementModal(event, username) {
-    // --- YENİ EKLENEN SATIR: Tıklamanın "sızmasını" engeller ---
+    // Tıklamanın "sızmasını" engeller
     if (event) event.stopPropagation();
-    // ---------------------------------------------------------
 
     if (activeBlockedUserTimers[username]) {
         clearInterval(activeBlockedUserTimers[username]);
@@ -8119,14 +8126,20 @@ async function openUserManagementModal(event, username) {
         isClickCatchLeader: username === leaders.clickCatchLeaderUser,
         isWheelSpinLeader: username === leaders.wheelSpinUser
     };
+    
+    // --- DEĞİŞİKLİK BURADA BAŞLIYOR ---
+    // Rozetleri ilgili satırların yanına ekleyen kodlar
     document.getElementById('managedBadgeBalance').innerHTML = userLeaderStatus.isCurrentLeader ? '🥇' : '';
     document.getElementById('managedBadgeHighest').innerHTML = userLeaderStatus.isHighLeader ? '🏆' : '';
+    // --- DEĞİŞİKLİK BURADA BİTİYOR ---
 
     const avatarUrl = userData.selectedAvatar ? userData.selectedAvatar.url : defaultAvatarUrl;
     document.getElementById('managedUserAvatar').src = avatarUrl;
     document.getElementById('managedUserName').textContent = username;
     document.getElementById('managedUserBalance').textContent = formatNumber(userData.balance || 0);
     document.getElementById('managedUserHighestBalance').textContent = formatNumber(userData.kariyerPuani || 0);
+    document.getElementById('managedUserKasaBalance').textContent = formatNumber(userData.kasaPuani || 0);
+    document.getElementById('managedUserWildcards').textContent = formatNumber(userData.wildcards || 0);
     document.getElementById('managedUserBoxRight').textContent = formatNumber(userData.kutuHakki || 0);
     document.getElementById('managedUserWheelTickets').textContent = formatNumber(userData.carkBileti || 0);
     document.getElementById('managedUserClickCatchTickets').textContent = formatNumber(userData.clickCatchTickets || 0);
@@ -12089,7 +12102,6 @@ async function selectAvatar(itemId, imageUrl) {
     closeAvatarSelectionModal();
 }
 
-// MEVCUT buyItem FONKSİYONUNU SİL VE BUNU YAPIŞTIR
 async function buyItem(itemId) {
     if (isAdmin) {
         displayMessage("Adminler alışveriş yapamaz.");
@@ -12103,7 +12115,9 @@ async function buyItem(itemId) {
 
     if (!user || !item) return;
 
-    const isPotion = ['health_potion', 'damage_potion', 'defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion'].includes(item.type);
+    // --- 2. DÜZELTME İÇİN DEĞİŞEN SATIR ---
+    // 'health_regen_potion' buraya da eklendi.
+    const isPotion = ['health_potion', 'damage_potion', 'defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion', 'health_regen_potion'].includes(item.type);
 
     if (isPotion) {
         const capCheck = checkPotionCap(user, item.type, item.value);
@@ -12164,22 +12178,16 @@ async function buyItem(itemId) {
 
         logActivity('buyItem', currentUser, { itemName: item.name, itemCost: currentCost, itemType: item.type, itemValue: valueToAdd, itemDuration: null, newBalance: newBalance });
         
-        // ★★★ DEĞİŞİKLİK BURADA BAŞLIYOR ★★★
-        // Ödülün yüzde olup olmadığını kontrol et
         const isPercent = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion'].includes(item.type);
-        // Değeri, yüzde ise ondalıklı ve % işaretiyle, değilse normal şekilde formatla
         const formattedValue = isPercent ? `+%${valueToAdd.toFixed(1)}` : `+${valueToAdd}`;
-        // Kullanıcıya gösterilecek yeni mesajı oluştur
         const successMessage = `Başarılı! '${item.name}' satın alındı ve hesabınıza kalıcı olarak ${formattedValue} bonus eklendi.`;
         displayMessage(successMessage);
-        // ★★★ DEĞİŞİKLİK BURADA BİTİYOR ★★★
 
         if (currentActiveSection === 'monsterBattle') { renderMonsterBattleUI(); }
 
         return;
     }
 
-    // (İksir olmayan diğer ürünler için kodun geri kalanı aynı)
     if ((user.balance || 0) < item.cost) { displayMessage("Yetersiz Puan!"); return; }
     if (item.type === 'special') {
         const kasaPuani = user.kasaPuani || 0;
@@ -13571,6 +13579,7 @@ async function loadCollectionAlbum() {
     const userCards = userData.cardCollection || {};
     const hasCompletedCollection = userData.completedCollection === true;
     
+    // --- YENİ EKLENEN KOD BAŞLANGICI (JOKER KART İÇİN) ---
     const wildcardIndicator = document.getElementById('wildcardIndicator');
     const wildcardCountSpan = document.getElementById('wildcardCount');
     const userWildcards = userData.wildcards || 0;
@@ -13587,6 +13596,7 @@ async function loadCollectionAlbum() {
             wildcardIndicator.classList.add('hidden');
         }
     }
+    // --- YENİ EKLENEN KOD SONU ---
 
     const userOwnedCardCount = Object.keys(userCards).length;
     if(progressSpan) progressSpan.textContent = `${userOwnedCardCount}/${totalCardCount}`;
@@ -13615,14 +13625,10 @@ async function loadCollectionAlbum() {
                 <h4 class="card-name">${cardInfo.cardName}</h4>
             `;
 
-            // ### EN ÖNEMLİ DEĞİŞİKLİK BURADA ###
-            // Artık tek bir tıklama olayı var ve bu olay yeni ve akıllı bir fonksiyonu çağırıyor.
             if (userHasCard && userHasCard.count > 1) {
                 if (hasCompletedCollection) {
-                    // Koleksiyonu tamamladıysa, dönüştürme fonksiyonunu çağır
                     cardItem.onclick = () => handleDuplicateCardClick(cardId);
                 } else {
-                    // Tamamlamadıysa, takas menüsünü aç
                     cardItem.onclick = () => openTradeMenu(cardId, cardInfo.cardName);
                 }
             }
@@ -15522,16 +15528,23 @@ async function loadCollectionLeaderboard() {
             const ownedCardCount = Object.keys(userData.cardCollection || {}).length;
 
             let progressHtml = '';
+            // --- DEĞİŞTİRİLEN KISIM BAŞLANGICI ---
             if (ownedCardCount >= totalCardCount && totalCardCount > 0) {
-                progressHtml = `<span class="font-bold text-green-400">Tamamlandı</span>`;
+                // Koleksiyonu tamamladıysa bile tıklanabilir olsun.
+                progressHtml = `
+                    <span class="font-bold text-green-400 cursor-pointer hover:underline" onclick="openUserAlbumViewer('${username}')">
+                        Tamamlandı (${ownedCardCount}/${totalCardCount})
+                    </span>
+                `;
             } else {
-                // --- DÜZELTME BURADA: onclick artık yeni fonksiyonu çağırıyor ---
+                // Koleksiyonu tamamlamadıysa normal ilerlemesini göster.
                 progressHtml = `
                     <span class="font-bold text-yellow-300 cursor-pointer hover:underline" onclick="openUserAlbumViewer('${username}')">
                         ${ownedCardCount}/${totalCardCount}
                     </span>
                 `;
             }
+            // --- DEĞİŞTİRİLEN KISIM SONU ---
 
             html += `
                 <div class="flex items-center justify-between p-3 rounded-lg border ${rowClass}">
@@ -15554,8 +15567,7 @@ async function loadCollectionLeaderboard() {
     usersRef.on('value', callback);
 }
 
-      // YENİ EKLENECEK FONKSİYON: Kullanıcı albümü penceresini açar
-async function openUserAlbumViewer(username) {
+      async function openUserAlbumViewer(username) {
     const modal = document.getElementById('userAlbumViewerModal');
     const title = document.getElementById('userAlbumViewerTitle');
     const grid = document.getElementById('userAlbumViewerGrid');
@@ -15579,6 +15591,16 @@ async function openUserAlbumViewer(username) {
         const userData = userSnap.val() || {};
         const userCards = userData.cardCollection || {};
         
+        // --- YENİ EKLENEN KOD BAŞLANGICI ---
+        // Joker kart sayısını al ve ekranda göster
+        const wildcardCount = userData.wildcards || 0;
+        const wildcardCountEl = document.getElementById('userAlbumViewerWildcardCount');
+        if (wildcardCountEl) {
+            wildcardCountEl.textContent = `Joker Kart: ${wildcardCount}`;
+            wildcardCountEl.classList.remove('hidden');
+        }
+        // --- YENİ EKLENEN KOD SONU ---
+        
         grid.innerHTML = ''; // Temizle
 
         for (const cardId in masterCards) {
@@ -15588,11 +15610,10 @@ async function openUserAlbumViewer(username) {
             const slot = document.createElement('div');
             slot.className = 'card-slot';
 
-            if (userHasCard) { // Eğer kullanıcı bu karta sahipse
+            if (userHasCard) {
                 const cardItem = document.createElement('div');
                 cardItem.className = `card-item rarity-${cardInfo.rarity || 'normal'}`;
                 
-                // Fazla kart rozetini oluştur (+1, +2 şeklinde)
                 let duplicateBadge = userHasCard.count > 1 ? `<div class="duplicate-badge">+${userHasCard.count - 1}</div>` : '';
                 
                 cardItem.innerHTML = `
@@ -15602,9 +15623,9 @@ async function openUserAlbumViewer(username) {
                 `;
                 slot.appendChild(cardItem);
 
-            } else { // Eğer kullanıcı bu karta sahip değilse
+            } else {
                 slot.innerHTML = `
-                    <div class="card-item missing relative">
+                    <div class="card-item missing relative rarity-${cardInfo.rarity || 'normal'}">
                         <div class="card-image flex items-center justify-center">
                              <span class="missing-text">?</span>
                         </div>
