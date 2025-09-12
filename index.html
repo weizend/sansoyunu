@@ -1485,6 +1485,11 @@ body.modal-open .modal-content {
                 <div id="playerBuffs" class="flex justify-center items-center gap-4 mb-3 min-h-[30px]"></div>
                 
                 <div id="defeatMessageContainer" class="hidden text-center mb-3"></div>
+                <div id="potionStoreBtnContainer" class="my-3">
+    <button onclick="goToPotionStore()" class="w-full py-2 bg-teal-600 hover:bg-teal-500 text-white font-bold rounded-lg shadow-md">
+        🧪 İksir Mağazasına Git
+    </button>
+</div>
 <div id="regenPotionContainer" class="mb-3"></div>
 <div id="revivalStoneContainer" class="hidden text-center mb-3"></div>
 
@@ -4432,7 +4437,14 @@ async function afterLogin() {
     }
   }
 
+// MEVCUT showSection FONKSİYONUNU SİL VE BUNU YAPIŞTIR
 function showSection(sectionId) {
+    // YENİ EKLENEN KISIM: Eğer kullanıcı mağaza dışı bir sekmeye tıklarsa, filtreyi temizle.
+    if (sectionId !== 'store') {
+        storeFilter = null;
+    }
+    // YENİ EKLENEN KISIM SONU
+
     if (currentActiveSection === 'cardCollection' && sectionId !== 'cardCollection') {
         newlyAcquiredCards.clear();
     }
@@ -4451,7 +4463,6 @@ function showSection(sectionId) {
 
     hideAllAdminControls();
 
-    // ★★★ HATA DÜZELTİLDİ: Sadece 'Content' ID'li div'ler gösterilecek ★★★
     const contentToShow = document.getElementById(`${sectionId}Content`) || document.getElementById(`${sectionId}Section`);
     if(contentToShow) contentToShow.classList.remove('hidden');
 
@@ -4461,11 +4472,9 @@ function showSection(sectionId) {
         activeBtn.classList.remove('bg-gray-700', 'hover:bg-gray-600');
     }
 
-    // ★★★ SORUNU ÇÖZEN DEĞİŞİKLİK BURADA ★★★
     if (sectionId === 'game' && isAdmin) {
         document.getElementById('boxSettingsButton').classList.remove('hidden');
     }
-    // ★★★ DEĞİŞİKLİK SONU ★★★
 
     if (sectionId === 'store') {
         loadStoreItems();
@@ -4476,7 +4485,10 @@ function showSection(sectionId) {
             document.getElementById('storeIndicator').classList.add('hidden');
             db.ref(`users/${currentUser}/lastSeenStoreTimestamp`).set(latestStoreItemTimestamp);
         }
-        switchStoreTab('game');
+        // Eğer filtre aktif değilse, varsayılan olarak oyun mağazasını aç.
+        if (!storeFilter) {
+            switchStoreTab('game');
+        }
     } else if (sectionId === 'announcements') {
         loadAnnouncements();
         if (isAdmin) {
@@ -7457,11 +7469,13 @@ function loadStoreItems() {
       }
   }
 
-  // ESKİ renderStoreItems FONKSİYONUNU SİL VE BUNU EKLEYİN
-
+  // MEVCUT renderStoreItems FONKSİYONUNU SİL VE BUNU YAPIŞTIR
 async function renderStoreItems(items, userData = {}) { 
     const gameContainer = document.getElementById('gameStoreItemsContainer');
     const specialContainer = document.getElementById('specialStoreItemsContainer');
+    const gameTabBtn = document.getElementById('gameStoreTabBtn');
+    const specialTabBtn = document.getElementById('specialStoreTabBtn');
+    
     gameContainer.innerHTML = '';
     specialContainer.innerHTML = '';
 
@@ -7476,13 +7490,41 @@ async function renderStoreItems(items, userData = {}) {
     }
     
     let allItemsArray = Object.entries(items);
-    let gameItems = allItemsArray
-        .filter(([, item]) => item.type !== 'special')
-        .sort(([, a], [, b]) => (a.order || 0) - (b.order || 0));
+    let gameItems = [];
+    let specialItems = [];
 
-    let specialItems = allItemsArray
-        .filter(([, item]) => item.type === 'special')
-        .sort(([, a], [, b]) => (a.order || 0) - (b.order || 0));
+    // ★★★ YENİ FİLTRELEME MANTIĞI BAŞLANGICI ★★★
+    if (storeFilter === 'potions') {
+        // Sadece iksirleri filtrele ve "Oyun Mağazası" listesine ata
+        gameItems = allItemsArray
+            .filter(([, item]) => item.type !== 'special' && item.type.endsWith('_potion'))
+            .sort(([, a], [, b]) => (a.order || 0) - (b.order || 0));
+        
+        // Özel Mağaza sekmesini ve içeriğini gizle
+        if(specialTabBtn) specialTabBtn.style.display = 'none';
+        if(specialContainer) specialContainer.style.display = 'none';
+        
+        // Oyun Mağazası sekmesini zorla aktif yap
+        if(gameTabBtn) {
+            gameTabBtn.classList.add('border-red-500', 'text-white');
+            gameTabBtn.classList.remove('border-transparent', 'text-gray-400');
+        }
+        document.getElementById('gameStoreItemsContainer').classList.remove('hidden');
+
+    } else {
+        // Normal çalışma (filtre yoksa)
+        gameItems = allItemsArray
+            .filter(([, item]) => item.type !== 'special')
+            .sort(([, a], [, b]) => (a.order || 0) - (b.order || 0));
+
+        specialItems = allItemsArray
+            .filter(([, item]) => item.type === 'special')
+            .sort(([, a], [, b]) => (a.order || 0) - (b.order || 0));
+
+        // Gizlenmiş olabilecek Özel Mağaza sekmesini tekrar görünür yap
+        if(specialTabBtn) specialTabBtn.style.display = 'flex';
+    }
+    // ★★★ YENİ FİLTRELEME MANTIĞI SONU ★★★
 
     let bestSellerGameItemId = null;
     if (gameItems.length > 0) {
@@ -7509,14 +7551,12 @@ async function renderStoreItems(items, userData = {}) {
         const index = list.findIndex(([id]) => id === itemId);
         const isBestSeller = isSpecial ? itemId === bestSellerSpecialItemId : itemId === bestSellerGameItemId;
 
-        // ★★★ YENİ KOD BAŞLANGICI: DİNAMİK FİYAT HESAPLAMA ★★★
-        const isPotion = ['health_potion', 'damage_potion', 'defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion'].includes(item.type);
+        const isPotion = ['health_potion', 'damage_potion', 'defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion', 'health_regen_potion'].includes(item.type);
         let currentCost = item.cost;
-        if (isPotion && !isSpecial) { // İksirlerin fiyatı sadece normal mağazada artar
+        if (isPotion && !isSpecial) {
             const purchaseCount = potionPurchaseCounts[itemId] || 0;
             currentCost = item.cost + (purchaseCount * 1000);
         }
-        // ★★★ YENİ KOD SONU ★★★
 
         const outOfStock = item.stock !== undefined && item.stock <= 0;
         let isExpired = false;
@@ -7561,7 +7601,6 @@ async function renderStoreItems(items, userData = {}) {
         const bestSellerBadge = isBestSeller ? `<span class="best-seller-badge absolute top-2 left-2 bg-yellow-500 text-gray-900 text-xs font-bold px-2 py-1 rounded-full z-10">ÇOK SATAN</span>` : '';
         const cardClass = isBestSeller ? 'glowing-border' : 'border-red-700';
         
-        // ★★★ FİYAT GÖSTERİMİ GÜNCELLENDİ ★★★
         const priceText = isSpecial ? `${currentCost} Kasa Puanı` : `${currentCost} Puan`;
 
         const cardDiv = document.createElement('div');
@@ -7590,7 +7629,7 @@ async function renderStoreItems(items, userData = {}) {
     if (gameItems.length > 0) {
       gameItems.forEach(itemData => renderItem(itemData, gameContainer));
     } else {
-      gameContainer.innerHTML = '<p class="text-center col-span-full text-gray-400">Oyun mağazasında ürün bulunmamaktadır.</p>';
+      gameContainer.innerHTML = '<p class="text-center col-span-full text-gray-400">Mağazada ürün bulunmamaktadır.</p>';
     }
     
     if (specialItems.length > 0) {
@@ -12319,6 +12358,7 @@ async function selectAvatar(itemId, imageUrl) {
     closeAvatarSelectionModal();
 }
 
+// MEVCUT buyItem FONKSİYONUNU SİL VE BUNU YAPIŞTIR
 async function buyItem(itemId) {
     if (isAdmin) {
         displayMessage("Adminler alışveriş yapamaz.");
@@ -12332,8 +12372,6 @@ async function buyItem(itemId) {
 
     if (!user || !item) return;
 
-    // --- 2. DÜZELTME İÇİN DEĞİŞEN SATIR ---
-    // 'health_regen_potion' buraya da eklendi.
     const isPotion = ['health_potion', 'damage_potion', 'defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion', 'health_regen_potion'].includes(item.type);
 
     if (isPotion) {
@@ -12393,10 +12431,23 @@ async function buyItem(itemId) {
             } return currentItem; 
         });
 
-        logActivity('buyItem', currentUser, { itemName: item.name, itemCost: currentCost, itemType: item.type, itemValue: valueToAdd, itemDuration: null, newBalance: newBalance });
+        // ★★★ YENİ EKLENEN KISIM BAŞLANGICI ★★★
+        const isPercent = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion', 'health_regen_potion'].includes(item.type);
+        const valuePrefix = isPercent ? '%' : '+';
+        const detailedItemName = `${valuePrefix}${valueToAdd} ${item.name}`; // Örn: +100 Can İksiri
+        // ★★★ YENİ EKLENEN KISIM SONU ★★★
+
+        logActivity('buyItem', currentUser, { 
+            itemName: detailedItemName, // <-- DEĞİŞEN SATIR
+            itemCost: currentCost, 
+            itemType: item.type, 
+            itemValue: valueToAdd, 
+            itemDuration: null, 
+            newBalance: newBalance 
+        });
         
-        const isPercent = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion'].includes(item.type);
-        const formattedValue = isPercent ? `+%${valueToAdd.toFixed(1)}` : `+${valueToAdd}`;
+        const isPercentMsg = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion'].includes(item.type);
+        const formattedValue = isPercentMsg ? `+%${valueToAdd.toFixed(1)}` : `+${valueToAdd}`;
         const successMessage = `Başarılı! '${item.name}' satın alındı ve hesabınıza kalıcı olarak ${formattedValue} bonus eklendi.`;
         displayMessage(successMessage);
 
@@ -12420,7 +12471,7 @@ async function buyItem(itemId) {
         if (item.stock !== undefined && item.stock !== null) { itemUpdates.stock = item.stock - 1; }
         itemUpdates.purchaseCount = (item.purchaseCount || 0) + 1;
         await itemRef.update(itemUpdates);
-        logActivity('buyItem', currentUser, { itemName: item.name, itemCost: item.cost, itemType: item.type, newKasaBalance: kasaPuani - item.cost });
+        logActivity('buyItem', currentUser, { itemName: item.name, itemCost: `${item.cost} KP`, itemType: item.type, newKasaBalance: kasaPuani - item.cost });
         displayMessage(`'${item.name}' talebiniz admine iletildi. Onaylandığında hesabınıza eklenecek. Kasa'nızdan ${item.cost} KP düşüldü.`);
         return;
     }
@@ -17919,6 +17970,16 @@ async function saveAvatarStats() {
 
     await db.ref().update(updates);
     displayMessage("Tüm avatarların temel istatistikleri başarıyla kaydedildi!");
+}
+
+// BU KOD BLOĞUNU let currentActiveSection = 'game'; SATIRININ ALTINA EKLE
+
+let storeFilter = null; // Mağazayı filtrelemek için kullanılacak global değişken
+
+// Canavar sayfasından mağazaya yönlendirir ve iksir filtresini aktif eder
+function goToPotionStore() {
+    storeFilter = 'potions'; // Filtreyi 'iksirler' olarak ayarla
+    showSection('store'); // Mağaza bölümünü göster
 }
       
 // ★★★ YENİ EKLENECEK FONKSİYONLAR SONU ★★★
