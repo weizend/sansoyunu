@@ -3419,8 +3419,9 @@ body.modal-open .modal-content {
 <div id="monsterInfoModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[10003] hidden">
   <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-red-500 w-11/12 max-w-lg text-left relative max-h-[90vh] overflow-y-auto scrollable-list">
     <button class="modal-close-button" onclick="closeMonsterInfoModal()">&times;</button>
-    <h3 id="modalMonsterName" class="text-red-300 text-3xl font-bold mb-6 text-center">Canavar Bilgileri</h3>
+    <h3 id="modalMonsterName" class="text-red-300 text-3xl font-bold mb-4 text-center">Canavar Bilgileri</h3>
     
+    <img id="modalMonsterImage" src="" alt="Canavar Resmi" class="w-32 h-32 mx-auto mb-4 rounded-lg object-contain border-2 border-gray-600">
     <div id="modalMonsterStats" class="space-y-3 text-lg mb-6">
       </div>
     
@@ -6432,7 +6433,8 @@ function renderActivityFeed(activities) {
 
             switch (activity.type) {
                 case 'monsterAttack':
-                    let attackSummary = `${userHtml}, <b class="text-red-300">${details.monsterName}</b>'a saldırdı. `;
+                    const monsterNameHtml = `<b class="text-red-300 cursor-pointer hover:underline" onclick="openMonsterInfoModal()">${details.monsterName}</b>`;
+                    let attackSummary = `${userHtml}, ${monsterNameHtml}'a saldırdı. `;
                     
                     if (details.didMonsterDodge) {
                         attackSummary += `Canavar <b class="text-cyan-400">sıyrıldı!</b>`;
@@ -6473,7 +6475,8 @@ function renderActivityFeed(activities) {
 
                 case 'monsterDefeated':
                     const winnerHtml = `<b class="text-yellow-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${details.winner}')">${details.winner}</b>`;
-                    message = `<b class="text-red-400">${details.monsterName}</b> mağlup edildi! En çok hasarı veren ${winnerHtml} (<b class="text-white">${formatNumber(details.totalDamage)} Hasar</b>), <b class="text-green-300">${details.prize}</b> ödülünü kazandı.`;
+                    const defeatedMonsterNameHtml = `<b class="text-red-400 cursor-pointer hover:underline" onclick="openMonsterInfoModal()">${details.monsterName}</b>`;
+                    message = `${defeatedMonsterNameHtml} mağlup edildi! En çok hasarı veren ${winnerHtml} (<b class="text-white">${formatNumber(details.totalDamage)} Hasar</b>), <b class="text-green-300">${details.prize}</b> ödülünü kazandı.`;
                     break;
                 
                 case 'collectionCompleted':
@@ -17418,20 +17421,28 @@ async function deleteCurrentMonster() {
     }
 }
 
-// MEVCUT openMonsterInfoModal FONKSİYONUNU SİLİP BUNU YAPIŞTIR
-
 function openMonsterInfoModal() {
     const monster = monsterBattleData.monsterDetails;
     if (!monster) return;
 
     document.getElementById('modalMonsterName').textContent = monster.name;
     
+    // YENİ EKLENEN KOD BAŞLANGICI
+    const imgEl = document.getElementById('modalMonsterImage');
+    if (imgEl && monster.imageUrl) {
+        imgEl.src = monster.imageUrl;
+        imgEl.style.display = 'block';
+    } else if (imgEl) {
+        imgEl.style.display = 'none';
+    }
+    // YENİ EKLENEN KOD SONU
+    
     const statsEl = document.getElementById('modalMonsterStats');
     statsEl.innerHTML = `
         <p>❤️ Can: <b class="text-white">${formatNumber(monster.maxHP)}</b></p>
         <p>⚔️ Hasar: <b class="text-white">${formatNumber(monster.minDamage)} - ${formatNumber(monster.maxDamage)}</b></p>
-        <p>🛡️ Savunma: <b class="text-white">${formatNumber(monster.defense)}</b></p>
         <p>🎯 Kritik Hasar: <b class="text-white">+%${monster.critDamage || 10}</b></p>
+        <p>🛡️ Savunma Şansı: <b class="text-white">%${monster.defense || 0}</b></p>
         <p>💨 Sıyrılma Şansı: <b class="text-white">%${monster.dodgeChance || 5}</b></p>
         <p>📌 Delici Vuruş Şansı: <b class="text-white">%${monster.pierceChance || 5}</b></p>
         <p>💥 Kritik Vuruş Şansı: <b class="text-white">%${monster.critChance || 5}</b></p>
@@ -17452,25 +17463,20 @@ function openMonsterInfoModal() {
         tiersEl.innerHTML = '';
         tiers.sort((a,b) => a.minDamage - b.minDamage).forEach(tier => {
             
-            // ★★★ DEĞİŞEN KISIM BAŞLANGICI: Ödül metinlerini daha detaylı oluşturuyoruz ★★★
             const rewardTexts = tier.rewards.map(r => {
                 const isPercent = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion', 'health_regen_potion'].includes(r.type);
-                const name = typeToName[r.type] || r.type; // typeToName'den ismi al
+                const name = typeToName[r.type] || r.type;
                 let valueText = '';
 
-                // Eğer yüzde ile gösterilecek bir iksirse, başına +% koy
                 if (isPercent) {
                     valueText = `+%${r.value} ${name}`;
                 } 
-                // Diğer tüm ödüller için başına + koy
                 else {
                     valueText = `+${r.value} ${name}`;
                 }
                 
-                // Son olarak, şans yüzdesini de ekle
                 return `${valueText} (%${r.chance})`;
             }).join(', ');
-            // ★★★ DEĞİŞEN KISIM SONU ★★★
             
             tiersEl.innerHTML += `<div><b class="text-white">${formatNumber(tier.minDamage)}+ Hasar</b> vuranlar şu ödüllerden birini kazanma şansı yakalar: <span class="text-cyan-300">${rewardTexts}</span></div>`;
         });
