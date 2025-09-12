@@ -6247,14 +6247,17 @@ function closeMultiplierChoiceModal() {
     pendingMultiplierChoice = null; 
 }
 
-// --- BU FONKSİYONU GÜNCEL VERSİYONU İLE DEĞİŞTİRİN ---
-// MEVCUT getActivityIcon FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
-// MEVCUT getActivityIcon FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
 function getActivityIcon(type, details = {}) {
     let icon = '🔔';
     let bgColor = 'bg-gray-500';
 
     switch (type) {
+        // ★★★ DEĞİŞİKLİK BURADA BAŞLIYOR ★★★
+        case 'collectionCompleted':
+            icon = '🃏';
+            bgColor = 'bg-purple-600';
+            break;
+        // ★★★ DEĞİŞİKLİK BURADA BİTİYOR ★★★
         case 'useRegenPotion':
             icon = '🧪';
             bgColor = 'bg-cyan-600';
@@ -6311,10 +6314,8 @@ function getActivityIcon(type, details = {}) {
             icon = '🏦';
             bgColor = 'bg-purple-600';
             break;
-        // ★★★ DEĞİŞİKLİK BURADA BAŞLIYOR ★★★
         case 'multiplierUpgraded':
         case 'multiplierUpgradedFromStore':
-        // ★★★ DEĞİŞİKLİK BURADA BİTİYOR ★★★
         case 'multiplierStacked':
         case 'dailyRewardMultiplierStacked':
             icon = '✨';
@@ -8098,9 +8099,7 @@ async function openPublicUserDetailModal(username) {
     activeUserProfileListener = { ref: userRef, callback: userProfileCallback };
 }
 
-// MEVCUT openUserManagementModal FONKSİYONUNU SİL VE BUNU YAPIŞTIR
 async function openUserManagementModal(event, username) {
-    // Tıklamanın "sızmasını" engeller
     if (event) event.stopPropagation();
 
     if (activeBlockedUserTimers[username]) {
@@ -8121,7 +8120,6 @@ async function openUserManagementModal(event, username) {
     }
 
     const leaders = await calculateAllLeaders(allUsersSnap.val());
-
     const userLeaderStatus = {
         isCurrentLeader: username === leaders.currentBalanceUser,
         isHighLeader: username === leaders.highEverBalanceUser,
@@ -8135,12 +8133,8 @@ async function openUserManagementModal(event, username) {
         isWheelSpinLeader: username === leaders.wheelSpinUser
     };
     
-    // --- DEĞİŞİKLİK BURADA BAŞLIYOR ---
-    // Rozetleri ilgili satırların yanına ekleyen kodlar
     document.getElementById('managedBadgeBalance').innerHTML = userLeaderStatus.isCurrentLeader ? '🥇' : '';
     document.getElementById('managedBadgeHighest').innerHTML = userLeaderStatus.isHighLeader ? '🏆' : '';
-    // --- DEĞİŞİKLİK BURADA BİTİYOR ---
-
     const avatarUrl = userData.selectedAvatar ? userData.selectedAvatar.url : defaultAvatarUrl;
     document.getElementById('managedUserAvatar').src = avatarUrl;
     document.getElementById('managedUserName').textContent = username;
@@ -8207,6 +8201,49 @@ async function openUserManagementModal(event, username) {
     if (userLeaderStatus.isShieldLeader) document.getElementById('managedBadgeShield').innerHTML = '🛡️';
     if (userLeaderStatus.isClickCatchLeader) document.getElementById('managedBadgeClickCatch').innerHTML = '🎯';
     if (userLeaderStatus.isWheelSpinLeader) document.getElementById('managedBadgeWheel').innerHTML = '🎡';
+    
+    // ★★★ YENİ EKLENEN BAŞARIM YÖNETİM BÖLÜMÜ BAŞLANGICI ★★★
+    // Önce mevcut bir bölüm varsa onu bul, yoksa oluştur ve ekle.
+    let achievementsSection = document.getElementById('managedUserAchievementsSection');
+    if (!achievementsSection) {
+        achievementsSection = document.createElement('div');
+        achievementsSection.id = 'managedUserAchievementsSection';
+        achievementsSection.className = 'bg-gray-900 p-6 rounded-lg border border-gray-700 mt-6';
+        // Bu bölümü, kullanıcı yönetim penceresinin uygun bir yerine ekleyelim. Mesela avatar grid'inin altına.
+        document.getElementById('managedUserAvatarGrid').parentElement.insertAdjacentElement('afterend', achievementsSection);
+    }
+
+    let achievementsHtml = `<h4 class="text-yellow-300 text-xl font-semibold mb-4">Kalıcı Başarımlar Yönetimi</h4><div class="space-y-3">`;
+    let hasAchievements = false;
+
+    // Her bir başarım türünü kontrol et ve silme butonu ekle
+    if (userData.puanChampionships && userData.puanChampionships.length > 0) {
+        achievementsHtml += `<div class="flex justify-between items-center"><p>🏆 Kariyer Puanı Şampiyonluğu: ${userData.puanChampionships.length} Kez</p><button onclick="removePuanChampionship('${username}')" class="py-1 px-3 bg-red-800 hover:bg-red-700 rounded-md text-xs">Sonuncuyu Sil</button></div>`;
+        hasAchievements = true;
+    }
+    if (userData.rozetChampionships && userData.rozetChampionships.length > 0) {
+        achievementsHtml += `<div class="flex justify-between items-center"><p>👑 Rozet Liderliği Şampiyonluğu: ${userData.rozetChampionships.length} Kez</p><button onclick="removeRozetChampionship('${username}')" class="py-1 px-3 bg-red-800 hover:bg-red-700 rounded-md text-xs">Sonuncuyu Sil</button></div>`;
+        hasAchievements = true;
+    }
+    if (userData.collectionChampionshipsWon > 0) {
+        achievementsHtml += `<div class="flex justify-between items-center"><p>🃏 Koleksiyon Şampiyonluğu: ${userData.collectionChampionshipsWon} Kez</p><button onclick="removeCollectionChampionship('${username}')" class="py-1 px-3 bg-red-800 hover:bg-red-700 rounded-md text-xs">Sonuncuyu Sil</button></div>`;
+        hasAchievements = true;
+    }
+    if (userData.monsterChampionships && userData.monsterChampionships.length > 0) {
+        achievementsHtml += `<div class="flex justify-between items-center"><p>👹 Canavar Savaşı Şampiyonluğu: ${userData.monsterChampionships.length} Kez</p><button onclick="removeMonsterChampionship('${username}')" class="py-1 px-3 bg-red-800 hover:bg-red-700 rounded-md text-xs">Sonuncuyu Sil</button></div>`;
+        hasAchievements = true;
+    }
+    if (userData.tyChampionships && userData.tyChampionships.length > 0) {
+        achievementsHtml += `<div class="flex justify-between items-center"><p>🎯 T-Y Yakalayıcı Şampiyonluğu: ${userData.tyChampionships.length} Kez</p><button onclick="removeTyChampionship('${username}')" class="py-1 px-3 bg-red-800 hover:bg-red-700 rounded-md text-xs">Sonuncuyu Sil</button></div>`;
+        hasAchievements = true;
+    }
+
+    if (!hasAchievements) {
+        achievementsHtml += '<p class="text-center text-gray-500">Bu kullanıcının henüz kalıcı bir başarımı yok.</p>';
+    }
+    achievementsHtml += `</div>`;
+    achievementsSection.innerHTML = achievementsHtml;
+    // ★★★ YENİ EKLENEN BAŞARIM YÖNETİM BÖLÜMÜ SONU ★★★
 
     const historyList = document.getElementById('managedUserPurchaseHistory');
     historyList.innerHTML = 'Yükleniyor...';
@@ -8240,6 +8277,92 @@ async function openUserManagementModal(event, username) {
 
     userManagementModal.style.display = 'flex';
 }
+
+// ★★★ YENİ EKLENECEK BAŞARIM SİLME FONKSİYONLARI BAŞLANGICI ★★★
+
+// Puan Şampiyonluğu'nun son kaydını siler
+async function removePuanChampionship(username) {
+    if (!isAdmin || !username) return;
+    const confirmed = await customConfirm(`<b>${username}</b> adlı kullanıcının son 'Kariyer Puanı Şampiyonluğu' başarımını silmek istediğinize emin misiniz?`);
+    if (!confirmed) return;
+
+    const userRef = db.ref(`users/${username}/puanChampionships`);
+    await userRef.transaction(championships => {
+        if (championships && Array.isArray(championships) && championships.length > 0) {
+            championships.pop(); // Son elemanı diziden çıkar
+        }
+        return championships;
+    });
+    displayMessage("Kullanıcının son Puan Şampiyonluğu başarımı silindi.");
+    openUserManagementModal(event, username); // Pencereyi yenile
+}
+
+// Rozet Liderliği Şampiyonluğu'nun son kaydını siler
+async function removeRozetChampionship(username) {
+    if (!isAdmin || !username) return;
+    const confirmed = await customConfirm(`<b>${username}</b> adlı kullanıcının son 'Rozet Liderliği Şampiyonluğu' başarımını silmek istediğinize emin misiniz?`);
+    if (!confirmed) return;
+
+    const userRef = db.ref(`users/${username}/rozetChampionships`);
+    await userRef.transaction(championships => {
+        if (championships && Array.isArray(championships) && championships.length > 0) {
+            championships.pop();
+        }
+        return championships;
+    });
+    displayMessage("Kullanıcının son Rozet Liderliği başarımı silindi.");
+    openUserManagementModal(event, username);
+}
+
+// Koleksiyon Şampiyonluğu sayısını bir azaltır
+async function removeCollectionChampionship(username) {
+    if (!isAdmin || !username) return;
+    const confirmed = await customConfirm(`<b>${username}</b> adlı kullanıcının 'Koleksiyon Şampiyonluğu' sayısını bir azaltmak istediğinize emin misiniz?`);
+    if (!confirmed) return;
+
+    const userRef = db.ref(`users/${username}/collectionChampionshipsWon`);
+    await userRef.transaction(count => {
+        return (count || 0) > 0 ? count - 1 : 0;
+    });
+    displayMessage("Kullanıcının Koleksiyon Şampiyonluğu sayısı bir azaltıldı.");
+    openUserManagementModal(event, username);
+}
+
+// Canavar Savaşı Şampiyonluğu'nun son kaydını siler
+async function removeMonsterChampionship(username) {
+    if (!isAdmin || !username) return;
+    const confirmed = await customConfirm(`<b>${username}</b> adlı kullanıcının son 'Canavar Savaşı Şampiyonluğu' başarımını silmek istediğinize emin misiniz?`);
+    if (!confirmed) return;
+
+    const userRef = db.ref(`users/${username}/monsterChampionships`);
+    await userRef.transaction(championships => {
+        if (championships && Array.isArray(championships) && championships.length > 0) {
+            championships.pop();
+        }
+        return championships;
+    });
+    displayMessage("Kullanıcının son Canavar Savaşı başarımı silindi.");
+    openUserManagementModal(event, username);
+}
+
+// Tıkla-Yakala Şampiyonluğu'nun son kaydını siler
+async function removeTyChampionship(username) {
+    if (!isAdmin || !username) return;
+    const confirmed = await customConfirm(`<b>${username}</b> adlı kullanıcının son 'T-Y Yakalayıcı Şampiyonluğu' başarımını silmek istediğinize emin misiniz?`);
+    if (!confirmed) return;
+
+    const userRef = db.ref(`users/${username}/tyChampionships`);
+    await userRef.transaction(championships => {
+        if (championships && Array.isArray(championships) && championships.length > 0) {
+            championships.pop();
+        }
+        return championships;
+    });
+    displayMessage("Kullanıcının son T-Y Yakalayıcı başarımı silindi.");
+    openUserManagementModal(event, username);
+}
+
+// ★★★ YENİ EKLENECEK BAŞARIM SİLME FONKSİYONLARI SONU ★★★
 
     function closePublicUserDetailModal() {
     const publicUserDetailModal = document.getElementById('publicUserDetailModal');
@@ -14842,13 +14965,12 @@ async function loadGrandPrizeDisplay() {
     displayContainer.classList.remove('hidden');
 }
 
-// MEVCUT checkAndGrantPrize FONKSİYONUNU SİL VE BUNU YAPIŞTIR
-
 async function checkAndGrantPrize(username) {
     const userRef = db.ref(`users/${username}`);
     const userSnap = await userRef.once('value');
     const userData = userSnap.val();
 
+    // Eğer kullanıcı zaten koleksiyonu tamamlamışsa, tekrar ödül verme.
     if (userData.completedCollection === true) {
         return;
     }
@@ -14861,34 +14983,38 @@ async function checkAndGrantPrize(username) {
     if (!masterList) return;
     const totalCardCount = Object.keys(masterList).length;
 
+    // Eğer kullanıcının kart sayısı toplam kart sayısına eşit veya fazlaysa ödül sürecini başlat.
     if (ownedCardCount >= totalCardCount) {
         const prizeSnap = await db.ref('gameConfig/collectionGrandPrize').once('value');
         const prizeData = prizeSnap.val();
         if (!prizeData) return;
 
         const finishersRef = db.ref('gameStats/collectionFinishers');
-        const finishersSnap = await finishersRef.once('value');
         
         // ★★★ DEĞİŞİKLİK BURADA BAŞLIYOR ★★★
-        // Mevcut bitirenlerin sayısını alarak sıradaki kişinin kaçıncı olduğunu buluyoruz.
+        // Kullanıcıyı eklemeden ÖNCE mevcut bitirenlerin sayısını alıyoruz.
+        const finishersSnap = await finishersRef.once('value');
         const finisherCount = finishersSnap.exists() ? finishersSnap.numChildren() : 0;
-        const rank = finisherCount + 1;
-        const isFirstWinner = rank === 1;
+        const rank = finisherCount + 1; // Yeni bitirenin sırası
+        const isFirstWinner = rank === 1; // Sadece 1. kişi ise true olacak
         // ★★★ DEĞİŞİKLİK BURADA BİTİYOR ★★★
 
+        // Yeni bitireni listeye ekle
         await finishersRef.push({
             username: username,
             timestamp: firebase.database.ServerValue.TIMESTAMP
         });
 
+        // Ödülleri ve kullanıcı durumunu güncellemek için bir obje hazırla
         const updates = {};
         updates.balance = (userData.balance || 0) + (prizeData.points || 0);
         updates.kutuHakki = (userData.kutuHakki || 0) + (prizeData.boxRights || 0);
         updates.iflasShieldUses = (userData.iflasShieldUses || 0) + (prizeData.iflasShields || 0);
         updates.carkBileti = (userData.carkBileti || 0) + (prizeData.wheelTickets || 0);
         updates.clickCatchTickets = (userData.clickCatchTickets || 0) + (prizeData.clickCatchTickets || 0);
-        updates.completedCollection = true;
+        updates.completedCollection = true; // Koleksiyonu tamamladı olarak işaretle
 
+        // Avatar ödülü varsa ekle
         if (prizeData.avatarName && prizeData.avatarImageUrl) {
             const newAvatarId = db.ref().push().key;
             updates[`avatars/${newAvatarId}`] = {
@@ -14897,21 +15023,27 @@ async function checkAndGrantPrize(username) {
                 imageUrl: prizeData.avatarImageUrl
             };
         }
-
-        // Koleksiyon şampiyonluğunu kalıcı olarak kaydet
-        await userRef.child('collectionChampionshipsWon').transaction(currentCount => {
-            return (currentCount || 0) + 1;
-        });
+        
+        // ★★★ DEĞİŞİKLİK BURADA BAŞLIYOR: SADECE İLK KAZANANA BAŞARIM VER ★★★
+        // Kalıcı koleksiyon şampiyonluğu başarımı SADECE İLK BİTİRENE verilecek.
+        if (isFirstWinner) {
+            await userRef.child('collectionChampionshipsWon').transaction(currentCount => {
+                return (currentCount || 0) + 1;
+            });
+        }
+        // ★★★ DEĞİŞİKLİK BURADA BİTİYOR ★★★
         
         await userRef.update(updates);
 
+        // ★★★ DEĞİŞİKLİK BURADA BAŞLIYOR: DİNAMİK BİLDİRİM MESAJI ★★★
+        // Kullanıcıya gösterilecek mesajı sırasına göre ayarla
         let prizeMessage = ``;
         if (isFirstWinner) {
             prizeMessage += `İNANILMAZ! Koleksiyonu tamamlayan İLK KİŞİ oldun ve büyük ödülleri kazandın:`;
         } else {
-            // ★★★ DEĞİŞİKLİK BURADA: Artık kaçıncı bitirdiği de yazıyor ★★★
             prizeMessage += `TEBRİKLER! Koleksiyonu tamamlayan ${rank}. kişi oldun ve büyük ödülleri kazandın:`;
         }
+        // ★★★ DEĞİŞİKLİK BURADA BİTİYOR ★★★
 
         let prizeParts = [];
         if (prizeData.points > 0) prizeParts.push(` ${formatNumber(prizeData.points)} Puan`);
@@ -14926,12 +15058,14 @@ async function checkAndGrantPrize(username) {
 
         displayMessage(prizeMessage);
 
-        // ★★★ DEĞİŞİKLİK BURADA: logActivity'e rank bilgisini de gönderiyoruz ★★★
+        // ★★★ DEĞİŞİKLİK BURADA BAŞLIYOR: logActivity'e rank bilgisini de gönderiyoruz ★★★
+        // Son Eylemler paneline de doğru sıra bilgisiyle kayıt düş
         logActivity('collectionCompleted', username, { 
             prizeText: 'Büyük Ödül',
             isFirst: isFirstWinner,
             rank: rank 
         });
+        // ★★★ DEĞİŞİKLİK BURADA BİTİYOR ★★★
     }
 }
 
