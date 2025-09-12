@@ -4447,8 +4447,9 @@ function showSection(sectionId) {
 
     hideAllAdminControls();
 
-    document.getElementById(`${sectionId}Content`)?.classList.remove('hidden');
-    document.getElementById(`${sectionId}Section`)?.classList.remove('hidden');
+    // ★★★ HATA DÜZELTİLDİ: Sadece 'Content' ID'li div'ler gösterilecek ★★★
+    const contentToShow = document.getElementById(`${sectionId}Content`) || document.getElementById(`${sectionId}Section`);
+    if(contentToShow) contentToShow.classList.remove('hidden');
 
     const activeBtn = document.getElementById(`${sectionId}TabBtn`);
     if (activeBtn) {
@@ -11175,6 +11176,7 @@ async function loadSoloGameSettings() {
     handleSoloSpecialTypeChange();
 }
 
+// startSoloClickCatchGame fonksiyonunu bununla değiştir
 async function startSoloClickCatchGame() {
     // YENİ KONTROL: Haftalık sıfırlama ayarları admin tarafından yapılmamışsa oyunu başlatma.
     const settingsSnap = await db.ref('gameConfig/weeklyClickCatchReset').once('value');
@@ -11247,6 +11249,7 @@ async function startSoloClickCatchGame() {
     collectedWheelTickets = 0;
     collectedMultipliers = [];
     collectedCardPacks = [];
+    collectedPotions = []; // ★★★ DÜZELTME BURADA: Eksik değişken tanımlandı ★★★
 
     document.getElementById('clickCatchScore').textContent = clickCatchScore;
     document.getElementById('clickCatchTimer').textContent = clickCatchTimer;
@@ -11256,6 +11259,86 @@ async function startSoloClickCatchGame() {
     document.getElementById('displayTarget').classList.add('hidden');
     document.getElementById('collectedSpecials').innerHTML = '';
     showGameCountdown(_actuallyStartSoloGame);
+}
+
+// handleSoloItemClick fonksiyonunu bununla değiştir
+async function handleSoloItemClick(event) {
+    if (!clickCatchGameActive) return;
+    
+    const item = event.target.closest('.catch-item');
+    if (!item) return;
+
+    const type = item.dataset.type;
+    const value = parseInt(item.dataset.value);
+    const uses = parseInt(item.dataset.uses);
+    const emoji = item.dataset.emoji;
+    
+    let floatingText = '';
+
+    switch(type) {
+        case 'points':
+            clickCatchScore = Number(clickCatchScore) + value;
+            document.getElementById('clickCatchScore').textContent = clickCatchScore;
+            floatingText = (value > 0 ? '+' : '') + value + ' Skor';
+            break;
+        case 'time':
+            clickCatchTimer += value;
+            document.getElementById('clickCatchTimer').textContent = clickCatchTimer;
+            floatingText = `+${value} Saniye`;
+            break;
+        case 'boxRight':
+            collectedBoxRights += value;
+            floatingText = `+${value} Kutu Hakkı`;
+            document.getElementById('collectedSpecials').innerHTML += `<span class="text-xl">${emoji}</span>`;
+            break;
+        case 'iflasShield':
+            collectedIflasShields += value;
+            floatingText = `+${value} İflas Kalkanı`;
+            document.getElementById('collectedSpecials').innerHTML += `<span class="text-xl">${emoji}</span>`;
+            break;
+        case 'wheelTicket':
+            collectedWheelTickets += value;
+            floatingText = `+${value} Çark Bileti`;
+            document.getElementById('collectedSpecials').innerHTML += `<span class="text-xl">${emoji}</span>`;
+            break;
+        case 'tempMultiplier':
+            collectedMultipliers.push({ value: value, uses: uses });
+            floatingText = `${value}x Çarpan (${uses} kullanım)`;
+            document.getElementById('collectedSpecials').innerHTML += `<span class="text-xl">${emoji}</span>`;
+            break;
+        case 'wildcard':
+            collectedWildcards += value;
+            floatingText = `+${value} 🃏 Joker Kart Yakalandı!`;
+            document.getElementById('collectedSpecials').innerHTML += `<span class="text-xl">${emoji}</span>`;
+            break;
+        case 'card_pack':
+        case 'card_pack_normal':
+        case 'card_pack_gumus':
+        case 'card_pack_altin':
+        case 'card_pack_efsanevi':
+            const packName = typeToName[type] || 'Kart Paketi';
+            collectedCardPacks.push({ type: type, value: value });
+            floatingText = `+${value} ${packName} Yakalandı!`;
+            document.getElementById('collectedSpecials').innerHTML += `<span class="text-xl">${emoji}</span>`;
+            break;
+        // ★★★ DÜZELTME BURADA: Artık 'collectedPotions' tanımlı olduğu için bu kod sorunsuz çalışacak ★★★
+        case 'revival_stone':
+        case 'health_potion':
+        case 'damage_potion':
+        case 'defense_potion':
+        case 'crit_potion':
+        case 'crit_damage_potion':
+        case 'dodge_potion':
+        case 'pierce_potion':
+             const potionName = typeToName[type] || 'İksir';
+             collectedPotions.push({ type: type, value: value });
+             floatingText = `+${value} ${potionName} Yakalandı!`;
+             document.getElementById('collectedSpecials').innerHTML += `<span class="text-xl">${emoji}</span>`;
+             break;
+    }
+    
+    showFloatingText(floatingText, event.clientX, event.clientY);
+    item.remove();
 }
       
 async function endSoloClickCatchGame() {
