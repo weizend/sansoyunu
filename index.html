@@ -6390,7 +6390,8 @@ function getActivityIcon(type, details = {}) {
     `;
 }
       
-// MEVCUT renderActivityFeed FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
+// MEVCUT renderActivityFeed FONKSİYONUNU SİL VE BU YENİ VERSİYONU YAPIŞTIR
+
 function renderActivityFeed(activities) {
     const activityFeedList = document.getElementById('activityFeedList');
     activityFeedList.innerHTML = '';
@@ -6425,10 +6426,27 @@ function renderActivityFeed(activities) {
             const timeAgo = formatTimeAgo(activity.timestamp);
             const deleteButtonHtml = isAdmin ? `<button onclick="deleteActivity('${activity.id}')" class="ml-2 p-1 rounded-full text-gray-500 hover:text-red-500 hover:bg-white/10 transition-colors" title="Bu Eylemi Sil"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1-1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>` : '';
             
-            // --- DEĞİŞİKLİK BURADA: Tıklanabilir kullanıcı adını bir değişkene atıyoruz ---
             const userHtml = `<b class="text-yellow-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${activity.username}')">${activity.username}</b>`;
 
             switch (activity.type) {
+                // ★★★ YENİ EKLENEN KISIM BAŞLANGICI ★★★
+                case 'monsterDefeated':
+                    const winnerHtml = `<b class="text-yellow-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${details.winner}')">${details.winner}</b>`;
+                    message = `<b class="text-red-400">${details.monsterName}</b> mağlup edildi! En çok hasarı veren ${winnerHtml} (<b class="text-white">${formatNumber(details.totalDamage)} Hasar</b>), <b class="text-green-300">${details.prize}</b> ödülünü kazandı.`;
+                    break;
+                // ★★★ YENİ EKLENEN KISIM SONU ★★★
+                
+                // ★★★ DEĞİŞTİRİLEN KISIM BAŞLANGICI ★★★
+                case 'collectionCompleted':
+                    if (details.isFirst) {
+                        message = `${userHtml}, koleksiyonu tamamlayan <b class="text-amber-400">İLK KİŞİ</b> oldu ve büyük ödülü kazandı!`;
+                    } else {
+                        message = `${userHtml}, koleksiyonu tamamlayan <b class="text-amber-400">${details.rank}. KİŞİ</b> oldu. Tebrikler!`;
+                    }
+                    break;
+                // ★★★ DEĞİŞTİRİLEN KISIM SONU ★★★
+
+                // ... (Fonksiyonun geri kalan case'leri aynı kalacak, onlara dokunma) ...
                 case 'wildcardConvertedToBoxRights':
                     message = `${userHtml}, 1 Joker Kart'ı <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b>'na dönüştürdü.`;
                     break;
@@ -6475,11 +6493,6 @@ function renderActivityFeed(activities) {
                 case 'multiplierUpgradedFromStore':
                     message = `${userHtml}, ${details.source}'dan <b>${details.newValue}x çarpan (${details.newUses} kullanım)</b> kazandı. Mevcut ${details.oldValue}x çarpanının kalan ${details.oldUses} hakkı <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b>'na dönüştürüldü.`;
                     break;
-                case 'monsterDefeated':
-                    // --- DEĞİŞİKLİK BURADA: Kazananın adı da artık tıklanabilir ---
-                    const winnerHtml = `<b class="text-yellow-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${details.winner}')">${details.winner}</b>`;
-                    message = `<b class="text-red-400">${details.monsterName}</b> mağlup edildi! En çok hasarı veren ${winnerHtml}, <b class="text-green-300">${details.prize}</b> ödülünü kazandı.`;
-                    break;
                 case 'clickCatchSolo':
                     const { baseScore, finalScore, ticketsUsed, specialItems, newWeeklyScore } = details;
                     message = `${userHtml}, Tıkla-Yakala oyununda <b class="text-white">${ticketsUsed} bilet</b> kullandı ve <span class="text-green-300 font-bold">${finalScore} Skor</span> topladı. <small class="text-gray-400">(Skor: ${baseScore} x ${ticketsUsed} Bilet)</small>`;
@@ -6494,7 +6507,6 @@ function renderActivityFeed(activities) {
                     message += weeklyScoreText;
                     break;
                 case 'weeklyChampion':
-                    // --- DEĞİŞİKLİK BURADA: Şampiyonun adı da artık tıklanabilir ---
                     const championHtml = `<b class="text-amber-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${details.winner}')">${details.winner}</b>`;
                     message = `Tıkla-Yakala haftası sona erdi! ${championHtml}, <b class="text-white">${details.score} skorla</b> şampiyon oldu ve <b class="text-green-300">${details.prize}</b> kazandı. Tüm katılımcılara +1 bilet hediye edildi.`;
                     break; 
@@ -6532,9 +6544,6 @@ function renderActivityFeed(activities) {
                     break;
                 case 'multiplierStacked':
                     message = `${userHtml}, <b>${details.boxId} numaralı kutudan</b> mevcut <b>${details.value}x</b> çarpanıyla aynı değerde bir çarpan daha buldu. Kullanım hakkı <b class="text-teal-300 font-bold">+1</b> artırıldı.`;
-                    break;
-                case 'collectionCompleted':
-                    message = details.isFirst ? `${userHtml}, koleksiyonu tamamlayan <b class="text-amber-400">İLK KİŞİ</b> oldu ve büyük ödülü kazandı!` : `${userHtml}, koleksiyonu tamamlayarak büyük ödülü kazandı!`;
                     break;
                 case 'wildcardConverted':
                     message = `${userHtml}, Koleksiyonu tamamladığı için ${details.source}'dan aldığı ${details.wildcards} Joker Kart'ı <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b>'na dönüştürdü.`;
@@ -6576,7 +6585,6 @@ function renderActivityFeed(activities) {
                     message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-purple-300 font-bold">${details.value}x Çarpan</span> buldu.`;
                     break;
                 case 'buyItem':
-                    // --- DEĞİŞİKLİK BURADA: Artık userHtml değişkenini kullanıyor ---
                     const isKP = details.itemCost.toString().includes('KP');
                     const costText = isKP ? details.itemCost : `${formatNumber(details.itemCost)} Puan`;
                     const balance = isKP ? details.newKasaBalance : details.newBalance;
@@ -14834,6 +14842,8 @@ async function loadGrandPrizeDisplay() {
     displayContainer.classList.remove('hidden');
 }
 
+// MEVCUT checkAndGrantPrize FONKSİYONUNU SİL VE BUNU YAPIŞTIR
+
 async function checkAndGrantPrize(username) {
     const userRef = db.ref(`users/${username}`);
     const userSnap = await userRef.once('value');
@@ -14858,7 +14868,13 @@ async function checkAndGrantPrize(username) {
 
         const finishersRef = db.ref('gameStats/collectionFinishers');
         const finishersSnap = await finishersRef.once('value');
-        const isFirstWinner = !finishersSnap.exists();
+        
+        // ★★★ DEĞİŞİKLİK BURADA BAŞLIYOR ★★★
+        // Mevcut bitirenlerin sayısını alarak sıradaki kişinin kaçıncı olduğunu buluyoruz.
+        const finisherCount = finishersSnap.exists() ? finishersSnap.numChildren() : 0;
+        const rank = finisherCount + 1;
+        const isFirstWinner = rank === 1;
+        // ★★★ DEĞİŞİKLİK BURADA BİTİYOR ★★★
 
         await finishersRef.push({
             username: username,
@@ -14882,19 +14898,19 @@ async function checkAndGrantPrize(username) {
             };
         }
 
-        if (isFirstWinner) {
-            await userRef.child('collectionChampionshipsWon').transaction(currentCount => {
-                return (currentCount || 0) + 1;
-            });
-        }
-
+        // Koleksiyon şampiyonluğunu kalıcı olarak kaydet
+        await userRef.child('collectionChampionshipsWon').transaction(currentCount => {
+            return (currentCount || 0) + 1;
+        });
+        
         await userRef.update(updates);
 
         let prizeMessage = ``;
         if (isFirstWinner) {
             prizeMessage += `İNANILMAZ! Koleksiyonu tamamlayan İLK KİŞİ oldun ve büyük ödülleri kazandın:`;
         } else {
-            prizeMessage += `TEBRİKLER! Tüm koleksiyonu tamamladın ve büyük ödülleri kazandın:`;
+            // ★★★ DEĞİŞİKLİK BURADA: Artık kaçıncı bitirdiği de yazıyor ★★★
+            prizeMessage += `TEBRİKLER! Koleksiyonu tamamlayan ${rank}. kişi oldun ve büyük ödülleri kazandın:`;
         }
 
         let prizeParts = [];
@@ -14906,13 +14922,15 @@ async function checkAndGrantPrize(username) {
         if (prizeData.avatarName) prizeParts.push(` '${prizeData.avatarName}' Avatarı`);
 
         prizeMessage += prizeParts.join(',');
-        prizeMessage += `!`; // Özel hediye metnini kaldırdık.
+        prizeMessage += `!`;
 
         displayMessage(prizeMessage);
 
+        // ★★★ DEĞİŞİKLİK BURADA: logActivity'e rank bilgisini de gönderiyoruz ★★★
         logActivity('collectionCompleted', username, { 
             prizeText: 'Büyük Ödül',
-            isFirst: isFirstWinner 
+            isFirst: isFirstWinner,
+            rank: rank 
         });
     }
 }
@@ -16481,11 +16499,13 @@ function toggleAvatarAdminPanel() {
     panel.classList.toggle('hidden');
 }
 
+// MEVCUT loadAvatarStatsForAdmin FONKSİYONUNU SİL VE BUNU YAPIŞTIR
+
 async function loadAvatarStatsForAdmin() {
     const editorEl = document.getElementById('avatarStatEditor');
     editorEl.innerHTML = '<p class="text-gray-400">Tüm benzersiz avatarlar taranıyor...</p>';
 
-    const allAvatars = new Map(); // Yinelenmeyi %100 engellemek için Map yapısı kullanıyoruz. Anahtar: resim URL'si
+    const allAvatars = new Map();
 
     // --- 1. ADIM: Tüm Avatar Kaynaklarını Tara ---
     const sources = [
@@ -16493,7 +16513,11 @@ async function loadAvatarStatsForAdmin() {
         db.ref('dailyRewardOptions').once('value'),
         db.ref('gameConfig/loginStreakRewards').once('value'),
         db.ref('gameConfig/collectionGrandPrize').once('value'),
-        db.ref('users').once('value')
+        db.ref('users').once('value'),
+        // ★★★ YENİ EKLENECEK KOD BAŞLANGICI ★★★
+        // 6. kaynak olarak Sezon Ayarlarını da ekliyoruz.
+        db.ref('gameConfig/seasonSettings').once('value')
+        // ★★★ YENİ EKLENECEK KOD SONU ★★★
     ];
     
     const snapshots = await Promise.all(sources);
@@ -16509,11 +16533,15 @@ async function loadAvatarStatsForAdmin() {
         if (reward.type === 'avatar' && reward.avatarImageUrl && !allAvatars.has(reward.avatarImageUrl)) allAvatars.set(reward.avatarImageUrl, { name: reward.avatarName, imageUrl: reward.avatarImageUrl });
     });
     // Giriş Serisi
-    if (snapshots[2].exists()) snapshots[2].forEach(snap => {
-        (snap.val().rewards || []).forEach(reward => {
-            if (reward.type === 'avatar' && reward.avatarImageUrl && !allAvatars.has(reward.avatarImageUrl)) allAvatars.set(reward.avatarImageUrl, { name: reward.avatarName, imageUrl: reward.avatarImageUrl });
+    if (snapshots[2].exists()) {
+        snapshots[2].val().forEach(dayData => {
+            (dayData.rewards || []).forEach(reward => {
+                if (reward.type === 'avatar' && reward.avatarImageUrl && !allAvatars.has(reward.avatarImageUrl)) {
+                    allAvatars.set(reward.avatarImageUrl, { name: reward.avatarName, imageUrl: reward.avatarImageUrl });
+                }
+            });
         });
-    });
+    }
     // Koleksiyon Ödülü
     if (snapshots[3].exists()) {
         const prize = snapshots[3].val();
@@ -16529,6 +16557,22 @@ async function loadAvatarStatsForAdmin() {
             }
         }
     });
+
+    // ★★★ YENİ EKLENECEK KOD BAŞLANGICI ★★★
+    // Sezon Yönetiminden gelen avatarları işle
+    if (snapshots[5].exists()) {
+        const settings = snapshots[5].val();
+        const rewards = settings.rewards;
+        if (rewards) {
+            if (rewards.puanLeaderAvatarUrl && !allAvatars.has(rewards.puanLeaderAvatarUrl)) {
+                allAvatars.set(rewards.puanLeaderAvatarUrl, { name: 'Puan Lideri Sezon Avatarı', imageUrl: rewards.puanLeaderAvatarUrl });
+            }
+            if (rewards.rozetLeaderAvatarUrl && !allAvatars.has(rewards.rozetLeaderAvatarUrl)) {
+                allAvatars.set(rewards.rozetLeaderAvatarUrl, { name: 'Rozet Lideri Sezon Avatarı', imageUrl: rewards.rozetLeaderAvatarUrl });
+            }
+        }
+    }
+    // ★★★ YENİ EKLENECEK KOD SONU ★★★
 
     // --- 2. ADIM: Paneli Oluştur ---
     if (allAvatars.size === 0) {
@@ -16913,24 +16957,31 @@ async function attackMonster() {
         const finalBattleData = finalBattleSnap.val();
 
         if (finalBattleData && finalBattleData.monsterDetails.currentHP <= 0) {
-            const sortedLeaderboard = Object.entries(finalBattleData.damageLeaderboard || {}).sort((a,b) => b[1].totalDamage - a[1].totalDamage);
-            const winner = sortedLeaderboard.length > 0 ? sortedLeaderboard[0][0] : null;
-            const winnerData = winner ? finalBattleData.damageLeaderboard[winner] : null;
-            const prize = finalBattleData.rewards?.onKillLeader;
+    const sortedLeaderboard = Object.entries(finalBattleData.damageLeaderboard || {}).sort((a,b) => b[1].totalDamage - a[1].totalDamage);
+    const winner = sortedLeaderboard.length > 0 ? sortedLeaderboard[0][0] : null;
+    const winnerData = winner ? finalBattleData.damageLeaderboard[winner] : null;
+    const prize = finalBattleData.rewards?.onKillLeader;
 
-            if (winner && prize && winnerData) {
-                await db.ref('gameStats/lastMonsterChampion').set({
-                    username: winner,
-                    totalDamage: winnerData.totalDamage,
-                    lockedAvatarUrl: winnerData.lockedAvatarUrl
-                });
+    if (winner && prize && winnerData) {
+        await db.ref('gameStats/lastMonsterChampion').set({
+            username: winner,
+            totalDamage: winnerData.totalDamage,
+            lockedAvatarUrl: winnerData.lockedAvatarUrl
+        });
 
-                const prizeName = typeToName[prize.type] || prize.type;
-                const prizeText = `${prize.value} ${prizeName}`;
-                logActivity('monsterDefeated', 'WeizendTv', { monsterName: finalBattleData.monsterDetails.name, winner: winner, prize: prizeText });
-                
-                const winnerRef = db.ref(`users/${winner}`);
-                await winnerRef.transaction(winnerDataFromDB => {
+        const prizeName = typeToName[prize.type] || prize.type;
+        const prizeText = `${prize.value} ${prizeName}`;
+        
+        // ★★★ DEĞİŞİKLİK BURADA: logActivity çağrısına totalDamage'ı ekliyoruz ★★★
+        logActivity('monsterDefeated', 'WeizendTv', { 
+            monsterName: finalBattleData.monsterDetails.name, 
+            winner: winner, 
+            prize: prizeText,
+            totalDamage: winnerData.totalDamage // Bu satırı ekle
+        });
+        
+        const winnerRef = db.ref(`users/${winner}`);
+        await winnerRef.transaction(winnerDataFromDB => {
                     if (winnerDataFromDB) {
                          const { type, value } = prize;
                          if(type === 'health_regen_potion'){
