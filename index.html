@@ -1486,8 +1486,8 @@ body.modal-open .modal-content {
                 
                 <div id="defeatMessageContainer" class="hidden text-center mb-3"></div>
                 <div id="potionStoreBtnContainer" class="my-3">
-    <button onclick="goToPotionStore()" class="w-full py-2 bg-teal-600 hover:bg-teal-500 text-white font-bold rounded-lg shadow-md">
-        🧪 İksir Mağazasına Git
+    <button onclick="goToMonsterStore()" class="w-full py-2 bg-teal-600 hover:bg-teal-500 text-white font-bold rounded-lg shadow-md">
+        👹 Canavar Mağazasına Git
     </button>
 </div>
 <div id="regenPotionContainer" class="mb-3"></div>
@@ -6606,7 +6606,7 @@ function renderActivityFeed(activities) {
                     const costText = isKP ? details.itemCost : `${formatNumber(details.itemCost)} Puan`;
                     const balance = isKP ? details.newKasaBalance : details.newBalance;
                     const balanceUnit = isKP ? 'KP' : 'Puanı';
-                    message = `${userHtml}, mağazadan <b class="text-red-500">-${costText}</b> harcayarak <b class="text-green-400">${details.itemName}</b> aldı. (Mevcut ${balanceUnit}: ${formatNumber(balance)})`;
+                    message = `${userHtml}, özel ürün mağazasından <b class="text-red-500">-${costText}</b> harcayarak <b class="text-green-400">${details.itemName}</b> aldı. (Mevcut ${balanceUnit}: ${formatNumber(balance)})`;
                     break;
                 case 'lobbyJoined':
                     message = `${userHtml}, Tıkla-Yakala lobisine <span class="text-red-400 font-bold">-${details.cost} Puan</span> karşılığında katıldı. <span class="text-gray-400">(Kalan Puan: ${details.newBalance})</span>`;
@@ -7477,13 +7477,12 @@ function loadStoreItems() {
       }
   }
 
-  // MEVCUT renderStoreItems FONKSİYONUNU SİL VE BUNU YAPIŞTIR
-async function renderStoreItems(items, userData = {}) { 
+  async function renderStoreItems(items, userData = {}) {
     const gameContainer = document.getElementById('gameStoreItemsContainer');
     const specialContainer = document.getElementById('specialStoreItemsContainer');
     const gameTabBtn = document.getElementById('gameStoreTabBtn');
     const specialTabBtn = document.getElementById('specialStoreTabBtn');
-    
+
     gameContainer.innerHTML = '';
     specialContainer.innerHTML = '';
 
@@ -7496,70 +7495,20 @@ async function renderStoreItems(items, userData = {}) {
         specialContainer.innerHTML = placeholder;
         return;
     }
-    
-    let allItemsArray = Object.entries(items);
-    let gameItems = [];
-    let specialItems = [];
 
-    // ★★★ YENİ FİLTRELEME MANTIĞI BAŞLANGICI ★★★
-    if (storeFilter === 'potions') {
-        // Sadece iksirleri filtrele ve "Oyun Mağazası" listesine ata
-        gameItems = allItemsArray
-            .filter(([, item]) => item.type !== 'special' && item.type.endsWith('_potion'))
-            .sort(([, a], [, b]) => (a.order || 0) - (b.order || 0));
-        
-        // Özel Mağaza sekmesini ve içeriğini gizle
-        if(specialTabBtn) specialTabBtn.style.display = 'none';
-        if(specialContainer) specialContainer.style.display = 'none';
-        
-        // Oyun Mağazası sekmesini zorla aktif yap
-        if(gameTabBtn) {
-            gameTabBtn.classList.add('border-red-500', 'text-white');
-            gameTabBtn.classList.remove('border-transparent', 'text-gray-400');
-        }
-        document.getElementById('gameStoreItemsContainer').classList.remove('hidden');
-
-    } else {
-        // Normal çalışma (filtre yoksa)
-        gameItems = allItemsArray
-            .filter(([, item]) => item.type !== 'special')
-            .sort(([, a], [, b]) => (a.order || 0) - (b.order || 0));
-
-        specialItems = allItemsArray
-            .filter(([, item]) => item.type === 'special')
-            .sort(([, a], [, b]) => (a.order || 0) - (b.order || 0));
-
-        // Gizlenmiş olabilecek Özel Mağaza sekmesini tekrar görünür yap
-        if(specialTabBtn) specialTabBtn.style.display = 'flex';
-    }
-    // ★★★ YENİ FİLTRELEME MANTIĞI SONU ★★★
-
-    let bestSellerGameItemId = null;
-    if (gameItems.length > 0) {
-      const sortedByPurchase = [...gameItems].sort(([,a], [,b]) => (b.purchaseCount || 0) - (a.purchaseCount || 0));
-      if((sortedByPurchase[0][1].purchaseCount || 0) > 0) {
-        bestSellerGameItemId = sortedByPurchase[0][0];
-      }
-    }
-
-    let bestSellerSpecialItemId = null;
-    if (specialItems.length > 0) {
-      const sortedByPurchase = [...specialItems].sort(([,a], [,b]) => (b.purchaseCount || 0) - (a.purchaseCount || 0));
-      if((sortedByPurchase[0][1].purchaseCount || 0) > 0) {
-        bestSellerSpecialItemId = sortedByPurchase[0][0];
-      }
-    }
-
-    const potionPurchaseCounts = userData.potionPurchaseCounts || {};
-
+    // *** DEĞİŞİKLİK BURADA BAŞLIYOR: renderItem fonksiyonunu en başa taşıdık ***
+    // Bu iç fonksiyon, tek bir mağaza ürününü HTML'e çevirir.
     const renderItem = (itemData, container) => {
         const [itemId, item] = itemData;
         const isSpecial = item.type === 'special';
-        const list = isSpecial ? specialItems : gameItems;
-        const index = list.findIndex(([id]) => id === itemId);
-        const isBestSeller = isSpecial ? itemId === bestSellerSpecialItemId : itemId === bestSellerGameItemId;
+        const potionPurchaseCounts = (userData && userData.potionPurchaseCounts) ? userData.potionPurchaseCounts : {};
 
-        const isPotion = ['health_potion', 'damage_potion', 'defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion', 'health_regen_potion'].includes(item.type);
+        const monsterStoreItemTypes = [
+            'revival_stone', 'health_potion', 'damage_potion', 'defense_potion',
+            'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion',
+            'health_regen_potion'
+        ];
+        const isPotion = monsterStoreItemTypes.includes(item.type);
         let currentCost = item.cost;
         if (isPotion && !isSpecial) {
             const purchaseCount = potionPurchaseCounts[itemId] || 0;
@@ -7569,12 +7518,15 @@ async function renderStoreItems(items, userData = {}) {
         const outOfStock = item.stock !== undefined && item.stock <= 0;
         let isExpired = false;
         let countdownHtml = '';
-        
+
         let adminControlsHtml = '';
-        if(isAdmin){
-          const leftArrowDisabled = index === 0 ? 'disabled' : '';
-          const rightArrowDisabled = index === list.length - 1 ? 'disabled' : '';
-          adminControlsHtml = `
+        if (isAdmin) {
+            const allItemsArray = Object.entries(items);
+            const listForReorder = isSpecial ? allItemsArray.filter(i => i[1].type === 'special') : allItemsArray.filter(i => i[1].type !== 'special' && !monsterStoreItemTypes.includes(i[1].type));
+            const index = listForReorder.findIndex(([id]) => id === itemId);
+            const leftArrowDisabled = index === 0 ? 'disabled' : '';
+            const rightArrowDisabled = index === listForReorder.length - 1 ? 'disabled' : '';
+            adminControlsHtml = `
             <div class="admin-controls absolute top-0 right-0 p-1 bg-gray-900 bg-opacity-70 rounded-bl-lg flex gap-1 z-10">
                 <button onclick="reorderStoreItem('${itemId}', ${index - 1})" ${leftArrowDisabled} title="Sola Taşı" class="p-1 rounded-full hover:bg-gray-700 disabled:cursor-not-allowed">
                     <svg class="w-5 h-5 fill-current text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"/></svg>
@@ -7605,17 +7557,12 @@ async function renderStoreItems(items, userData = {}) {
 
         const disabled = outOfStock || isExpired;
         
-        const popularityHtml = `<p class="text-blue-300 text-sm mb-2">🔥 ${item.purchaseCount || 0} kez satın alındı</p>`;
-        const bestSellerBadge = isBestSeller ? `<span class="best-seller-badge absolute top-2 left-2 bg-yellow-500 text-gray-900 text-xs font-bold px-2 py-1 rounded-full z-10">ÇOK SATAN</span>` : '';
-        const cardClass = isBestSeller ? 'glowing-border' : 'border-red-700';
-        
-        const priceText = isSpecial ? `${currentCost} Kasa Puanı` : `${currentCost} Puan`;
+        const priceText = isSpecial ? `${formatNumber(currentCost)} KP` : `${formatNumber(currentCost)} Puan`;
 
         const cardDiv = document.createElement('div');
-        cardDiv.className = `relative bg-gray-800 p-6 rounded-xl shadow-lg border-2 ${cardClass} text-center flex flex-col justify-between`;
+        cardDiv.className = `relative bg-gray-800 p-6 rounded-xl shadow-lg border-2 border-red-700 text-center flex flex-col justify-between`;
         cardDiv.innerHTML = `
             ${adminControlsHtml}
-            ${bestSellerBadge}
             <div class="flex-grow">
               <img src="${item.imageUrl || 'https://via.placeholder.com/150'}" alt="${item.name}" class="w-24 h-24 mx-auto mb-4 rounded-lg object-cover">
               <h4 class="text-yellow-400 text-xl font-bold">${item.name}</h4>
@@ -7623,7 +7570,6 @@ async function renderStoreItems(items, userData = {}) {
             </div>
             <div>
               ${countdownHtml}
-              ${popularityHtml}
               <p class="text-gray-400 text-sm mb-2">Stok: ${item.stock !== undefined && item.stock !== null ? item.stock : 'Sınırsız'}</p>
               <p class="text-green-400 text-2xl font-bold mb-4" id="price-${itemId}">${priceText}</p>
               <button id="buy-btn-${itemId}" onclick="buyItem('${itemId}')" ${disabled ? 'disabled' : ''} class="w-full py-3 mt-auto ${disabled ? 'bg-gray-600 cursor-not-allowed' : 'bg-red-700 hover:bg-red-600'} text-white font-bold rounded-lg transition duration-300">
@@ -7633,19 +7579,63 @@ async function renderStoreItems(items, userData = {}) {
           `;
         container.appendChild(cardDiv);
     };
+    // *** DEĞİŞİKLİK BURADA BİTİYOR ***
 
-    if (gameItems.length > 0) {
-      gameItems.forEach(itemData => renderItem(itemData, gameContainer));
+    let allItemsArray = Object.entries(items);
+
+    const monsterStoreItemTypes = [
+        'revival_stone', 'health_potion', 'damage_potion', 'defense_potion',
+        'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion',
+        'health_regen_potion'
+    ];
+
+    if (storeFilter === 'monster_battle') {
+        const monsterItems = allItemsArray
+            .filter(([, item]) => monsterStoreItemTypes.includes(item.type))
+            .sort(([, a], [, b]) => (a.order || 0) - (b.order || 0));
+
+        if (monsterItems.length > 0) {
+            // *** EKSİK KISIM BURAYA EKLENDİ ***
+            monsterItems.forEach(itemData => renderItem(itemData, gameContainer));
+        } else {
+            gameContainer.innerHTML = '<p class="text-center col-span-full text-gray-400">Canavar Mağazası\'nda ürün bulunmamaktadır.</p>';
+        }
+
+        if (specialTabBtn) specialTabBtn.style.display = 'none';
+        if (specialContainer) specialContainer.style.display = 'none';
+
+        if (gameTabBtn) {
+            gameTabBtn.classList.add('border-red-500', 'text-white');
+            gameTabBtn.classList.remove('border-transparent', 'text-gray-400');
+        }
+        document.getElementById('gameStoreItemsContainer').classList.remove('hidden');
+
     } else {
-      gameContainer.innerHTML = '<p class="text-center col-span-full text-gray-400">Mağazada ürün bulunmamaktadır.</p>';
+        const gameItems = allItemsArray
+            .filter(([, item]) => item.type !== 'special' && !monsterStoreItemTypes.includes(item.type))
+            .sort(([, a], [, b]) => (a.order || 0) - (b.order || 0));
+
+        const specialItems = allItemsArray
+            .filter(([, item]) => item.type === 'special')
+            .sort(([, a], [, b]) => (a.order || 0) - (b.order || 0));
+
+        if (specialTabBtn) specialTabBtn.style.display = 'flex';
+
+        // *** EKSİK KISIM BURAYA EKLENDİ ***
+        if (gameItems.length > 0) {
+            gameItems.forEach(itemData => renderItem(itemData, gameContainer));
+        } else {
+            gameContainer.innerHTML = '<p class="text-center col-span-full text-gray-400">Oyun Mağazası\'nda ürün bulunmamaktadır.</p>';
+        }
+
+        // *** EKSİK KISIM BURAYA EKLENDİ ***
+        if (specialItems.length > 0) {
+            specialItems.forEach(itemData => renderItem(itemData, specialContainer));
+        } else {
+            specialContainer.innerHTML = '<p class="text-center col-span-full text-gray-400">Özel Ürün Mağazası\'nda ürün bulunmamaktadır.</p>';
+        }
     }
     
-    if (specialItems.length > 0) {
-      specialItems.forEach(itemData => renderItem(itemData, specialContainer));
-    } else {
-      specialContainer.innerHTML = '<p class="text-center col-span-full text-gray-400">Özel ürün mağazasında ürün bulunmamaktadır.</p>';
-    }
-
     if (Object.keys(activeStoreCountdowns).length > 0) {
         updateStoreCountdowns();
         storeCountdownInterval = setInterval(updateStoreCountdowns, 1000);
@@ -12366,7 +12356,6 @@ async function selectAvatar(itemId, imageUrl) {
     closeAvatarSelectionModal();
 }
 
-// MEVCUT buyItem FONKSİYONUNU SİL VE BUNU YAPIŞTIR
 async function buyItem(itemId) {
     if (isAdmin) {
         displayMessage("Adminler alışveriş yapamaz.");
@@ -12439,14 +12428,12 @@ async function buyItem(itemId) {
             } return currentItem; 
         });
 
-        // ★★★ YENİ EKLENEN KISIM BAŞLANGICI ★★★
         const isPercent = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion', 'health_regen_potion'].includes(item.type);
         const valuePrefix = isPercent ? '%' : '+';
-        const detailedItemName = `${valuePrefix}${valueToAdd} ${item.name}`; // Örn: +100 Can İksiri
-        // ★★★ YENİ EKLENEN KISIM SONU ★★★
+        const detailedItemName = `${valuePrefix}${valueToAdd} ${item.name}`;
 
         logActivity('buyItem', currentUser, { 
-            itemName: detailedItemName, // <-- DEĞİŞEN SATIR
+            itemName: detailedItemName,
             itemCost: currentCost, 
             itemType: item.type, 
             itemValue: valueToAdd, 
@@ -12464,10 +12451,13 @@ async function buyItem(itemId) {
         return;
     }
 
-    if ((user.balance || 0) < item.cost) { displayMessage("Yetersiz Puan!"); return; }
     if (item.type === 'special') {
         const kasaPuani = user.kasaPuani || 0;
-        if (kasaPuani < item.cost) { displayMessage(`Bu özel ürünü almak için yeterli Kasa Puanınız yok! (Gereken: ${item.cost} KP, Mevcut: ${kasaPuani} KP)`); return; }
+        if (kasaPuani < item.cost) {
+            // *** DEĞİŞİKLİK BURADA ***
+            displayMessage("Yetersiz Kasa Puanı!");
+            return;
+        }
         if (item.stock !== undefined && item.stock <= 0) { displayMessage("Bu ürünün stoğu tükenmiştir."); return; }
         const confirmed = await customConfirm(`'${item.name}' ürününü ${item.cost} Kasa Puanı'na almak istiyor musunuz? Bu puanlar Kasa'nızdan düşülecektir.`);
         if (!confirmed) return;
@@ -12483,6 +12473,8 @@ async function buyItem(itemId) {
         displayMessage(`'${item.name}' talebiniz admine iletildi. Onaylandığında hesabınıza eklenecek. Kasa'nızdan ${item.cost} KP düşüldü.`);
         return;
     }
+    
+    if ((user.balance || 0) < item.cost) { displayMessage("Yetersiz Puan!"); return; }
 
     if (item.type === 'tempMultiplier') {
         if (typeof item.value !== 'number' || typeof item.duration !== 'number') {
@@ -17985,8 +17977,8 @@ async function saveAvatarStats() {
 let storeFilter = null; // Mağazayı filtrelemek için kullanılacak global değişken
 
 // Canavar sayfasından mağazaya yönlendirir ve iksir filtresini aktif eder
-function goToPotionStore() {
-    storeFilter = 'potions'; // Filtreyi 'iksirler' olarak ayarla
+function goToMonsterStore() {
+    storeFilter = 'monster_battle'; // Filtreyi 'canavar savaşı' olarak ayarla
     showSection('store'); // Mağaza bölümünü göster
 }
       
