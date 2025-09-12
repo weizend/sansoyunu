@@ -16975,7 +16975,7 @@ function addRewardToTier(element, rewardData = {}) {
     rewardsListContainer.appendChild(rewardRow);
 }
 
-// MEVCUT attackMonster FONKSİYONUNU SİL VE BUNU YAPIŞTIR
+// MEVCUT attackMonster FONKSİYONUNU SİL VE BUNUNLA DEĞİŞTİR
 async function attackMonster() {
     if (isAdmin) {
         displayMessage("Adminler saldıramaz.");
@@ -17039,7 +17039,7 @@ async function attackMonster() {
         const monsterDefenseReduction = Math.min((monsterStats.defense || 0) / 100, 0.8);
         const playerDefenseReduction = Math.min((playerStats.defense || 0) / 100, 0.8);
 
-        // --- Oyuncunun Saldırı Hesaplaması ---
+        // --- Oyuncunun Saldırı Hesaplaması (GÜNCELLENDİ) ---
         let finalDamageToMonster = 0;
         let playerAttackType = 'normal';
         const playerPierced = (Math.random() * 100) < playerStats.pierceChance;
@@ -17050,17 +17050,21 @@ async function attackMonster() {
             playerAttackDetails = `Canavar saldırından <b class="text-cyan-400">sıyrıldı!</b>`;
         } else {
             const playerCritted = (Math.random() * 100) < playerStats.critChance;
-            let totalDamage = Math.floor(Math.random() * (playerStats.maxDamage - playerStats.minDamage + 1)) + playerStats.minDamage;
+            let totalDamage;
 
+            // ★★★ İSTEĞİNE GÖRE DEĞİŞEN KRİTİK VURUŞ HESAPLAMASI BAŞLANGICI ★★★
             if (playerCritted) {
-                totalDamage += Math.floor(playerStats.maxDamage * (playerStats.critDamage / 100));
+                // Kritik vuruş, MAKSİMUM hasarın üzerine kritik hasar bonusunu ekler.
+                totalDamage = playerStats.maxDamage + Math.floor(playerStats.maxDamage * (playerStats.critDamage / 100));
+            } else {
+                // Normal vuruş, minimum ve maksimum hasar arasında rastgele bir değer alır.
+                totalDamage = Math.floor(Math.random() * (playerStats.maxDamage - playerStats.minDamage + 1)) + playerStats.minDamage;
             }
+            // ★★★ KRİTİK VURUŞ HESAPLAMASI SONU ★★★
             
             if (playerPierced) {
-                // ★★★ DEĞİŞİKLİK 1: DELİCİ VURUŞ ARTIK MAKSİMUM HASAR VURUYOR ★★★
-                finalDamageToMonster = playerStats.maxDamage;
+                finalDamageToMonster = playerStats.maxDamage; // Delici vuruş her zaman maksimum hasar verir.
                 playerAttackType = 'pierce';
-                // ★★★ DEĞİŞİKLİK 2: SALDIRI BİLDİRİMİNDEKİ İKON GÜNCELLENDİ ★★★
                 playerAttackDetails = `📌 <b class="text-purple-400">Delici Vuruş</b> ile canavara <b class="text-white">${finalDamageToMonster} hasar</b> verdin.`;
             } else {
                 finalDamageToMonster = Math.max(1, Math.floor(totalDamage * (1 - monsterDefenseReduction)));
@@ -17073,7 +17077,7 @@ async function attackMonster() {
             }
         }
 
-        // --- Canavarın Saldırı Hesaplaması ---
+        // --- Canavarın Saldırı Hesaplaması (GÜNCELLENDİ) ---
         let finalDamageToPlayer = 0;
         let monsterAttackType = 'normal';
         const monsterPierced = (Math.random() * 100) < (monsterStats.pierceChance || 5);
@@ -17084,17 +17088,21 @@ async function attackMonster() {
             monsterAttackDetails = `Canavarın saldırısından <b class="text-cyan-400">sıyrıldın!</b>`;
         } else {
             const monsterCritted = (Math.random() * 100) < (monsterStats.critChance || 5);
-            let totalDamage = Math.floor(Math.random() * (monsterStats.maxDamage - monsterStats.minDamage + 1)) + monsterStats.minDamage;
+            let totalDamage;
 
+            // ★★★ CANAVAR İÇİN DEĞİŞEN KRİTİK VURUŞ HESAPLAMASI BAŞLANGICI ★★★
             if (monsterCritted) {
-                totalDamage += Math.floor(monsterStats.maxDamage * ((monsterStats.critDamage || 10) / 100));
+                // Kritik vuruş, MAKSİMUM hasarın üzerine kritik hasar bonusunu ekler.
+                totalDamage = monsterStats.maxDamage + Math.floor(monsterStats.maxDamage * ((monsterStats.critDamage || 10) / 100));
+            } else {
+                // Normal vuruş, minimum ve maksimum hasar arasında rastgele bir değer alır.
+                totalDamage = Math.floor(Math.random() * (monsterStats.maxDamage - monsterStats.minDamage + 1)) + monsterStats.minDamage;
             }
+            // ★★★ KRİTİK VURUŞ HESAPLAMASI SONU ★★★
 
             if (monsterPierced) {
-                // ★★★ DEĞİŞİKLİK 3: CANAVARIN DELİCİ VURUŞU DA MAKSİMUM HASAR VURUYOR ★★★
-                finalDamageToPlayer = monsterStats.maxDamage;
+                finalDamageToPlayer = monsterStats.maxDamage; // Delici vuruş her zaman maksimum hasar verir.
                 monsterAttackType = 'pierce';
-                // ★★★ DEĞİŞİKLİK 4: CANAVARIN SALDIRI BİLDİRİMİNDEKİ İKON GÜNCELLENDİ ★★★
                 monsterAttackDetails = `📌 Canavar <b class="text-purple-400">delici vuruşla</b> sana <b class="text-red-400">${finalDamageToPlayer} hasar</b> verdi.`;
             } else {
                 finalDamageToPlayer = Math.max(1, Math.floor(totalDamage * (1 - playerDefenseReduction)));
