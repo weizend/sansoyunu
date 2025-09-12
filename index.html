@@ -6395,6 +6395,7 @@ function getActivityIcon(type, details = {}) {
     `;
 }
       
+// MEVCUT renderActivityFeed FONKSİYONUNU SİL VE BUNU YAPIŞTIR
 function renderActivityFeed(activities) {
     const activityFeedList = document.getElementById('activityFeedList');
     activityFeedList.innerHTML = '';
@@ -6439,7 +6440,8 @@ function renderActivityFeed(activities) {
                     if (details.didMonsterDodge) {
                         attackSummary += `Canavar <b class="text-cyan-400">sıyrıldı!</b>`;
                     } else if (details.playerAttackType === 'pierce') {
-                        attackSummary += `🛡️ <b class="text-purple-400">Delici Vuruş</b> ile <b class="text-green-300">${details.damageDealt} hasar</b> verdi. `;
+                        // ★★★ DEĞİŞİKLİK 5: "SON EYLEMLER" PANELİNDEKİ OYUNCU İKONU GÜNCELLENDİ ★★★
+                        attackSummary += `📌 <b class="text-purple-400">Delici Vuruş</b> ile <b class="text-green-300">${details.damageDealt} hasar</b> verdi. `;
                     } else if (details.playerAttackType === 'crit') {
                         attackSummary += `💥 <b class="text-green-300">Kritik Vuruş</b> ile <b class="text-green-300">${details.damageDealt} hasar</b> verdi. `;
                     } else {
@@ -6453,7 +6455,8 @@ function renderActivityFeed(activities) {
                         if (details.monsterAttackType === 'crit') {
                             monsterAttackText = `💥 <b class="text-red-600">kritik saldırısıyla</b>`;
                         } else if (details.monsterAttackType === 'pierce') {
-                            monsterAttackText = `🛡️ <b class="text-purple-500">delici saldırısıyla</b>`;
+                            // ★★★ DEĞİŞİKLİK 6: "SON EYLEMLER" PANELİNDEKİ CANAVAR İKONU GÜNCELLENDİ ★★★
+                            monsterAttackText = `📌 <b class="text-purple-500">delici saldırısıyla</b>`;
                         }
                         attackSummary += ` Canavarın ${monsterAttackText} <b class="text-red-400">${details.damageTaken} hasar</b> aldı.`;
                     }
@@ -16972,6 +16975,7 @@ function addRewardToTier(element, rewardData = {}) {
     rewardsListContainer.appendChild(rewardRow);
 }
 
+// MEVCUT attackMonster FONKSİYONUNU SİL VE BUNU YAPIŞTIR
 async function attackMonster() {
     if (isAdmin) {
         displayMessage("Adminler saldıramaz.");
@@ -17053,9 +17057,11 @@ async function attackMonster() {
             }
             
             if (playerPierced) {
-                finalDamageToMonster = Math.max(1, Math.floor(totalDamage));
+                // ★★★ DEĞİŞİKLİK 1: DELİCİ VURUŞ ARTIK MAKSİMUM HASAR VURUYOR ★★★
+                finalDamageToMonster = playerStats.maxDamage;
                 playerAttackType = 'pierce';
-                playerAttackDetails = `🛡️ <b class="text-purple-400">Delici Vuruş</b> ile canavara <b class="text-white">${finalDamageToMonster} hasar</b> verdin.`;
+                // ★★★ DEĞİŞİKLİK 2: SALDIRI BİLDİRİMİNDEKİ İKON GÜNCELLENDİ ★★★
+                playerAttackDetails = `📌 <b class="text-purple-400">Delici Vuruş</b> ile canavara <b class="text-white">${finalDamageToMonster} hasar</b> verdin.`;
             } else {
                 finalDamageToMonster = Math.max(1, Math.floor(totalDamage * (1 - monsterDefenseReduction)));
                 if(playerCritted) {
@@ -17085,9 +17091,11 @@ async function attackMonster() {
             }
 
             if (monsterPierced) {
-                finalDamageToPlayer = Math.max(1, Math.floor(totalDamage));
+                // ★★★ DEĞİŞİKLİK 3: CANAVARIN DELİCİ VURUŞU DA MAKSİMUM HASAR VURUYOR ★★★
+                finalDamageToPlayer = monsterStats.maxDamage;
                 monsterAttackType = 'pierce';
-                monsterAttackDetails = `🛡️ Canavar <b class="text-purple-400">delici vuruşla</b> sana <b class="text-red-400">${finalDamageToPlayer} hasar</b> verdi.`;
+                // ★★★ DEĞİŞİKLİK 4: CANAVARIN SALDIRI BİLDİRİMİNDEKİ İKON GÜNCELLENDİ ★★★
+                monsterAttackDetails = `📌 Canavar <b class="text-purple-400">delici vuruşla</b> sana <b class="text-red-400">${finalDamageToPlayer} hasar</b> verdi.`;
             } else {
                 finalDamageToPlayer = Math.max(1, Math.floor(totalDamage * (1 - playerDefenseReduction)));
                 if(monsterCritted) {
