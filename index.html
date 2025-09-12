@@ -7152,6 +7152,7 @@ function revealMyCardChoice(sessionData) {
     });
 }
 
+// MEVCUT selectCard FONKSİYONUNU SİL VE BUNU YAPIŞTIR
 async function selectCard(selectedCardDiv, userId) {
     // Anında koruma: Bir kart seçildiği anda diğer tüm kartların tıklanmasını engelle.
     const cardContainer = document.getElementById('playerCardContainer');
@@ -7183,33 +7184,34 @@ async function selectCard(selectedCardDiv, userId) {
 
     const updatedSessionData = transactionResult.snapshot.val();
     
-    // ================== İSTEDİĞİN ÇÖZÜM BURADA ==================
-    // Artık puanı hesaplarken Sürpriz Kutu oturumuna kaydettiğimiz çarpanı da hesaba katıyoruz.
-    // Eğer çarpan yoksa, varsayılan olarak 1 ile çarpıyoruz.
-    let points = parseInt(selectedCardDiv.dataset.value) * (updatedSessionData.multiplier || 1);
-    // ==========================================================
+    // ★★★ HATAYI GİDEREN GÜNCELLEME BURADA BAŞLIYOR ★★★
     
+    // 1. Kartın temel (çarpansız) puanını alıyoruz.
+    const basePoints = parseInt(selectedCardDiv.dataset.value);
+    // 2. Aktif olan çarpanı alıyoruz (yoksa 1).
+    const multiplier = updatedSessionData.multiplier || 1;
+    // 3. Kullanıcının gerçekten kazanacağı, çarpılmış nihai puanı hesaplıyoruz.
+    const finalMultipliedPoints = basePoints * multiplier;
+
     const userRef = db.ref('users/' + userId);
 
-    // Puanları ekle
+    // 4. Puanları eklerken, çarpılmış olan 'finalMultipliedPoints' değerini kullanıyoruz.
     await userRef.transaction(user => {
         if (user) {
-            user.balance = (user.balance || 0) + points;
-            // Bu satır artık gerekli değil çünkü kariyer puanı her zaman güncelleniyor.
-            // if (user.balance > (user.highestBalanceEver || 0)) {
-            //     user.highestBalanceEver = user.balance;
-            // }
-            user.kariyerPuani = (user.kariyerPuani || 0) + points;
+            user.balance = (user.balance || 0) + finalMultipliedPoints;
+            user.kariyerPuani = (user.kariyerPuani || 0) + finalMultipliedPoints;
         }
         return user;
     });
 
     const finalUserSnap = await userRef.once('value');
-    const finalUserData = finalUserSnap.val();
-    let newBalance = finalUserData.balance || 0;
+    const newBalance = finalUserSnap.val().balance || 0;
  
-    // Sonucu (artık doğru olan çarpılmış puanı) Firebase'e yaz
-    await sessionRef.child('result').set({ points: points, newBalance: newBalance });
+    // 5. Sonucu Firebase'e yazarken, logların doğru görünmesi için 'points' alanına TEMEL (çarpansız) puanı kaydediyoruz.
+    // Puan zaten hesaba doğru eklendiği için bu sadece görsel bir düzeltmedir.
+    await sessionRef.child('result').set({ points: basePoints, newBalance: newBalance });
+
+    // ★★★ GÜNCELLEME BURADA BİTİYOR ★★★
 }
 
 // --- YENİ VE GÜNCEL SÜRPRİZ KUTU DİNLEME FONKSİYONU ---
@@ -7217,6 +7219,7 @@ async function selectCard(selectedCardDiv, userId) {
 let isProcessingSurpriseResult = false;
 let spectatorViewingResult = false;
 
+// MEVCUT listenForSurpriseBox FONKSİYONUNU SİL VE BUNU YAPIŞTIR
 function listenForSurpriseBox() {
     const sessionRef = db.ref('surprise_box_session');
     
@@ -7269,10 +7272,15 @@ function listenForSurpriseBox() {
                     } else if (committed) {
                         const finalSessionData = snapshot.val();
 
+                        // ★★★ LOGLAMA İÇİN GÜNCELLENEN KISIM BAŞLANGICI ★★★
+                        // Gerçekten kazanılan, çarpılmış puanı hesaplıyoruz.
+                        const finalPointsForLog = finalSessionData.result.points * (finalSessionData.multiplier || 1);
+                        // ★★★ GÜNCELLENEN KISIM SONU ★★★
+
                         const surpriseInfo = {
                             finder: finalSessionData.user,
                             boxId: finalSessionData.boxId,
-                            points: finalSessionData.result.points,
+                            points: finalSessionData.result.points, // Ana panele temel puanı gönderiyoruz
                             newBalance: finalSessionData.result.newBalance,
                             timestamp: firebase.database.ServerValue.TIMESTAMP,
                             multiplier: finalSessionData.multiplier || 1
@@ -7289,7 +7297,7 @@ function listenForSurpriseBox() {
                         
                         logActivity('surpriseBox', finalSessionData.user, { 
                             boxId: finalSessionData.boxId,
-                            points: finalSessionData.result.points, 
+                            points: finalPointsForLog, // "Son Eylemler" paneline ÇARPILMIŞ puanı gönderiyoruz
                             multiplier: finalSessionData.multiplier,
                             newBalance: finalSessionData.result.newBalance
                         });
