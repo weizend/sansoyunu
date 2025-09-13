@@ -7867,7 +7867,9 @@ async function editStoreItem(itemId) {
     document.getElementById('newItemValue').value = item.value;
     document.getElementById('newItemImageUrl').value = item.imageUrl || '';
     
-    // YENİ: Fiyat artışını da yükle
+    // ★★★ EKSİK OLAN VE YENİ EKLENEN SATIR BURADA ★★★
+    // Artık kaydedilen fiyat artış değerini de forma yazıyor.
+    // '|| '' ' kısmı, eğer değer kaydedilmemişse kutunun boş görünmesini sağlar.
     document.getElementById('newItemPriceIncrease').value = item.priceIncrease || '';
 
     const totalMins = item.countdownDurationMinutes || 0;
