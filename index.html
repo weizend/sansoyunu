@@ -7848,58 +7848,6 @@ async function saveStoreItem() {
     }
 }
 
-// GÜNCELLENMİŞ FONKSİYON
-async function editStoreItem(itemId) {
-    if (!isAdmin) return;
-    
-    const itemSnap = await storeItemsRef.child(itemId).once('value');
-    const item = itemSnap.val();
-    if (!item) {
-        displayMessage("Düzenlenecek ürün bulunamadı.");
-        return;
-    }
-
-    document.getElementById('newItemName').value = item.name;
-    document.getElementById('newItemDescription').value = item.description;
-    document.getElementById('newItemCost').value = item.cost;
-    document.getElementById('newItemStock').value = item.stock !== null ? item.stock : '';
-    document.getElementById('newItemType').value = item.type;
-    document.getElementById('newItemValue').value = item.value;
-    document.getElementById('newItemImageUrl').value = item.imageUrl || '';
-    
-    // ★★★ EKSİK OLAN VE YENİ EKLENEN SATIR BURADA ★★★
-    // Artık kaydedilen fiyat artış değerini de forma yazıyor.
-    // '|| '' ' kısmı, eğer değer kaydedilmemişse kutunun boş görünmesini sağlar.
-    document.getElementById('newItemPriceIncrease').value = item.priceIncrease || '';
-
-    const totalMins = item.countdownDurationMinutes || 0;
-    const days = Math.floor(totalMins / 1440);
-    const remainingMinsAfterDays = totalMins % 1440;
-    const hours = Math.floor(remainingMinsAfterDays / 60);
-    const minutes = remainingMinsAfterDays % 60;
-
-    document.getElementById('storeItemCountdownDays').value = days > 0 ? days : '';
-    document.getElementById('storeItemCountdownHours').value = hours > 0 ? hours : '';
-    document.getElementById('storeItemCountdownMinutes').value = minutes > 0 ? minutes : '';
-    document.getElementById('storeItemCountdownSeconds').value = '';
-    
-    const durationInput = document.getElementById('newItemMultiplierDuration');
-    if (item.type === 'tempMultiplier') {
-      durationInput.classList.remove('hidden');
-      durationInput.value = item.duration || '';
-    } else {
-      durationInput.classList.add('hidden');
-    }
-
-    document.getElementById('addUpdateStoreItemBtn').textContent = 'ÜRÜNÜ GÜNCELLE';
-    editingItemId = itemId;
-    
-    // Formun görsel durumunu güncelle
-    handleStoreItemTypeChange();
-    
-    openAdminStoreModal();
-}
-
   async function deleteStoreItem(itemId) {
       if (!isAdmin) return;
       if (await customConfirm("Bu ürünü silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!")) {
@@ -12427,7 +12375,56 @@ async function selectAvatar(itemId, imageUrl) {
     closeAvatarSelectionModal();
 }
 
-// MEVCUT buyItem FONKSİYONUNU SİL VE BUNUNLA DEĞİŞTİR
+// MEVCUT editStoreItem FONKSİYONUNU SİLİP BU YENİ VERSİYONU YAPIŞTIRIN
+async function editStoreItem(itemId) {
+    if (!isAdmin) return;
+    
+    const itemSnap = await storeItemsRef.child(itemId).once('value');
+    const item = itemSnap.val();
+    if (!item) {
+        displayMessage("Düzenlenecek ürün bulunamadı.");
+        return;
+    }
+
+    document.getElementById('newItemName').value = item.name;
+    document.getElementById('newItemDescription').value = item.description;
+    document.getElementById('newItemCost').value = item.cost;
+    document.getElementById('newItemStock').value = item.stock !== null ? item.stock : '';
+    document.getElementById('newItemType').value = item.type;
+    document.getElementById('newItemValue').value = item.value;
+    document.getElementById('newItemImageUrl').value = item.imageUrl || '';
+    
+    // ★★★ DÜZELTME BURADA: Artık "Fiyat Artışı" 0 ise bile input'ta doğru şekilde "0" görünecek. ★★★
+    // '||' operatörü 0'ı 'false' kabul ettiği için boş gösteriyordu, bu düzeltildi.
+    document.getElementById('newItemPriceIncrease').value = (item.priceIncrease !== undefined && item.priceIncrease !== null) ? item.priceIncrease : '';
+
+    const totalMins = item.countdownDurationMinutes || 0;
+    const days = Math.floor(totalMins / 1440);
+    const remainingMinsAfterDays = totalMins % 1440;
+    const hours = Math.floor(remainingMinsAfterDays / 60);
+    const minutes = remainingMinsAfterDays % 60;
+
+    document.getElementById('storeItemCountdownDays').value = days > 0 ? days : '';
+    document.getElementById('storeItemCountdownHours').value = hours > 0 ? hours : '';
+    document.getElementById('storeItemCountdownMinutes').value = minutes > 0 ? minutes : '';
+    document.getElementById('storeItemCountdownSeconds').value = '';
+    
+    const durationInput = document.getElementById('newItemMultiplierDuration');
+    if (item.type === 'tempMultiplier') {
+      durationInput.classList.remove('hidden');
+      durationInput.value = item.duration || '';
+    } else {
+      durationInput.classList.add('hidden');
+    }
+
+    document.getElementById('addUpdateStoreItemBtn').textContent = 'ÜRÜNÜ GÜNCELLE';
+    editingItemId = itemId;
+    
+    handleStoreItemTypeChange();
+    openAdminStoreModal();
+}
+
+// MEVCUT buyItem FONKSİYONUNU SİLİP BU YENİ VERSİYONU YAPIŞTIRIN
 async function buyItem(itemId) {
     if (isAdmin) {
         displayMessage("Adminler alışveriş yapamaz.");
@@ -12441,24 +12438,20 @@ async function buyItem(itemId) {
 
     if (!user || !item) return;
 
-    // ★★★ DEĞİŞİKLİK 1: Can Yenileme İksiri de artık bu listeye dahil. ★★★
     const isPotion = ['health_potion', 'damage_potion', 'defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion', 'health_regen_potion'].includes(item.type);
 
     if (isPotion) {
-        // --- Can Yenileme İksiri için ÖZEL KONTROL ---
         if (item.type === 'health_regen_potion') {
             const purchaseCount = user.potionPurchaseCounts?.[itemId] || 0;
-            // ★★★ FİYAT ARTIŞI MANTIĞI DÜZELTİLDİ ★★★
-            // 'hasOwnProperty' ile 0 değerinin doğru okunmasını sağlıyoruz.
             const priceIncrease = item.hasOwnProperty('priceIncrease') ? item.priceIncrease : 1000;
-            const currentCost = item.cost + (purchaseCount * priceIncrease);
+            const currentCost = item.cost + (purchaseCount * priceIncrease); // Kullanıcının ödeyeceği gerçek fiyat
 
             if ((user.balance || 0) < currentCost) {
                 displayMessage(`Yetersiz Puan! Bu iksirin şu anki fiyatı ${currentCost} Puandır.`);
                 return;
             }
-            // ★★★ İSTEDİĞİN METİN DEĞİŞİKLİĞİ BURADA ★★★
-            let confirmationMessage = `'Can Yenileme İksiri (%${item.value})' iksirini satın alarak envanterinize ekleyeceksiniz.`;
+
+            let confirmationMessage = `'Can Yenileme İksiri (%${item.value})' iksirini <b class="text-yellow-400">${currentCost} Puana</b> satın alarak envanterinize ekleyeceksiniz.`;
             if (priceIncrease > 0) {
                 const nextCost = currentCost + priceIncrease;
                 confirmationMessage += `<br><br>Bu alımdan sonra bu iksirin fiyatı sizin için <b class="text-yellow-400">${nextCost} Puana</b> yükselecektir.`;
@@ -12467,32 +12460,36 @@ async function buyItem(itemId) {
             const confirmed = await customConfirm(confirmationMessage);
             if (!confirmed) return;
 
-            // Satın alma işlemi...
             const updates = {};
             const newBalance = user.balance - currentCost;
             updates.balance = newBalance;
             updates.totalSpentPoints = (user.totalSpentPoints || 0) + currentCost;
             updates[`potionPurchaseCounts/${itemId}`] = purchaseCount + 1;
             
-            // ★★★ DEĞİŞİKLİK: Can Yenileme İksiri, kalıcı bonuslar yerine envantere eklenir ★★★
             const currentPotions = user.inventory?.health_regen_potion?.[item.value] || 0;
             updates[`inventory/health_regen_potion/${item.value}`] = currentPotions + 1;
 
             await userRef.update(updates);
-        }
-        // --- DİĞER (BONUS VEREN) İKSİRLER İÇİN KONTROL ---
-        else {
-            const capCheck = checkPotionCap(user, item.type, item.value);
+            
+            // ★★★ DÜZELTME 2: Log'a artık base 'item.cost' yerine, hesaplanan 'currentCost' gönderiliyor. ★★★
+            logActivity('buyItem', currentUser, { 
+                itemName: `1 adet %${item.value} Can Yenileme İksiri`,
+                itemCost: currentCost, 
+                itemType: item.type, 
+                itemValue: item.value, 
+                newBalance: newBalance
+            });
 
+        } else { // Diğer (bonus veren) iksirler
+            const capCheck = checkPotionCap(user, item.type, item.value);
             if (!capCheck.canAdd) {
                 displayMessage(`Bu bonus türünde zaten maksimum limite ulaştınız, daha fazla alamazsınız.`);
                 return;
             }
 
             const purchaseCount = user.potionPurchaseCounts?.[itemId] || 0;
-            // ★★★ FİYAT ARTIŞI MANTIĞI DÜZELTİLDİ ★★★
             const priceIncrease = item.hasOwnProperty('priceIncrease') ? item.priceIncrease : 1000;
-            const currentCost = item.cost + (purchaseCount * priceIncrease);
+            const currentCost = item.cost + (purchaseCount * priceIncrease); // Kullanıcının ödeyeceği gerçek fiyat
             
             if ((user.balance || 0) < currentCost) {
                 displayMessage(`Yetersiz Puan! Bu iksirin şu anki fiyatı ${currentCost} Puandır.`);
@@ -12505,8 +12502,7 @@ async function buyItem(itemId) {
                  return;
             }
             
-            // ★★★ İSTEDİĞİN METİN DEĞİŞİKLİĞİ BURADA ★★★
-            let confirmationMessage = `'${item.name}' iksirini satın alarak bu bonusa <b class="text-green-400">+${valueToAdd.toFixed(1)}</b> ekleyeceksiniz.`;
+            let confirmationMessage = `'${item.name}' iksirini <b class="text-yellow-400">${currentCost} Puana</b> satın alarak bu bonusa <b class="text-green-400">+${valueToAdd.toFixed(1)}</b> ekleyeceksiniz.`;
             if (capCheck.isCapped) {
                 confirmationMessage += `<br><br><b class="text-yellow-400">UYARI:</b> Bu alım ile bu bonus türünde maksimum limite ulaşacaksınız.`;
             }
@@ -12519,7 +12515,6 @@ async function buyItem(itemId) {
             const confirmed = await customConfirm(confirmationMessage);
             if (!confirmed) return;
             
-            // Satın alma işlemi...
             const statKeyMap = { 'health_potion': 'hp', 'damage_potion': 'damage', 'defense_potion': 'defense', 'crit_potion': 'critChance', 'crit_damage_potion': 'critDamage', 'dodge_potion': 'dodgeChance', 'pierce_potion': 'pierceChance' };
             const statKey = statKeyMap[item.type];
             if (!statKey) {
@@ -12537,37 +12532,26 @@ async function buyItem(itemId) {
                 [`potionPurchaseCounts/${itemId}`]: purchaseCount + 1
             };
             await userRef.update(updates);
+            
+            // ★★★ DÜZELTME 2: Log'a artık base 'item.cost' yerine, hesaplanan 'currentCost' gönderiliyor. ★★★
+            logActivity('buyItem', currentUser, { 
+                itemName: `+${valueToAdd.toFixed(1)} ${item.name}`,
+                itemCost: currentCost,
+                itemType: item.type, 
+                itemValue: valueToAdd, 
+                newBalance: newBalance
+            });
         }
         
-        // --- ORTAK İŞLEMLER ---
+        // Ortak İksir İşlemleri
         await itemRef.transaction(currentItem => { 
             if (currentItem) { 
                 if (currentItem.stock !== undefined && currentItem.stock !== null) { currentItem.stock--; } 
                 currentItem.purchaseCount = (currentItem.purchaseCount || 0) + 1; 
             } return currentItem; 
         });
-
-        // ★★★ İSTEDİĞİN METİN DEĞİŞİKLİĞİ BURADA ★★★
-        let detailedItemName, successMessage;
-        const isPercentMsg = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion', 'health_regen_potion'].includes(item.type);
-        if(item.type === 'health_regen_potion') {
-            detailedItemName = `1 adet %${item.value} Can Yenileme İksiri`;
-            successMessage = `Başarılı! '${item.name}' satın alındı ve envanterinize eklendi.`;
-        } else {
-            const formattedValue = isPercentMsg ? `+%${item.value.toFixed(1)}` : `+${item.value}`;
-            detailedItemName = `${formattedValue} ${item.name}`;
-            successMessage = `Başarılı! '${item.name}' satın alındı ve hesabınıza kalıcı olarak ${formattedValue} bonus eklendi.`;
-        }
-
-        logActivity('buyItem', currentUser, { 
-            itemName: detailedItemName,
-            itemCost: item.cost, // Loga temel maliyeti kaydetmek daha tutarlı
-            itemType: item.type, 
-            itemValue: item.value, 
-            newBalance: user.balance - item.cost
-        });
         
-        displayMessage(successMessage);
+        displayMessage(`Başarılı! '${item.name}' satın alındı ve bonusların eklendi.`);
         if (currentActiveSection === 'monsterBattle') { renderMonsterBattleUI(); }
         return;
     }
