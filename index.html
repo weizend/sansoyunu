@@ -5356,7 +5356,8 @@ function handleBulkSendItemTypeChange(selectElement) {
     }
 }
 
-// ESKİ confirmSendItem FONKSİYONUNU SİL VE YERİNE BUNU YAPIŞTIR
+// MEVCUT confirmSendItem FONKSİYONUNU SİL VE YERİNE BUNU YAPIŞTIR
+
 async function confirmSendItem(isAdding = true) {
     if (!isAdmin || !targetUserForSend) return;
 
@@ -5370,7 +5371,6 @@ async function confirmSendItem(isAdding = true) {
     const actionText = isAdding ? "gönderilecek" : "silinecek";
     const actionVerb = isAdding ? "ekledi" : "çıkardı";
 
-    // Önce inputları doğrula
     try {
         if (type === 'tempMultiplier') {
             value = parseInt(document.getElementById('sendItemValue').value);
@@ -5400,12 +5400,20 @@ async function confirmSendItem(isAdding = true) {
         if (type === 'health_regen_potion') {
             if (!isAdding) throw new Error("Can Yenileme İksirleri sadece gönderilebilir, silinemez.");
             const potionRef = userRef.child(`inventory/health_regen_potion/${value}`);
-            await potionRef.transaction(currentValue => (currentValue || 0) + 1); // Genelde 1 adet gönderilir.
+            await potionRef.transaction(currentValue => (currentValue || 0) + 1);
             successMessage = `${targetUserForSend} kullanıcısına %${value} Can Yenileme İksiri başarıyla gönderildi.`;
             notificationMessage = `Yönetici envanterine %${value} Can Yenileme İksiri ekledi.`;
         }
+        // --- DEĞİŞİKLİK BURADA BAŞLIYOR: Dirilme taşı için özel ve hatasız bir blok eklendi ---
+        else if (type === 'revival_stone') {
+            const stoneRef = userRef.child('inventory/revival_stone');
+            const op = isAdding ? 1 : -1;
+            await stoneRef.transaction(currentValue => Math.max(0, (currentValue || 0) + (value * op)));
+            successMessage = `${targetUserForSend} kullanıcısının Dirilme Taşı envanteri başarıyla güncellendi.`;
+            notificationMessage = `Yönetici envanterin${isAdding ? 'e' : 'den'} ${value} adet ${typeToName[type]} ${actionVerb}.`;
+        }
+        // --- DEĞİŞİKLİK SONU ---
         else if (type.endsWith('_potion')) {
-            // YENİ EKLENEN İKSİRLER BURADA TANIMLANDI
             const statKeyMap = { 
                 'health_potion': { key: 'hp', name: 'Can' }, 
                 'damage_potion': { key: 'damage', name: 'Hasar' }, 
@@ -5419,11 +5427,8 @@ async function confirmSendItem(isAdding = true) {
             if (!statInfo) throw new Error("Geçersiz iksir tipi.");
 
             const statRef = userRef.child(`globalPotionBuffs/${statInfo.key}`);
-            
-            await statRef.transaction(currentValue => {
-                const currentStat = currentValue || 0;
-                return isAdding ? currentStat + value : Math.max(0, currentStat - value);
-            });
+            const op = isAdding ? 1 : -1;
+            await statRef.transaction(currentValue => Math.max(0, (currentValue || 0) + (value * op)));
             
             successMessage = `${targetUserForSend} kullanıcısının genel '${statInfo.name}' bonusu başarıyla güncellendi.`;
             notificationMessage = `Yönetici, genel bonuslarına işlem yaptı ve ${value} iksir etkisi ${actionVerb}.`;
@@ -5449,8 +5454,7 @@ async function confirmSendItem(isAdding = true) {
                     const keyMap = {
                         points: 'balance', kasaPuani: 'kasaPuani', boxRights: 'kutuHakki',
                         wheelTicket: 'carkBileti', clickCatchTicket: 'clickCatchTickets',
-                        iflasShield: 'iflasShieldUses', wildcard: 'wildcards',
-                        revival_stone: 'revival_stone'
+                        iflasShield: 'iflasShieldUses', wildcard: 'wildcards'
                     };
                     const dbKey = keyMap[type];
 
@@ -5458,10 +5462,6 @@ async function confirmSendItem(isAdding = true) {
                         userData.balance = (userData.balance || 0) + (value * op);
                         if (isAdding) userData.kariyerPuani = (userData.kariyerPuani || 0) + value;
                         notificationMessage = `Yönetici hesabın${isAdding ? 'a' : 'dan'} ${value} Puan ${actionVerb}.`;
-                    } else if (type === 'revival_stone') {
-                        if (!userData.inventory) userData.inventory = {};
-                        userData.inventory.revival_stone = Math.max(0, (userData.inventory.revival_stone || 0) + (value * op));
-                        notificationMessage = `Yönetici envanterin${isAdding ? 'e' : 'den'} ${value} adet ${typeToName[type]} ${actionVerb}.`;
                     } else if (dbKey) {
                         userData[dbKey] = Math.max(0, (userData[dbKey] || 0) + (value * op));
                         notificationMessage = `Yönetici envanterin${isAdding ? 'e' : 'den'} ${value} adet ${typeToName[type]} ${actionVerb}.`;
@@ -9314,7 +9314,8 @@ async function openDailyRewardModal() {
     }
 }
       
-// MEVCUT claimDailyReward FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
+// MEVCUT claimDailyReward FONKSİYONUNU SİL VE BUNU YAPIŞTIRIN
+
 async function claimDailyReward(rewardId) {
     if (isAdmin) {
         displayMessage("Adminler ödül alamaz.");
@@ -9407,7 +9408,6 @@ async function claimDailyReward(rewardId) {
                                 userData.multiplierRemainingUses = (userData.multiplierRemainingUses || 0) + reward.uses;
                                 logActivity('dailyRewardMultiplierStacked', currentUser, { source: "Günlük Ödül'den", usesAdded: reward.uses, newTotalUses: userData.multiplierRemainingUses, multiplierValue: rewardValue });
                             } else if (rewardValue > userMultiplierValue) {
-                                // ★★★ DEĞİŞİKLİK BURADA BAŞLIYOR ★★★
                                 const refundedBoxRights = userData.multiplierRemainingUses || 0;
                                 logActivity('multiplierUpgraded', currentUser, { 
                                     source: "Günlük Ödül", 
@@ -9418,7 +9418,6 @@ async function claimDailyReward(rewardId) {
                                     boxRights: refundedBoxRights 
                                 });
                                 userData.kutuHakki = (userData.kutuHakki || 0) + refundedBoxRights;
-                                // ★★★ DEĞİŞİKLİK BURADA BİTİYOR ★★★
                                 userData.activeMultiplier = reward.value;
                                 userData.multiplierRemainingUses = reward.uses;
                                 userData.multiplierSource = 'store';
@@ -9445,6 +9444,7 @@ async function claimDailyReward(rewardId) {
                     case 'card_pack_efsanevi':
                         cardPacksToOpen.push(reward);
                         break;
+                    // --- DEĞİŞİKLİK BURADA BAŞLIYOR: Artık inventory anahtarı kontrol ediliyor ---
                     case 'revival_stone':
                         if (!userData.inventory) userData.inventory = {};
                         userData.inventory.revival_stone = (userData.inventory.revival_stone || 0) + reward.value;
@@ -9455,6 +9455,7 @@ async function claimDailyReward(rewardId) {
                         const currentPotions = userData.inventory.health_regen_potion[reward.value] || 0;
                         userData.inventory.health_regen_potion[reward.value] = currentPotions + 1;
                         break;
+                    // --- DEĞİŞİKLİK SONU ---
                     case 'health_potion': case 'damage_potion': case 'defense_potion':
                     case 'crit_potion': case 'crit_damage_potion': case 'dodge_potion': case 'pierce_potion':
                         const statKeyMap = { 
@@ -16414,6 +16415,7 @@ function startStreakResetCountdown(element, resetTime) {
 }
       
 // MEVCUT claimLoginStreakReward FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
+
 async function claimLoginStreakReward(day) {
     if (isAdmin) {
         displayMessage("Adminler ödül alamaz.");
@@ -16492,7 +16494,6 @@ async function claimLoginStreakReward(day) {
                                     userData.multiplierRemainingUses = (userData.multiplierRemainingUses || 0) + reward.uses;
                                     logActivity('dailyRewardMultiplierStacked', currentUser, { source: `${day}. Gün Ödülü'nden`, usesAdded: reward.uses, newTotalUses: userData.multiplierRemainingUses, multiplierValue: rewardValue });
                                 } else if (rewardValue > userMultiplierValue) {
-                                    // ★★★ DEĞİŞİKLİK BURADA BAŞLIYOR ★★★
                                     const refundedBoxRights = userData.multiplierRemainingUses || 0;
                                     logActivity('multiplierUpgraded', currentUser, { 
                                         source: `${day}. Gün Ödülü`, 
@@ -16503,7 +16504,6 @@ async function claimLoginStreakReward(day) {
                                         boxRights: refundedBoxRights 
                                     });
                                     userData.kutuHakki = (userData.kutuHakki || 0) + refundedBoxRights;
-                                    // ★★★ DEĞİŞİKLİK BURADA BİTİYOR ★★★
                                     userData.activeMultiplier = reward.value;
                                     userData.multiplierRemainingUses = reward.uses;
                                     userData.multiplierSource = 'store';
@@ -16529,10 +16529,12 @@ async function claimLoginStreakReward(day) {
                         case 'card_pack_efsanevi':
                             cardPacksToOpen.push(reward);
                             break;
+                        // --- DEĞİŞİKLİK BURADA BAŞLIYOR: Artık inventory anahtarı kontrol ediliyor ---
                         case 'revival_stone':
                             if (!userData.inventory) userData.inventory = {};
                             userData.inventory.revival_stone = (userData.inventory.revival_stone || 0) + reward.value;
                             break;
+                        // --- DEĞİŞİKLİK SONU ---
                         case 'health_potion':
                         case 'damage_potion':
                         case 'defense_potion':
@@ -17406,6 +17408,8 @@ function closeMonsterBattleInfoModal() {
     document.getElementById('monsterBattleInfoModal').style.display = 'none';
 }
 
+// MEVCUT useRevivalStone FONKSİYONUNU SİL VE BUNUNLA DEĞİŞTİR
+
 async function useRevivalStone() {
     if (isAdmin) return;
 
@@ -17429,10 +17433,24 @@ async function useRevivalStone() {
 
         const revivalStones = userData.inventory?.revival_stone || 0;
         if (revivalStones < 1) {
-            // YENİ EKLENEN KONTROL: Taş yoksa mesaj göster ve işlemi durdur.
-            displayMessage("Dirilmek için Dirilme Taşın yok! Mağazadan alabilirsin.");
+            displayMessage("Dirilmek için Dirilme Taşın yok! Mağazadan veya diğer etkinliklerden kazanabilirsin.");
             return; 
         }
+
+        // --- DEĞİŞİKLİK BURADA BAŞLIYOR: Transaction daha spesifik hale getirildi ---
+        // Sadece kullanıcının dirilme taşı sayısını güncelliyoruz.
+        const stoneRef = userRef.child('inventory/revival_stone');
+        const { committed } = await stoneRef.transaction(currentStones => {
+            if ((currentStones || 0) > 0) {
+                return currentStones - 1;
+            }
+            return; // Yeterli taş yoksa işlemi iptal et
+        });
+        
+        if (!committed) {
+            throw new Error("Dirilme taşı kullanılamadı. Envanterin başka bir işlem tarafından güncellenmiş olabilir.");
+        }
+        // --- DEĞİŞİKLİK SONU ---
 
         const playerAvatarUrl = playerBattleData.lockedAvatarUrl || userData.selectedAvatar?.url || defaultAvatarUrl;
         const sanitizedPlayerAvatarId = sanitizeFirebaseKey(playerAvatarUrl);
@@ -17440,13 +17458,6 @@ async function useRevivalStone() {
         const globalBuffs = userData.globalPotionBuffs || {};
         const baseStats = avatarBaseStats[sanitizedPlayerAvatarId] || {};
         const playerMaxHP = (baseStats.hp || 1000) + (globalBuffs.hp || 0);
-
-        await userRef.transaction(user => {
-            if (user && user.inventory && user.inventory.revival_stone > 0) {
-                user.inventory.revival_stone--;
-            }
-            return user;
-        });
 
         await battleRef.child(`damageLeaderboard/${currentUser}/currentHP`).set(playerMaxHP);
 
