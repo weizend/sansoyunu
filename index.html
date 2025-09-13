@@ -12424,7 +12424,7 @@ async function editStoreItem(itemId) {
     openAdminStoreModal();
 }
 
-// MEVCUT buyItem FONKSİYONUNU SİLİP BU YENİ VERSİYONU YAPIŞTIRIN
+// MEVCUT buyItem FONKSİYONUNU SİL VE BUNUNLA DEĞİŞTİR
 async function buyItem(itemId) {
     if (isAdmin) {
         displayMessage("Adminler alışveriş yapamaz.");
@@ -12444,13 +12444,12 @@ async function buyItem(itemId) {
         if (item.type === 'health_regen_potion') {
             const purchaseCount = user.potionPurchaseCounts?.[itemId] || 0;
             const priceIncrease = item.hasOwnProperty('priceIncrease') ? item.priceIncrease : 1000;
-            const currentCost = item.cost + (purchaseCount * priceIncrease); // Kullanıcının ödeyeceği gerçek fiyat
+            const currentCost = item.cost + (purchaseCount * priceIncrease);
 
             if ((user.balance || 0) < currentCost) {
                 displayMessage(`Yetersiz Puan! Bu iksirin şu anki fiyatı ${currentCost} Puandır.`);
                 return;
             }
-
             let confirmationMessage = `'Can Yenileme İksiri (%${item.value})' iksirini <b class="text-yellow-400">${currentCost} Puana</b> satın alarak envanterinize ekleyeceksiniz.`;
             if (priceIncrease > 0) {
                 const nextCost = currentCost + priceIncrease;
@@ -12471,9 +12470,9 @@ async function buyItem(itemId) {
 
             await userRef.update(updates);
             
-            // ★★★ DÜZELTME 2: Log'a artık base 'item.cost' yerine, hesaplanan 'currentCost' gönderiliyor. ★★★
+            // ★★★ DÜZELTME: Log'a artık base 'item.cost' yerine, hesaplanan 'currentCost' gönderiliyor. ★★★
             logActivity('buyItem', currentUser, { 
-                itemName: `1 adet %${item.value} Can Yenileme İksiri`,
+                itemName: `1 adet %${item.value} Can Yenileme İksiri`, // Bu zaten doğru formatta
                 itemCost: currentCost, 
                 itemType: item.type, 
                 itemValue: item.value, 
@@ -12489,7 +12488,7 @@ async function buyItem(itemId) {
 
             const purchaseCount = user.potionPurchaseCounts?.[itemId] || 0;
             const priceIncrease = item.hasOwnProperty('priceIncrease') ? item.priceIncrease : 1000;
-            const currentCost = item.cost + (purchaseCount * priceIncrease); // Kullanıcının ödeyeceği gerçek fiyat
+            const currentCost = item.cost + (purchaseCount * priceIncrease);
             
             if ((user.balance || 0) < currentCost) {
                 displayMessage(`Yetersiz Puan! Bu iksirin şu anki fiyatı ${currentCost} Puandır.`);
@@ -12502,7 +12501,18 @@ async function buyItem(itemId) {
                  return;
             }
             
-            let confirmationMessage = `'${item.name}' iksirini <b class="text-yellow-400">${currentCost} Puana</b> satın alarak bu bonusa <b class="text-green-400">+${valueToAdd.toFixed(1)}</b> ekleyeceksiniz.`;
+            // ★★★ DÜZELTME: İsteğine göre, belirli iksirler için "+" işaretini kaldırıyoruz. ★★★
+            const noPlusPotions = ['defense_potion', 'crit_potion', 'dodge_potion', 'pierce_potion'];
+            let formattedValue;
+            if (noPlusPotions.includes(item.type)) {
+                formattedValue = `%${valueToAdd.toFixed(1)}`; // Sadece %
+            } else if (item.type === 'crit_damage_potion') {
+                formattedValue = `+%${valueToAdd.toFixed(1)}`; // Eskisi gibi +%
+            } else {
+                formattedValue = `+${valueToAdd}`; // Diğerleri için sadece +
+            }
+            
+            let confirmationMessage = `'${item.name}' iksirini <b class="text-yellow-400">${currentCost} Puana</b> satın alarak bu bonusa <b class="text-green-400">${formattedValue}</b> ekleyeceksiniz.`;
             if (capCheck.isCapped) {
                 confirmationMessage += `<br><br><b class="text-yellow-400">UYARI:</b> Bu alım ile bu bonus türünde maksimum limite ulaşacaksınız.`;
             }
@@ -12533,9 +12543,9 @@ async function buyItem(itemId) {
             };
             await userRef.update(updates);
             
-            // ★★★ DÜZELTME 2: Log'a artık base 'item.cost' yerine, hesaplanan 'currentCost' gönderiliyor. ★★★
+            // ★★★ DÜZELTME: Log'a da artık doğru formatlanmış metin ve güncel fiyat gönderiliyor. ★★★
             logActivity('buyItem', currentUser, { 
-                itemName: `+${valueToAdd.toFixed(1)} ${item.name}`,
+                itemName: `${formattedValue} ${item.name}`,
                 itemCost: currentCost,
                 itemType: item.type, 
                 itemValue: valueToAdd, 
