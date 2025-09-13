@@ -12445,6 +12445,8 @@ async function buyItem(itemId) {
         // --- Can Yenileme İksiri için ÖZEL KONTROL ---
         if (item.type === 'health_regen_potion') {
             const purchaseCount = user.potionPurchaseCounts?.[itemId] || 0;
+            // ★★★ FİYAT ARTIŞI MANTIĞI DÜZELTİLDİ ★★★
+            // 'hasOwnProperty' ile 0 değerinin doğru okunmasını sağlıyoruz.
             const priceIncrease = item.hasOwnProperty('priceIncrease') ? item.priceIncrease : 1000;
             const currentCost = item.cost + (purchaseCount * priceIncrease);
 
@@ -12485,6 +12487,7 @@ async function buyItem(itemId) {
             }
 
             const purchaseCount = user.potionPurchaseCounts?.[itemId] || 0;
+            // ★★★ FİYAT ARTIŞI MANTIĞI DÜZELTİLDİ ★★★
             const priceIncrease = item.hasOwnProperty('priceIncrease') ? item.priceIncrease : 1000;
             const currentCost = item.cost + (purchaseCount * priceIncrease);
             
