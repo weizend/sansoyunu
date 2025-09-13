@@ -11,6 +11,26 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
 <style>
+/* --- YENİ EKLENECEK KOD: İNTERNET BAĞLANTI UYARISI STİLİ --- */
+#connectionStatusOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85);
+    color: white;
+    /* 'display: none' style etiketinde olduğu için burada flex'i tanımlayabiliriz */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999999; /* Her şeyin en üstünde olmasını garantiler */
+    text-align: center;
+    padding: 2rem;
+    backdrop-filter: blur(5px); /* Modern bir bulanıklık efekti */
+}
+/* --- KOD SONU --- */
 /* --- YENİ EKLENECEK KOD: ÖNCEKİ ŞAMPİYON PANELİ STİLİ --- */
 #lastChampionPanel .champion-avatar {
     width: 64px; /* w-16 */
@@ -3506,6 +3526,12 @@ body.modal-open .modal-content {
             </button>
         </div>
     </div>
+</div>
+<div id="connectionStatusOverlay" style="display: none;">
+    <div class="text-5xl mb-4">🔌</div>
+    <h2 class="text-3xl font-bold text-red-500 mb-4">İNTERNET BAĞLANTISI KESİLDİ</h2>
+    <p class="text-lg">Oyunun özelliklerini kullanabilmek için internet bağlantısı gereklidir.</p>
+    <p class="mt-4 text-yellow-400 animate-pulse">Bağlantı kontrol ediliyor, lütfen bekleyin...</p>
 </div>
   <script>
       
@@ -12424,7 +12450,7 @@ async function editStoreItem(itemId) {
     openAdminStoreModal();
 }
 
-// MEVCUT buyItem FONKSİYONUNU SİL VE BUNUNLA DEĞİŞTİR
+// MEVCUT buyItem FONKSİYONUNU SİLİP BU YENİ VERSİYONU YAPIŞTIRIN
 async function buyItem(itemId) {
     if (isAdmin) {
         displayMessage("Adminler alışveriş yapamaz.");
@@ -12444,12 +12470,13 @@ async function buyItem(itemId) {
         if (item.type === 'health_regen_potion') {
             const purchaseCount = user.potionPurchaseCounts?.[itemId] || 0;
             const priceIncrease = item.hasOwnProperty('priceIncrease') ? item.priceIncrease : 1000;
-            const currentCost = item.cost + (purchaseCount * priceIncrease);
+            const currentCost = item.cost + (purchaseCount * priceIncrease); // Kullanıcının ödeyeceği gerçek fiyat
 
             if ((user.balance || 0) < currentCost) {
                 displayMessage(`Yetersiz Puan! Bu iksirin şu anki fiyatı ${currentCost} Puandır.`);
                 return;
             }
+
             let confirmationMessage = `'Can Yenileme İksiri (%${item.value})' iksirini <b class="text-yellow-400">${currentCost} Puana</b> satın alarak envanterinize ekleyeceksiniz.`;
             if (priceIncrease > 0) {
                 const nextCost = currentCost + priceIncrease;
@@ -12470,9 +12497,9 @@ async function buyItem(itemId) {
 
             await userRef.update(updates);
             
-            // ★★★ DÜZELTME: Log'a artık base 'item.cost' yerine, hesaplanan 'currentCost' gönderiliyor. ★★★
+            // ★★★ DÜZELTME 2: Log'a artık base 'item.cost' yerine, hesaplanan 'currentCost' gönderiliyor. ★★★
             logActivity('buyItem', currentUser, { 
-                itemName: `1 adet %${item.value} Can Yenileme İksiri`, // Bu zaten doğru formatta
+                itemName: `1 adet %${item.value} Can Yenileme İksiri`,
                 itemCost: currentCost, 
                 itemType: item.type, 
                 itemValue: item.value, 
@@ -12488,7 +12515,7 @@ async function buyItem(itemId) {
 
             const purchaseCount = user.potionPurchaseCounts?.[itemId] || 0;
             const priceIncrease = item.hasOwnProperty('priceIncrease') ? item.priceIncrease : 1000;
-            const currentCost = item.cost + (purchaseCount * priceIncrease);
+            const currentCost = item.cost + (purchaseCount * priceIncrease); // Kullanıcının ödeyeceği gerçek fiyat
             
             if ((user.balance || 0) < currentCost) {
                 displayMessage(`Yetersiz Puan! Bu iksirin şu anki fiyatı ${currentCost} Puandır.`);
@@ -12501,18 +12528,7 @@ async function buyItem(itemId) {
                  return;
             }
             
-            // ★★★ DÜZELTME: İsteğine göre, belirli iksirler için "+" işaretini kaldırıyoruz. ★★★
-            const noPlusPotions = ['defense_potion', 'crit_potion', 'dodge_potion', 'pierce_potion'];
-            let formattedValue;
-            if (noPlusPotions.includes(item.type)) {
-                formattedValue = `%${valueToAdd.toFixed(1)}`; // Sadece %
-            } else if (item.type === 'crit_damage_potion') {
-                formattedValue = `+%${valueToAdd.toFixed(1)}`; // Eskisi gibi +%
-            } else {
-                formattedValue = `+${valueToAdd}`; // Diğerleri için sadece +
-            }
-            
-            let confirmationMessage = `'${item.name}' iksirini <b class="text-yellow-400">${currentCost} Puana</b> satın alarak bu bonusa <b class="text-green-400">${formattedValue}</b> ekleyeceksiniz.`;
+            let confirmationMessage = `'${item.name}' iksirini <b class="text-yellow-400">${currentCost} Puana</b> satın alarak bu bonusa <b class="text-green-400">+${valueToAdd.toFixed(1)}</b> ekleyeceksiniz.`;
             if (capCheck.isCapped) {
                 confirmationMessage += `<br><br><b class="text-yellow-400">UYARI:</b> Bu alım ile bu bonus türünde maksimum limite ulaşacaksınız.`;
             }
@@ -12543,9 +12559,9 @@ async function buyItem(itemId) {
             };
             await userRef.update(updates);
             
-            // ★★★ DÜZELTME: Log'a da artık doğru formatlanmış metin ve güncel fiyat gönderiliyor. ★★★
+            // ★★★ DÜZELTME 2: Log'a artık base 'item.cost' yerine, hesaplanan 'currentCost' gönderiliyor. ★★★
             logActivity('buyItem', currentUser, { 
-                itemName: `${formattedValue} ${item.name}`,
+                itemName: `+${valueToAdd.toFixed(1)} ${item.name}`,
                 itemCost: currentCost,
                 itemType: item.type, 
                 itemValue: valueToAdd, 
@@ -18145,6 +18161,37 @@ function showCollectionCompleteModal(notificationData) {
 function closeCollectionCompleteModal() {
     document.getElementById('collectionCompleteModal').style.display = 'none';
 }
+
+// --- YENİ EKLENECEK KOD: GLOBAL İNTERNET BAĞLANTI KONTROLÜ ---
+
+const connectionStatusOverlay = document.getElementById('connectionStatusOverlay');
+
+// Bağlantı koptuğunda çalışacak fonksiyon
+function handleOffline() {
+    if (connectionStatusOverlay) {
+        connectionStatusOverlay.style.display = 'flex';
+    }
+}
+
+// Bağlantı geri geldiğinde çalışacak fonksiyon
+function handleOnline() {
+    if (connectionStatusOverlay) {
+        connectionStatusOverlay.style.display = 'none';
+    }
+}
+
+// Tarayıcının online/offline olaylarını dinle
+window.addEventListener('offline', handleOffline);
+window.addEventListener('online', handleOnline);
+
+// Sayfa ilk yüklendiğinde durumu kontrol et
+// Bu, sayfa açıldığında zaten internet yoksa uyarıyı göstermek için gereklidir.
+document.addEventListener('DOMContentLoaded', () => {
+    if (!navigator.onLine) {
+        handleOffline();
+    }
+});
+// --- KOD SONU ---
 
 
 // YENİ EKLENECEK YARDIMCI FONKSİYONLAR SONU
