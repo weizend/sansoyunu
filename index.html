@@ -4216,10 +4216,11 @@ async function stopWeeklyReset() {
     closeSoloGameSettingsModal();
 }
 
+// listenForWeeklyCountdown fonksiyonunu bununla değiştir
 function listenForWeeklyCountdown() {
     const countdownContainer = document.getElementById('weeklyResetCountdownContainer');
     const countdownEl = document.getElementById('weeklyResetCountdown');
-    const startSoloBtn = document.getElementById('startSoloGameBtn'); // Butonu değişkene al
+    const startSoloBtn = document.getElementById('startSoloGameBtn');
     const ref = db.ref('gameConfig/weeklyClickCatchReset');
 
     const callback = snap => {
@@ -4227,17 +4228,12 @@ function listenForWeeklyCountdown() {
 
         const settings = snap.val();
 
-        // YENİ KONTROL: Eğer ayarlar yoksa, oyun butonunu devre dışı bırak
         if (!settings || !settings.endDate) {
             countdownContainer.classList.add('hidden');
-            if (startSoloBtn && !isAdmin) {
-                startSoloBtn.disabled = true;
-                startSoloBtn.title = "Yöneticinin yeni haftayı başlatması bekleniyor.";
-            }
+            // BUTON ARTIK BURADA DEVRE DIŞI BIRAKILMIYOR
             return;
         }
 
-        // Ayarlar varsa, butonu aktif et
         if (startSoloBtn && !isAdmin) {
             startSoloBtn.disabled = false;
             startSoloBtn.title = "";
@@ -4274,7 +4270,8 @@ function listenForWeeklyCountdown() {
     activeListeners.weeklyCountdown = { ref, event: 'value', callback };
     ref.on('value', callback);
 }
-
+      
+// executeWeeklyReset fonksiyonunu bununla değiştir
 async function executeWeeklyReset() {
     console.log("Haftalık sıfırlama işlemi tetiklendi...");
     const seasonEndDateSnap = await db.ref('gameConfig/seasonEndDate').once('value');
@@ -4306,6 +4303,11 @@ async function executeWeeklyReset() {
         return;
     }
     const prize = settings.prize;
+
+    // YENİ EKLENEN KISIM: Kazananın harcadığı bilet sayısını çek
+    const ticketsSnap = await db.ref(`clickCatchWeeklyTickets/${winner.username}`).once('value');
+    const ticketsUsedByWinner = ticketsSnap.val() || 0;
+    // YENİ KISIM SONU
     
     let prizeAwardedText = '';
     if (prize.type === 'tempMultiplier') {
@@ -4317,16 +4319,20 @@ async function executeWeeklyReset() {
         prizeAwardedText = `${prize.amount} ${prizeName}`;
     }
 
+    // GÜNCELLENEN KISIM: logActivity'e bilet bilgisi eklendi
     logActivity('weeklyChampion', 'WeizendTv', {
         winner: winner.username,
         score: winner.score,
-        prize: prizeAwardedText
+        prize: prizeAwardedText,
+        ticketsUsed: ticketsUsedByWinner // Bilet bilgisi eklendi
     });
 
+    // GÜNCELLENEN KISIM: Haftanın kazananı paneline bilet bilgisi eklendi
     await db.ref('gameStats/weeklyClickCatchWinner').set({
         winnerName: winner.username,
         winningScore: winner.score,
         prizeAwarded: prizeAwardedText,
+        ticketsUsed: ticketsUsedByWinner, // Bilet bilgisi eklendi
         timestamp: firebase.database.ServerValue.TIMESTAMP
     });
 
@@ -4340,11 +4346,15 @@ async function executeWeeklyReset() {
         if (allUsers[username].clickCatchHighestScore) {
             updates[`${userPath}/clickCatchHighestScore`] = 0;
         }
-        updates[`${userPath}/clickCatchTickets`] = 0;
+        
+        // ÖNEMLİ: Mevcut biletleri silmek yerine, üzerine +1 ekliyoruz
+        const currentTickets = allUsers[username].clickCatchTickets || 0;
+        let finalTickets = currentTickets;
 
         if (participants.includes(username)) {
-            updates[`${userPath}/clickCatchTickets`] = 1;
+            finalTickets += 1;
         }
+        updates[`${userPath}/clickCatchTickets`] = finalTickets;
         
         if (username === winner.username) {
             if (prize.type === 'special') {
@@ -4352,15 +4362,15 @@ async function executeWeeklyReset() {
                 updates[`/pendingSpecialPurchases/${purchaseId}`] = {
                     username: winner.username,
                     itemName: prize.name,
-                    itemCost: "Haftalık Ödül", // Maliyet yerine bilgi metni
-                    source: "clickCatchWinner", // Nereden geldiğini belirtmek için
+                    itemCost: "Haftalık Ödül",
+                    source: "clickCatchWinner",
                     timestamp: firebase.database.ServerValue.TIMESTAMP
                 };
                 updates[`/purchaseHistory/${purchaseId}`] = {
                     username: winner.username,
                     itemName: prize.name,
                     itemCost: "Haftalık Ödül",
-                    imageUrl: 'https://i.hizliresim.com/sv85j2u.png', // Varsayılan ödül ikonu
+                    imageUrl: 'https://i.hizliresim.com/sv85j2u.png',
                     status: 'pending',
                     purchaseType: 'special',
                     timestamp: firebase.database.ServerValue.TIMESTAMP
@@ -4398,6 +4408,7 @@ async function executeWeeklyReset() {
         }
     }
     updates['/clickCatchWeeklyScores'] = null;
+    updates['/clickCatchWeeklyTickets'] = null; // Harcanan bilet tablosunu da sıfırla
     updates['/gameConfig/weeklyClickCatchReset'] = null;
     await db.ref().update(updates);
     const notificationMessage = `Tıkla-Yakala haftasının şampiyonu ${winner.username} oldu! Yeni hafta başladı ve tüm katılımcılara +1 bilet hediye edildi!`;
@@ -6477,7 +6488,7 @@ function getActivityIcon(type, details = {}) {
     `;
 }
       
-// MEVCUT renderActivityFeed FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
+// renderActivityFeed fonksiyonunu bununla değiştir
 function renderActivityFeed(activities) {
     const activityFeedList = document.getElementById('activityFeedList');
     activityFeedList.innerHTML = '';
@@ -6530,7 +6541,7 @@ function renderActivityFeed(activities) {
                     }
                     
                     if (details.didPlayerDodge) {
-                        attackSummary += `Canavarın saldırısından <b class="text-cyan-300">sıyrıldı!</b>`;
+                        attackSummary += `Canavarın saldırısından <b class="text-cyan-400">sıyrıldı!</b>`;
                     } else {
                         let monsterAttackText = 'saldırısıyla';
                         if (details.monsterAttackType === 'crit') {
@@ -6557,9 +6568,9 @@ function renderActivityFeed(activities) {
                     break;
 
                 case 'monsterDefeated':
-                    const winnerHtml = `<b class="text-yellow-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${details.winner}')">${details.winner}</b>`;
+                    const winnerHtmlDefeat = `<b class="text-yellow-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${details.winner}')">${details.winner}</b>`;
                     const defeatedMonsterNameHtml = `<b class="text-red-400 cursor-pointer hover:underline" onclick="openMonsterInfoModal()">${details.monsterName}</b>`;
-                    message = `${defeatedMonsterNameHtml} mağlup edildi! En çok hasarı veren ${winnerHtml} (<b class="text-white">${formatNumber(details.totalDamage)} Hasar</b>), <b class="text-green-300">${details.prize}</b> ödülünü kazandı.`;
+                    message = `${defeatedMonsterNameHtml} mağlup edildi! En çok hasarı veren ${winnerHtmlDefeat} (<b class="text-white">${formatNumber(details.totalDamage)} Hasar</b>), <b class="text-green-300">${details.prize}</b> ödülünü kazandı.`;
                     break;
                 
                 case 'collectionCompleted':
@@ -6591,10 +6602,12 @@ function renderActivityFeed(activities) {
                     const weeklyScoreText = (newWeeklyScore !== undefined) ? ` <span class="text-gray-400">(Haftalık Skor: ${newWeeklyScore})</span>` : '';
                     message += weeklyScoreText;
                     break;
+                // GÜNCELLENEN KISIM
                 case 'weeklyChampion':
                     const championHtml = `<b class="text-amber-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${details.winner}')">${details.winner}</b>`;
-                    message = `Tıkla-Yakala haftası sona erdi! ${championHtml}, <b class="text-white">${details.score} skorla</b> şampiyon oldu ve <b class="text-green-300">${details.prize}</b> kazandı. Tüm katılımcılara +1 bilet hediye edildi.`;
-                    break; 
+                    message = `Tıkla-Yakala haftası sona erdi! ${championHtml}, <b class="text-white">${details.score} skorla</b> şampiyon oldu ve <b class="text-green-300">${details.prize}</b> kazandı. <span class="text-gray-400">(Harcanan Bilet: ${details.ticketsUsed || 'N/A'})</span>. Tüm katılımcılara +1 bilet hediye edildi.`;
+                    break;
+                // GÜNCELLENEN KISIM SONU
                 case 'loginStreakClaim':
                     message = `${userHtml}, giriş serisinde <b class="text-teal-300 font-bold">${details.day}. gün</b> <b class="text-white">'${details.packageName}'</b> ödülünü aldı.`;
                     break;
@@ -6604,7 +6617,8 @@ function renderActivityFeed(activities) {
                     else if (details.status === 'cancelled') { message += ` <span class="text-red-500 font-bold">(İşlem İptal Edildi)</span>`; }
                     break;
                 case 'tradeOfferAccepted':
-                    message = `${userHtml}, <b class="text-red-400">-${details.fee} Puan</b> ödeyip, ${details.offerer}'in <b class="text-cyan-300">'${details.offeredCardName}'</b> kartı teklifini kabul etti ve karşılığında <b class="text-pink-300">'${details.requestedCardName}'</b> kartını verdi. <span class="text-gray-400">(Kalan Puan: ${formatNumber(details.newBalance)})</span>`;
+                    const accepterHtml = `<b class="text-yellow-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${details.offerer}')">${details.offerer}</b>`;
+                    message = `${userHtml}, <b class="text-red-400">-${details.fee} Puan</b> ödeyip, ${accepterHtml}'in <b class="text-cyan-300">'${details.offeredCardName}'</b> kartı teklifini kabul etti ve karşılığında <b class="text-pink-300">'${details.requestedCardName}'</b> kartını verdi. <span class="text-gray-400">(Kalan Puan: ${formatNumber(details.newBalance)})</span>`;
                     break;
                 case 'newItemFound':
                     let newItemMultiplierText = (details.multiplier && details.multiplier > 1) ? ` <span class="text-xs text-purple-400">(${details.multiplier}x çarpan kullandı)</span>` : ` <span class="text-xs text-gray-400">(çarpan kullanmadı)</span>`;
@@ -6700,7 +6714,7 @@ function renderActivityFeed(activities) {
                         const isPercentSpin = percentPotions.includes(prizeType);
                         const valuePrefixSpin = isPercentSpin ? `+%` : `+`;
                         if (prizeType === 'points') { prizeText = `+${prizeValue} Puan`; } 
-                        else if (prizeType === 'tempMultiplier') { prizeText = `${prizeValue}X Çarpan`; } 
+                        else if (prizeType === 'tempMultiplier') { prizeText = `${prizeValue}x Çarpan (${details.duration} kullanım)`; } 
                         else { prizeText = `${valuePrefixSpin}${prizeValue} ${typeToName[prizeType] || prizeType}`; }
                         message = `${userHtml}, çarkı çevirerek <span class="text-pink-300 font-bold">${prizeText}</span> kazandı.${wheelBalanceText}`;
                     }
@@ -6963,11 +6977,11 @@ async function handleSurpriseBoxCleanup(sessionData) {
       }
   }
 
-  async function restartSystem() {
+  // restartSystem fonksiyonunu bununla değiştir
+async function restartSystem() {
     const confirmed = await customConfirm("Sistemi baştan başlatmak istediğinize emin misiniz? Avatarlar ve Sezon Başarımları HARİÇ, Kasa Puanları ve Rozetleri belirleyen tüm istatistikler dahil her şey kalıcı olarak sıfırlanacak!");
     if (confirmed) {
         
-        // Tüm güncellemeleri tek bir objede toplayacağız
         const updates = {};
 
         const userSnap = await db.ref('users').once('value');
@@ -6978,7 +6992,6 @@ async function handleSurpriseBoxCleanup(sessionData) {
                 if (u !== "weizendtv") {
                     const userPath = 'users/' + u;
                     
-                    // Kullanıcı verilerini sıfırlama kısmı
                     updates[userPath + '/balance'] = 0;
                     updates[userPath + '/kasaPuani'] = 0;
                     updates[userPath + '/kariyerPuani'] = 0;
@@ -7009,24 +7022,21 @@ async function handleSurpriseBoxCleanup(sessionData) {
                     updates[userPath + '/cardCollection'] = null;
                     updates[userPath + '/completedCollection'] = null;
                     updates[userPath + '/wildcards'] = 0;
+                    updates[userPath + '/potionPurchaseCounts'] = null;
+                    updates[userPath + '/loginStreak'] = null;
                 }
             }
         }
         
-        // --- YENİ EKLENEN KISIM BAŞLANGICI ---
-        // Mağazadaki ürünlerin "satın alınma sayısını" sıfırla
         const storeItemsSnap = await db.ref('storeItems').once('value');
         if (storeItemsSnap.exists()) {
             storeItemsSnap.forEach(itemSnap => {
                 updates[`storeItems/${itemSnap.key}/purchaseCount`] = 0;
             });
         }
-        // --- YENİ EKLENEN KISIM SONU ---
-
-        // Toplanan tüm kullanıcı ve mağaza güncellemelerini tek seferde uygula
+        
         await db.ref().update(updates);
         
-        // Geri kalan genel verileri ve ayarları temizle
         await db.ref('gameConfig/seasonSettings').remove();
         await db.ref('gameConfig/seasonEndDate').remove();
         await db.ref('gameConfig/seasonResetStatus').remove();
@@ -7034,6 +7044,7 @@ async function handleSurpriseBoxCleanup(sessionData) {
         await db.ref('gameConfig/collectionWinner').remove();
         await db.ref('gameConfig/collectionGrandPrize').remove();
         await db.ref('gameConfig/cardCollectionStatus').set('inactive');
+        await db.ref('gameConfig/weeklyClickCatchReset').remove(); // Haftalık ayarları da temizle
 
         await createBoxes();
         await db.ref('purchaseHistory').remove();
@@ -7044,6 +7055,8 @@ async function handleSurpriseBoxCleanup(sessionData) {
         await db.ref('trades').remove();
         await db.ref('tradeHistory').remove();
         await db.ref('activityFeed').remove();
+        await db.ref('clickCatchWeeklyScores').remove();
+        await db.ref('clickCatchWeeklyTickets').remove(); // Harcanan bilet tablosunu da temizle
 
         displayMessage("Sistem başarıyla baştan başlatıldı! Tüm rozetler ve istatistikler sıfırlandı. Sayfa 2 saniye içinde yenilenecek...");
         
@@ -11334,6 +11347,11 @@ async function startSoloClickCatchGame() {
         return;
     }
 
+    // YENİ EKLENEN KISIM: Kullanılan bilet sayısını haftalık olarak kaydet
+    const weeklyTicketsRef = db.ref(`clickCatchWeeklyTickets/${currentUser}`);
+    await weeklyTicketsRef.transaction(currentTickets => (currentTickets || 0) + ticketsUsedThisRound);
+    // YENİ KISIM SONU
+
     await userRef.update({ clickCatchTickets: 0 }); // Tüm biletleri kullan
     
     const specialItemMapping = {
@@ -11367,7 +11385,8 @@ async function startSoloClickCatchGame() {
     collectedWheelTickets = 0;
     collectedMultipliers = [];
     collectedCardPacks = [];
-    collectedPotions = []; // ★★★ DÜZELTME BURADA: Eksik değişken tanımlandı ★★★
+    collectedWildcards = 0;
+    collectedPotions = [];
 
     document.getElementById('clickCatchScore').textContent = clickCatchScore;
     document.getElementById('clickCatchTimer').textContent = clickCatchTimer;
@@ -11714,7 +11733,7 @@ async function confirmAndAwardPrize() {
     closeSelectWinnerModal();
 }
 
-// Haftanın kazananı verisini dinler ve paneli günceller
+// listenForWeeklyWinner fonksiyonunu bununla değiştir
 function listenForWeeklyWinner() {
     const ref = db.ref('gameStats/weeklyClickCatchWinner');
     const container = document.getElementById('weeklyWinnerContainer');
@@ -11724,11 +11743,15 @@ function listenForWeeklyWinner() {
     const callback = snap => {
         const winnerData = snap.val();
         if (winnerData) {
+            // GÜNCELLENEN KISIM: Harcanan bilet bilgisi eklendi
+            const ticketsUsedText = winnerData.ticketsUsed ? `<p>Harcanan Bilet: <b class="text-white">${winnerData.ticketsUsed}</b></p>` : '';
             infoDiv.innerHTML = `
                 <p>Kazanan: <b class="text-white">${winnerData.winnerName}</b></p>
                 <p>Skor: <b class="text-white">${winnerData.winningScore}</b></p>
+                ${ticketsUsedText}
                 <p>Ödül: <b class="text-green-400">${winnerData.prizeAwarded}</b></p>
             `;
+            // GÜNCELLENEN KISIM SONU
             container.classList.remove('hidden');
             if (isAdmin) {
                 clearBtn.classList.remove('hidden');
@@ -11738,7 +11761,6 @@ function listenForWeeklyWinner() {
         }
     };
     
-    // Listener'ı tekrar tekrar eklememek için kontrol
     if (activeListeners.weeklyWinner) {
         activeListeners.weeklyWinner.ref.off('value', activeListeners.weeklyWinner.callback);
     }
