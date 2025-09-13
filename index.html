@@ -2797,11 +2797,13 @@ body.modal-open .modal-content {
     <option value="crit_damage_potion">🎯 Kritik Hasar İksiri</option>
     <option value="dodge_potion">💨 Sıyrılma Şansı İksiri</option>
     <option value="pierce_potion">📌 Delici Şansı İksiri</option>
+    <option value="special">🚀 Özel Ürün (Onay Gerekir)</option> </select>
 </select>
             <div id="weeklyPrizeValueContainer" class="grid grid-cols-2 gap-4 col-span-2 sm:col-span-1">
-                <input type="number" id="weeklyPrizeAmount" class="box-setting-input" placeholder="Miktar">
-                <input type="number" id="weeklyPrizeMultiplierUses" class="box-setting-input hidden" placeholder="Kullanım Hakkı">
-            </div>
+    <input type="number" id="weeklyPrizeAmount" class="box-setting-input" placeholder="Miktar">
+    <input type="text" id="weeklyPrizeSpecialName" class="box-setting-input col-span-2 hidden" placeholder="Özel Ürün Adı (örn: Oyun Kodu)">
+    <input type="number" id="weeklyPrizeMultiplierUses" class="box-setting-input hidden" placeholder="Kullanım Hakkı">
+</div>
         </div>
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
@@ -4155,7 +4157,6 @@ async function toggleMaintenanceMode() {
     }
 }
 
-// YENİ KODU YAPIŞTIR
 async function saveWeeklyResetSettings() {
     if (!isAdmin) return;
 
@@ -4166,25 +4167,30 @@ async function saveWeeklyResetSettings() {
     }
 
     const prizeType = document.getElementById('weeklyPrizeType').value;
-    const prizeAmount = parseInt(document.getElementById('weeklyPrizeAmount').value);
-    const prizeUses = parseInt(document.getElementById('weeklyPrizeMultiplierUses').value);
-
-    const prizeData = {};
+    const prizeData = { type: prizeType };
 
     if (prizeType === 'tempMultiplier') {
+        const prizeAmount = parseInt(document.getElementById('weeklyPrizeAmount').value);
+        const prizeUses = parseInt(document.getElementById('weeklyPrizeMultiplierUses').value);
         if (isNaN(prizeAmount) || isNaN(prizeUses) || prizeAmount <= 1 || prizeUses <= 0) {
-            displayMessage("Lütfen geçerli bir Çarpan Değeri (1'den büyük) ve Kullanım Hakkı girin.");
+            displayMessage("Lütfen geçerli bir Çarpan Değeri (>1) ve Kullanım Hakkı (>0) girin.");
             return;
         }
-        prizeData.type = prizeType;
         prizeData.amount = prizeAmount;
         prizeData.uses = prizeUses;
+    } else if (prizeType === 'special') {
+        const prizeName = document.getElementById('weeklyPrizeSpecialName').value.trim();
+        if (!prizeName) {
+            displayMessage("Lütfen Özel Ürün için bir ad girin.");
+            return;
+        }
+        prizeData.name = prizeName; // Miktar yerine isim kaydediyoruz
     } else {
+        const prizeAmount = parseInt(document.getElementById('weeklyPrizeAmount').value);
         if (isNaN(prizeAmount) || prizeAmount <= 0) {
             displayMessage("Lütfen geçerli bir ödül miktarı girin.");
             return;
         }
-        prizeData.type = prizeType;
         prizeData.amount = prizeAmount;
     }
     
@@ -4269,7 +4275,6 @@ function listenForWeeklyCountdown() {
     ref.on('value', callback);
 }
 
-// MEVCUT executeWeeklyReset FONKSİYONUNU SİLİP BUNU YAPIŞTIR
 async function executeWeeklyReset() {
     console.log("Haftalık sıfırlama işlemi tetiklendi...");
     const seasonEndDateSnap = await db.ref('gameConfig/seasonEndDate').once('value');
@@ -4305,6 +4310,8 @@ async function executeWeeklyReset() {
     let prizeAwardedText = '';
     if (prize.type === 'tempMultiplier') {
         prizeAwardedText = `${prize.amount}x Çarpan (${prize.uses} kullanım)`;
+    } else if (prize.type === 'special') {
+        prizeAwardedText = `Özel Ödül: ${prize.name}`;
     } else {
         const prizeName = typeToName[prize.type] || prize.type;
         prizeAwardedText = `${prize.amount} ${prizeName}`;
@@ -4340,7 +4347,30 @@ async function executeWeeklyReset() {
         }
         
         if (username === winner.username) {
-            if (prize.type.endsWith('_potion')) {
+            if (prize.type === 'special') {
+                const purchaseId = db.ref('pendingSpecialPurchases').push().key;
+                updates[`/pendingSpecialPurchases/${purchaseId}`] = {
+                    username: winner.username,
+                    itemName: prize.name,
+                    itemCost: "Haftalık Ödül", // Maliyet yerine bilgi metni
+                    source: "clickCatchWinner", // Nereden geldiğini belirtmek için
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                };
+                updates[`/purchaseHistory/${purchaseId}`] = {
+                    username: winner.username,
+                    itemName: prize.name,
+                    itemCost: "Haftalık Ödül",
+                    imageUrl: 'https://i.hizliresim.com/sv85j2u.png', // Varsayılan ödül ikonu
+                    status: 'pending',
+                    purchaseType: 'special',
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                };
+                const notifKey = db.ref('users/' + winner.username + '/notifications').push().key;
+                updates[`/users/${winner.username}/notifications/${notifKey}`] = {
+                    message: `Tebrikler! Haftanın Tıkla-Yakala şampiyonu olarak kazandığınız '${prize.name}' adlı özel ürün, admin onayı için sıraya alındı.`,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                };
+            } else if (prize.type.endsWith('_potion')) {
                 const statKeyMap = { health_potion: 'hp', damage_potion: 'damage', defense_potion: 'defense', crit_potion: 'critChance', crit_damage_potion: 'critDamage', dodge_potion: 'dodgeChance', pierce_potion: 'pierceChance' };
                 const statKey = statKeyMap[prize.type];
                 if (statKey) {
@@ -4359,14 +4389,12 @@ async function executeWeeklyReset() {
                 updates[`${userPath}/${prizeKey}`] = (allUsers[username][prizeKey] || 0) + prize.amount;
             }
 
-            // ★★★ YENİ BAŞARIM EKLEME KODU ★★★
             const tyChampionships = allUsers[username].tyChampionships || [];
             tyChampionships.push({
                 timestamp: firebase.database.ServerValue.TIMESTAMP,
                 score: winner.score
             });
             updates[`${userPath}/tyChampionships`] = tyChampionships;
-            // ★★★ BAŞARIM KODU SONU ★★★
         }
     }
     updates['/clickCatchWeeklyScores'] = null;
@@ -8491,15 +8519,19 @@ async function removeTyChampionship(username) {
         }
         for (const key in purchases) {
             const purchase = purchases[key];
+            const costText = (purchase.source === 'clickCatchWinner')
+                ? `<span class="text-sm text-green-400">(${purchase.itemCost})</span>`
+                : `<span class="text-sm text-gray-400">(${purchase.itemCost} KP)</span>`;
+
             html += `
                 <div class="flex flex-col items-start justify-between p-3 mb-2 bg-gray-700 rounded-md border-l-4 border-yellow-500">
                     <div>
                         <span class="text-gray-200 font-bold">${purchase.username}</span>
-                        <span class="text-gray-300">- ${purchase.itemName}</span>
+                        <span class="text-gray-300">- ${purchase.itemName} ${costText}</span>
                     </div>
                     <div class="flex space-x-2 mt-2 self-end">
                         <button onclick="approveSpecialPurchase('${key}', '${purchase.username}')" class="py-1 px-3 bg-green-600 hover:bg-green-500 text-white text-sm font-bold rounded-md">Onayla</button>
-                        <button onclick="denySpecialPurchase('${key}', '${purchase.username}', ${purchase.itemCost})" class="py-1 px-3 bg-red-600 hover:bg-red-500 text-white text-sm font-bold rounded-md">Reddet</button>
+                        <button onclick="denySpecialPurchase('${key}', '${purchase.username}', ${typeof purchase.itemCost === 'number' ? purchase.itemCost : 0})" class="py-1 px-3 bg-red-600 hover:bg-red-500 text-white text-sm font-bold rounded-md">Reddet</button>
                     </div>
                 </div>
             `;
@@ -8508,7 +8540,7 @@ async function removeTyChampionship(username) {
     };
     activeListeners.pendingPurchases = { ref, event: 'value', callback };
     ref.on('value', callback);
-  }
+}
 
   async function approveSpecialPurchase(purchaseId, username) {
       const purchaseItemSnap = await db.ref(`/pendingSpecialPurchases/${purchaseId}`).once('value');
@@ -8533,8 +8565,7 @@ async function removeTyChampionship(username) {
       });
   }
 
-  // MEVCUT denySpecialPurchase fonksiyonunu bununla değiştir
-async function denySpecialPurchase(purchaseId, username, itemCost) {
+  async function denySpecialPurchase(purchaseId, username, itemCost) {
       const purchaseItemSnap = await db.ref(`/pendingSpecialPurchases/${purchaseId}`).once('value');
       const purchaseItem = purchaseItemSnap.val();
        if (!purchaseItem) {
@@ -8546,24 +8577,26 @@ async function denySpecialPurchase(purchaseId, username, itemCost) {
       
       const userRef = db.ref(`users/${username}`);
       const updates = {};
-
-      const userSnap = await userRef.once('value');
-      const userData = userSnap.val();
-      if (userData) {
-          // İade edilen puan hem balance'a hem de kariyer puanına eklenmeli
-          // çünkü bu bir "kazanım" değil, "kaybın geri alınması" durumudur.
-          // Sistemin tutarlılığı için kariyer puanını etkilememesi daha doğru olur.
-          // Bu yüzden burada kariyer puanına dokunmuyoruz. SADECE KASA PUANI'nı iade ediyoruz.
-          updates[`users/${username}/kasaPuani`] = (userData.kasaPuani || 0) + itemCost;
-          // NOT: 'totalSpentPoints' Kasa Puanı harcamalarını saymıyor, o yüzden ona dokunmaya gerek yok.
+      
+      // Eğer bu bir ödül değilse (yani normal bir satın alım ise) puanı iade et.
+      if (purchaseItem.source !== 'clickCatchWinner') {
+          const userSnap = await userRef.once('value');
+          const userData = userSnap.val();
+          if (userData) {
+              updates[`users/${username}/kasaPuani`] = (userData.kasaPuani || 0) + itemCost;
+          }
       }
 
       updates[`/pendingSpecialPurchases/${purchaseId}`] = null;
       updates[`/purchaseHistory/${purchaseId}/status`] = 'denied';
 
       db.ref().update(updates).then(() => {
-          notifyUser(username, `'${purchaseItem.itemName}' adlı özel ürün alımınız reddedildi. ${itemCost} Kasa Puanı hesabınıza iade edildi.`);
-          displayMessage("Özel ürün alımı reddedildi ve Kasa Puanı iadesi yapıldı.");
+          let notificationText = `'${purchaseItem.itemName}' adlı özel ürün talebiniz reddedildi.`;
+          if (purchaseItem.source !== 'clickCatchWinner') {
+              notificationText += ` ${itemCost} Kasa Puanı hesabınıza iade edildi.`;
+          }
+          notifyUser(username, notificationText);
+          displayMessage("Özel ürün alımı reddedildi.");
       }).catch(err => {
           console.error("Reddetme hatası: ", err);
           displayMessage("Reddetme sırasında bir hata oluştu.");
@@ -13801,7 +13834,6 @@ function closeSeasonInfoModal() {
     document.getElementById('seasonInfoModal').style.display = 'none';
 }
 
-// YENİ VE DÜZELTİLMİŞ FONKSİYONU BU ŞEKİLDE YAPIŞTIR
 async function openWeeklyResetInfoModal() {
     document.body.classList.add('modal-open');
     const detailsContainer = document.getElementById('weeklyWinnerPrizeDetails');
@@ -13815,13 +13847,11 @@ async function openWeeklyResetInfoModal() {
             const prize = settingsSnap.val();
             let prizeText = '';
 
-            // Çarpan türündeki ödüller için özel bir metin oluşturuyoruz
             if (prize.type === 'tempMultiplier') {
                 prizeText = `${prize.amount}x Çarpan (${prize.uses} kullanım)`;
-            } 
-            // Diğer tüm ödül türleri için genel metin
-            else {
-                // typeToName haritasını kullanarak daha tutarlı isimler alıyoruz
+            } else if (prize.type === 'special') {
+                prizeText = `Özel Ürün: ${prize.name}`; // Özel ürün adını göster
+            } else {
                 const prizeName = typeToName[prize.type] || prize.type;
                 prizeText = `${prize.amount} ${prizeName}`;
             }
@@ -17708,18 +17738,27 @@ function sanitizeFirebaseKey(key) {
     return key.replace(/[.#$[\]/]/g, '').replace(/:/g, '_');
 }
 
-// BU YENİ FONKSİYONU EKLE
 function handleWeeklyPrizeTypeChange() {
     const prizeType = document.getElementById('weeklyPrizeType').value;
     const amountInput = document.getElementById('weeklyPrizeAmount');
     const usesInput = document.getElementById('weeklyPrizeMultiplierUses');
+    const specialNameInput = document.getElementById('weeklyPrizeSpecialName');
+
+    // Önce tüm özel alanları varsayılan durumuna getir
+    amountInput.classList.remove('hidden', 'col-span-2');
+    usesInput.classList.add('hidden');
+    specialNameInput.classList.add('hidden');
 
     if (prizeType === 'tempMultiplier') {
         amountInput.placeholder = 'Çarpan Değeri (örn: 2)';
         usesInput.classList.remove('hidden');
+    } else if (prizeType === 'special') {
+        // Özel ürün seçilirse miktar ve kullanım alanlarını gizle, isim alanını göster
+        amountInput.classList.add('hidden');
+        usesInput.classList.add('hidden');
+        specialNameInput.classList.remove('hidden');
     } else {
         amountInput.placeholder = 'Miktar';
-        usesInput.classList.add('hidden');
     }
 }
 
