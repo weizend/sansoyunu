@@ -7502,7 +7502,8 @@ function loadStoreItems() {
       }
   }
 
-  async function renderStoreItems(items, userData = {}) {
+  // MEVCUT renderStoreItems FONKSİYONUNU SİLİP BU YENİ VERSİYONU YAPIŞTIRIN
+async function renderStoreItems(items, userData = {}) {
     const gameContainer = document.getElementById('gameStoreItemsContainer');
     const specialContainer = document.getElementById('specialStoreItemsContainer');
     const gameTabBtn = document.getElementById('gameStoreTabBtn');
@@ -7521,8 +7522,6 @@ function loadStoreItems() {
         return;
     }
 
-    // *** DEĞİŞİKLİK BURADA BAŞLIYOR: renderItem fonksiyonunu en başa taşıdık ***
-    // Bu iç fonksiyon, tek bir mağaza ürününü HTML'e çevirir.
     const renderItem = (itemData, container) => {
         const [itemId, item] = itemData;
         const isSpecial = item.type === 'special';
@@ -7535,9 +7534,15 @@ function loadStoreItems() {
         ];
         const isPotion = monsterStoreItemTypes.includes(item.type);
         let currentCost = item.cost;
+
+        // ★★★ HATA BURADAYDI VE DÜZELTİLDİ ★★★
+        // Artık fiyat hesaplanırken, ürünün kendi 'priceIncrease' değeri okunuyor.
+        // Bu sayede, admin panelinde 0 olarak ayarlanan artışlar doğru bir şekilde fiyata yansıtılıyor.
         if (isPotion && !isSpecial) {
             const purchaseCount = potionPurchaseCounts[itemId] || 0;
-            currentCost = item.cost + (purchaseCount * 1000);
+            // 'hasOwnProperty' ile fiyat artışının 0 olup olmadığını doğru kontrol ediyoruz.
+            const priceIncrease = item.hasOwnProperty('priceIncrease') ? item.priceIncrease : 1000;
+            currentCost = item.cost + (purchaseCount * priceIncrease);
         }
 
         const outOfStock = item.stock !== undefined && item.stock <= 0;
@@ -7604,7 +7609,6 @@ function loadStoreItems() {
           `;
         container.appendChild(cardDiv);
     };
-    // *** DEĞİŞİKLİK BURADA BİTİYOR ***
 
     let allItemsArray = Object.entries(items);
 
@@ -7620,7 +7624,6 @@ function loadStoreItems() {
             .sort(([, a], [, b]) => (a.order || 0) - (b.order || 0));
 
         if (monsterItems.length > 0) {
-            // *** EKSİK KISIM BURAYA EKLENDİ ***
             monsterItems.forEach(itemData => renderItem(itemData, gameContainer));
         } else {
             gameContainer.innerHTML = '<p class="text-center col-span-full text-gray-400">Canavar Mağazası\'nda ürün bulunmamaktadır.</p>';
@@ -7646,14 +7649,12 @@ function loadStoreItems() {
 
         if (specialTabBtn) specialTabBtn.style.display = 'flex';
 
-        // *** EKSİK KISIM BURAYA EKLENDİ ***
         if (gameItems.length > 0) {
             gameItems.forEach(itemData => renderItem(itemData, gameContainer));
         } else {
             gameContainer.innerHTML = '<p class="text-center col-span-full text-gray-400">Oyun Mağazası\'nda ürün bulunmamaktadır.</p>';
         }
 
-        // *** EKSİK KISIM BURAYA EKLENDİ ***
         if (specialItems.length > 0) {
             specialItems.forEach(itemData => renderItem(itemData, specialContainer));
         } else {
