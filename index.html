@@ -6407,7 +6407,7 @@ function getActivityIcon(type, details = {}) {
     `;
 }
       
-// MEVCUT renderActivityFeed FONKSİYONUNU SİL VE BUNU YAPIŞTIR
+// MEVCUT renderActivityFeed FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
 function renderActivityFeed(activities) {
     const activityFeedList = document.getElementById('activityFeedList');
     activityFeedList.innerHTML = '';
@@ -6452,7 +6452,6 @@ function renderActivityFeed(activities) {
                     if (details.didMonsterDodge) {
                         attackSummary += `Canavar <b class="text-cyan-400">sıyrıldı!</b>`;
                     } else if (details.playerAttackType === 'pierce') {
-                        // ★★★ DEĞİŞİKLİK 5: "SON EYLEMLER" PANELİNDEKİ OYUNCU İKONU GÜNCELLENDİ ★★★
                         attackSummary += `📌 <b class="text-purple-400">Delici Vuruş</b> ile <b class="text-green-300">${details.damageDealt} hasar</b> verdi. `;
                     } else if (details.playerAttackType === 'crit') {
                         attackSummary += `💥 <b class="text-green-300">Kritik Vuruş</b> ile <b class="text-green-300">${details.damageDealt} hasar</b> verdi. `;
@@ -6467,7 +6466,6 @@ function renderActivityFeed(activities) {
                         if (details.monsterAttackType === 'crit') {
                             monsterAttackText = `💥 <b class="text-red-600">kritik saldırısıyla</b>`;
                         } else if (details.monsterAttackType === 'pierce') {
-                            // ★★★ DEĞİŞİKLİK 6: "SON EYLEMLER" PANELİNDEKİ CANAVAR İKONU GÜNCELLENDİ ★★★
                             monsterAttackText = `📌 <b class="text-purple-500">delici saldırısıyla</b>`;
                         }
                         attackSummary += ` Canavarın ${monsterAttackText} <b class="text-red-400">${details.damageTaken} hasar</b> aldı.`;
@@ -6555,12 +6553,20 @@ function renderActivityFeed(activities) {
 
                     message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-cyan-300 font-bold">${displayItemAmount} ${displayItemName}</span> buldu.${newItemMultiplierText}`;
                     break;
+                case 'multiplierStackedFromStore':
+                     message = `${userHtml}, mağazadan aldığı çarpan ile mevcut <b>${details.multiplierValue}x</b> çarpanının kullanım hakkını <b class="text-teal-300 font-bold">+${details.usesAdded}</b> artırarak toplam <b class="text-teal-300 font-bold">${details.newTotalUses}</b> adete çıkardı.`;
+                    break;
                 case 'dailyRewardMultiplierStacked':
-                    const sourceText = details.source || "Günlük Ödül'den";
-                    message = `${userHtml}, ${sourceText} mevcut <b>${details.multiplierValue}x</b> çarpanıyla aynı değerde bir çarpan daha aldı. Kullanım hakkı <b class="text-teal-300 font-bold">+${details.usesAdded}</b> artırılarak toplam <b class="text-teal-300 font-bold">${details.newTotalUses}</b> oldu.`;
+                    const sourceTextStack = details.source || "Günlük Ödül'den";
+                    message = `${userHtml}, ${sourceTextStack} mevcut <b>${details.multiplierValue}x</b> çarpanıyla aynı değerde bir çarpan daha aldı. Kullanım hakkı <b class="text-teal-300 font-bold">+${details.usesAdded}</b> artırılarak toplam <b class="text-teal-300 font-bold">${details.newTotalUses}</b> oldu.`;
                     break;
                 case 'multiplierStacked':
                     message = `${userHtml}, <b>${details.boxId} numaralı kutudan</b> mevcut <b>${details.value}x</b> çarpanıyla aynı değerde bir çarpan daha buldu. Kullanım hakkı <b class="text-teal-300 font-bold">+1</b> artırıldı.`;
+                    break;
+                case 'multiplierUpgraded':
+                case 'multiplierUpgradedFromStore':
+                    const upgradeSource = details.source || 'Mağazadan';
+                    message = `${userHtml}, ${upgradeSource} aldığı <b>${details.newValue}x (${details.newUses} kullanım)</b> çarpan ile mevcut <b>${details.oldValue}x (${details.oldUses} kullanım)</b> çarpanını yükseltti. Eski çarpanı için <b class="text-green-300 font-bold">+${details.boxRights} Kutu Hakkı</b> iade edildi.`;
                     break;
                 case 'wildcardConverted':
                     message = `${userHtml}, Koleksiyonu tamamladığı için ${details.source}'dan aldığı ${details.wildcards} Joker Kart'ı <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b>'na dönüştürdü.`;
@@ -6571,6 +6577,9 @@ function renderActivityFeed(activities) {
                 case 'multiplierCombined':
                     message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <b>${details.foundValue}x çarpan</b> buldu. Mevcut çarpanıyla birleştirerek tek kullanımlık <b class="text-teal-300 font-bold">${details.combinedValue}x</b> gücüne ulaştı ve <span class="text-green-300 font-bold">+1 Kutu Hakkı</span> iade aldı.`;
                     break;
+                 case 'multiplierSwappedOnUnusedOpen':
+                     message = `${userHtml}, mevcut <b>${details.existingValue}x (${details.refundedUses} kullanım)</b> çarpanını, kutudan çıkan yeni <b>${details.foundValue}x (1 kullanım)</b> çarpanı ile takas etti. Eski çarpanı için <b class="text-green-300 font-bold">+${details.boxRights} Kutu Hakkı</b> iade edildi.`;
+                     break;
                 case 'multiplierConvertedToBoxRights':
                 case 'multiplierConvertedOnUsedOpen':
                 case 'multiplierConvertedOnUnusedOpen':
