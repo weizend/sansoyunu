@@ -6786,9 +6786,13 @@ function renderActivityFeed(activities) {
 function formatRewardText(type, value, uses = 0) {
     const name = typeToName[type] || type;
     
-    const percentPotions = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion', 'health_regen_potion'];
+    if (type === 'health_regen_potion') {
+        return `1 Adet %${value} ${name}`;
+    }
+
+    const percentPotions = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion'];
     if (percentPotions.includes(type)) {
-        const prefix = type === 'health_regen_potion' ? '%' : '+%';
+        const prefix = '+%';
         const formattedValue = parseFloat(value).toFixed(1);
         return `${prefix}${formattedValue} ${name}`;
     }
@@ -12954,17 +12958,21 @@ async function renderMonsterBattleUI() {
     document.getElementById('monsterHealthText').textContent = `${formatNumber(monster.currentHP)} / ${formatNumber(monster.maxHP)} Can`;
 
     const leaderboardEl = document.getElementById('monsterLeaderboard');
-    // *** HATA DÜZELTMESİ BURADA: Sıralama çizilmeden önce liste temizleniyor ***
-    leaderboardEl.innerHTML = '';
+    leaderboardEl.innerHTML = ''; 
     const sortedLeaderboard = Object.entries(leaderboard).sort((a, b) => b[1].totalDamage - a[1].totalDamage);
 
     if (sortedLeaderboard.length === 0) {
         leaderboardEl.innerHTML = '<p class="text-center text-gray-500">Henüz kimse canavara saldırmadı.</p>';
     } else {
-        for (const [username, data] of sortedLeaderboard) {
-            const userSnap = await db.ref(`users/${username}`).once('value');
+        const userPromises = sortedLeaderboard.map(([username]) => db.ref(`users/${username}`).once('value'));
+        const userSnapshots = await Promise.all(userPromises);
+        
+        let leaderboardHtml = ''; 
+        
+        sortedLeaderboard.forEach(([username, data], index) => {
+            const userSnap = userSnapshots[index];
             const userData = userSnap.val();
-            if (!userData) continue;
+            if (!userData) return;
 
             const avatarUrl = data.lockedAvatarUrl || userData.selectedAvatar?.url || defaultAvatarUrl;
             const sanitizedId = sanitizeFirebaseKey(avatarUrl);
@@ -12974,9 +12982,9 @@ async function renderMonsterBattleUI() {
             const userCurrentHP = data.currentHP < 0 ? 0 : data.currentHP;
             const userHealthPercent = (userCurrentHP / userMaxHP) * 100;
 
-            const itemHtml = `
+            leaderboardHtml += `
                 <div class="leaderboard-item" onclick="openPublicUserDetailModal('${username}')">
-                    <span class="rank">${leaderboardEl.children.length + 1}.</span>
+                    <span class="rank">${index + 1}.</span>
                     <img src="${avatarUrl}" class="avatar" onclick="event.stopPropagation(); openAvatarStatsModal('${username}')">
                     <div class="flex-grow">
                         <p class="font-bold text-white">${username}</p>
@@ -12989,8 +12997,9 @@ async function renderMonsterBattleUI() {
                     <p class="text-yellow-400 font-bold">${formatNumber(data.totalDamage)} Hasar</p>
                 </div>
             `;
-            leaderboardEl.innerHTML += itemHtml;
-        }
+        });
+        
+        leaderboardEl.innerHTML = leaderboardHtml; 
     }
 
     const playerSnap = await db.ref(`users/${currentUser}`).once('value');
