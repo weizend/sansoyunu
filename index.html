@@ -6504,7 +6504,7 @@ function getActivityIcon(type, details = {}) {
     `;
 }
       
-// ESKİ DOSYADAKİ (index (2).html) DOĞRU ÇALIŞAN FONKSİYON
+// MEVCUT renderActivityFeed FONKSİYONUNU SİLİP BUNU YAPIŞTIR
 function renderActivityFeed(activities) {
     const activityFeedList = document.getElementById('activityFeedList');
     activityFeedList.innerHTML = '';
@@ -6542,79 +6542,82 @@ function renderActivityFeed(activities) {
             const userHtml = `<b class="text-yellow-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${activity.username}')">${activity.username}</b>`;
 
             switch (activity.type) {
+                // ★★★ İSTEDİĞİN GÜNCELLEME BURADA BAŞLIYOR ★★★
+                case 'buyItem':
+                    const isKP = (details.itemCost || '').toString().includes('KP');
+                    const costText = isKP ? details.itemCost : `${formatNumber(details.itemCost)} Puan`;
+                    const balance = isKP ? details.newKasaBalance : details.newBalance;
+                    const balanceUnit = isKP ? 'KP' : 'Puanı';
+                    const isPotion = details.itemType && details.itemType.endsWith('_potion');
+
+                    if (isPotion) {
+                        const isPercent = percentPotions.includes(details.itemType);
+                        let effectText = '';
+                        if (isPercent) {
+                            effectText = ` (%${(details.itemEffectValue || 0).toFixed(1)})`;
+                        } else {
+                            effectText = ` (+${formatNumber(details.itemEffectValue || 0)})`;
+                        }
+                        message = `${userHtml}, mağazadan <b class="text-red-500">-${costText}</b> harcayarak <b class="text-green-400">${details.itemValue} adet ${details.itemName}${effectText}</b> aldı. (Mevcut ${balanceUnit}: ${formatNumber(balance)})`;
+                    } else if (details.itemValue) {
+                         message = `${userHtml}, mağazadan <b class="text-red-500">-${costText}</b> harcayarak <b class="text-green-400">+${details.itemValue} ${details.itemName}</b> aldı. (Mevcut ${balanceUnit}: ${formatNumber(balance)})`;
+                    } else {
+                        message = `${userHtml}, mağazadan <b class="text-red-500">-${costText}</b> harcayarak <b class="text-green-400">${details.itemName}</b> aldı. (Mevcut ${balanceUnit}: ${formatNumber(balance)})`;
+                    }
+                    break;
+                // ★★★ GÜNCELLEME BURADA BİTİYOR ★★★
+
+                case 'surpriseBox':
+                    let surpriseMultiplierText = '';
+                    if (details.boxId !== 'Çark') {
+                        surpriseMultiplierText = (details.multiplier && details.multiplier > 1) ? ` <span class="text-xs text-purple-400">(${details.multiplier}x çarpan kullandı)</span>` : ` <span class="text-xs text-gray-400">(çarpan kullanmadı)</span>`;
+                    }
+                    const source = details.boxId === 'Çark' ? 'Şans Çarkı\'ndan' : `<b>${details.boxId}</b> numaralı kutudan`;
+                    message = `${userHtml}, ${source} Sürpriz Kutu buldu ve <span class="text-green-300 font-bold">+${details.points} Puan</span> kazandı!${surpriseMultiplierText} <span class="text-gray-400">(Mevcut Puan: ${details.newBalance})</span>`;
+                    break;
+                
+                // Diğer caseler aynı kalacak...
                 case 'monsterAttack':
                     const monsterNameHtml = `<b class="text-red-300 cursor-pointer hover:underline" onclick="openMonsterInfoModal()">${details.monsterName}</b>`;
                     let attackSummary = `${userHtml}, ${monsterNameHtml}'a saldırdı. `;
-                    
-                    if (details.didMonsterDodge) {
-                        attackSummary += `Canavar <b class="text-cyan-400">sıyrıldı!</b>`;
-                    } else if (details.playerAttackType === 'pierce') {
-                        attackSummary += `📌 <b class="text-purple-400">Delici Vuruş</b> ile <b class="text-green-300">${details.damageDealt} hasar</b> verdi. `;
-                    } else if (details.playerAttackType === 'crit') {
-                        attackSummary += `💥 <b class="text-green-300">Kritik Vuruş</b> ile <b class="text-green-300">${details.damageDealt} hasar</b> verdi. `;
-                    } else {
-                        attackSummary += `<b class="text-green-300">${details.damageDealt} hasar</b> verdi. `;
-                    }
-                    
-                    if (details.didPlayerDodge) {
-                        attackSummary += `Canavarın saldırısından <b class="text-cyan-400">sıyrıldı!</b>`;
-                    } else {
+                    if (details.didMonsterDodge) { attackSummary += `Canavar <b class="text-cyan-400">sıyrıldı!</b>`; } 
+                    else if (details.playerAttackType === 'pierce') { attackSummary += `📌 <b class="text-purple-400">Delici Vuruş</b> ile <b class="text-green-300">${details.damageDealt} hasar</b> verdi. `; } 
+                    else if (details.playerAttackType === 'crit') { attackSummary += `💥 <b class="text-green-300">Kritik Vuruş</b> ile <b class="text-green-300">${details.damageDealt} hasar</b> verdi. `; } 
+                    else { attackSummary += `<b class="text-green-300">${details.damageDealt} hasar</b> verdi. `; }
+                    if (details.didPlayerDodge) { attackSummary += `Canavarın saldırısından <b class="text-cyan-400">sıyrıldı!</b>`; } 
+                    else {
                         let monsterAttackText = 'saldırısıyla';
-                        if (details.monsterAttackType === 'crit') {
-                            monsterAttackText = `💥 <b class="text-red-600">kritik saldırısıyla</b>`;
-                        } else if (details.monsterAttackType === 'pierce') {
-                            monsterAttackText = `📌 <b class="text-purple-500">delici saldırısıyla</b>`;
-                        }
+                        if (details.monsterAttackType === 'crit') { monsterAttackText = `💥 <b class="text-red-600">kritik saldırısıyla</b>`; } 
+                        else if (details.monsterAttackType === 'pierce') { monsterAttackText = `📌 <b class="text-purple-500">delici saldırısıyla</b>`; }
                         attackSummary += ` Canavarın ${monsterAttackText} <b class="text-red-400">${details.damageTaken} hasar</b> aldı.`;
                     }
-
-                    attackSummary += `<div class="text-xs mt-1 text-gray-400">
-                        Canavar Canı: ${formatNumber(details.monsterRemainingHP)}/${formatNumber(details.monsterMaxHP)} | 
-                        ${activity.username} Canı: ${formatNumber(details.playerRemainingHP)}/${formatNumber(details.playerMaxHP)} | 
-                        Toplam Hasar: ${formatNumber(details.playerTotalDamage)}
-                    </div>`;
-                    
-                    if (details.rewardWon) {
-                        attackSummary += ` Ek olarak <b class="text-yellow-300">${details.rewardWon}</b> kazandı.`;
-                    }
-
+                    attackSummary += `<div class="text-xs mt-1 text-gray-400">Canavar Canı: ${formatNumber(details.monsterRemainingHP)}/${formatNumber(details.monsterMaxHP)} | ${activity.username} Canı: ${formatNumber(details.playerRemainingHP)}/${formatNumber(details.playerMaxHP)} | Toplam Hasar: ${formatNumber(details.playerTotalDamage)}</div>`;
+                    if (details.rewardWon) { attackSummary += ` Ek olarak <b class="text-yellow-300">${details.rewardWon}</b> kazandı.`; }
                     if (details.playerDied) attackSummary += ` <b class="text-black bg-red-500 px-1 rounded">MAĞLUP OLDU!</b>`;
-
                     message = attackSummary;
                     break;
-
                 case 'monsterDefeated':
                     const winnerHtml = `<b class="text-yellow-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${details.winner}')">${details.winner}</b>`;
                     const defeatedMonsterNameHtml = `<b class="text-red-400 cursor-pointer hover:underline" onclick="openMonsterInfoModal()">${details.monsterName}</b>`;
                     message = `${defeatedMonsterNameHtml} mağlup edildi! En çok hasarı veren ${winnerHtml} (<b class="text-white">${formatNumber(details.totalDamage)} Hasar</b>), <b class="text-green-300">${details.prize}</b> ödülünü kazandı.`;
                     break;
-                
                 case 'collectionCompleted':
-                    if (details.isFirst) {
-                        message = `${userHtml}, koleksiyonu tamamlayan <b class="text-amber-400">İLK KİŞİ</b> oldu ve büyük ödülü kazandı!`;
-                    } else {
-                        message = `${userHtml}, koleksiyonu tamamlayan <b class="text-amber-400">${details.rank}. KİŞİ</b> oldu. Tebrikler!`;
-                    }
+                    if (details.isFirst) { message = `${userHtml}, koleksiyonu tamamlayan <b class="text-amber-400">İLK KİŞİ</b> oldu ve büyük ödülü kazandı!`; } 
+                    else { message = `${userHtml}, koleksiyonu tamamlayan <b class="text-amber-400">${details.rank}. KİŞİ</b> oldu. Tebrikler!`; }
                     break;
-
                 case 'useRegenPotion':
                      message = `${userHtml}, <b class="text-cyan-300">%${details.percentage} Can Yenileme İksiri</b> kullanarak <b class="text-green-300">${details.healed} can</b> yeniledi. <span class="text-gray-400">(Can: ${formatNumber(details.newHP)}/${formatNumber(details.playerMaxHP)})</span>`;
                      break;
-
                 case 'wildcardConvertedToBoxRights':
                     message = `${userHtml}, 1 Joker Kart'ı <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b>'na dönüştürdü.`;
                     break;
-                
                 case 'clickCatchSolo':
                     const { baseScore, finalScore, ticketsUsed, specialItems, newWeeklyScore } = details;
                     message = `${userHtml}, Tıkla-Yakala oyununda <b class="text-white">${ticketsUsed} bilet</b> kullandı ve <span class="text-green-300 font-bold">${finalScore} Skor</span> topladı. <small class="text-gray-400">(Skor: ${baseScore} x ${ticketsUsed} Bilet)</small>`;
-
                     if (specialItems && specialItems.length > 0) {
                         const itemsText = specialItems.map(item => `<b class="text-cyan-300">+${item.amount} ${item.name}</b>`).join(', ');
                         message += ` - (Ayrıca, ${itemsText}) kazandı.`;
-                    } else {
-                        message += ' - (Özel eşya yakalanmadı)';
-                    }
+                    } else { message += ' - (Özel eşya yakalanmadı)'; }
                     const weeklyScoreText = (newWeeklyScore !== undefined) ? ` <span class="text-gray-400">(Haftalık Skor: ${newWeeklyScore})</span>` : '';
                     message += weeklyScoreText;
                     break;
@@ -6637,17 +6640,10 @@ function renderActivityFeed(activities) {
                     let newItemMultiplierText = (details.multiplier && details.multiplier > 1) ? ` <span class="text-xs text-purple-400">(${details.multiplier}x çarpan kullandı)</span>` : ` <span class="text-xs text-gray-400">(çarpan kullanmadı)</span>`;
                     let displayItemName = details.itemType ? typeToName[details.itemType] : details.itemName;
                     let displayItemAmount = details.itemName ? details.itemName.split(' ')[0] : '+1'; 
-                    
                     let valuePrefixNewItem = '+';
-                    if (percentPotions.includes(details.itemType)) {
-                        valuePrefixNewItem = '+%';
-                    } else if (details.itemType === 'health_regen_potion') {
-                        valuePrefixNewItem = '%';
-                    }
-                    if (details.itemValue) {
-                        displayItemAmount = `${valuePrefixNewItem}${details.itemValue}`;
-                    }
-
+                    if (percentPotions.includes(details.itemType)) { valuePrefixNewItem = '+%'; } 
+                    else if (details.itemType === 'health_regen_potion') { valuePrefixNewItem = '%'; }
+                    if (details.itemValue) { displayItemAmount = `${valuePrefixNewItem}${details.itemValue}`; }
                     message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-cyan-300 font-bold">${displayItemAmount} ${displayItemName}</span> buldu.${newItemMultiplierText}`;
                     break;
                 case 'multiplierStackedFromStore':
@@ -6660,10 +6656,9 @@ function renderActivityFeed(activities) {
                 case 'multiplierStacked':
                     message = `${userHtml}, <b>${details.boxId} numaralı kutudan</b> mevcut <b>${details.value}x</b> çarpanıyla aynı değerde bir çarpan daha buldu. Kullanım hakkı <b class="text-teal-300 font-bold">+1</b> artırıldı.`;
                     break;
-                case 'multiplierUpgraded':
                 case 'multiplierUpgradedFromStore':
                     const upgradeSource = details.source || 'Mağazadan';
-                    message = `${userHtml}, ${upgradeSource} aldığı <b>${details.newValue}x (${details.newUses} kullanım)</b> çarpan ile mevcut <b>${details.oldValue}x (${details.oldUses} kullanım)</b> çarpanını yükseltti. Eski çarpanı için <b class="text-green-300 font-bold">+${details.boxRights} Kutu Hakkı</b> iade edildi.`;
+                    message = `${userHtml}, ${upgradeSource} aldığı <b>${details.newValue}x (${details.newUses} kullanım)</b> çarpan ile mevcut çarpanını yükseltti. Eski <b>${details.oldValue}x (${details.oldUses} kullanım)</b> çarpanı için <b class="text-green-300 font-bold">+${details.boxRights} Kutu Hakkı</b> iade edildi.`;
                     break;
                 case 'wildcardConverted':
                     message = `${userHtml}, Koleksiyonu tamamladığı için ${details.source}'dan aldığı ${details.wildcards} Joker Kart'ı <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b>'na dönüştürdü.`;
@@ -6680,11 +6675,8 @@ function renderActivityFeed(activities) {
                 case 'multiplierConvertedToBoxRights':
                 case 'multiplierConvertedOnUsedOpen':
                 case 'multiplierConvertedOnUnusedOpen':
-                case 'dailyRewardMultiplierConverted':
                     let conversionSourceText = details.source ? `${details.source}'dan` : 'bir yerden';
-                    if (activity.type.includes('OnUsedOpen') || activity.type.includes('OnUnusedOpen')) {
-                        conversionSourceText = `kutudan`;
-                    }
+                    if (activity.type.includes('OnUsedOpen') || activity.type.includes('OnUnusedOpen')) { conversionSourceText = `kutudan`; }
                     const keptMultiplierText = details.keptMultiplierValue ? ` mevcut <b>${details.keptMultiplierValue}x</b> çarpanını koruyarak` : '';
                     message = `${userHtml}, ${conversionSourceText} kazandığı <b>${details.rewardValue || details.foundValue}x</b> çarpanı,${keptMultiplierText} <span class="text-lime-300 font-bold">+${details.boxRights} Kutu Hakkı</span>'na dönüştürüldü.`;
                     break;
@@ -6699,20 +6691,8 @@ function renderActivityFeed(activities) {
                 case 'kasaTransfer':
                     message = `${userHtml}, Kasa'sına <b class="text-purple-300 font-bold">${details.amount} Puan</b> aktardı. <span class="text-gray-400">(Yeni Kasa Puanı: ${details.newKasaBalance})</span>`;
                     break;
-                case 'surpriseBox':
-                    let surpriseMultiplierText = (details.multiplier && details.multiplier > 1) ? ` <span class="text-xs text-purple-400">(${details.multiplier}x çarpan kullandı)</span>` : ` <span class="text-xs text-gray-400">(çarpan kullanmadı)</span>`;
-                    const source = details.boxId === 'Çark' ? 'Şans Çarkı\'ndan' : `<b>${details.boxId}</b> numaralı kutudan`;
-                    message = `${userHtml}, ${source} Sürpriz Kutu buldu ve <span class="text-green-300 font-bold">+${details.points} Puan</span> kazandı!${surpriseMultiplierText} <span class="text-gray-400">(Mevcut Puan: ${details.newBalance})</span>`;
-                    break;
                 case 'multiplierFound':
                     message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-purple-300 font-bold">${details.value}x Çarpan</span> buldu.`;
-                    break;
-                case 'buyItem':
-                    const isKP = details.itemCost.toString().includes('KP');
-                    const costText = isKP ? details.itemCost : `${formatNumber(details.itemCost)} Puan`;
-                    const balance = isKP ? details.newKasaBalance : details.newBalance;
-                    const balanceUnit = isKP ? 'KP' : 'Puanı';
-                    message = `${userHtml}, mağazadan <b class="text-red-500">-${costText}</b> harcayarak <b class="text-green-400">${details.itemName}</b> aldı. (Mevcut ${balanceUnit}: ${formatNumber(balance)})`;
                     break;
                 case 'lobbyJoined':
                     message = `${userHtml}, Tıkla-Yakala lobisine <span class="text-red-400 font-bold">-${details.cost} Puan</span> karşılığında katıldı. <span class="text-gray-400">(Kalan Puan: ${details.newBalance})</span>`;
@@ -7458,7 +7438,8 @@ function listenForSurpriseBox() {
     sessionRef.on('value', callback);
 }
       
-// Sürpriz Kutu bilgilendirme penceresini GÖSTEREN fonksiyon
+// MEVCUT showGlobalSurpriseBoxNotification FONKSİYONUNU BU BLOK İLE DEĞİŞTİRİN
+
 function showGlobalSurpriseBoxNotification(data) {
     document.getElementById('surpriseOpener').textContent = data.user;
     
@@ -7471,7 +7452,10 @@ function showGlobalSurpriseBoxNotification(data) {
 
     document.getElementById('surprisePoints').textContent = data.result.points;
     
-    let multiplierText = '';
+    // ★★★ İSTEDİĞİN GÜNCELLEME BURADA ★★★
+    let multiplierText = ''; // Varsayılan olarak metni boş yapıyoruz.
+    
+    // Sadece kutudan geldiyse çarpan metnini göster
     if (data.boxId !== 'Çark') {
         if (data.multiplier && data.multiplier > 1) {
             const basePoints = Math.round(data.result.points / data.multiplier);
@@ -7480,8 +7464,10 @@ function showGlobalSurpriseBoxNotification(data) {
             multiplierText = 'kazandı! (Çarpan kullanılmadı)';
         }
     } else {
+        // Çarktan geldiyse sadece "kazandı!" yazsın.
         multiplierText = 'kazandı!';
     }
+    // ★★★ GÜNCELLEME SONU ★★★
 
     document.getElementById('surpriseMultiplierInfo').innerHTML = multiplierText;
 
@@ -9953,42 +9939,6 @@ function updateSpectatorView(sessionData) {
     }
 }
 
-
-// MEVCUT showGlobalSurpriseBoxNotification FONKSİYONUNU BU BLOK İLE DEĞİŞTİRİN
-
-function showGlobalSurpriseBoxNotification(data) {
-    document.getElementById('surpriseOpener').textContent = data.user;
-    
-    const sourceInfoEl = document.getElementById('surpriseSourceInfo');
-    if (data.boxId === 'Çark') {
-        sourceInfoEl.innerHTML = `<b>Şans Çarkı</b>'ndan Sürpriz Kutu elde etti ve kart seçiminden`;
-    } else {
-        sourceInfoEl.innerHTML = `<span class="text-red-400 font-bold">${data.boxId}</span> numaralı kutuyu açtı ve kart seçiminden`;
-    }
-
-    document.getElementById('surprisePoints').textContent = data.result.points;
-    
-    // *** İSTEĞİNİZE GÖRE DÜZENLENEN KISIM BAŞLANGICI ***
-    let multiplierText = ''; // Varsayılan olarak metni boş yapıyoruz.
-    // Sadece kutudan geldiyse çarpan metnini göster
-    if (data.boxId !== 'Çark') {
-        if (data.multiplier && data.multiplier > 1) {
-            const basePoints = Math.round(data.result.points / data.multiplier);
-            multiplierText = `kazandı! <br><span class="text-base text-gray-400">(${basePoints} Puan x ${data.multiplier} Çarpan)</span>`;
-        } else {
-            multiplierText = 'kazandı! (Çarpan kullanılmadı)';
-        }
-    } else {
-        // Çarktan geldiyse sadece "kazandı!" yazsın.
-        multiplierText = 'kazandı!';
-    }
-    // *** DÜZENLENEN KISIM SONU ***
-
-    document.getElementById('surpriseMultiplierInfo').innerHTML = multiplierText;
-
-    document.getElementById('globalSurpriseBoxModal').style.display = 'flex';
-}
-
 // MEVCUT closeSpectatorModal FONKSİYONUNU BU BLOK İLE DEĞİŞTİRİN
 
 function closeSpectatorModal() {
@@ -11875,7 +11825,7 @@ const ref = db.ref('activityFeed').orderByChild('timestamp').limitToLast(20);
     ref.on('value', callback);
 }
 
-// ★★★ BU FONKSİYONU KOMPLE DEĞİŞTİR ★★★
+// MEVCUT logActivity FONKSİYONUNU SİLİP BUNU YAPIŞTIR
 function logActivity(type, username, details = {}, activityId = null) {
     // WeizendTv'nin kendi eylemlerini loglama (örneğin lobi iptali)
     if (username.toLowerCase() === 'weizendtv') {
@@ -11888,9 +11838,6 @@ function logActivity(type, username, details = {}, activityId = null) {
         timestamp: firebase.database.ServerValue.TIMESTAMP
     };
 
-    // --- DÜZELTME BURADA ---
-    // Eğer dışarıdan bir activityId geldiyse (takas oluşturma gibi), o ID ile kayıt oluştur.
-    // Gelmediyse, eskisi gibi yeni bir ID oluştur.
     const activityRef = activityId
         ? db.ref(`activityFeed/${activityId}`)
         : db.ref('activityFeed').push();
@@ -12593,13 +12540,18 @@ async function buyItem(itemId) {
             const currentPotions = user.inventory?.health_regen_potion?.[item.value] || 0;
             updates[`inventory/health_regen_potion/${item.value}`] = currentPotions + 1;
             await userRef.update(updates);
+            
+            // ★★★ DEĞİŞİKLİK BURADA BAŞLIYOR ★★★
             logActivity('buyItem', currentUser, {
-                itemName: `1 adet %${item.value} Can Yenileme İksiri`,
+                itemName: item.name, // Sadece 'Can Yenileme İksiri'
                 itemCost: currentCost,
                 itemType: item.type,
-                itemValue: item.value,
+                itemValue: 1, // Adet
+                itemEffectValue: item.value, // Yüzde değeri
                 newBalance: newBalance
             });
+            // ★★★ DEĞİŞİKLİK BURADA BİTİYOR ★★★
+
         } else {
             const capCheck = checkPotionCap(user, item.type, item.value);
             if (!capCheck.canAdd) {
@@ -12647,17 +12599,16 @@ async function buyItem(itemId) {
             };
             await userRef.update(updates);
             
-            // ★★★ DÜZELTİLEN KISIM ★★★
-            // Artık log kaydını oluştururken önceden tanımladığımız valuePrefix'i kullanıyoruz.
-            const logItemName = `${valuePrefix}${valueToAdd.toFixed(1)} ${item.name}`;
+            // ★★★ DEĞİŞİKLİK BURADA BAŞLIYOR ★★★
             logActivity('buyItem', currentUser, {
-                itemName: logItemName,
+                itemName: item.name, // Sadece 'Hasar İksiri'
                 itemCost: currentCost,
                 itemType: item.type,
-                itemValue: valueToAdd,
+                itemValue: 1, // Adet
+                itemEffectValue: valueToAdd, // Etki değeri (+50 gibi)
                 newBalance: newBalance
             });
-            // ★★★ DÜZELTME SONU ★★★
+            // ★★★ DEĞİŞİKLİK BURADA BİTİYOR ★★★
         }
         await itemRef.transaction(currentItem => {
             if (currentItem) {
@@ -12669,7 +12620,7 @@ async function buyItem(itemId) {
         if (currentActiveSection === 'monsterBattle') { renderMonsterBattleUI(); }
         return;
     }
-    // ...fonksiyonun geri kalanı aynı...
+    
     if (item.type === 'special') {
         const kasaPuani = user.kasaPuani || 0;
         if (kasaPuani < item.cost) {
@@ -12743,8 +12694,16 @@ async function buyItem(itemId) {
             startCardPackOpening(itemValue || 1, 'Mağaza', 1, item.type);
             return;
         }
+        
+        logActivity('buyItem', currentUser, { 
+            itemName: item.name, 
+            itemCost: item.cost, 
+            itemType: item.type, 
+            itemValue: item.value || null, 
+            itemDuration: item.duration || null, 
+            newBalance: user.balance - item.cost 
+        });
 
-        logActivity('buyItem', currentUser, { itemName: item.name, itemCost: item.cost, itemType: item.type, itemValue: item.value || null, itemDuration: item.duration || null, newBalance: user.balance - item.cost });
         let updates = { balance: user.balance - item.cost, totalSpentPoints: (user.totalSpentPoints || 0) + item.cost, storePurchasesCount: (user.storePurchasesCount || 0) + 1 };
         let message = 'Satın alma başarılı!';
         const itemDuration = parseInt(item.duration) || 0;
