@@ -7816,7 +7816,7 @@ function displayMessageWithRedirect(message, buttonText = "Mağazaya Git", onRed
     }, 100); // Render işleminin bitmesi için küçük bir gecikme
 }
   
-  // DEĞİŞTİRİLECEK FONKSİYON
+  // DÜZELTİLMİŞ FONKSİYON
 async function reorderStoreItem(itemId, newIndex) {
     if (!isAdmin) return;
     const itemsRef = db.ref('storeItems');
@@ -7824,30 +7824,33 @@ async function reorderStoreItem(itemId, newIndex) {
     const items = itemsSnap.val();
     if (!items) return;
 
-    const itemType = items[itemId].type;
+    // 1. Tüm ürünleri al ve mevcut 'order' değerine göre sırala.
+    let sortedItems = Object.entries(items).sort(([, a], [, b]) => (a.order || 0) - (b.order || 0));
+    
+    // 2. Taşımak istediğimiz ürünün listedeki mevcut sırasını bul.
+    const currentIndex = sortedItems.findIndex(([id]) => id === itemId);
+    if (currentIndex === -1) return; // Ürün bulunamazsa işlemi durdur.
 
-    let allItemsArray = Object.entries(items);
-    let gameItems = allItemsArray.filter(([, item]) => item.type !== 'special').sort(([, a], [, b]) => (a.order || 0) - (b.order || 0));
-    let specialItems = allItemsArray.filter(([, item]) => item.type === 'special').sort(([, a], [, b]) => (a.order || 0) - (b.order || 0));
+    // 3. Yeni sıranın geçerli olup olmadığını kontrol et.
+    if (newIndex < 0 || newIndex >= sortedItems.length) return;
 
-    let listToModify = (itemType === 'special') ? specialItems : gameItems;
+    // 4. Ürünü mevcut konumundan kaldır...
+    const [movedItem] = sortedItems.splice(currentIndex, 1);
+    
+    // 5. ...ve yeni konumuna ekle.
+    sortedItems.splice(newIndex, 0, movedItem);
 
-    const itemToMoveIndex = listToModify.findIndex(([id]) => id === itemId);
-    if (itemToMoveIndex === -1) return;
-
-    if (newIndex < 0 || newIndex >= listToModify.length) return;
-
-    const [movedItem] = listToModify.splice(itemToMoveIndex, 1);
-    listToModify.splice(newIndex, 0, movedItem);
-
-    const finalCombinedList = [...gameItems, ...specialItems];
-
+    // 6. Tüm ürünlerin yeni sıralamasını Firebase'e kaydetmek için bir güncelleme objesi oluştur.
     const updates = {};
-    finalCombinedList.forEach(([id], index) => {
+    sortedItems.forEach(([id], index) => {
+        // Her ürünün 'order' özelliğini, dizideki yeni sırasına göre güncelle.
         updates[`storeItems/${id}/order`] = index;
     });
 
+    // 7. Tüm güncellemeleri tek seferde Firebase'e gönder.
     await db.ref().update(updates);
+    
+    // Not: Arayüz, veritabanı dinleyicisi sayesinde otomatik olarak güncellenecektir.
 }
 
 // YENİ YARDIMCI FONKSİYON: Admin panelinde seçilen ürün türüne göre inputları ayarlar.
