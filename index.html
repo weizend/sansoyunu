@@ -10752,15 +10752,22 @@ function listenForLobbyChanges() {
 
         startSoloGameBtn.disabled = false;
 
+        // --- DEĞİŞİKLİK 1: KAZANAN EKRANININ KAYBOLMASINI ENGELLEYEN KONTROL ---
         if (!lobbyData || !lobbyData.state) {
+            // Eğer oyun bitti ekranı zaten görünür durumdaysa, arayüzü sıfırlama.
+            // Bu, 5 saniyelik temizlik sürecinin ekranı kapatmasını engeller.
+            const isGameOverVisible = !lobbyGameOverScreen.classList.contains('hidden');
+            if (isGameOverVisible) {
+                return; // Ekranı açık bırak ve fonksiyondan çık
+            }
+            
+            // Eğer oyun bitti ekranı görünür değilse, normal sıfırlama işlemini yap.
             lobbyGameSettings = {};
             hasShownLobbyNotification = false; 
             closeLobbyNotificationModal(); 
             lobbyStatusContainer.classList.add('hidden');
-            lobbyGameOverScreen.classList.add('hidden');
             startScreen.style.display = 'flex';
             
-            // Oyun bitince veya iptal olunca arayüzdeki zamanlayıcıları temizle
             if (clickCatchItemInterval) {
                 clearInterval(clickCatchItemInterval);
                 clickCatchItemInterval = null;
@@ -10776,10 +10783,10 @@ function listenForLobbyChanges() {
             document.getElementById('displayTarget').classList.add('hidden');
             return;
         }
+        // --- DEĞİŞİKLİK 1 SONU ---
 
         lobbyGameSettings = lobbyData;
         lobbyStatusContainer.classList.remove('hidden');
-        lobbyGameOverScreen.classList.add('hidden');
 
         const useTickets = lobbyData.entryTickets > 0;
         const entryRequirement = useTickets ? `${lobbyData.entryTickets} Bilet` : `${lobbyData.entryFee} Puan`;
@@ -10795,9 +10802,16 @@ function listenForLobbyChanges() {
         if (hasPlayers) {
             const sortedPlayers = Object.entries(players).sort(([, a], [, b]) => b.score - a.score);
             playerListEl.innerHTML = `Katılımcılar: <br>`;
+            
+            // --- DEĞİŞİKLİK 2: KULLANICI ADLARI TIKLANABİLİR YAPILDI ---
             sortedPlayers.forEach(([username, playerData]) => {
-                playerListEl.innerHTML += `<b>${username}:</b> ${playerData.score} / ${lobbyData.target}<br>`;
+                playerListEl.innerHTML += `
+                    <b class="text-white cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${username}')">${username}</b>: 
+                    ${playerData.score} / ${lobbyData.target}<br>
+                `;
             });
+            // --- DEĞİŞİKLİK 2 SONU ---
+
         } else {
             playerListEl.textContent = `Henüz katılan yok.`;
         }
@@ -10848,18 +10862,13 @@ function listenForLobbyChanges() {
                 showSection('clickCatch');
             }
             
-            // ================== PERFORMANS DÜZELTMESİ BURADA ==================
-            // Bu blok artık sadece lobiye katılan oyuncularda çalışacak.
             if (isCurrentUserInLobby) {
                 if (!clickCatchItemInterval) {
                    showGameCountdown(() => {
-                       // Hedef oluşturma döngüsü sadece katılımcı için başlar.
                        clickCatchItemInterval = setInterval(() => createCatchItem('lobby'), lobbyData.itemInterval);
                    });
                 }
             }
-            // =================================================================
-
         } else if (lobbyData.state === 'finished') {
             lobbyStatusContainer.classList.add('hidden');
             lobbyGameOverScreen.classList.remove('hidden');
@@ -13466,10 +13475,8 @@ function closeWheelLegendModal() {
     const callback = snap => {
         const summaryData = snap.val();
 
-        // EĞER VERİ VARSA VE KAZANAN BELLİ İSE BİLGİLERİ GÖSTER
         if (summaryData && summaryData.winner) {
             
-            // 1. Oyun Süresini Hesapla
             let durationText = '';
             if (summaryData.startTimestamp && summaryData.endTimestamp) {
                 const durationMs = summaryData.endTimestamp - summaryData.startTimestamp;
@@ -13479,7 +13486,6 @@ function closeWheelLegendModal() {
                 durationText = ` (Süre: ${minutes}dk ${remainingSeconds}sn)`;
             }
 
-            // 2. Ana Başlığı Güncelle (Admin için silme butonuyla birlikte)
             let deleteButton = '';
             if (isAdmin) {
                 deleteButton = `
@@ -13488,9 +13494,9 @@ function closeWheelLegendModal() {
                     </button>
                 `;
             }
-            titleEl.innerHTML = `🏆 Son Lobi Galibi: <b class="text-white">${summaryData.winner}</b> (+${summaryData.prize} Puan)${durationText}${deleteButton}`;
+            // --- DEĞİŞİKLİK 1: KAZANANIN ADI TIKLANABİLİR YAPILDI ---
+            titleEl.innerHTML = `🏆 Son Lobi Galibi: <b class="text-white cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${summaryData.winner}')">${summaryData.winner}</b> (+${summaryData.prize} Puan)${durationText}${deleteButton}`;
 
-            // 3. Oyuncu Listesini Oluştur ve Sırala
             const players = summaryData.players || {};
             const sortedPlayers = Object.entries(players).sort(([, a], [, b]) => b.score - a.score);
             
@@ -13500,24 +13506,26 @@ function closeWheelLegendModal() {
                 const rowClass = isWinner ? 'bg-green-800/50 border-green-500' : 'bg-gray-800/50 border-gray-700';
                 const rankIcon = index === 0 ? '🥇' : (index === 1 ? '🥈' : (index === 2 ? '🥉' : `${index + 1}.`));
                 
+                // --- DEĞİŞİKLİK 2: SIRALAMADAKİ TÜM İSİMLER TIKLANABİLİR YAPILDI ---
                 detailsHtml += `
                     <div class="flex justify-between items-center p-2 rounded border ${rowClass}">
-                        <span class="font-bold">${rankIcon} ${username}</span>
+                        <span class="font-bold">
+                            ${rankIcon} 
+                            <span class="cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${username}')">${username}</span>
+                        </span>
                         <span class="text-gray-300">Skor: <b class="text-white">${data.score} / ${summaryData.target}</b></span>
                     </div>
                 `;
             });
             
             detailsListEl.innerHTML = detailsHtml;
-            container.classList.remove('hidden'); // Paneli görünür yap
+            container.classList.remove('hidden');
 
         } else {
-            // SORUNU ÇÖZEN KISIM: EĞER VERİ SİLİNMİŞSE (NULL İSE) PANELİ GİZLE
             container.classList.add('hidden');
         }
     };
     
-    // Listener'ı tekrar tekrar eklememek için kontrol
     if (activeListeners.lobbySummary) {
         activeListeners.lobbySummary.ref.off('value', activeListeners.lobbySummary.callback);
     }
