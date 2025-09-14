@@ -6542,7 +6542,6 @@ function renderActivityFeed(activities) {
             const userHtml = `<b class="text-yellow-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${activity.username}')">${activity.username}</b>`;
 
             switch (activity.type) {
-                // ★★★ İSTEDİĞİN GÜNCELLEME BURADA BAŞLIYOR ★★★
                 case 'buyItem':
                     const isKP = (details.itemCost || '').toString().includes('KP');
                     const costText = isKP ? details.itemCost : `${formatNumber(details.itemCost)} Puan`;
@@ -6565,8 +6564,6 @@ function renderActivityFeed(activities) {
                         message = `${userHtml}, mağazadan <b class="text-red-500">-${costText}</b> harcayarak <b class="text-green-400">${details.itemName}</b> aldı. (Mevcut ${balanceUnit}: ${formatNumber(balance)})`;
                     }
                     break;
-                // ★★★ GÜNCELLEME BURADA BİTİYOR ★★★
-
                 case 'surpriseBox':
                     let surpriseMultiplierText = '';
                     if (details.boxId !== 'Çark') {
@@ -6575,8 +6572,6 @@ function renderActivityFeed(activities) {
                     const source = details.boxId === 'Çark' ? 'Şans Çarkı\'ndan' : `<b>${details.boxId}</b> numaralı kutudan`;
                     message = `${userHtml}, ${source} Sürpriz Kutu buldu ve <span class="text-green-300 font-bold">+${details.points} Puan</span> kazandı!${surpriseMultiplierText} <span class="text-gray-400">(Mevcut Puan: ${details.newBalance})</span>`;
                     break;
-                
-                // Diğer caseler aynı kalacak...
                 case 'monsterAttack':
                     const monsterNameHtml = `<b class="text-red-300 cursor-pointer hover:underline" onclick="openMonsterInfoModal()">${details.monsterName}</b>`;
                     let attackSummary = `${userHtml}, ${monsterNameHtml}'a saldırdı. `;
@@ -6646,6 +6641,37 @@ function renderActivityFeed(activities) {
                     if (details.itemValue) { displayItemAmount = `${valuePrefixNewItem}${details.itemValue}`; }
                     message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-cyan-300 font-bold">${displayItemAmount} ${displayItemName}</span> buldu.${newItemMultiplierText}`;
                     break;
+                
+                // --- İSTEĞİN ÜZERİNE GÜNCELLENEN BÖLÜM BAŞLANGICI ---
+                case 'multiplierUpgraded':
+                case 'multiplierUpgradedFromStore':
+                    const upgradeSource = details.source || 'Mağazadan';
+                    message = `${userHtml}, ${upgradeSource}'dan aldığı <b>${details.newValue}x (${details.newUses} kullanım)</b> çarpan ile mevcut çarpanını yükseltti. Eski <b>${details.oldValue}x (${details.oldUses} kullanım)</b> çarpanı için <b class="text-green-300 font-bold">+${details.boxRights} Kutu Hakkı</b> iade edildi.`;
+                    break;
+                case 'multiplierConvertedToBoxRights':
+                case 'multiplierConvertedOnUsedOpen':
+                case 'multiplierConvertedOnUnusedOpen':
+                case 'dailyRewardMultiplierConverted':
+                    let conversionSourceText;
+                    if (details.boxId) {
+                        conversionSourceText = `<b>${details.boxId} numaralı kutudan</b>`;
+                    } else if (details.source) {
+                        conversionSourceText = `${details.source}'dan`;
+                    } else {
+                        conversionSourceText = 'bir yerden';
+                    }
+
+                    let keptMultiplierText = '';
+                    const keptValue = details.keptMultiplierValue || details.existingValue;
+                    const keptUses = details.existingUses;
+                    if (keptValue && keptUses) {
+                        keptMultiplierText = ` Mevcut <b>${keptValue}x</b> (${keptUses} kullanım) çarpanı korundu.`;
+                    }
+
+                    message = `${userHtml}, ${conversionSourceText} kazandığı <b>${details.rewardValue || details.foundValue}x</b> çarpanı, <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b>'na dönüştürüldü.${keptMultiplierText}`;
+                    break;
+                // --- GÜNCELLENEN BÖLÜM SONU ---
+                
                 case 'multiplierStackedFromStore':
                      message = `${userHtml}, mağazadan aldığı çarpan ile mevcut <b>${details.multiplierValue}x</b> çarpanının kullanım hakkını <b class="text-teal-300 font-bold">+${details.usesAdded}</b> artırarak toplam <b class="text-teal-300 font-bold">${details.newTotalUses}</b> adete çıkardı.`;
                     break;
@@ -6655,10 +6681,6 @@ function renderActivityFeed(activities) {
                     break;
                 case 'multiplierStacked':
                     message = `${userHtml}, <b>${details.boxId} numaralı kutudan</b> mevcut <b>${details.value}x</b> çarpanıyla aynı değerde bir çarpan daha buldu. Kullanım hakkı <b class="text-teal-300 font-bold">+1</b> artırıldı.`;
-                    break;
-                case 'multiplierUpgradedFromStore':
-                    const upgradeSource = details.source || 'Mağazadan';
-                    message = `${userHtml}, ${upgradeSource} aldığı <b>${details.newValue}x (${details.newUses} kullanım)</b> çarpan ile mevcut çarpanını yükseltti. Eski <b>${details.oldValue}x (${details.oldUses} kullanım)</b> çarpanı için <b class="text-green-300 font-bold">+${details.boxRights} Kutu Hakkı</b> iade edildi.`;
                     break;
                 case 'wildcardConverted':
                     message = `${userHtml}, Koleksiyonu tamamladığı için ${details.source}'dan aldığı ${details.wildcards} Joker Kart'ı <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b>'na dönüştürdü.`;
@@ -6672,14 +6694,6 @@ function renderActivityFeed(activities) {
                  case 'multiplierSwappedOnUnusedOpen':
                      message = `${userHtml}, mevcut <b>${details.existingValue}x (${details.refundedUses} kullanım)</b> çarpanını, kutudan çıkan yeni <b>${details.foundValue}x (1 kullanım)</b> çarpanı ile takas etti. Eski çarpanı için <b class="text-green-300 font-bold">+${details.boxRights} Kutu Hakkı</b> iade edildi.`;
                      break;
-                case 'multiplierConvertedToBoxRights':
-                case 'multiplierConvertedOnUsedOpen':
-                case 'multiplierConvertedOnUnusedOpen':
-                    let conversionSourceText = details.source ? `${details.source}'dan` : 'bir yerden';
-                    if (activity.type.includes('OnUsedOpen') || activity.type.includes('OnUnusedOpen')) { conversionSourceText = `kutudan`; }
-                    const keptMultiplierText = details.keptMultiplierValue ? ` mevcut <b>${details.keptMultiplierValue}x</b> çarpanını koruyarak` : '';
-                    message = `${userHtml}, ${conversionSourceText} kazandığı <b>${details.rewardValue || details.foundValue}x</b> çarpanı,${keptMultiplierText} <span class="text-lime-300 font-bold">+${details.boxRights} Kutu Hakkı</span>'na dönüştürüldü.`;
-                    break;
                 case 'openBox':
                     let openBoxMultiplierText = (details.multiplier && details.multiplier > 1) ? ` <span class="text-xs text-purple-400">(${details.multiplier}x çarpan kullandı)</span>` : ` <span class="text-xs text-gray-400">(çarpan kullanmadı)</span>`;
                     message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-green-300 font-bold">+${details.points} Puan</span> kazandı.${openBoxMultiplierText} <span class="text-gray-400">(Mevcut Puan: ${details.newBalance})</span>`;
@@ -12644,7 +12658,7 @@ async function buyItem(itemId) {
                 currentItem.purchaseCount = (currentItem.purchaseCount || 0) + 1;
             } return currentItem;
         });
-        displayMessage(`Başarılı! '${item.name}' satın alındı ve bonusların eklendi.`);
+        displayMessage(`Başarılı! '${item.name}' satın alındı.`);
         if (currentActiveSection === 'monsterBattle') { renderMonsterBattleUI(); }
         return;
     }
@@ -12775,7 +12789,7 @@ function handleReviveClick(stoneCount) {
     if (stoneCount > 0) {
         useRevivalStone();
     } else {
-        displayMessage("Dirilmek için Dirilme Taşın yok! Mağazadan veya diğer etkinliklerden kazanabilirsin.");
+        displayMessage("Dirilmek için Dirilme Taşın yok! Canavar mağazasından veya diğer etkinliklerden kazanabilirsin.");
     }
 }
 
