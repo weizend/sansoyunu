@@ -7590,7 +7590,9 @@ function loadStoreItems() {
       }
   }
 
-  async function renderStoreItems(items, userData = {}) {
+  // MEVCUT renderStoreItems FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
+
+async function renderStoreItems(items, userData = {}) {
     const gameContainer = document.getElementById('gameStoreItemsContainer');
     const monsterContainer = document.getElementById('monsterStoreItemsContainer');
     const specialContainer = document.getElementById('specialStoreItemsContainer');
@@ -7620,7 +7622,8 @@ function loadStoreItems() {
 
     let gameItemsCount = 0, monsterItemsCount = 0, specialItemsCount = 0;
 
-    allItemsArray.forEach(([itemId, item]) => {
+    // ★★★ DEĞİŞİKLİK BURADA BAŞLIYOR: Döngüye "index" eklendi ★★★
+    allItemsArray.forEach(([itemId, item], index) => {
         const isSpecial = item.type === 'special';
         const isMonsterItem = monsterStoreItemTypes.includes(item.type);
         
@@ -7662,11 +7665,36 @@ function loadStoreItems() {
         const disabled = outOfStock || isExpired;
         const priceText = isSpecial ? `${formatNumber(currentCost)} KP` : `${formatNumber(currentCost)} Puan`;
 
+        // ★★★ YENİ EKLENEN KOD BAŞLANGICI: Admin kontrol butonları ★★★
+        let adminControlsHtml = '';
+        if (isAdmin) {
+            const upDisabled = index === 0 ? 'disabled' : '';
+            const downDisabled = index === allItemsArray.length - 1 ? 'disabled' : '';
+            adminControlsHtml = `
+              <div class="admin-controls absolute top-0 right-0 p-1 bg-gray-900 bg-opacity-70 rounded-bl-lg flex gap-1 z-10">
+                  <button onclick="reorderStoreItem('${itemId}', ${index - 1})" ${upDisabled} title="Yukarı Taşı" class="p-1 rounded-full hover:bg-gray-700 disabled:cursor-not-allowed">
+                      <svg class="w-5 h-5 fill-current text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z"/></svg>
+                  </button>
+                  <button onclick="editStoreItem('${itemId}')" title="Düzenle" class="p-1 rounded-full hover:bg-gray-700">
+                      <svg class="w-5 h-5 fill-current text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828zM5 12V7a1 1 0 011-1h2.586l-2 2H6v3h3v-1.586l2-2H13a1 1 0 011 1v5a1 1 0 01-1 1H6a1 1 0 01-1-1v-2z"/></svg>
+                  </button>
+                  <button onclick="deleteStoreItem('${itemId}')" title="Sil" class="p-1 rounded-full hover:bg-gray-700">
+                      <svg class="w-5 h-5 fill-current text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M6 2l2-2h4l2 2h4v2H2V2h4zM3 6h14l-1 14H4L3 6zm5 2v10h1V8H8zm3 0v10h1V8h-1z"/></svg>
+                  </button>
+                  <button onclick="reorderStoreItem('${itemId}', ${index + 1})" ${downDisabled} title="Aşağı Taşı" class="p-1 rounded-full hover:bg-gray-700 disabled:cursor-not-allowed">
+                      <svg class="w-5 h-5 fill-current text-white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
+                  </button>
+              </div>`;
+        }
+        // ★★★ YENİ EKLENEN KOD SONU ★★★
+
         const cardDiv = document.createElement('div');
-        // YÖNLENDİRME İÇİN ID EKLENDİ
         cardDiv.id = `store-item-${itemId}`; 
         cardDiv.className = `relative bg-gray-800 p-6 rounded-xl shadow-lg border-2 border-red-700 text-center flex flex-col justify-between transition-all`;
+        
+        // ★★★ DEĞİŞİKLİK BURADA: adminControlsHtml eklendi ★★★
         cardDiv.innerHTML = `
+            ${adminControlsHtml} 
             <div>
               <img src="${item.imageUrl || 'https://via.placeholder.com/150'}" alt="${item.name}" class="w-24 h-24 mx-auto mb-4 rounded-lg object-cover">
               <h4 class="text-yellow-400 text-xl font-bold">${item.name}</h4>
@@ -7695,7 +7723,7 @@ function loadStoreItems() {
 
     if (storeFilter) {
         goToStoreWithFilter(storeFilter.type, storeFilter.itemId);
-        storeFilter = null; // Filtreyi kullandıktan sonra sıfırla
+        storeFilter = null;
     }
 }
 
