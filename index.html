@@ -1797,6 +1797,7 @@ body.modal-open .modal-content {
           <div class="flex border-b border-gray-600 mb-6 max-w-xl mx-auto">
     <button id="gameStoreTabBtn" onclick="switchStoreTab('game')" class="flex-1 py-3 text-lg font-bold border-b-2 border-red-500 text-white transition-colors duration-300">Oyun Mağazası</button>
     <button id="monsterStoreTabBtn" onclick="switchStoreTab('monster')" class="flex-1 py-3 text-lg font-bold border-b-2 border-transparent text-gray-400 hover:text-white transition-colors duration-300">Canavar Mağazası</button>
+    <button id="avatarStoreTabBtn" onclick="switchStoreTab('avatar')" class="flex-1 py-3 text-lg font-bold border-b-2 border-transparent text-gray-400 hover:text-white transition-colors duration-300">Avatar Mağazası</button>
     <button id="specialStoreTabBtn" onclick="switchStoreTab('special')" class="flex-1 py-3 text-lg font-bold border-b-2 border-transparent text-gray-400 hover:text-white transition-colors duration-300">Özel Ürün Mağazası</button>
 </div>
           
@@ -1842,12 +1843,14 @@ body.modal-open .modal-content {
           
           <div id="gameStoreItemsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-4">
 </div>
-        
-          <div id="monsterStoreItemsContainer" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-4">
+
+<div id="avatarStoreItemsContainer" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-4">
 </div>
-            <div id="specialStoreItemsContainer" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-4">
+
+<div id="monsterStoreItemsContainer" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-4">
 </div>
-        </div>
+<div id="specialStoreItemsContainer" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-4">
+</div>
         
         <div id="announcementsContent" class="w-full hidden">
             <h3 class="text-yellow-400 text-3xl font-bold mb-6 text-center">Duyurular</h3>
@@ -4503,16 +4506,18 @@ async function executeWeeklyReset() {
 
   function switchStoreTab(tab) {
     const gameStoreContainer = document.getElementById('gameStoreItemsContainer');
+    const avatarStoreContainer = document.getElementById('avatarStoreItemsContainer');
     const monsterStoreContainer = document.getElementById('monsterStoreItemsContainer');
     const specialStoreContainer = document.getElementById('specialStoreItemsContainer');
     
     const gameTabBtn = document.getElementById('gameStoreTabBtn');
+    const avatarTabBtn = document.getElementById('avatarStoreTabBtn');
     const monsterTabBtn = document.getElementById('monsterStoreTabBtn');
     const specialTabBtn = document.getElementById('specialStoreTabBtn');
     
     // Tüm konteynerları gizle, tüm buton stillerini sıfırla
-    [gameStoreContainer, monsterStoreContainer, specialStoreContainer].forEach(c => c.classList.add('hidden'));
-    [gameTabBtn, monsterTabBtn, specialTabBtn].forEach(btn => {
+    [gameStoreContainer, avatarStoreContainer, monsterStoreContainer, specialStoreContainer].forEach(c => c.classList.add('hidden'));
+    [gameTabBtn, avatarTabBtn, monsterTabBtn, specialTabBtn].forEach(btn => {
         btn.classList.remove('border-red-500', 'text-white');
         btn.classList.add('border-transparent', 'text-gray-400');
     });
@@ -4521,6 +4526,9 @@ async function executeWeeklyReset() {
     if (tab === 'game') {
         gameStoreContainer.classList.remove('hidden');
         gameTabBtn.classList.add('border-red-500', 'text-white');
+    } else if (tab === 'avatar') {
+        avatarStoreContainer.classList.remove('hidden');
+        avatarTabBtn.classList.add('border-red-500', 'text-white');
     } else if (tab === 'monster') {
         monsterStoreContainer.classList.remove('hidden');
         monsterTabBtn.classList.add('border-red-500', 'text-white');
@@ -7604,14 +7612,14 @@ function loadStoreItems() {
       }
   }
 
-  // MEVCUT renderStoreItems FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
-
-async function renderStoreItems(items, userData = {}) {
+  async function renderStoreItems(items, userData = {}) {
     const gameContainer = document.getElementById('gameStoreItemsContainer');
+    const avatarContainer = document.getElementById('avatarStoreItemsContainer');
     const monsterContainer = document.getElementById('monsterStoreItemsContainer');
     const specialContainer = document.getElementById('specialStoreItemsContainer');
 
     gameContainer.innerHTML = '';
+    avatarContainer.innerHTML = '';
     monsterContainer.innerHTML = '';
     specialContainer.innerHTML = '';
 
@@ -7621,6 +7629,7 @@ async function renderStoreItems(items, userData = {}) {
     if (!items) {
         const placeholder = '<p class="text-center col-span-full text-gray-400">Mağazada şu an ürün bulunmamaktadır.</p>';
         gameContainer.innerHTML = placeholder;
+        avatarContainer.innerHTML = placeholder;
         monsterContainer.innerHTML = placeholder;
         specialContainer.innerHTML = placeholder;
         return;
@@ -7634,17 +7643,20 @@ async function renderStoreItems(items, userData = {}) {
 
     const allItemsArray = Object.entries(items).sort(([, a], [, b]) => (a.order || 0) - (b.order || 0));
 
-    let gameItemsCount = 0, monsterItemsCount = 0, specialItemsCount = 0;
+    let gameItemsCount = 0, avatarItemsCount = 0, monsterItemsCount = 0, specialItemsCount = 0;
 
-    // ★★★ DEĞİŞİKLİK BURADA BAŞLIYOR: Döngüye "index" eklendi ★★★
     allItemsArray.forEach(([itemId, item], index) => {
         const isSpecial = item.type === 'special';
+        const isAvatar = item.type === 'avatar';
         const isMonsterItem = monsterStoreItemTypes.includes(item.type);
         
         let targetContainer;
         if (isSpecial) {
             targetContainer = specialContainer;
             specialItemsCount++;
+        } else if (isAvatar) {
+            targetContainer = avatarContainer;
+            avatarItemsCount++;
         } else if (isMonsterItem) {
             targetContainer = monsterContainer;
             monsterItemsCount++;
@@ -7679,7 +7691,6 @@ async function renderStoreItems(items, userData = {}) {
         const disabled = outOfStock || isExpired;
         const priceText = isSpecial ? `${formatNumber(currentCost)} KP` : `${formatNumber(currentCost)} Puan`;
 
-        // ★★★ YENİ EKLENEN KOD BAŞLANGICI: Admin kontrol butonları ★★★
         let adminControlsHtml = '';
         if (isAdmin) {
             const upDisabled = index === 0 ? 'disabled' : '';
@@ -7700,13 +7711,11 @@ async function renderStoreItems(items, userData = {}) {
                   </button>
               </div>`;
         }
-        // ★★★ YENİ EKLENEN KOD SONU ★★★
 
         const cardDiv = document.createElement('div');
         cardDiv.id = `store-item-${itemId}`; 
         cardDiv.className = `relative bg-gray-800 p-6 rounded-xl shadow-lg border-2 border-red-700 text-center flex flex-col justify-between transition-all`;
         
-        // ★★★ DEĞİŞİKLİK BURADA: adminControlsHtml eklendi ★★★
         cardDiv.innerHTML = `
             ${adminControlsHtml} 
             <div>
@@ -7727,6 +7736,7 @@ async function renderStoreItems(items, userData = {}) {
     });
 
     if (gameItemsCount === 0) gameContainer.innerHTML = '<p class="text-center col-span-full text-gray-400">Oyun Mağazası\'nda ürün bulunmamaktadır.</p>';
+    if (avatarItemsCount === 0) avatarContainer.innerHTML = '<p class="text-center col-span-full text-gray-400">Avatar Mağazası\'nda ürün bulunmamaktadır.</p>';
     if (monsterItemsCount === 0) monsterContainer.innerHTML = '<p class="text-center col-span-full text-gray-400">Canavar Mağazası\'nda ürün bulunmamaktadır.</p>';
     if (specialItemsCount === 0) specialContainer.innerHTML = '<p class="text-center col-span-full text-gray-400">Özel Ürün Mağazası\'nda ürün bulunmamaktadır.</p>';
 
@@ -8819,33 +8829,33 @@ function listenForLastSurpriseFinderPanel() {
             boxesOpenedText = `<p class="text-sm text-gray-300">Bu tur toplam <b class="text-white">${data.boxesOpenedThisRound}</b> kutu açtı.</p>`;
         }
         
-        // --- YENİ GÖRÜNÜM İÇİN DÜZENLENEN KOD ---
         let detailsText = '';
-        // Eğer çarpan kullanıldıysa
         if (data.multiplier && data.multiplier > 1) {
-            const finalPoints = data.points * data.multiplier; // Nihai puanı hesapla
+            const finalPoints = data.points * data.multiplier;
             detailsText = `<p class="text-xs text-purple-400">(${formatNumber(finalPoints)} Puan / ${data.multiplier}x Çarpan Kullanıldı)
             <p class="text-xs text-gray-400">(Mevcut Puanı: ${formatNumber(data.newBalance)})</p>`;
         } 
-        // Çarpan kullanılmadıysa
         else {
             detailsText = `<p class="text-xs text-gray-400">(Mevcut Puanı: ${formatNumber(data.newBalance)})</p>`;
         }
-        // --- DÜZENLEME SONU ---
+
+        const finderHtml = `<b class="text-white text-lg cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${data.finder}')">${data.finder}</b>`;
 
         let messageHtml = `
             ${adminDeleteButton}
             <h4 class="text-amber-300 text-xl font-bold">🎉 SON SÜRPRİZ KUTUSU BULUNDU! 🎉</h4>
-            <p><b class="text-white text-lg">${data.finder}</b>, ${data.boxId} numaralı kutudan Sürpriz Kutu buldu!</p>
+            <p>${finderHtml}, ${data.boxId} numaralı kutudan Sürpriz Kutu buldu!</p>
             ${boxesOpenedText} 
             <p>Kart seçiminden <b class="text-green-400">+${formatNumber(data.points)} Puan</b> kazandı.</p>
             ${detailsText} 
         `;
 
         if (data.resettled === true && data.resettledBy) {
+             // --- DEĞİŞİKLİK BURADA: Sıfırlayan kişinin adı tıklanabilir yapıldı ---
+             const resettledByHtml = `<b class="text-white cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${data.resettledBy}')">${data.resettledBy}</b>`;
              messageHtml += `
                 <hr class="border-gray-600 my-2">
-                <p class="text-sm text-lime-400">Kutuları <b class="text-white">${data.resettledBy}</b> sıfırladı ve oyun yeniden başladı.</p>
+                <p class="text-sm text-lime-400">Kutuları ${resettledByHtml} sıfırladı ve oyun yeniden başladı.</p>
             `;
         } else {
              messageHtml += `
@@ -8865,7 +8875,7 @@ function listenForLastSurpriseFinderPanel() {
     activeListeners.surprisePanel = { ref, event: 'value', callback };
     ref.on('value', callback);
 }
-
+      
 // YEPYENİ FONKSİYON - BU KOD BLOĞUNU OLDUĞU GİBİ EKLE
 async function toggleGameLock() {
     if (!isAdmin) return;
@@ -10064,6 +10074,7 @@ function renderWheel() {
 
     wheelElement.style.background = `conic-gradient(${gradientParts.join(', ')})`;
 }
+      
     function listenForLastWheelSurprisePanel() {
     const ref = db.ref('gameStats/lastWheelSurpriseInfo');
     const panel = document.getElementById('lastWheelSurprisePanel');
@@ -10075,7 +10086,6 @@ function renderWheel() {
             return;
         }
 
-        // --- DEĞİŞİKLİK BURADA BAŞLIYOR ---
         let adminDeleteButton = '';
         if (isAdmin) {
             adminDeleteButton = `
@@ -10084,9 +10094,10 @@ function renderWheel() {
                 </button>
             `;
         }
-        // --- DEĞİŞİKLİK BURADA BİTİYOR ---
+        
+        // --- DEĞİŞİKLİK BURADA: Kullanıcı adı tıklanabilir yapıldı ---
+        const finderHtml = `<b class="text-white cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${data.finder}')">${data.finder}</b>`;
 
-        const finderHtml = `<b class="text-white">${data.finder}</b>`;
         const messageHtml = `
             ${adminDeleteButton}
             <h4 class="text-amber-300 text-lg font-bold">🎡 ÇARKTAN SON ÇIKAN SÜRPRİZ! 🎡</h4>
@@ -10095,7 +10106,7 @@ function renderWheel() {
         `;
 
         panel.innerHTML = messageHtml;
-        panel.classList.add('relative'); // Butonun konumlanması için gerekli
+        panel.classList.add('relative');
         panel.classList.remove('hidden');
     };
 
