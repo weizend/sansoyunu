@@ -11152,45 +11152,97 @@ async function triggerLobbyGameStart() {
   }
 
   async function handleLobbyItemClick(event) {
+    // Bu fonksiyonun en başında, oyunun hala aktif olup olmadığını global değişkenden kontrol et
     if (lobbyGameSettings.state !== 'active') return;
     
-    // Düzeltilen kısım: Tıklanan element ne olursa olsun, en yakın ebeveyn catch-item'ı bulur
     const item = event.target.closest('.catch-item');
-    if (!item) return; // Eğer doğru element bulunamazsa işlemi durdur
+    if (!item) return;
 
     const itemType = item.dataset.type;
-
     const lobbyPlayerRef = db.ref(`clickCatchLobby/players/${currentUser}`);
     
-    const playerSnap = await lobbyPlayerRef.once('value');
-    const playerData = playerSnap.val();
-    if (!playerData) return;
+    // Oyuncunun mevcut skorunu al ve güncelle
+    const { snapshot } = await lobbyPlayerRef.child('score').transaction(currentScore => {
+        if (currentScore === null) return 0; // Eğer oyuncu yeni katıldıysa skoru 0'dan başlar
+        if (itemType === 'bomb') {
+            return Math.max(0, currentScore - 1);
+        }
+        return currentScore + 1;
+    });
 
-    let newScore = playerData.score;
+    const newScore = snapshot.val();
 
-    if (itemType === 'bomb') {
-        newScore = Math.max(0, newScore - 1); // Skoru 1 azalt, ama 0'ın altına düşmesin
-        showFloatingText('-1', event.clientX, event.clientY);
-    } else {
-        newScore++;
-        showFloatingText('+1', event.clientX, event.clientY);
-    }
-
-    await lobbyPlayerRef.update({ score: newScore });
-
+    // Arayüzdeki skoru anında güncelle
     document.getElementById('clickCatchTarget').textContent = `${newScore} / ${lobbyGameSettings.target}`;
 
-    if(newScore >= lobbyGameSettings.target) {
-        db.ref('clickCatchLobby/state').once('value').then(snap => {
-            if (snap.val() === 'active') {
-                setWinner(currentUser);
-            }
-        });
+    // Kazananı belirleme mantığı
+    if (itemType !== 'bomb' && newScore >= lobbyGameSettings.target) {
+        // setWinner fonksiyonunu çağırarak kazananı belirle
+        setWinner(currentUser);
     }
 
+    // Tıklanan öğeyi kaldır
     item.remove();
 }
 
+      async function setWinner(winnerUsername) {
+    const lobbyRef = db.ref('clickCatchLobby');
+    
+    // İki oyuncunun aynı anda kazanmasını engellemek için "transaction" kullanıyoruz.
+    const { committed, snapshot } = await lobbyRef.transaction(currentLobbyData => {
+        // Eğer lobi verisi yoksa veya oyun "aktif" durumda değilse (yani zaten biri kazanmışsa), işlemi iptal et.
+        if (!currentLobbyData || currentLobbyData.state !== 'active') {
+            return; // Değişiklik yapmadan çık
+        }
+        
+        // Oyun durumunu 'finished' olarak değiştir, kazananı ve bitiş zamanını kaydet.
+        currentLobbyData.state = 'finished';
+        currentLobbyData.winner = winnerUsername;
+        currentLobbyData.endTimestamp = firebase.database.ServerValue.TIMESTAMP;
+        
+        return currentLobbyData;
+    });
+
+    // Eğer bu işlem başarıyla tamamlandıysa (yani kazanan ilk defa bu client tarafından belirlendiyse)
+    if (committed) {
+        const finalLobbyData = snapshot.val();
+        
+        // Son kazanan paneli için oyunun özetini kaydet
+        await db.ref('clickCatchLobbyLastGameSummary').set({
+            winner: finalLobbyData.winner,
+            prize: finalLobbyData.prize,
+            target: finalLobbyData.target,
+            players: finalLobbyData.players,
+            startTimestamp: finalLobbyData.startTimestamp,
+            endTimestamp: finalLobbyData.endTimestamp
+        });
+        
+        // Kazananın ödülünü ver
+        const winnerRef = db.ref(`users/${winnerUsername}`);
+        await winnerRef.transaction(userData => {
+            if (userData) {
+                const prize = finalLobbyData.prize || 0;
+                userData.balance = (userData.balance || 0) + prize;
+                userData.kariyerPuani = (userData.kariyerPuani || 0) + prize;
+            }
+            return userData;
+        });
+        
+        // "Son Eylemler" paneline kazanma olayını kaydet
+        const finalUserSnap = await winnerRef.once('value');
+        const finalUserData = finalUserSnap.val();
+        logActivity('clickCatchLobby', winnerUsername, { 
+            prize: finalLobbyData.prize, 
+            newBalance: finalUserData.balance 
+        });
+
+        // 5 saniye sonra lobi verisini tamamen temizle ki yeni lobi kurulabilsin.
+        setTimeout(() => {
+            lobbyRef.remove();
+        }, 5000);
+    }
+}
+      
 // **** YENİ EKLENECEK FONKSİYONLAR BAŞLANGICI ****
 
 /**
