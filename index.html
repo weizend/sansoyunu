@@ -4469,6 +4469,11 @@ async function executeWeeklyReset() {
     loadTotalOpenedBoxesCount();
     loadAnnouncements();
     loadClickCatchRankings();
+    loadCollectionAlbum();
+    loadGrandPrizeDisplay();
+    loadCollectionLeaderboard();
+    loadWheelHistory();
+    listenForLastGameSummary();
     listenForGameChanges();
     listenForSurpriseBox();
     listenForDailyRewardChanges();
@@ -4487,7 +4492,7 @@ async function executeWeeklyReset() {
     listenForPendingActions();
     listenForMonsterBattleData();
     listenForAvatarBaseStats();
-    listenForPersistentNotifications(); // ★★★ BU SATIRI EKLE ★★★
+    listenForPersistentNotifications();
     db.ref('gameConfig/potionCaps').on('value', snap => { potionCapsCache = snap.val() || {}; });
     
     if (!isAdmin) {
@@ -4544,13 +4549,11 @@ async function executeWeeklyReset() {
     }
 }
 
-// MEVCUT showSection FONKSİYONUNU SİL VE BUNU YAPIŞTIR
 function showSection(sectionId) {
-    // YENİ EKLENEN KISIM: Eğer kullanıcı mağaza dışı bir sekmeye tıklarsa, filtreyi temizle.
+    // Eğer kullanıcı mağaza dışı bir sekmeye tıklarsa, filtreyi temizle.
     if (sectionId !== 'store') {
         storeFilter = null;
     }
-    // YENİ EKLENEN KISIM SONU
 
     if (currentActiveSection === 'cardCollection' && sectionId !== 'cardCollection') {
         newlyAcquiredCards.clear();
@@ -4581,10 +4584,8 @@ function showSection(sectionId) {
 
     if (sectionId === 'game' && isAdmin) {
         document.getElementById('boxSettingsButton').classList.remove('hidden');
-    }
-
-    if (sectionId === 'store') {
-        loadStoreItems();
+    } else if (sectionId === 'store') {
+        loadStoreItems(); 
         if (isAdmin) {
             document.getElementById('adminStoreManagementButtonContainer').classList.remove('hidden');
             document.getElementById('kasaSettingsBtn').classList.remove('hidden');
@@ -4592,12 +4593,10 @@ function showSection(sectionId) {
             document.getElementById('storeIndicator').classList.add('hidden');
             db.ref(`users/${currentUser}/lastSeenStoreTimestamp`).set(latestStoreItemTimestamp);
         }
-        // Eğer filtre aktif değilse, varsayılan olarak oyun mağazasını aç.
         if (!storeFilter) {
             switchStoreTab('game');
         }
     } else if (sectionId === 'announcements') {
-        loadAnnouncements();
         if (isAdmin) {
             document.getElementById('adminAnnouncementControls').classList.remove('hidden');
         } else {
@@ -4605,14 +4604,11 @@ function showSection(sectionId) {
             db.ref(`users/${currentUser}/lastSeenAnnouncementTimestamp`).set(latestAnnouncementTimestamp);
         }
     } else if (sectionId === 'clickCatch') {
-        loadClickCatchRankings();
-        listenForLastGameSummary();
         if (isAdmin) {
             document.getElementById('clickCatchAdminButtonsContainer').classList.remove('hidden');
             loadSoloGameSettings();
         }
     } else if (sectionId === 'chanceWheel') {
-        loadWheelHistory();
         const wheelSettingsBtn = document.getElementById('wheelSettingsButton');
         if (isAdmin) {
             wheelSettingsBtn.classList.remove('hidden');
@@ -4620,9 +4616,6 @@ function showSection(sectionId) {
             wheelSettingsBtn.classList.add('hidden');
         }
     } else if (sectionId === 'cardCollection') {
-        loadCollectionAlbum();
-        loadGrandPrizeDisplay();
-        loadCollectionLeaderboard();
         if (isAdmin) {
             document.getElementById('collectionAdminBtn').classList.remove('hidden');
             loadMarketSettingsForAdmin();
@@ -4646,6 +4639,7 @@ function showSection(sectionId) {
     loadAllUsers(); 
     loadPendingSpecialPurchases();
   }
+      
   function closeAdminPanelModal() { 
     document.body.classList.remove('modal-open'); // BU SATIRI EKLE
     adminPanelModal.style.display = 'none'; 
@@ -8247,7 +8241,6 @@ async function openPublicUserDetailModal(username) {
         
         const puanVeEnvanterDiv = document.querySelector('#publicUserDetailModal .grid .bg-gray-800\\/70:first-child .space-y-3');
         if (puanVeEnvanterDiv) {
-            // --- DEĞİŞİKLİK BURADA: Rozetler artık doğrudan HTML'in içine ekleniyor ---
             puanVeEnvanterDiv.innerHTML = `
                 <p class="flex justify-between items-center"><span>🃏 Joker Kart:</span> <span class="font-bold text-purple-400 text-lg">${formatNumber(userData.wildcards || 0)}</span></p>
                 <p class="flex justify-between items-center"><span>🏦 Kasa Puanı:</span> <span class="font-bold text-purple-400 text-lg">${formatNumber(userData.kasaPuani || 0)}</span></p>
@@ -8590,21 +8583,15 @@ async function removeTyChampionship(username) {
     openUserManagementModal(event, username);
 }
 
-// ★★★ YENİ EKLENECEK BAŞARIM SİLME FONKSİYONLARI SONU ★★★
-
-    function closePublicUserDetailModal() {
+function closePublicUserDetailModal() {
     const publicUserDetailModal = document.getElementById('publicUserDetailModal');
     publicUserDetailModal.style.display = 'none';
     document.body.classList.remove('modal-open');
 
-    // --- DEĞİŞEN KISIM BAŞLANGICI ---
-    // Eğer aktif bir profil dinleyicisi varsa, onu kapatıyoruz.
     if (activeUserProfileListener && activeUserProfileListener.ref && activeUserProfileListener.callback) {
-        // Dinleyiciyi 'value' event'i için ve sakladığımız callback ile kapatıyoruz.
         activeUserProfileListener.ref.off('value', activeUserProfileListener.callback);
-        activeUserProfileListener = null; // Değişkeni temizliyoruz ki tekrar kullanılmasın.
+        activeUserProfileListener = null;
     }
-    // --- DEĞİŞEN KISIM SONU ---
 
     const viewingUser = publicUserDetailModal.dataset.viewingUser;
     if (viewingUser && activeBlockedUserTimers[viewingUser]) {
@@ -14040,143 +14027,167 @@ async function loadCollectionAlbum() {
     const grandPrizeDisplay = document.getElementById('grandPrizeDisplay');
 
     const statusRef = db.ref('gameConfig/cardCollectionStatus');
-    const statusSnap = await statusRef.once('value');
-    const currentStatus = statusSnap.val() || 'inactive';
 
-    if(isAdmin) {
-        // ... (Admin kontrolleri aynı kalacak, buraya dokunmuyoruz) ...
-        const statusTextEl = document.getElementById('collectionStatusText');
-        const pauseBtn = document.getElementById('pauseResumeButton');
-        if (statusTextEl && pauseBtn) {
-            statusTextEl.textContent = {'active': 'Aktif', 'paused': 'Duraklatıldı (Bakımda)', 'inactive': 'Bitti / Başlamadı'}[currentStatus];
-            if(currentStatus === 'paused') {
-                pauseBtn.textContent = 'Sezonu Devam Ettir';
-                pauseBtn.classList.replace('bg-orange-600', 'bg-green-600');
-                pauseBtn.classList.replace('hover:bg-orange-500', 'hover:bg-green-500');
-            } else {
-                pauseBtn.textContent = 'Sezonu Duraklat';
-                pauseBtn.classList.replace('bg-green-600', 'bg-orange-600');
-                pauseBtn.classList.replace('hover:bg-green-500', 'hover:bg-orange-500');
-            }
-        }
-        const toggleBtn = document.getElementById('toggleSeasonBtn');
-        if (toggleBtn) {
-            if (currentStatus === 'active') {
-                toggleBtn.textContent = '⛔ Sezonu Bitir';
-                toggleBtn.classList.add('bg-red-700', 'hover:bg-red-600');
-                toggleBtn.classList.remove('bg-green-700', 'hover:bg-green-600', 'animate-pulse');
-            } else {
-                toggleBtn.textContent = '💥 YENİ SEZONU BAŞLAT 💥';
-                toggleBtn.classList.add('bg-green-700', 'hover:bg-green-600', 'animate-pulse');
-                toggleBtn.classList.remove('bg-red-700', 'hover:bg-red-600');
-            }
-        }
+    if (activeListeners.collectionStatus) {
+        activeListeners.collectionStatus.ref.off('value', activeListeners.collectionStatus.callback);
     }
 
-    if (!isAdmin) {
-        if (currentStatus === 'paused' || currentStatus === 'inactive') {
+    const statusCallback = (statusSnap) => {
+        const currentStatus = statusSnap.val() || 'inactive';
+
+        if(isAdmin) {
+            const statusTextEl = document.getElementById('collectionStatusText');
+            const pauseBtn = document.getElementById('pauseResumeButton');
+            if (statusTextEl && pauseBtn) {
+                statusTextEl.textContent = {'active': 'Aktif', 'paused': 'Duraklatıldı (Bakımda)', 'inactive': 'Bitti / Başlamadı'}[currentStatus];
+                if(currentStatus === 'paused') {
+                    pauseBtn.textContent = 'Sezonu Devam Ettir';
+                    pauseBtn.classList.replace('bg-orange-600', 'bg-green-600');
+                    pauseBtn.classList.replace('hover:bg-orange-500', 'hover:bg-green-500');
+                } else {
+                    pauseBtn.textContent = 'Sezonu Duraklat';
+                    pauseBtn.classList.replace('bg-green-600', 'bg-orange-600');
+                    pauseBtn.classList.replace('hover:bg-green-500', 'hover:bg-orange-500');
+                }
+            }
+            const toggleBtn = document.getElementById('toggleSeasonBtn');
+            if (toggleBtn) {
+                if (currentStatus === 'active') {
+                    toggleBtn.textContent = '⛔ Sezonu Bitir';
+                    toggleBtn.classList.add('bg-red-700', 'hover:bg-red-600');
+                    toggleBtn.classList.remove('bg-green-700', 'hover:bg-green-600', 'animate-pulse');
+                } else {
+                    toggleBtn.textContent = '💥 YENİ SEZONU BAŞLAT 💥';
+                    toggleBtn.classList.add('bg-green-700', 'hover:bg-green-600', 'animate-pulse');
+                    toggleBtn.classList.remove('bg-red-700', 'hover:bg-red-600');
+                }
+            }
+        }
+
+        if (!isAdmin && (currentStatus === 'paused' || currentStatus === 'inactive')) {
             statusTitle.textContent = currentStatus === 'paused' ? '🔧 Bakımdayız 🔧' : '🚀 Yeni Sezon Çok Yakında! 🚀';
             statusMessage.textContent = currentStatus === 'paused' ? 'Kart Koleksiyonu sezonu şu anda kısa bir bakımda.' : 'Adminin yeni sezonu başlatmasını bekle.';
             statusOverlay.classList.remove('hidden');
             albumContainer.classList.add('hidden');
             grandPrizeDisplay.classList.add('hidden');
             return;
-        }
-    }
-    
-    statusOverlay.classList.add('hidden');
-    albumContainer.classList.remove('hidden');
-    
-    const progressSpan = document.getElementById('collectionProgress');
-    albumContainer.innerHTML = '<p class="text-center col-span-full text-gray-400">Koleksiyon yükleniyor...</p>';
+        } 
+        
+        statusOverlay.classList.add('hidden');
+        albumContainer.classList.remove('hidden');
+    };
 
-    const masterListRef = db.ref('gameConfig/cardCollection');
-    const masterListSnap = await masterListRef.orderByChild('order').once('value');
-    
-    if (!masterListSnap.exists()) {
-        albumContainer.innerHTML = '<p class="text-center col-span-full">Yönetici henüz bir koleksiyon oluşturmadı.</p>';
-        if(progressSpan) progressSpan.textContent = '0/0';
-        return;
-    }
-    const masterList = masterListSnap.val();
-    const totalCardCount = Object.keys(masterList).length;
+    statusRef.on('value', statusCallback);
+    activeListeners.collectionStatus = { ref: statusRef, event: 'value', callback: statusCallback };
 
+    const masterListRef = db.ref('gameConfig/cardCollection').orderByChild('order');
     const userRef = db.ref(`users/${currentUser}`);
-    const userSnap = await userRef.once('value');
-    const userData = userSnap.val() || {};
-    const userCards = userData.cardCollection || {};
-    const hasCompletedCollection = userData.completedCollection === true;
-    
-    // --- YENİ EKLENEN KOD BAŞLANGICI (JOKER KART İÇİN) ---
-    const wildcardIndicator = document.getElementById('wildcardIndicator');
-    const wildcardCountSpan = document.getElementById('wildcardCount');
-    const userWildcards = userData.wildcards || 0;
 
-    if (wildcardIndicator) {
-        if (userWildcards > 0 || isAdmin) {
-            wildcardCountSpan.textContent = userWildcards;
-            wildcardIndicator.classList.remove('hidden');
-            const convertBtn = document.getElementById('convertWildcardBtn');
-            if (convertBtn) {
-                convertBtn.classList.toggle('hidden', !(hasCompletedCollection && userWildcards > 0));
-            }
-        } else {
-            wildcardIndicator.classList.add('hidden');
-        }
+    if (activeListeners.fullCollection) {
+        activeListeners.fullCollection.masterRef.off('value', activeListeners.fullCollection.masterCallback);
+        activeListeners.fullCollection.userRef.off('value', activeListeners.fullCollection.userCallback);
     }
-    // --- YENİ EKLENEN KOD SONU ---
-
-    const userOwnedCardCount = Object.keys(userCards).length;
-    if(progressSpan) progressSpan.textContent = `${userOwnedCardCount}/${totalCardCount}`;
     
-    albumContainer.innerHTML = ''; 
+    let masterDataCache = null;
+    let userDataCache = null;
+    
+    const renderAlbum = (masterCards, userData) => {
+        const progressSpan = document.getElementById('collectionProgress');
+        
+        if (!masterCards) {
+            albumContainer.innerHTML = '<p class="text-center col-span-full">Yönetici henüz bir koleksiyon oluşturmadı.</p>';
+            if(progressSpan) progressSpan.textContent = '0/0';
+            return;
+        }
 
-    for (const cardId in masterList) {
-        const cardInfo = masterList[cardId];
-        const userHasCard = userCards[cardId];
+        const totalCardCount = Object.keys(masterCards).length;
+        const userCards = userData?.cardCollection || {};
+        const hasCompletedCollection = userData?.completedCollection === true;
+        const userWildcards = userData?.wildcards || 0;
+        const userOwnedCardCount = Object.keys(userCards).length;
 
-        const slot = document.createElement('div');
-        slot.className = 'card-slot';
-
-        if (userHasCard || isAdmin) { 
-            const cardItem = document.createElement('div');
-            cardItem.className = `card-item rarity-${cardInfo.rarity || 'normal'}`;
-            
-            let duplicateBadge = userHasCard && userHasCard.count > 1 ? `<div class="duplicate-badge">+${userHasCard.count - 1}</div>` : '';
-            let adminCardControls = isAdmin ? `<div class="card-admin-buttons"><button onclick="openCardCreatorModal('${cardId}')">✏️</button><button onclick="deleteCard('${cardId}')">🗑️</button></div>` : '';
-            
-            cardItem.innerHTML = `
-                ${newlyAcquiredCards.has(cardId) ? `<div class="new-card-badge">YENİ</div>` : ''}
-                ${duplicateBadge}
-                ${adminCardControls}
-                <img class="card-image" src="${cardInfo.imageUrl}">
-                <h4 class="card-name">${cardInfo.cardName}</h4>
-            `;
-
-            if (userHasCard && userHasCard.count > 1) {
-                if (hasCompletedCollection) {
-                    cardItem.onclick = () => handleDuplicateCardClick(cardId);
-                } else {
-                    cardItem.onclick = () => openTradeMenu(cardId, cardInfo.cardName);
+        if(progressSpan) progressSpan.textContent = `${userOwnedCardCount}/${totalCardCount}`;
+        
+        const wildcardIndicator = document.getElementById('wildcardIndicator');
+        const wildcardCountSpan = document.getElementById('wildcardCount');
+        if (wildcardIndicator) {
+            if (userWildcards > 0 || isAdmin) {
+                wildcardCountSpan.textContent = userWildcards;
+                wildcardIndicator.classList.remove('hidden');
+                const convertBtn = document.getElementById('convertWildcardBtn');
+                if (convertBtn) {
+                    convertBtn.classList.toggle('hidden', !(hasCompletedCollection && userWildcards > 0));
                 }
+            } else {
+                wildcardIndicator.classList.add('hidden');
             }
-            
-            slot.appendChild(cardItem);
-
-        } else {
-            let wildcardButton = '';
-            if (userWildcards > 0 && !hasCompletedCollection) {
-                wildcardButton = `<button class="absolute bottom-2 left-1/2 -translate-x-1/2 w-11/12 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-lg animate-pulse" onclick="useWildcard('${cardId}', '${cardInfo.cardName}')">Joker Kullan</button>`;
-            }
-            slot.innerHTML = `
-                <div class="card-item missing relative rarity-${cardInfo.rarity || 'normal'}">
-                    <div class="card-image flex items-center justify-center"><span class="missing-text">?</span></div>
-                    <h4 class="card-name text-gray-500">${cardInfo.cardName}</h4>
-                    ${wildcardButton}
-                </div>`;
         }
-        albumContainer.appendChild(slot);
-    }
+        
+        albumContainer.innerHTML = ''; 
+        for (const cardId in masterCards) {
+            const cardInfo = masterCards[cardId];
+            const userHasCard = userCards[cardId];
+
+            const slot = document.createElement('div');
+            slot.className = 'card-slot';
+
+            if (userHasCard || isAdmin) { 
+                const cardItem = document.createElement('div');
+                cardItem.className = `card-item rarity-${cardInfo.rarity || 'normal'}`;
+                
+                let duplicateBadge = userHasCard && userHasCard.count > 1 ? `<div class="duplicate-badge">+${userHasCard.count - 1}</div>` : '';
+                let adminCardControls = isAdmin ? `<div class="card-admin-buttons"><button onclick="openCardCreatorModal('${cardId}')">✏️</button><button onclick="deleteCard('${cardId}')">🗑️</button></div>` : '';
+                
+                cardItem.innerHTML = `
+                    ${newlyAcquiredCards.has(cardId) ? `<div class="new-card-badge">YENİ</div>` : ''}
+                    ${duplicateBadge}
+                    ${adminCardControls}
+                    <img class="card-image" src="${cardInfo.imageUrl}">
+                    <h4 class="card-name">${cardInfo.cardName}</h4>
+                `;
+
+                if (userHasCard && userHasCard.count > 1) {
+                    if (hasCompletedCollection) {
+                        cardItem.onclick = () => handleDuplicateCardClick(cardId);
+                    } else {
+                        cardItem.onclick = () => openCreateOfferModal(cardId);
+                    }
+                }
+                
+                slot.appendChild(cardItem);
+
+            } else {
+                let wildcardButton = '';
+                if (userWildcards > 0 && !hasCompletedCollection) {
+                    wildcardButton = `<button class="absolute bottom-2 left-1/2 -translate-x-1/2 w-11/12 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-lg animate-pulse" onclick="useWildcard('${cardId}', '${cardInfo.cardName}')">Joker Kullan</button>`;
+                }
+                slot.innerHTML = `
+                    <div class="card-item missing relative rarity-${cardInfo.rarity || 'normal'}">
+                        <div class="card-image flex items-center justify-center"><span class="missing-text">?</span></div>
+                        <h4 class="card-name text-gray-500">${cardInfo.cardName}</h4>
+                        ${wildcardButton}
+                    </div>`;
+            }
+            albumContainer.appendChild(slot);
+        }
+    };
+    
+    const masterCallback = (snap) => { 
+        masterDataCache = snap.val(); 
+        if (userDataCache !== null) renderAlbum(masterDataCache, userDataCache); 
+    };
+    const userCallback = (snap) => { 
+        userDataCache = snap.val(); 
+        if (masterDataCache !== null) renderAlbum(masterDataCache, userDataCache); 
+    };
+
+    masterListRef.on('value', masterCallback);
+    userRef.on('value', userCallback);
+
+    activeListeners.fullCollection = { 
+        masterRef: masterListRef, masterCallback: masterCallback,
+        userRef: userRef, userCallback: userCallback
+    };
 }
 
 // Kullanıcı koleksiyonundaki fazla karta tıkladığında teklif oluşturma penceresini açar
@@ -14528,7 +14539,6 @@ async function openTradeMarket() {
 
 // Takas pazarı ana penceresini kapatır
 function closeTradeMarketModal() {
-    // Pazar kapatıldığında, arka planda veri çekmeye devam etmemesi için dinleyiciyi durdur.
     if (activeListeners.marketOffers) {
         activeListeners.marketOffers.ref.off('value', activeListeners.marketOffers.callback);
         delete activeListeners.marketOffers;
@@ -14573,7 +14583,6 @@ async function acceptTradeOffer(tradeId, buttonElement) {
     }
 
     try {
-        // --- 1. VERİ TOPLAMA VE KONTROLLER ---
         const isCrossTrade = buttonElement.dataset.tradeFromMarket === 'true';
         const conflictingTradeId = buttonElement.dataset.conflictingTradeId;
 
@@ -14589,17 +14598,13 @@ async function acceptTradeOffer(tradeId, buttonElement) {
         const userData = userSnap.val();
         const masterCards = masterCardsSnap.val();
 
-        // YENİ EKLENEN KISIM BAŞLANGICI: Koleksiyonu tamamlayanlar takas yapamaz.
         if (userData.completedCollection === true) {
             throw new Error("Koleksiyonu tamamladığın için artık takas yapamazsın.");
         }
-        // YENİ EKLENEN KISIM SONU
-
         if (marketSettings.isLocked) {
             throw new Error("Pazar kilitli.");
         }
         if (!trade) {
-            loadMarketOffers('all');
             throw new Error("Bu takas teklifi artık geçerli değil.");
         }
         if (!userData) {
@@ -14612,7 +14617,6 @@ async function acceptTradeOffer(tradeId, buttonElement) {
         if ((userData.balance || 0) < tradeFee) {
             throw new Error(`Takas için gereken ${tradeFee} Puan işlem ücretine sahip değilsin.`);
         }
-
         if (isCrossTrade) {
             if (!userCards[trade.requestedCardId] || userCards[trade.requestedCardId].count !== 1) {
                 throw new Error("Bu takası yapmak için gerekli kart durumun değişmiş.");
@@ -14623,17 +14627,14 @@ async function acceptTradeOffer(tradeId, buttonElement) {
             }
         }
 
-        // --- 2. KULLANICI ONAYI ---
         const offeredCard = masterCards[trade.offeredCardId];
         const requestedCard = masterCards[trade.requestedCardId];
         
-        // YENİ EKLENEN KISIM BAŞLANGICI: Ekstra bilgilendirme mesajı
         let extraWarningMessage = '';
         if (userCards[trade.offeredCardId] && userCards[trade.offeredCardId].count > 0) {
             const currentCount = userCards[trade.offeredCardId].count;
             extraWarningMessage = `<br><br><b class='text-amber-400'>Bilgilendirme:</b> Alacağınız '${offeredCard.cardName}' kartı koleksiyonunuzda zaten mevcut (${currentCount} adet). Takası onaylarsanız bu kartın adedi +1 artacaktır.`;
         }
-        // YENİ EKLENEN KISIM SONU
 
         let confirmed = false;
         if (isCrossTrade) {
@@ -14646,7 +14647,6 @@ async function acceptTradeOffer(tradeId, buttonElement) {
             throw new Error("Kullanıcı iptal etti.");
         }
 
-        // --- 3. GÜNCELLEMELERİ HAZIRLAMA ---
         const updates = {};
         
         if (isCrossTrade && conflictingTradeId) {
@@ -14676,7 +14676,6 @@ async function acceptTradeOffer(tradeId, buttonElement) {
              updates[`/users/${trade.offerer}/cardCollection/${trade.requestedCardId}/count`] = (offererData.cardCollection?.[trade.requestedCardId]?.count || 0) + 1;
         }
 
-        // --- 4. GÜNCELLEMELERİ UYGULAMA VE BİLDİRİMLER ---
         await db.ref().update(updates);
 
         await db.ref('tradeHistory').push().set({
@@ -14694,10 +14693,8 @@ async function acceptTradeOffer(tradeId, buttonElement) {
         const notificationMessage = `<b>${currentUser}</b>, takasa koyduğunuz '${offeredCard.cardName}' kartı karşılığında istediğiniz '${requestedCard.cardName}' kartı takasını onayladı. Yeni kartınız albümünüze eklendi!`;
         await db.ref(`tradeNotifications/${trade.offerer}`).push({ message: notificationMessage, timestamp: firebase.database.ServerValue.TIMESTAMP });
         
-        // YENİ EKLENEN KISIM BAŞLANGICI: Takas sonrası her iki oyuncu için de koleksiyon tamamlama kontrolü
-        await checkAndGrantPrize(currentUser); // Takası kabul eden için kontrol
-        await checkAndGrantPrize(trade.offerer); // Teklifi yapan için kontrol
-        // YENİ EKLENEN KISIM SONU
+        await checkAndGrantPrize(currentUser);
+        await checkAndGrantPrize(trade.offerer);
 
         if (currentActiveSection === 'cardCollection') {
             loadCollectionAlbum();
@@ -14711,7 +14708,6 @@ async function acceptTradeOffer(tradeId, buttonElement) {
         } else {
             displayMessage(error.message);
         }
-        loadMarketOffers('all');
     } finally {
         isTradeInProgress = false;
         if (buttonElement) {
@@ -14734,7 +14730,6 @@ async function loadMarketOffers(mode) {
 
     let tradesRef = db.ref('trades');
 
-    // Kullanıcının kendi aktif tekliflerini en başta bir kez çekelim
     const myOffersSnap = await tradesRef.orderByChild('offerer').equalTo(currentUser).once('value');
     const myOffers = myOffersSnap.val() || {};
     const myOfferedCardIds = new Map();
@@ -14803,55 +14798,53 @@ async function loadMarketOffers(mode) {
                  actionButton += `<button onclick="cancelTradeOffer('${tradeId}', true)" class="ml-2 py-2 px-3 bg-red-800 hover:bg-red-700 rounded-lg text-xs" title="Admin Olarak İptal Et">X</button>`;
             }
 
-            // ... loadMarketOffers fonksiyonu içinde ...
-const offerHtml = `
-    <div class="market-offer-card">
-        <div class="flex items-center gap-3 w-full">
-            <div class="market-card-item rarity-${offeredCard.rarity || 'normal'}">
-                <img class="market-card-image" src="${offeredCard.imageUrl}" alt="${offeredCard.cardName}">
-            </div>
-            <div class="market-card-info flex-grow">
-                <p class="card-name">${offeredCard.cardName}</p>
-                <p class="card-owner">Teklif Edilen Kart</p>
-            </div>
-        </div>
-        
-        <div class="self-center text-2xl font-bold text-gray-500 md:hidden">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
-        </div>
-        
-        <div class="flex items-center gap-3 w-full">
-            <div class="market-card-item rarity-${requestedCard.rarity || 'normal'}">
-                <img class="market-card-image" src="${requestedCard.imageUrl}" alt="${requestedCard.cardName}">
-            </div>
-            <div class="market-card-info flex-grow">
-                <p class="card-name">${requestedCard.cardName}</p>
-                <p class="card-owner">İstenen Kart</p>
-            </div>
-        </div>
+            const offerHtml = `
+                <div class="market-offer-card">
+                    <div class="flex items-center gap-3 w-full">
+                        <div class="market-card-item rarity-${offeredCard.rarity || 'normal'}">
+                            <img class="market-card-image" src="${offeredCard.imageUrl}" alt="${offeredCard.cardName}">
+                        </div>
+                        <div class="market-card-info flex-grow">
+                            <p class="card-name">${offeredCard.cardName}</p>
+                            <p class="card-owner">Teklif Edilen Kart</p>
+                        </div>
+                    </div>
+                    
+                    <div class="self-center text-2xl font-bold text-gray-500 md:hidden">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+                    </div>
+                    
+                    <div class="flex items-center gap-3 w-full">
+                        <div class="market-card-item rarity-${requestedCard.rarity || 'normal'}">
+                            <img class="market-card-image" src="${requestedCard.imageUrl}" alt="${requestedCard.cardName}">
+                        </div>
+                        <div class="market-card-info flex-grow">
+                            <p class="card-name">${requestedCard.cardName}</p>
+                            <p class="card-owner">İstenen Kart</p>
+                        </div>
+                    </div>
 
-        <hr class="border-gray-700 w-full md:hidden">
-        
-        <div class="w-full md:w-auto flex flex-col md:flex-row items-center gap-3 md:ml-auto">
-             <p class="text-sm text-gray-300 md:hidden">
-                Teklif Sahibi: <b class="text-yellow-400">${trade.offerer}</b>
-             </p>
-            <p class="hidden md:block text-sm text-gray-300">
-                <b class="text-yellow-400">${trade.offerer}</b>
-            </p>
-            <div class="w-full md:w-auto">${actionButton}</div>
-        </div>
-    </div>
-`;
-listEl.innerHTML += offerHtml;
-
+                    <hr class="border-gray-700 w-full md:hidden">
+                    
+                    <div class="w-full md:w-auto flex flex-col md:flex-row items-center gap-3 md:ml-auto">
+                        <p class="text-sm text-gray-300 md:hidden">
+                            Teklif Sahibi: <b class="text-yellow-400">${trade.offerer}</b>
+                        </p>
+                        <p class="hidden md:block text-sm text-gray-300">
+                            <b class="text-yellow-400">${trade.offerer}</b>
+                        </p>
+                        <div class="w-full md:w-auto">${actionButton}</div>
+                    </div>
+                </div>
+            `;
+            listEl.innerHTML += offerHtml;
         }
     };
     
-    activeListeners.marketOffers = { ref: tradesRef, event: 'value', callback };
     tradesRef.on('value', callback);
+    activeListeners.marketOffers = { ref: tradesRef, event: 'value', callback };
 }
-
+      
 // --- YENİ FONKSİYON ---
 async function openCreateOfferModal(preselectedCardId = null) {
     // ÖNCE KONTROL ET
