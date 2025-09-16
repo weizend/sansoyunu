@@ -15355,12 +15355,13 @@ async function loadGrandPrizeDisplay() {
     displayContainer.classList.remove('hidden');
 }
 
+// MEVCUT checkAndGrantPrize FONKSİYONUNU SİL VE BUNU YAPIŞTIR
+
 async function checkAndGrantPrize(username) {
     const userRef = db.ref(`users/${username}`);
     const userSnap = await userRef.once('value');
     const userData = userSnap.val();
 
-    // Eğer kullanıcı zaten koleksiyonu tamamlamışsa, tekrar ödül verme.
     if (userData.completedCollection === true) {
         return;
     }
@@ -15373,7 +15374,6 @@ async function checkAndGrantPrize(username) {
     if (!masterList) return;
     const totalCardCount = Object.keys(masterList).length;
 
-    // Eğer kullanıcının kart sayısı toplam kart sayısına eşit veya fazlaysa ödül sürecini başlat.
     if (ownedCardCount >= totalCardCount) {
         const prizeSnap = await db.ref('gameConfig/collectionGrandPrize').once('value');
         const prizeData = prizeSnap.val();
@@ -15381,30 +15381,24 @@ async function checkAndGrantPrize(username) {
 
         const finishersRef = db.ref('gameStats/collectionFinishers');
         
-        // ★★★ DEĞİŞİKLİK BURADA BAŞLIYOR ★★★
-        // Kullanıcıyı eklemeden ÖNCE mevcut bitirenlerin sayısını alıyoruz.
         const finishersSnap = await finishersRef.once('value');
         const finisherCount = finishersSnap.exists() ? finishersSnap.numChildren() : 0;
-        const rank = finisherCount + 1; // Yeni bitirenin sırası
-        const isFirstWinner = rank === 1; // Sadece 1. kişi ise true olacak
-        // ★★★ DEĞİŞİKLİK BURADA BİTİYOR ★★★
+        const rank = finisherCount + 1;
+        const isFirstWinner = rank === 1;
 
-        // Yeni bitireni listeye ekle
         await finishersRef.push({
             username: username,
             timestamp: firebase.database.ServerValue.TIMESTAMP
         });
 
-        // Ödülleri ve kullanıcı durumunu güncellemek için bir obje hazırla
         const updates = {};
         updates.balance = (userData.balance || 0) + (prizeData.points || 0);
         updates.kutuHakki = (userData.kutuHakki || 0) + (prizeData.boxRights || 0);
         updates.iflasShieldUses = (userData.iflasShieldUses || 0) + (prizeData.iflasShields || 0);
         updates.carkBileti = (userData.carkBileti || 0) + (prizeData.wheelTickets || 0);
         updates.clickCatchTickets = (userData.clickCatchTickets || 0) + (prizeData.clickCatchTickets || 0);
-        updates.completedCollection = true; // Koleksiyonu tamamladı olarak işaretle
+        updates.completedCollection = true;
 
-        // Avatar ödülü varsa ekle
         if (prizeData.avatarName && prizeData.avatarImageUrl) {
             const newAvatarId = db.ref().push().key;
             updates[`avatars/${newAvatarId}`] = {
@@ -15414,27 +15408,19 @@ async function checkAndGrantPrize(username) {
             };
         }
         
-        // ★★★ DEĞİŞİKLİK BURADA BAŞLIYOR: SADECE İLK KAZANANA BAŞARIM VER ★★★
-        // Kalıcı koleksiyon şampiyonluğu başarımı SADECE İLK BİTİRENE verilecek.
         if (isFirstWinner) {
-            await userRef.child('collectionChampionshipsWon').transaction(currentCount => {
-                return (currentCount || 0) + 1;
-            });
+            await userRef.child('collectionChampionshipsWon').transaction(currentCount => (currentCount || 0) + 1);
         }
-        // ★★★ DEĞİŞİKLİK BURADA BİTİYOR ★★★
         
         await userRef.update(updates);
 
-        // ★★★ DEĞİŞİKLİK BURADA BAŞLIYOR: DİNAMİK BİLDİRİM MESAJI ★★★
-        // Kullanıcıya gösterilecek mesajı sırasına göre ayarla
         let prizeMessage = ``;
         if (isFirstWinner) {
             prizeMessage += `İNANILMAZ! Koleksiyonu tamamlayan İLK KİŞİ oldun ve büyük ödülleri kazandın:`;
         } else {
             prizeMessage += `TEBRİKLER! Koleksiyonu tamamlayan ${rank}. kişi oldun ve büyük ödülleri kazandın:`;
         }
-        // ★★★ DEĞİŞİKLİK BURADA BİTİYOR ★★★
-
+        
         let prizeParts = [];
         if (prizeData.points > 0) prizeParts.push(` ${formatNumber(prizeData.points)} Puan`);
         if (prizeData.boxRights > 0) prizeParts.push(` ${formatNumber(prizeData.boxRights)} Kutu Hakkı`);
@@ -15446,16 +15432,25 @@ async function checkAndGrantPrize(username) {
         prizeMessage += prizeParts.join(',');
         prizeMessage += `!`;
 
-        displayMessage(prizeMessage);
+        // === ANA DEĞİŞİKLİK BURADA ===
+        if (username === currentUser) {
+            // Eğer ödülü kazanan kişi SENSEN, direkt mesajı göster
+            displayMessage(prizeMessage);
+        } else {
+            // Eğer ödülü kazanan BAŞKASIYSA (yani takas yaptığın kişi), ona özel bildirim gönder
+            const notificationData = {
+                type: 'collectionCompleted',
+                title: isFirstWinner ? '🏆 İLK ŞAMPİYON SENSİN! 🏆' : '🎉 KOLEKSİYON TAMAMLANDI! 🎉',
+                message: prizeMessage
+            };
+            await db.ref(`users/${username}/persistentNotifications`).push(notificationData);
+        }
 
-        // ★★★ DEĞİŞİKLİK BURADA BAŞLIYOR: logActivity'e rank bilgisini de gönderiyoruz ★★★
-        // Son Eylemler paneline de doğru sıra bilgisiyle kayıt düş
         logActivity('collectionCompleted', username, { 
             prizeText: 'Büyük Ödül',
             isFirst: isFirstWinner,
             rank: rank 
         });
-        // ★★★ DEĞİŞİKLİK BURADA BİTİYOR ★★★
     }
 }
 
@@ -18320,8 +18315,8 @@ function goToMonsterStore() {
     showSection('store'); // Mağaza bölümünü göster
 }
 
-// YENİ EKLENECEK YARDIMCI FONKSİYONLAR
-// Kalıcı bildirimleri dinler ve gösterir
+// MEVCUT listenForPersistentNotifications FONKSİYONUNU SİLİP BUNU YAPIŞTIR
+
 function listenForPersistentNotifications() {
     if (isAdmin) return;
     const ref = db.ref(`users/${currentUser}/persistentNotifications`);
@@ -18331,15 +18326,14 @@ function listenForPersistentNotifications() {
         const notification = snap.val();
         
         if (notification && notification.type) {
+            // YENİ EKLENEN KISIM: 'collectionCompleted' tipini yakala
             switch(notification.type) {
                 case 'collectionCompleted':
                     showCollectionCompleteModal(notification);
                     break;
                 case 'tradesCancelled':
-                    // Bu bildirim için ayrı bir modal yerine genel mesajı kullanabiliriz
                     displayMessage(notification.message);
                     break;
-                // Gelecekte başka türde kalıcı bildirimler de eklenebilir
             }
             // Bildirimi gösterdikten sonra veritabanından sil
             snap.ref.remove();
@@ -18358,6 +18352,11 @@ function showCollectionCompleteModal(notificationData) {
     document.getElementById('collectionCompleteTitle').innerHTML = notificationData.title;
     document.getElementById('collectionCompleteMessage').innerHTML = notificationData.message;
     document.getElementById('collectionCompleteModal').style.display = 'flex';
+}
+
+// Koleksiyon tamamlama penceresini kapatır
+function closeCollectionCompleteModal() {
+    document.getElementById('collectionCompleteModal').style.display = 'none';
 }
 
 // Koleksiyon tamamlama penceresini kapatır
