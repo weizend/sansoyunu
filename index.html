@@ -16763,6 +16763,12 @@ async function claimLoginStreakReward(day) {
                         case 'card_pack_efsanevi':
                             cardPacksToOpen.push(reward);
                             break;
+                        case 'health_regen_potion': // ★★★ BURADAKİ HATALI MANTIK DÜZELTİLDİ ★★★
+                            if (!userData.inventory) userData.inventory = {};
+                            if (!userData.inventory.health_regen_potion) userData.inventory.health_regen_potion = {};
+                            const currentPotions = userData.inventory.health_regen_potion[reward.value] || 0;
+                            userData.inventory.health_regen_potion[reward.value] = currentPotions + 1;
+                            break;
                         case 'revival_stone':
                             if (!userData.inventory) userData.inventory = {};
                             userData.inventory.revival_stone = (userData.inventory.revival_stone || 0) + reward.value;
@@ -16774,7 +16780,6 @@ async function claimLoginStreakReward(day) {
                         case 'crit_damage_potion':
                         case 'dodge_potion':
                         case 'pierce_potion':
-                        case 'health_regen_potion': // Can yenileme de eklendi
                             const statKeyMap = { 
                                 'health_potion': 'hp', 'damage_potion': 'damage', 'defense_potion': 'defense', 
                                 'crit_potion': 'critChance', 'crit_damage_potion': 'critDamage', 
@@ -16798,7 +16803,6 @@ async function claimLoginStreakReward(day) {
         });
 
         if (committed) {
-            // ★★★ İSTEĞE GÖRE GÜNCELLENEN MESAJ ALANI BAŞLANGICI ★★★
             const rewardNames = dayData.rewards.map(r => {
                 const percentPotions = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion', 'health_regen_potion'];
                 
@@ -16813,7 +16817,6 @@ async function claimLoginStreakReward(day) {
                     return `${prefix}${valueDisplay} ${typeToName[r.type] || 'Ödül'}`;
                 }
             }).join(', ');
-            // ★★★ GÜNCELLENEN MESAJ ALANI SONU ★★★
 
             displayMessage(`Tebrikler! ${day}. gün ödüllerin (${rewardNames}) envanterine eklendi!`);
             
@@ -16892,6 +16895,13 @@ function applyRewardToUser(userData, reward) {
         case 'card_pack_altin':
         case 'card_pack_efsanevi':
             cardPacksToOpen.push(reward);
+            break;
+        case 'health_regen_potion': // ★★★ YENİ EKLENEN VE SORUNU ÇÖZEN BLOK ★★★
+            if (!userData.inventory) userData.inventory = {};
+            if (!userData.inventory.health_regen_potion) userData.inventory.health_regen_potion = {};
+            // 'reward.value' burada iksirin yüzdesidir (örn: 10, 25). Bu yüzdeye sahip iksirlerin sayısını 1 artırıyoruz.
+            const currentPotions = userData.inventory.health_regen_potion[reward.value] || 0;
+            userData.inventory.health_regen_potion[reward.value] = currentPotions + 1;
             break;
         case 'revival_stone':
             if (!userData.inventory) userData.inventory = {};
