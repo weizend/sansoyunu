@@ -7763,7 +7763,8 @@ cardDiv.innerHTML = `
     }
 }
 
-      // Yetersiz bakiye vb. durumlarda mağazaya yönlendirme seçeneği sunar
+      // --- YENİ YARDIMCI FONKSİYON (BUNU EKLE) ---
+// Yetersiz bakiye vb. durumlarda mağazaya yönlendirme seçeneği sunar
 function displayMessageWithRedirect(message, buttonText = "Mağazaya Git", onRedirect) {
     // Önceki pencereleri kapat
     closeGeneralMessageModal();
@@ -7787,13 +7788,19 @@ function displayMessageWithRedirect(message, buttonText = "Mağazaya Git", onRed
         if (modal) modal.remove();
     };
 
-    document.getElementById('redirectCancel').onclick = closeModal;
-    document.getElementById('redirectConfirm').onclick = () => {
+    // --- DEĞİŞİKLİK BURADA BAŞLIYOR ---
+    document.getElementById('redirectCancel').onclick = (event) => {
+        event.preventDefault(); // Olay çakışmasını engelle
+        closeModal();
+    };
+    document.getElementById('redirectConfirm').onclick = (event) => {
+        event.preventDefault(); // Olay çakışmasını engelle
         closeModal();
         if (onRedirect) {
             onRedirect();
         }
     };
+    // --- DEĞİŞİKLİK BURADA BİTİYOR ---
 }
 
       function goToStoreWithFilter(itemType, specificItemId = null) {
