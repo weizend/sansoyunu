@@ -11,6 +11,295 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
 <style>
+/* --- YENİ EKLENECEK KOD: KULLANICI ETİKETLEME ÖNERİ KUTUSU --- */
+#chatSuggestions {
+    position: absolute;
+    bottom: 100%; /* Giriş alanının hemen üstünde */
+    left: 1rem;
+    right: 1rem;
+    background-color: #1f2937; /* bg-gray-800 */
+    border: 1px solid #4b5563; /* border-gray-600 */
+    border-bottom: none; /* Alt kenarlığı kaldır */
+    border-radius: 0.75rem 0.75rem 0 0; /* Sadece üst köşeleri yuvarla */
+    max-height: 150px;
+    overflow-y: auto;
+    z-index: 9999;
+}
+.suggestion-item {
+    padding: 0.5rem 1rem;
+    color: #d1d5db; /* text-gray-300 */
+    cursor: pointer;
+    border-bottom: 1px solid #374151; /* border-gray-700 */
+}
+.suggestion-item:hover, .suggestion-item.active {
+    background-color: #4b5563; /* bg-gray-600 */
+    color: white;
+}
+.suggestion-item:last-child {
+    border-bottom: none;
+}
+/* --- YENİ EKLENECEK KOD: GELİŞMİŞ SOHBET STİLLERİ --- */
+
+/* Tıklanabilir avatar ve kullanıcı adı için fare imleci */
+.chat-message .avatar,
+.chat-message .message-header .username {
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+.chat-message .avatar:hover,
+.chat-message .message-header .username:hover {
+    opacity: 0.8;
+}
+
+/* @kullaniciadi etiket stili */
+.user-mention {
+    background-color: rgba(253, 224, 71, 0.2); /* yellow-300/20 */
+    color: #fde047; /* text-yellow-300 */
+    padding: 2px 6px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+.user-mention:hover {
+    background-color: rgba(253, 224, 71, 0.4);
+}
+
+/* Admin tarafından silinmiş (üstü çizili) mesaj stili */
+.deleted-message-body {
+    text-decoration: line-through;
+    color: #9ca3af; /* text-gray-400 */
+    font-style: italic;
+}
+
+/* Admin sohbet eylem menüsü (modal) */
+.admin-chat-modal .modal-content {
+    border-color: #ef4444; /* border-red-500 */
+}
+.admin-chat-modal .modal-content h4 {
+    color: #f87171; /* text-red-400 */
+}
+.admin-chat-modal .modal-content button {
+    transition: all 0.2s;
+}
+/* --- YENİ EKLENECEK KOD: SOHBET SİSTEMİ STİLLERİ --- */
+
+/* Sohbeti Aç/Kapat Butonu */
+#chatToggleBtn {
+    position: fixed;
+    bottom: 1.5rem; /* 24px */
+    right: 1.5rem;  /* 24px */
+    z-index: 9998;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #b91c1c, #7f1d1d);
+    color: white;
+    /* --- BU SATIRI DEĞİŞTİR --- */
+    display: none; /* Varsayılan olarak gizli */ 
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #fecaca;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+#chatToggleBtn:hover {
+    transform: scale(1.1) rotate(15deg);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.4);
+}
+/* Yeni mesaj geldiğinde butona eklenecek animasyon */
+#chatToggleBtn .notification-dot {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 16px;
+    height: 16px;
+    background-color: #fde047; /* yellow-400 */
+    border-radius: 50%;
+    border: 2px solid #111827; /* bg-gray-900 */
+    animation: pulse-dot 1.5s infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.7; }
+}
+
+/* Sohbet Paneli */
+#chatPanel {
+    position: fixed;
+    bottom: 6rem;   /* 96px - Butonun üstünde */
+    right: 1.5rem;  /* 24px */
+    width: 90%;
+    max-width: 400px;
+    height: 500px;
+    z-index: 9997;
+    background-color: rgba(17, 24, 39, 0.95); /* bg-gray-900/95 */
+    backdrop-filter: blur(8px);
+    border-radius: 1rem; /* rounded-2xl */
+    border: 1px solid #4b5563; /* border-gray-600 */
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    /* Başlangıçta gizli ve küçük */
+    transform: translateY(20px) scale(0.95);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+/* Sohbet paneli açıldığında */
+#chatPanel.open {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Sohbet Paneli Başlığı */
+#chatPanel .chat-header {
+    padding: 1rem;
+    border-bottom: 1px solid #4b5563;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+/* Mesajların olduğu alan */
+#chatMessages {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column-reverse; /* Yeni mesajlar altta görünür */
+}
+
+/* Tek bir mesaj balonu */
+.chat-message {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem; /* 12px */
+    margin-bottom: 1rem;
+    max-width: 90%;
+}
+.chat-message .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid #6b7280; /* border-gray-500 */
+    object-fit: cover;
+}
+.chat-message .message-content {
+    display: flex;
+    flex-direction: column;
+}
+.chat-message .message-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem; /* 8px */
+    margin-bottom: 0.25rem; /* 4px */
+}
+.chat-message .message-header .username {
+    font-weight: 700; /* bold */
+    color: #fde047; /* text-yellow-300 */
+    font-size: 0.875rem; /* text-sm */
+}
+.chat-message .message-header .timestamp {
+    font-size: 0.75rem; /* text-xs */
+    color: #6b7280; /* text-gray-500 */
+}
+.chat-message .message-body {
+    background-color: #374151; /* bg-gray-700 */
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.75rem; /* rounded-xl */
+    color: #f3f4f6; /* text-gray-100 */
+    word-break: break-word;
+}
+
+/* Mevcut kullanıcının mesajı */
+.chat-message.current-user {
+    align-self: flex-end;
+    flex-direction: row-reverse; /* Avatar sağda */
+}
+.chat-message.current-user .message-header {
+    flex-direction: row-reverse;
+}
+.chat-message.current-user .message-body {
+    background-color: #7f1d1d; /* bg-red-800 */
+}
+
+/* Mesaj Yazma Alanı */
+#chatInputContainer {
+    padding: 1rem;
+    border-top: 1px solid #4b5563; /* border-gray-600 */
+    display: flex;
+    gap: 0.75rem; /* 12px */
+    flex-shrink: 0;
+}
+#chatInput {
+    flex-grow: 1;
+    background-color: #1f2937; /* bg-gray-800 */
+    border: 1px solid #4b5563;
+    border-radius: 9999px; /* rounded-full */
+    padding: 0.5rem 1rem;
+    color: white;
+    outline: none;
+}
+#chatInput:focus {
+    border-color: #ef4444; /* focus:border-red-500 */
+    box-shadow: 0 0 0 2px #ef444460;
+}
+#chatSendBtn {
+    background-color: #b91c1c; /* bg-red-700 */
+    border: none;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+#chatSendBtn:hover {
+    background-color: #991b1b; /* hover:bg-red-800 */
+}
+#chatSendBtn:disabled {
+    background-color: #4b5563; /* bg-gray-600 */
+    cursor: not-allowed;
+}
+
+/* Admin Mesaj Silme Butonu */
+.delete-msg-btn {
+    background: none;
+    border: none;
+    color: #9ca3af; /* text-gray-400 */
+    cursor: pointer;
+    margin-left: 0.5rem;
+    visibility: hidden; /* Normalde gizli */
+}
+.chat-message:hover .delete-msg-btn {
+    visibility: visible; /* Hover'da görünür */
+}
+.delete-msg-btn:hover {
+    color: #ef4444; /* text-red-500 */
+}
+
+/* Mobil için panelin konumunu ayarla */
+@media (max-width: 640px) {
+    #chatPanel {
+        bottom: 5.5rem;
+        right: 0.5rem;
+        left: 0.5rem;
+        width: auto;
+        height: 60vh;
+    }
+    #chatToggleBtn {
+        bottom: 1rem;
+        right: 1rem;
+    }
+}
+/* --- SOHBET STİLLERİ SONU --- */
     @keyframes glowing-item {
   0% { box-shadow: 0 0 5px #fde047; }
   50% { box-shadow: 0 0 20px #facc15, 0 0 30px #fde047; }
@@ -1081,6 +1370,66 @@
   .catch-item:hover {
       transform: scale(1.1);
   }
+  /* --- YENİ EKLENECEK KOD: GELİŞTİRİLMİŞ MODAL (PENCERE) STİLLERİ --- */
+
+/* Modal Başlığı Alanı (Güncellendi) */
+.modal-header {
+    display: flex;
+    justify-content: space-between; /* Başlık ve butonu iki uca yaslar */
+    align-items: center;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #4a5568; /* a.k.a. border-gray-600 */
+    margin-bottom: 1.5rem; /* Başlık ile içerik arasına boşluk */
+    flex-shrink: 0; /* Küçülmesini engeller */
+}
+
+/* Modal Başlığının Kendisi (Güncellendi) */
+.modal-header h1, .modal-header h2, .modal-header h3, .modal-header h4 {
+    margin-bottom: 0 !important; /* Başlıktaki alt boşluğu kaldırır */
+}
+
+/* Kapatma Butonu (Yenilendi) */
+.modal-close-button {
+    /* Eski absolute konumlandırmayı kaldırıyoruz */
+    position: relative;
+    top: auto;
+    right: auto;
+    
+    /* Dokunma alanını büyütüyoruz */
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    
+    color: #9ca3af; /* text-gray-400 */
+    font-size: 28px;
+    line-height: 40px; /* Dikeyde ortalamak için */
+    text-align: center;
+    
+    background-color: rgba(255, 255, 255, 0.05); /* Hafif bir arka plan */
+    border: none;
+    cursor: pointer;
+    
+    transition: all 0.2s ease-in-out;
+}
+
+.modal-close-button:hover {
+    color: white;
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: scale(1.1) rotate(90deg); /* Hafif animasyon */
+}
+
+/* Modal açıkken body'nin kaymasını engelleyen sınıf (Zaten vardı, teyit amaçlı) */
+body.modal-open {
+    overflow: hidden;
+}
+
+/* --- YENİ EKLENECEK KOD: MOBİL İZLEME PENCERESİ DÜZELTMESİ --- */
+#spectatorModal .modal-content {
+    max-height: 85vh !important;
+    overflow-y: auto !important;
+}
+
+/* --- KOD SONU --- */
   /* Modal Başlığı Alanı (Güncellendi) */
   .modal-header {
     /* Butonu sağa yaslama komutunu kaldırıyoruz, artık kendi başına ortalanacak */
@@ -2057,6 +2406,14 @@ body.modal-open .modal-content {
         🧪 Tüm Kullanıcıların İksir Bonuslarını Sıfırla
     </button>
 </div>
+<div class="bg-gray-800/80 p-6 rounded-xl border border-gray-700 mt-6">
+    <h4 class="text-yellow-200 text-xl font-semibold mb-4 border-b border-gray-600 pb-2">Sohbet Ayarları</h4>
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+        <label for="slowModeInput" class="text-gray-300 flex-shrink-0">Yavaş Mod (Saniye):</label>
+        <input type="number" id="slowModeInput" class="box-setting-input flex-grow" placeholder="0 = kapalı">
+        <button onclick="saveSlowModeSettings()" class="py-2 px-4 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold">Kaydet</button>
+    </div>
+</div>
     </div>
 </div>
       </div>
@@ -2530,10 +2887,12 @@ body.modal-open .modal-content {
 <div id="helpModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 hidden">
   <div class="modal-content bg-gray-800 rounded-xl shadow-2xl border border-red-700 w-11/12 max-w-3xl text-left relative max-h-[90vh] flex flex-col">
       
-      <div class="flex-shrink-0 p-6 border-b border-gray-700 relative">
-          <h3 class="text-yellow-400 text-3xl font-bold text-center">Weizend Oyun Dünyası Rehberi</h3>
-          <button class="modal-close-button" onclick="closeHelpModal()">&times;</button>
-      </div>
+      <div class="modal-content bg-gray-800 rounded-xl shadow-2xl border border-red-700 w-11/12 max-w-3xl text-left relative max-h-[90vh] flex flex-col">
+    <div class="modal-header p-6">
+        <h3 class="text-yellow-400 text-3xl font-bold">Weizend Oyun Dünyası Rehberi</h3>
+        <button class="modal-close-button" onclick="closeHelpModal()">&times;</button>
+    </div>
+    </div>
       
       <div class="overflow-y-auto scrollable-list p-6">
         <div class="space-y-8 text-gray-300">
@@ -3026,9 +3385,11 @@ body.modal-open .modal-content {
   <div id="clickCatchInfoModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[9999] hidden">
   <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-blue-500 w-11/12 max-w-2xl text-left relative max-h-[90vh] flex flex-col">
     
-    <div class="flex-shrink-0 mb-4 pb-4 border-b border-gray-700">
+    <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-blue-500 w-11/12 max-w-2xl text-left relative max-h-[90vh] flex flex-col">
+    <div class="modal-header">
+        <h4 class="text-blue-300 text-2xl font-bold">Tıkla-Yakala Oyun Bilgileri</h4>
         <button class="modal-close-button" onclick="closeClickCatchInfoModal()">&times;</button>
-        <h4 class="text-blue-300 text-2xl font-bold text-center">Tıkla-Yakala Oyun Bilgileri</h4>
+    </div>
     </div>
 
     <div class="overflow-y-auto scrollable-list pr-4 space-y-6 text-gray-300">
@@ -3171,9 +3532,11 @@ body.modal-open .modal-content {
   <div id="seasonInfoModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[10001] hidden">
   <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-blue-500 w-11/12 max-w-2xl text-left relative max-h-[90vh] flex flex-col">
     
-    <div class="flex-shrink-0 mb-4 pb-4 border-b border-gray-700">
+    <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-blue-500 w-11/12 max-w-2xl text-left relative max-h-[90vh] flex flex-col">
+    <div class="modal-header">
+        <h4 class="text-blue-300 text-2xl font-bold">🏆 Aylık Sezon Sıfırlaması Nedir?</h4>
         <button class="modal-close-button" onclick="closeSeasonInfoModal()">&times;</button>
-        <h4 class="text-blue-300 text-2xl font-bold text-center">🏆 Aylık Sezon Sıfırlaması Nedir?</h4>
+    </div>
     </div>
 
     <div class="overflow-y-auto scrollable-list pr-4 space-y-4 text-gray-300">
@@ -3550,6 +3913,68 @@ body.modal-open .modal-content {
     <p class="text-lg">Oyunun özelliklerini kullanabilmek için internet bağlantısı gereklidir.</p>
     <p class="mt-4 text-yellow-400 animate-pulse">Bağlantı kontrol ediliyor, lütfen bekleyin...</p>
 </div>
+<button id="chatToggleBtn" onclick="toggleChat()" class="hidden" title="Sohbeti Aç/Kapat">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2zM7 8H5v2h2V8zm2 0h2v2H9V8zm6 0h-2v2h2V8z" clip-rule="evenodd" />
+    </svg>
+    <span id="chatNotificationDot" class="notification-dot hidden"></span>
+</button>
+
+<div id="chatPanel">
+    <div class="chat-header">
+    <h3 class="text-xl font-bold text-yellow-400">Genel Sohbet</h3>
+    <div class="flex items-center gap-2">
+        <button id="clearChatBtn" onclick="clearChatHistory()" class="hidden p-2 rounded-full hover:bg-gray-700 transition-colors" title="Sohbet Geçmişini Temizle">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+        </button>
+        <button onclick="toggleChat()" class="p-2 rounded-full hover:bg-gray-700 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+    </div>
+</div>
+    <div id="chatMessages" class="scrollable-list">
+        </div>
+    <div id="chatInputContainer" class="relative">
+    <div id="chatSuggestions" class="hidden"></div>
+    
+    <input type="text" id="chatInput" placeholder="Mesajını yaz..." maxlength="150" autocomplete="off">
+    <button id="chatSendBtn" onclick="sendMessage()">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+        </svg>
+    </button>
+</div>
+</div>
+<div id="adminChatActionModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[10003] hidden admin-chat-modal">
+  <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl w-11/12 max-w-sm text-center relative">
+    <button class="modal-close-button" onclick="closeAdminChatActionModal()">&times;</button>
+    <h4 id="adminActionTitle" class="text-2xl font-bold mb-6">Sohbet Eylemi</h4>
+    <div class="space-y-4">
+        <button id="adminDeleteMessageBtn" class="w-full py-3 bg-yellow-600 hover:bg-yellow-500 text-black font-bold rounded-lg shadow-md">
+            Mesajı Sil
+        </button>
+        <button id="adminMuteUserBtn" class="w-full py-3 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg shadow-md">
+            Kullanıcıyı Uzaklaştır
+        </button>
+    </div>
+  </div>
+</div>
+
+<div id="muteUserModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[10004] hidden admin-chat-modal">
+  <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl w-11/12 max-w-sm text-center relative">
+    <button class="modal-close-button" onclick="closeMuteUserModal()">&times;</button>
+    <h4 id="muteUserTitle" class="text-2xl font-bold mb-4">Kullanıcıyı Uzaklaştır</h4>
+    <p class="text-gray-400 mb-4">Kullanıcının ne kadar süreyle sohbetten uzaklaştırılacağını dakika cinsinden girin.</p>
+    <input type="number" id="muteDurationInput" min="1" placeholder="Süre (dakika)" class="box-setting-input mb-4">
+    <button onclick="confirmMuteUser()" class="w-full py-3 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg shadow-md">
+        Uzaklaştırmayı Onayla
+    </button>
+  </div>
+</div>
   <script>
       
       // YENİ EKLENECEK GİZLİ ADMİN GİRİŞİ KODU
@@ -3668,7 +4093,14 @@ function getSyncedTime() {
   let latestAnnouncementTimestamp = 0;
   let latestStoreItemTimestamp = 0;
   let newlyAcquiredCards = new Set();
+  let chatCooldown = false;
+  let lastMessageTime = 0;
   let ticketsUsedThisRound = 1;
+  let chatMuteTarget = {};
+  // YENİ: Sohbet yavaş mod ayarlarını tutar
+  let chatSettings = { slowModeSeconds: 3 }; 
+  // YENİ: Kullanıcının son mesaj atma zamanını tutar
+  let lastMessageTimestamp = 0;
 
   const defaultAvatarUrl = 'https://i.hizliresim.com/n01dnz4.png?_gl=1*11uaptm*_ga*NTE1MDc3ODEyLjE3Mzg5Mjg1MDk.*_ga_M9ZRXYS2YN*czE3NTQ2OTEwMTgkbzkkZzEkdDE3NTQ2OTEwMjYkajUyJGwwJGgw'; // Varsayılan profil resmi
   
@@ -4440,6 +4872,8 @@ async function executeWeeklyReset() {
     document.getElementById("loginContainer").style.display = "none";
     document.getElementById("gameDiv").style.display = "block";
     
+    document.getElementById('chatToggleBtn').style.display = 'flex';
+    
     document.getElementById("currentUser").textContent = currentUser;
     document.getElementById("role").textContent = isAdmin ? "(Admin)" : "";
     document.getElementById("inventoryButton").style.display = isAdmin ? 'none' : 'inline-block';
@@ -4448,9 +4882,11 @@ async function executeWeeklyReset() {
       document.getElementById('adminPanelToggleButton').classList.remove('hidden');
       document.getElementById('boxSettingsButton').classList.remove('hidden');
       document.getElementById('currentUserAvatar').src = 'https://i.hizliresim.com/mtwdr1x.png?_gl=1*1vzhmma*_ga*MTA2NTkzNzE4OC4xNzQ3MTQ1Mzk0*_ga_M9ZRXYS2YN*czE3NTUxNzY3MTckbzEwJGcxJHQxNzU1MTc3NTAwJGozNyRsMCRoMA..';
+      document.getElementById('clearChatBtn').classList.remove('hidden');
     } else {
       document.getElementById('adminPanelToggleButton').classList.add('hidden');
       document.getElementById('boxSettingsButton').classList.add('hidden');
+      document.getElementById('clearChatBtn').classList.add('hidden');
       
       const userSnap = await db.ref('users/' + currentUser).once('value');
       const userData = userSnap.val();
@@ -4462,6 +4898,9 @@ async function executeWeeklyReset() {
     await loadWheelSettingsFromDB();
     renderWheel();
     
+    // YENİ: Sohbet ayarlarını dinlemeyi başlat
+    listenForChatSettings();
+
     loadBalanceAndBoxRights();
     loadUserRankingsAndBoxCounts();
     loadLeaderboardRanking();
@@ -4514,8 +4953,8 @@ async function executeWeeklyReset() {
         });
     }
 
-    // İnternet kopması gibi durumlarda kalan ödülleri kontrol et
     processPendingRewards(); 
+    listenForChatMessages();
 }
 
   function switchStoreTab(tab) {
@@ -4695,24 +5134,23 @@ function resetGlobalState() {
     document.getElementById('storeCurrentUserKasaBalance').textContent = '0';
 }
 
-// ★★★ MEVCUT logout FONKSİYONUNU SİL VE BU GÜNCEL VERSİYONU YAPIŞTIR ★★★
+// MEVCUT logout FONKSİYONUNU SİL VE BUNUNLA DEĞİŞTİR
 async function logout() {
     const confirmed = await customConfirm("Çıkış yapmak istediğinize emin misiniz?");
     if (!confirmed) return;
 
     localStorage.removeItem('weizendOyunUser');
 
-    // 1. ÖNCE tüm dinleyicileri kapat
     detachAllListeners();
-    
-    // 2. SONRA tüm geçici verileri ve değişkenleri temizle
     resetGlobalState();
     
-    // 3. Tüm admin kontrollerini gizle
+    // --- GÜNCELLEME BURADA ---
+    document.getElementById('chatToggleBtn').style.display = 'none';
+    document.getElementById('chatPanel').classList.remove('open');
+    
     hideAllAdminControls();
     document.getElementById('adminPanelToggleButton')?.classList.add('hidden');
 
-    // 4. UI'ı (arayüzü) güncelle
     document.getElementById("gameDiv").style.display = "none";
     document.getElementById("loginContainer").style.display = "block";
     
@@ -4725,11 +5163,89 @@ async function logout() {
         activityBellContainer.classList.add('hidden');
     }
 
-    // 5. En son Firebase oturumunu kapat
     auth.signOut().catch((error) => {
         console.error("Çıkış yapılırken hata oluştu: ", error);
         displayMessage("Çıkış yapılırken bir hata oluştu.");
     });
+}
+
+// --- YENİ EKLENECEK KOD: KULLANICI ETİKETLEME ÖNERİ SİSTEMİ ---
+
+/**
+ * Sohbet giriş alanındaki @ karakterini ve sonraki yazıyı dinler.
+ */
+function handleChatInput() {
+    const input = document.getElementById('chatInput');
+    const text = input.value;
+    const cursorPosition = input.selectionStart;
+
+    // İmlecin bulunduğu yerdeki kelimeyi bul
+    const textBeforeCursor = text.substring(0, cursorPosition);
+    const atIndex = textBeforeCursor.lastIndexOf('@');
+
+    if (atIndex === -1 || textBeforeCursor.substring(atIndex + 1).includes(' ')) {
+        closeChatSuggestions();
+        return;
+    }
+
+    const searchTerm = textBeforeCursor.substring(atIndex + 1).toLowerCase();
+    
+    // allUsersCache içindeki kullanıcıları filtrele
+    const suggestions = allUsersCache
+        .filter(user => user.username.toLowerCase().startsWith(searchTerm) && user.username.toLowerCase() !== currentUser.toLowerCase())
+        .map(user => user.username);
+
+    if (suggestions.length > 0) {
+        renderChatSuggestions(suggestions);
+    } else {
+        closeChatSuggestions();
+    }
+}
+
+/**
+ * Filtrelenen kullanıcıları öneri kutusunda gösterir.
+ */
+function renderChatSuggestions(suggestions) {
+    const suggestionsBox = document.getElementById('chatSuggestions');
+    suggestionsBox.innerHTML = '';
+    suggestions.forEach(username => {
+        const item = document.createElement('div');
+        item.className = 'suggestion-item';
+        item.textContent = username;
+        item.onclick = () => selectChatSuggestion(username);
+        suggestionsBox.appendChild(item);
+    });
+    suggestionsBox.classList.remove('hidden');
+}
+
+/**
+ * Öneri kutusunu kapatır.
+ */
+function closeChatSuggestions() {
+    const suggestionsBox = document.getElementById('chatSuggestions');
+    suggestionsBox.classList.add('hidden');
+    suggestionsBox.innerHTML = '';
+}
+
+/**
+ * Seçilen kullanıcı adını sohbet giriş alanına ekler.
+ */
+function selectChatSuggestion(username) {
+    const input = document.getElementById('chatInput');
+    const text = input.value;
+    const cursorPosition = input.selectionStart;
+    
+    const textBeforeCursor = text.substring(0, cursorPosition);
+    const atIndex = textBeforeCursor.lastIndexOf('@');
+
+    const textAfterCursor = text.substring(cursorPosition);
+    
+    // @'den önceki metni, seçilen kullanıcı adını ve imleçten sonraki metni birleştir
+    const newText = text.substring(0, atIndex + 1) + username + ' ' + textAfterCursor;
+    
+    input.value = newText;
+    closeChatSuggestions();
+    input.focus(); // Input'a geri odaklan
 }
 
 // --- BU GÜNCEL FONKSİYONU ESKİSİNİN YERİNE YAPIŞTIRIN ---
@@ -6027,8 +6543,7 @@ function handleRowTypeChange(selectElement) {
     }
 }
 
-// --- BU GÜNCEL FONKSİYONU ESKİSİNİN YERİNE YAPIŞTIRIN ---
-// openBox fonksiyonunu bununla değiştir
+// MEVCUT openBox FONKSİYONUNU KOMPLE SİL VE BUNUNLA DEĞİŞTİR
 async function openBox(index) {
     const lastSurpriseSnap = await db.ref('gameStats/lastSurpriseInfo').once('value');
     const lastSurpriseData = lastSurpriseSnap.val();
@@ -6061,14 +6576,13 @@ async function openBox(index) {
     }
 
     if ((user.kutuHakki || 0) < BOX_RIGHTS_COST_PER_BOX) {
-        // GÜNCELLEME BURADA
         displayMessageWithRedirect("Yetersiz kutu hakkı.", "Mağazaya Git", () => {
-            storeFilter = { type: 'boxRights' }; // Sadece genel tip yeterli
+            storeFilter = { type: 'boxRights' };
             showSection('store');
         });
         return;
     }
-    // Fonksiyonun geri kalanı aynı...
+    
     const initialConfirm = await customConfirm(`<b>${boxes[index].id}</b> numaralı kutuyu açmak istediğinize emin misiniz?`);
     if (!initialConfirm) {
         return;
@@ -6183,7 +6697,23 @@ async function openBox(index) {
             const boxRightsFromMultiplier = foundMultiplierValue;
             updates.kutuHakki += boxRightsFromMultiplier;
             message = `Mevcut <b>${existingMultiplierValue}x</b> çarpanın daha güçlü olduğu için korundu. Bulduğun ${foundMultiplierValue}x çarpan ise <b class="text-green-400">+${boxRightsFromMultiplier} Kutu Hakkı</b>'na dönüştürüldü!`;
-            logActivity('multiplierConvertedToBoxRights', currentUser, { boxId: box.id, rewardValue: foundMultiplierValue, boxRights: boxRightsFromMultiplier, source: 'Kutudan', multiplier: finalMultiplier });
+            
+            // =========================================================================
+            // ★★★ İSTEDİĞİN DEĞİŞİKLİK İÇİN DÜZELTME BURADA ★★★
+            // Eksik olan 'existingValue' ve 'existingUses' log kaydına ekleniyor.
+            // =========================================================================
+            logActivity('multiplierConvertedToBoxRights', currentUser, {
+                boxId: box.id,
+                rewardValue: foundMultiplierValue,
+                boxRights: boxRightsFromMultiplier,
+                source: 'Kutudan',
+                multiplier: finalMultiplier,
+                existingValue: existingMultiplierValue, // <-- BU SATIR EKLENDİ
+                existingUses: existingMultiplierUses   // <-- BU SATIR EKLENDİ
+            });
+            // =========================================================================
+            // ★★★ DEĞİŞİKLİK SONU ★★★
+            // =========================================================================
         }
     }
     else if (box.content === 'points') {
@@ -6415,7 +6945,7 @@ function closeMultiplierChoiceModal() {
     pendingMultiplierChoice = null; 
 }
 
-// ESKİ DOSYADAKİ (index (2).html) DOĞRU ÇALIŞAN FONKSİYON
+// ESKİ getActivityIcon FONKSİYONUNU SİL VE BUNU YAPIŞTIR
 function getActivityIcon(type, details = {}) {
     let icon = '🔔';
     let bgColor = 'bg-gray-500';
@@ -6607,7 +7137,6 @@ function renderActivityFeed(activities) {
                     const balanceUnit = isKP ? 'KP' : 'Puanı';
                     const isPotion = details.itemType && details.itemType.endsWith('_potion');
 
-                    // ★★★ İSTEĞE GÖRE GÜNCELLENEN MESAJ ALANI BAŞLANGICI ★★★
                     if (isPotion) {
                         const isPercent = percentPotions.includes(details.itemType);
                         let bonusText = '';
@@ -6618,7 +7147,6 @@ function renderActivityFeed(activities) {
                         }
                         message = `${userHtml}, mağazadan <b class="text-red-500">-${costText}</b> harcayarak <b class="text-green-400">${bonusText} ${details.itemName}</b> bonusu kazandı. (Mevcut ${balanceUnit}: ${formatNumber(balance)})`;
                     } 
-                    // ★★★ GÜNCELLENEN MESAJ ALANI SONU ★★★
                     else if (details.itemValue) {
                          message = `${userHtml}, mağazadan <b class="text-red-500">-${costText}</b> harcayarak <b class="text-green-400">+${details.itemValue} ${details.itemName}</b> aldı. (Mevcut ${balanceUnit}: ${formatNumber(balance)})`;
                     } else {
@@ -6708,6 +7236,10 @@ function renderActivityFeed(activities) {
                     const upgradeSource = details.source || 'Mağazadan';
                     message = `${userHtml}, ${upgradeSource}'den aldığı <b>${details.newValue}x (${details.newUses} kullanım)</b> çarpan ile mevcut çarpanını yükseltti. Eski <b>${details.oldValue}x (${details.oldUses} kullanım)</b> çarpanı için <b class="text-green-300 font-bold">+${details.boxRights} Kutu Hakkı</b> iade edildi.`;
                     break;
+
+                // =========================================================================
+                // ★★★ İSTEDİĞİN DEĞİŞİKLİK BURADA ★★★
+                // =========================================================================
                 case 'multiplierConvertedToBoxRights':
                 case 'multiplierConvertedOnUsedOpen':
                 case 'multiplierConvertedOnUnusedOpen':
@@ -6724,13 +7256,18 @@ function renderActivityFeed(activities) {
                     let keptMultiplierText = '';
                     const keptValue = details.keptMultiplierValue || details.existingValue;
                     const keptUses = details.existingUses;
+
+                    // Yeni mesaj formatı burada oluşturuluyor.
                     if (keptValue && keptUses) {
-                        keptMultiplierText = ` Mevcut <b>${keptValue}x</b> (${keptUses} kullanım) çarpanı korundu.`;
+                        keptMultiplierText = ` Mevcut <b>${keptValue}x</b> (${keptUses} kullanım) hakkı daha yüksek olduğu için korundu.`;
                     }
 
                     message = `${userHtml}, ${conversionSourceText} kazandığı <b>${details.rewardValue || details.foundValue}x</b> çarpanı, <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b>'na dönüştürüldü.${keptMultiplierText}`;
                     break;
-                
+                // =========================================================================
+                // ★★★ DEĞİŞİKLİK SONU ★★★
+                // =========================================================================
+
                 case 'multiplierStackedFromStore':
                      message = `${userHtml}, mağazadan aldığı çarpan ile mevcut <b>${details.multiplierValue}x</b> çarpanının kullanım hakkını <b class="text-teal-300 font-bold">+${details.usesAdded}</b> artırarak toplam <b class="text-teal-300 font-bold">${details.newTotalUses}</b> adete çıkardı.`;
                     break;
@@ -6745,7 +7282,7 @@ function renderActivityFeed(activities) {
                     message = `${userHtml}, Koleksiyonu tamamladığı için ${details.source}'dan aldığı ${details.wildcards} Joker Kart'ı <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b>'na dönüştürdü.`;
                     break;
                 case 'cardPackConverted':
-                    message = `${userHtml}, Koleksiyonu tamamladığı için ${details.source}'dan aldığı ${details.packs} Kart Paketi'ni <b class="text-green-300 font-bold">+${details.points} Puana</b> dönüştürdü.`;
+                    message = `${userHtml}, Koleksiyonu tamamladığı için ${details.source}'dan aldığı ${details.packs} Kart Paketi'ni <b class="text-green-300 font-bold">+${formatNumber(details.points)} Puana</b> dönüştürdü.`;
                     break;
                 case 'multiplierCombined':
                     message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <b>${details.foundValue}x çarpan</b> buldu. Mevcut çarpanıyla birleştirerek tek kullanımlık <b class="text-teal-300 font-bold">${details.combinedValue}x</b> gücüne ulaştı ve <span class="text-green-300 font-bold">+1 Kutu Hakkı</span> iade aldı.`;
@@ -6778,7 +7315,6 @@ function renderActivityFeed(activities) {
                     if (prizeType === 'pas') { message = `${userHtml}, çarkı çevirdi ve <span class="text-gray-400 font-bold">Pas</span> geçti.`; } 
                     else {
                         const isPercentSpin = percentPotions.includes(prizeType);
-                        // ★★★ İSTEĞE GÖRE GÜNCELLENEN MESAJ ALANI ★★★
                         const valuePrefixSpin = isPercentSpin ? `%` : `+`;
                         if (prizeType === 'points') { prizeText = `+${prizeValue} Puan`; } 
                         else if (prizeType === 'tempMultiplier') { prizeText = `${prizeValue}X Çarpan`; } 
@@ -6799,7 +7335,6 @@ function renderActivityFeed(activities) {
                         message = `${userHtml}, günlük ödül olarak ${rewardText} kazandı.`;
                     } else {
                         const isPercentDaily = percentPotions.includes(rewardType);
-                        // ★★★ İSTEĞE GÖRE GÜNCELLENEN MESAJ ALANI ★★★
                         const valuePrefixDaily = isPercentDaily ? `%` : `+`;
                         if (rewardType === 'tempMultiplier') { 
                             rewardText = `${rewardValue}x Çarpan (${details.rewardUses} kullanım)`;
@@ -6814,6 +7349,22 @@ function renderActivityFeed(activities) {
                     break;
             }
 
+            const plainTextMessage = message.replace(/<[^>]*>?/gm, '');
+            const escapedMessage = plainTextMessage.replace(/"/g, '&quot;');
+
+            const shareButtonHtml = `
+                <button 
+                    onclick="shareActivityToChat(this)" 
+                    data-activity-text="${escapedMessage}"
+                    class="p-1 rounded-full text-gray-500 hover:text-blue-400 hover:bg-white/10 transition-colors" 
+                    title="Sohbette Paylaş"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.875-1.972l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
+                    </svg>
+                </button>
+            `;
+
             const activityHtml = `
                 <div class="bg-gray-800/70 p-3 rounded-xl flex items-center gap-4 border border-transparent hover:border-gray-700 transition-all duration-200">
                     ${iconHtml}
@@ -6821,7 +7372,10 @@ function renderActivityFeed(activities) {
                         <p class="text-gray-200 text-sm leading-relaxed">${message}</p>
                         <div class="flex justify-between items-center mt-1">
                             <span class="text-xs text-gray-500">${timeAgo}</span>
-                            ${deleteButtonHtml}
+                            <div class="flex items-center">
+                                ${shareButtonHtml}
+                                ${deleteButtonHtml}
+                            </div>
                         </div>
                     </div>
                 </div>`;
@@ -10142,9 +10696,6 @@ async function spinWheel() {
         wheelSpinsCount: (userData.wheelSpinsCount || 0) + 1
     });
 
-    // ... (Fonksiyonun geri kalanı - çarkın dönme animasyonu ve kazananı belirleme kısmı - aynı kalacak) ...
-    // ... Bu kısımları değiştirmene gerek yok ...
-
     const totalWeight = wheelSegments.reduce((sum, seg) => sum + (seg.weight || 1), 0);
     let randomWeight = Math.random() * totalWeight;
     let winningIndex = -1;
@@ -10171,8 +10722,6 @@ async function spinWheel() {
     // Çark animasyonu bittikten sonra çalışacak kod
     setTimeout(async () => {
         try {
-            // ... (Fonksiyonun ödül verme mantığı aynı kalacak, hiç değiştirme) ...
-            
             const currentUserDataSnap = await userRef.once('value');
             const currentUserData = currentUserDataSnap.val();
 
@@ -10184,8 +10733,6 @@ async function spinWheel() {
             let updates = {};
             let shouldLogActivity = true;
             
-            // ★★★ 2. Konu için DEĞİŞİKLİK BURADA BAŞLIYOR ★★★
-            // Ödül veritabanına yazılmadan ÖNCE, kullanıcıya bir "bekleyen görev" notu bırakıyoruz.
             const pendingRewardRef = userRef.child('pendingRewards').push();
             const pendingReward = {
                 type: 'wheelPrize',
@@ -10193,7 +10740,6 @@ async function spinWheel() {
                 timestamp: firebase.database.ServerValue.TIMESTAMP
             };
             await pendingRewardRef.set(pendingReward);
-            // ★★★ DEĞİŞİKLİK SONU ★★★
             
             switch(winningSegment.type) {
                 case 'points':
@@ -10202,7 +10748,6 @@ async function spinWheel() {
                     if(updates.balance > (currentUserData.highestBalanceEver || 0)) updates.highestBalanceEver = updates.balance;
                     updates.kariyerPuani = (currentUserData.kariyerPuani || 0) + winningSegment.value;
                     break;
-                // ... Diğer tüm case'ler aynı kalacak, değiştirme ...
                 case 'boxRights':
                     message = `Tebrikler, çarktan <b>+${winningSegment.value} Kutu Hakkı</b> kazandın!`;
                     updates.kutuHakki = (currentUserData.kutuHakki || 0) + winningSegment.value;
@@ -10269,7 +10814,6 @@ async function spinWheel() {
 
             if(Object.keys(updates).length > 0) await userRef.update(updates);
             
-            // Ödül verildikten sonra "bekleyen görev" notunu siliyoruz.
             await pendingRewardRef.remove();
 
             db.ref('wheelHistory').push().set({
@@ -10279,7 +10823,7 @@ async function spinWheel() {
                 value: winningSegment.value !== undefined ? winningSegment.value : null,
                 timestamp: firebase.database.ServerValue.TIMESTAMP
             });
-            // ... (wheelHistory temizleme kodu aynı kalacak) ...
+
             const historyRef = db.ref('wheelHistory');
             historyRef.orderByChild('timestamp').once('value', (snapshot) => {
                 const totalCount = snapshot.numChildren();
@@ -10293,9 +10837,25 @@ async function spinWheel() {
                     });
                 }
             });
+            
+            // ★★★ SORUNU DÜZELTEN DEĞİŞİKLİK BURADA BAŞLIYOR ★★★
+            // "Son Eylemler" paneline kaydedilecek metni burada, ikon yerine metin olacak şekilde oluşturuyoruz.
+            let prizeTextForLog;
+            if (winningSegment.type === 'tempMultiplier') {
+                prizeTextForLog = `${winningSegment.value}x Çarpan (${winningSegment.duration} kullanım)`;
+            } else if (winningSegment.type === 'pas') {
+                prizeTextForLog = 'Pas';
+            } else if (winningSegment.type === 'surpriseBox') {
+                 prizeTextForLog = 'Sürpriz Kutu';
+            } else {
+                const nameForLog = typeToName[winningSegment.type] || winningSegment.type;
+                prizeTextForLog = `+${winningSegment.value} ${nameForLog}`;
+            }
+            // ★★★ DEĞİŞİKLİK BİTİŞ ★★★
 
             const logDetails = {
-                result: winningSegment.prizeName || winningSegment.label,
+                // ★★★ DEĞİŞİKLİK: Artık 'result' alanına her zaman oluşturduğumuz metni yazıyoruz. ★★★
+                result: prizeTextForLog,
                 type: winningSegment.type,
                 value: winningSegment.value !== undefined ? winningSegment.value : null,
                 duration: winningSegment.duration !== undefined ? winningSegment.duration : null
@@ -10318,7 +10878,6 @@ async function spinWheel() {
             console.error("Çark ödülü işlenirken hata:", error);
             displayMessage("Ödülünüz işlenirken bir hata oluştu. Lütfen durumu admine bildirin.");
         } finally {
-            // ★★★ KİLİT SİSTEMİ BURADA BİTİYOR ★★★
             isWheelSpinning = false;
             spinBtn.disabled = false;
             spinBtn.textContent = 'Çarkı Çevir!';
@@ -18472,13 +19031,296 @@ document.addEventListener('DOMContentLoaded', () => {
         handleOffline();
     }
 });
-// --- KOD SONU ---
 
+// --- YENİ EKLENECEK KOD: SOHBET SİSTEMİ FONKSİYONLARI ---
 
-// YENİ EKLENECEK YARDIMCI FONKSİYONLAR SONU
-      
-// ★★★ YENİ EKLENECEK FONKSİYONLAR SONU ★★★
-      
+/**
+ * Sohbet panelinin görünürlüğünü açar veya kapatır.
+ */
+function toggleChat() {
+    const panel = document.getElementById('chatPanel');
+    const dot = document.getElementById('chatNotificationDot');
+    panel.classList.toggle('open');
+    
+    // Panel açıldığında bildirim noktasını gizle
+    if (panel.classList.contains('open')) {
+        dot.classList.add('hidden');
+    }
+}
+
+async function sendMessage() {
+    const now = getSyncedTime();
+    // YENİ: Yavaş mod kontrolü
+    if (chatSettings.slowModeSeconds > 0 && now < lastMessageTimestamp + (chatSettings.slowModeSeconds * 1000)) {
+        const remaining = Math.ceil(((lastMessageTimestamp + (chatSettings.slowModeSeconds * 1000)) - now) / 1000);
+        displayMessage(`Yavaş mod aktif. Mesaj göndermek için ${remaining} saniye beklemelisin.`);
+        return;
+    }
+
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if (text === '') return;
+
+    const userSnap = await db.ref(`users/${currentUser}`).once('value');
+    const userData = userSnap.val();
+    
+    if (userData.chatMutedUntil && userData.chatMutedUntil > now) {
+        const remainingMinutes = Math.ceil((userData.chatMutedUntil - now) / 60000);
+        displayMessage(`Sohbetten uzaklaştırıldın. Kalan süre: ${remainingMinutes} dakika.`);
+        return;
+    }
+
+    const avatarUrl = userData.selectedAvatar ? userData.selectedAvatar.url : defaultAvatarUrl;
+
+    const messageData = {
+        username: currentUser,
+        text: text,
+        avatarUrl: avatarUrl,
+        timestamp: firebase.database.ServerValue.TIMESTAMP,
+        isDeleted: false
+    };
+
+    db.ref('chat/messages').push(messageData);
+    input.value = '';
+
+    // YENİ: Son mesaj zamanını güncelle
+    lastMessageTimestamp = now;
+}
+
+/**
+ * Adminin bir sohbet mesajını silmesini sağlar.
+ */
+async function deleteChatMessage(messageId) {
+    if (!isAdmin) return;
+    const confirmed = await customConfirm("Bu sohbet mesajını silmek istediğinize emin misiniz?");
+    if (confirmed) {
+        await db.ref(`chat/messages/${messageId}`).remove();
+    }
+}
+
+function listenForChatMessages() {
+    const messagesContainer = document.getElementById('chatMessages');
+    const chatRef = db.ref('chat/messages').limitToLast(50);
+
+    // Dinleyiciyi tekrar tekrar eklememek için kontrol
+    if(activeListeners.chat) {
+        activeListeners.chat.ref.off('value', activeListeners.chat.callback);
+    }
+
+    const callback = (snap) => {
+        messagesContainer.innerHTML = ''; // Her değişiklikte sohbeti temizle
+        const messages = [];
+        
+        snap.forEach(childSnap => {
+            messages.push({ id: childSnap.key, ...childSnap.val() });
+        });
+
+        // Mesajları en yeniden en eskiye doğru işle
+        messages.reverse().forEach(message => {
+            const messageEl = document.createElement('div');
+            messageEl.className = 'chat-message';
+            if (message.username === currentUser) {
+                messageEl.classList.add('current-user');
+            }
+
+            const adminControls = (isAdmin && message.username !== currentUser) ? `
+                <button class="delete-msg-btn" onclick="openAdminChatActionModal('${message.id}', '${message.username}')" title="Mesaj Eylemleri">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" /></svg>
+                </button>` : '';
+                
+            let messageBodyHtml = '';
+            let messageBodyClass = 'message-body';
+
+            if (message.isDeleted) {
+                // YENİ: Uzaklaştırma bilgisini kontrol et
+                if (message.deletedInfo && message.deletedInfo.reason === 'muted') {
+                    messageBodyHtml = `[Mesaj silindi - Kullanıcı ${message.deletedInfo.duration} dakika uzaklaştırıldı]`;
+                } else {
+                    messageBodyHtml = '[Mesaj Admin Tarafından Silindi]';
+                }
+                messageBodyClass += ' deleted-message-body';
+            } else {
+                const safeText = message.text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                messageBodyHtml = safeText.replace(/@(\w+)/g, (match, username) => {
+                    return `<span class="user-mention" onclick="openPublicUserDetailModal('${username}')">${match}</span>`;
+                });
+            }
+
+            messageEl.innerHTML = `
+                <img src="${message.avatarUrl}" class="avatar" onclick="openAvatarStatsModal('${message.username}')">
+                <div class="message-content">
+                    <div class="message-header">
+                        <span class="username" onclick="openPublicUserDetailModal('${message.username}')">${message.username}</span>
+                        <span class="timestamp">${new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                        ${adminControls}
+                    </div>
+                    <div class="${messageBodyClass}">${messageBodyHtml}</div>
+                </div>
+            `;
+
+            messagesContainer.appendChild(messageEl);
+        });
+
+        const panel = document.getElementById('chatPanel');
+        const lastMessage = messages[0];
+        if (lastMessage && !panel.classList.contains('open') && lastMessage.username !== currentUser) {
+            document.getElementById('chatNotificationDot').classList.remove('hidden');
+        }
+    };
+    
+    // ANLIK GÜNCELLEME İÇİN 'value' DİNLEYİCİSİ KULLANILIYOR
+    activeListeners.chat = { ref: chatRef, event: 'value', callback };
+    chatRef.on('value', callback);
+
+    document.getElementById('chatInput').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+
+    document.getElementById('chatInput').addEventListener('input', handleChatInput);
+}
+
+/**
+ * Admin için 'Mesajı Sil / Kullanıcıyı Uzaklaştır' penceresini açar.
+ */
+function openAdminChatActionModal(messageId, username) {
+    chatMuteTarget = { messageId, username }; // Hedef bilgileri global değişkene ata
+    document.getElementById('adminActionTitle').textContent = `${username} | Eylem Seç`;
+    document.getElementById('adminDeleteMessageBtn').onclick = () => confirmDeleteMessage(messageId);
+    document.getElementById('adminMuteUserBtn').onclick = () => openMuteUserModal(username);
+    document.getElementById('adminChatActionModal').style.display = 'flex';
+}
+
+function closeAdminChatActionModal() {
+    document.getElementById('adminChatActionModal').style.display = 'none';
+}
+
+/**
+ * Tek bir sohbet mesajını 'silindi' olarak işaretler.
+ */
+async function confirmDeleteMessage(messageId) {
+    await db.ref(`chat/messages/${messageId}`).update({ isDeleted: true });
+    displayMessage("Mesaj başarıyla silindi.");
+    closeAdminChatActionModal();
+    // Arayüzün güncellenmesi için sohbet dinleyicisini yeniden başlatıyoruz.
+    listenForChatMessages(); 
+}
+
+/**
+ * Kullanıcıyı uzaklaştırmak için süre girme penceresini açar.
+ */
+function openMuteUserModal(username) {
+    closeAdminChatActionModal(); // Önceki pencereyi kapat
+    document.getElementById('muteUserTitle').textContent = `${username} Adlı Kullanıcıyı Uzaklaştır`;
+    document.getElementById('muteUserModal').style.display = 'flex';
+}
+
+function closeMuteUserModal() {
+    document.getElementById('muteUserModal').style.display = 'none';
+    chatMuteTarget = {}; // Hedefi temizle
+}
+
+async function confirmMuteUser() {
+    const durationMinutes = parseInt(document.getElementById('muteDurationInput').value);
+    const usernameToMute = chatMuteTarget.username;
+
+    if (isNaN(durationMinutes) || durationMinutes <= 0) {
+        displayMessage("Lütfen geçerli bir süre girin.");
+        return;
+    }
+
+    const muteUntilTimestamp = getSyncedTime() + (durationMinutes * 60 * 1000);
+    
+    await db.ref(`users/${usernameToMute}`).update({ chatMutedUntil: muteUntilTimestamp });
+
+    const messagesRef = db.ref('chat/messages');
+    const userMessagesSnap = await messagesRef.orderByChild('username').equalTo(usernameToMute).once('value');
+    
+    if (userMessagesSnap.exists()) {
+        const updates = {};
+        userMessagesSnap.forEach(childSnap => {
+            // YENİ: SİLİNME BİLGİSİNİ DETAYLI OLARAK KAYDET
+            updates[`/chat/messages/${childSnap.key}/isDeleted`] = true;
+            updates[`/chat/messages/${childSnap.key}/deletedInfo`] = {
+                reason: 'muted',
+                duration: durationMinutes
+            };
+        });
+        await db.ref().update(updates);
+    }
+    
+    displayMessage(`${usernameToMute} adlı kullanıcı ${durationMinutes} dakika boyunca sohbetten uzaklaştırıldı ve tüm mesajları silindi.`);
+    closeMuteUserModal();
+    // Arayüzün güncellenmesi için sohbet dinleyicisini yeniden başlatmıyoruz, 'value' listener bunu otomatik yapacak.
+}
+
+/**
+ * YENİ: Adminin tüm sohbet geçmişini temizlemesini sağlar.
+ */
+async function clearChatHistory() {
+    if (!isAdmin) return;
+    const confirmed = await customConfirm("Tüm sohbet geçmişini kalıcı olarak silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!");
+    if (confirmed) {
+        await db.ref('chat/messages').remove();
+        displayMessage("Sohbet geçmişi başarıyla temizlendi.");
+        // 'value' listener sayesinde arayüz anında güncellenecek.
+    }
+}
+
+// YENİ: Yavaş mod ayarlarını Firebase'den dinler
+function listenForChatSettings() {
+    const ref = db.ref('gameConfig/chat');
+    const callback = (snap) => {
+        chatSettings = snap.val() || { slowModeSeconds: 3 };
+        // Admin paneli açıksa input'u güncelle
+        if (adminPanelModal.style.display === 'flex') {
+            document.getElementById('slowModeInput').value = chatSettings.slowModeSeconds || '';
+        }
+    };
+    if (activeListeners.chatSettings) {
+        ref.off('value', activeListeners.chatSettings.callback);
+    }
+    activeListeners.chatSettings = { ref, event: 'value', callback };
+    ref.on('value', callback);
+}
+
+// YENİ: Adminin yavaş mod ayarlarını kaydetmesini sağlar
+async function saveSlowModeSettings() {
+    if (!isAdmin) return;
+    const seconds = parseInt(document.getElementById('slowModeInput').value) || 0;
+    if (seconds < 0) {
+        displayMessage("Saniye 0'dan küçük olamaz.");
+        return;
+    }
+    await db.ref('gameConfig/chat/slowModeSeconds').set(seconds);
+    displayMessage(`Sohbet yavaş modu ${seconds > 0 ? seconds + ' saniye' : 'kapatıldı'} olarak ayarlandı.`);
+}
+
+// YENİ: Son Eylemler panelindeki bir aktiviteyi sohbette paylaşır
+async function shareActivityToChat(buttonElement) {
+    const activityText = buttonElement.dataset.activityText;
+    if (!activityText) return;
+
+    const confirmed = await customConfirm(`Bu eylemi sohbette paylaşmak istediğine emin misin?<br><br><small class="text-gray-400">"${activityText}"</small>`);
+    if (confirmed) {
+        const userSnap = await db.ref(`users/${currentUser}`).once('value');
+        const userData = userSnap.val();
+        const avatarUrl = userData.selectedAvatar ? userData.selectedAvatar.url : defaultAvatarUrl;
+
+        const messageData = {
+            username: currentUser,
+            text: activityText, // Eylem metnini doğrudan kullan
+            avatarUrl: avatarUrl,
+            timestamp: firebase.database.ServerValue.TIMESTAMP,
+            isDeleted: false
+        };
+
+        db.ref('chat/messages').push(messageData);
+        displayTemporaryNotification("Eylem sohbette paylaşıldı!", 'bg-green-600');
+    }
+}
+
 </script>
 </body>
 </html>
