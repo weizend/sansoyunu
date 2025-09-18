@@ -2381,54 +2381,52 @@ body.modal-open .modal-content {
         <div>
             <label for="bulkSendItemType" class="block text-sm font-medium text-gray-300 mb-1">Tüm Kullanıcılara Gönderilecek Eşya:</label>
             <select id="bulkSendItemType" class="box-setting-input" onchange="handleBulkSendItemTypeChange(this)">
-    <option value="">-- Tip Seçin --</option>
-    <option value="points">💰 Puan</option>
-    <option value="kasaPuani">🏦 Kasa Puanı</option>
-    <option value="boxRights">📦 Kutu Hakkı</option>
-    <option value="wheelTicket">🎫 Çark Bileti</option>
-    <option value="clickCatchTicket">🎟️ Tıkla-Yakala Bileti</option>
-    <option value="iflasShield">🛡️ İflas Kalkanı</option>
-    <option value="tempMultiplier">✖️ Çarpan</option>
-    <option value="wildcard">🃏 Joker Kart</option>
-    
-    <option value="card_pack">🎴 Standart Kart Paketi</option>
-    <option value="card_pack_normal">🥉 Bronz Kart Paketi</option>
-    <option value="card_pack_gumus">🥈 Gümüş Kart Paketi</option>
-    <option value="card_pack_altin">🥇 Altın Kart Paketi</option>
-    <option value="card_pack_efsanevi">🏆 Efsanevi Kart Paketi</option>
-    <option value="health_regen_potion">🧪 Can Yenileme İksiri</option> 
-    <option value="revival_stone">💎 Dirilme Taşı</option>
-    <option value="health_potion">🧪 Can İksiri</option>
-    <option value="damage_potion">⚔️ Hasar İksiri</option>
-    <option value="defense_potion">🛡️ Savunma İksiri</option>
-    <option value="crit_potion">💥 Kritik Vuruş İksiri</option>
-    <option value="crit_damage_potion">🎯 Kritik Hasar İksiri</option>
-    <option value="dodge_potion">💨 Sıyrılma Şansı İksiri</option>
-    <option value="pierce_potion">📌 Delici Şansı İksiri</option>
-</select>
+                <option value="">-- Tip Seçin --</option>
+                <option value="points">💰 Puan</option>
+                <option value="kasaPuani">🏦 Kasa Puanı</option>
+                <option value="boxRights">📦 Kutu Hakkı</option>
+                <option value="wheelTicket">🎫 Çark Bileti</option>
+                <option value="clickCatchTicket">🎟️ Tıkla-Yakala Bileti</option>
+                <option value="iflasShield">🛡️ İflas Kalkanı</option>
+                <option value="tempMultiplier">✖️ Çarpan</option>
+                <option value="wildcard">🃏 Joker Kart</option>
+                <option value="card_pack">🎴 Standart Kart Paketi</option>
+                <option value="card_pack_normal">🥉 Bronz Kart Paketi</option>
+                <option value="card_pack_gumus">🥈 Gümüş Kart Paketi</option>
+                <option value="card_pack_altin">🥇 Altın Kart Paketi</option>
+                <option value="card_pack_efsanevi">🏆 Efsanevi Kart Paketi</option>
+                <option value="health_regen_potion">🧪 Can Yenileme İksiri</option> <option value="revival_stone">💎 Dirilme Taşı</option>
+                <option value="health_potion">🧪 Can İksiri</option>
+                <option value="damage_potion">⚔️ Hasar İksiri</option>
+                <option value="defense_potion">🛡️ Savunma İksiri</option>
+                <option value="crit_potion">💥 Kritik Vuruş İksiri</option>
+                <option value="crit_damage_potion">🎯 Kritik Hasar İksiri</option>
+                <option value="dodge_potion">💨 Sıyrılma Şansı İksiri</option>
+                <option value="pierce_potion">📌 Delici Şansı İksiri</option>
+            </select>
         </div>
         <div id="bulkSendItemFieldsContainer" class="space-y-3">
-            </div>
-        <div class="mt-4 flex gap-4">
-    <div class="mt-4 flex flex-col sm:flex-row gap-4">
-    <button onclick="confirmBulkSendItem(false)" class="flex-1 py-3 bg-red-800 hover:bg-red-700 text-white font-bold rounded-lg shadow-md">TÜM KULLANICILARDAN SİL</button>
-    <button onclick="confirmBulkSendItem(true)" class="flex-1 py-3 bg-green-800 hover:bg-green-700 text-white font-bold rounded-lg shadow-md">TÜM KULLANICILARA GÖNDER</button>
-</div>
+        </div>
+        <div class="mt-4 flex flex-col sm:flex-row gap-4">
+            <button onclick="confirmBulkSendItem(false)" class="flex-1 py-3 bg-red-800 hover:bg-red-700 text-white font-bold rounded-lg shadow-md">TÜM KULLANICILARDAN SİL</button>
+            <button onclick="confirmBulkSendItem(true)" class="flex-1 py-3 bg-green-800 hover:bg-green-700 text-white font-bold rounded-lg shadow-md">TÜM KULLANICILARA GÖNDER</button>
+        </div>
 
-<div class="mt-4 pt-4 border-t border-gray-600">
-    <button onclick="resetAllPotionBonuses()" class="w-full py-3 bg-pink-800 hover:bg-pink-700 text-white font-bold rounded-lg shadow-md">
-        🧪 Tüm Kullanıcıların İksir Bonuslarını Sıfırla
-    </button>
-</div>
-<div class="bg-gray-800/80 p-6 rounded-xl border border-gray-700 mt-6">
-    <h4 class="text-yellow-200 text-xl font-semibold mb-4 border-b border-gray-600 pb-2">Sohbet Ayarları</h4>
-    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-        <label for="slowModeInput" class="text-gray-300 flex-shrink-0">Yavaş Mod (Saniye):</label>
-        <input type="number" id="slowModeInput" class="box-setting-input flex-grow" placeholder="0 = kapalı">
-        <button onclick="saveSlowModeSettings()" class="py-2 px-4 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold">Kaydet</button>
-    </div>
-</div>
-    </div>
+        <div class="mt-4 pt-4 border-t border-gray-600">
+            <button onclick="resetAllPotionBonuses()" class="w-full py-3 bg-pink-800 hover:bg-pink-700 text-white font-bold rounded-lg shadow-md">
+                🧪 Tüm Kullanıcıların İksir Bonuslarını Sıfırla
+            </button>
+        </div>
+        
+        <div class="mt-6 pt-4 border-t border-gray-600">
+            <h5 class="text-yellow-200 text-lg font-semibold mb-3">Sohbet Ayarları</h5>
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                <label for="slowModeInput" class="text-gray-300 flex-shrink-0">Yavaş Mod (Saniye):</label>
+                <input type="number" id="slowModeInput" class="box-setting-input flex-grow" placeholder="0 = kapalı">
+                <button onclick="saveSlowModeSettings()" class="py-2 px-4 bg-blue-600 hover:bg-blue-500 rounded-lg font-bold">Kaydet</button>
+            </div>
+        </div>
+        </div>
 </div>
       </div>
     </div>
@@ -4999,17 +4997,11 @@ async function executeWeeklyReset() {
     }
 }
 
-// showSection fonksiyonunu bununla değiştir
+// index.html dosyasındaki bu fonksiyonu aşağıdakiyle tamamen değiştir
 function showSection(sectionId) {
-    // ★★★ DEĞİŞİKLİK BURADA BAŞLIYOR ★★★
-    // Eğer mevcut aktif sekme "cardCollection" ise VE tıklanan yeni sekme "cardCollection" DEĞİLSE,
-    // yani kullanıcı kart albümünden başka bir sekmeye geçiyorsa...
     if (currentActiveSection === 'cardCollection' && sectionId !== 'cardCollection') {
-        // "Yeni" olarak işaretlenen kartların listesini temizle.
-        // Bu, bir sonraki sefere albüme girdiğinde eski kartların "yeni" görünmesini engeller.
         newlyAcquiredCards.clear();
     }
-    // ★★★ DEĞİŞİKLİK BURADA BİTİYOR ★★★
 
     if (sectionId !== 'store') {
         storeFilter = null;
@@ -5072,6 +5064,10 @@ function showSection(sectionId) {
             wheelSettingsBtn.classList.add('hidden');
         }
     } else if (sectionId === 'cardCollection') {
+        // ★★★ DÜZELTME BURADA ★★★
+        // Artık bu sekme her açıldığında albüm yeniden yüklenecek.
+        loadCollectionAlbum(); 
+        
         if (isAdmin) {
             document.getElementById('collectionAdminBtn').classList.remove('hidden');
             loadMarketSettingsForAdmin();
