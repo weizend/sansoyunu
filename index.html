@@ -8755,12 +8755,28 @@ async function deletePurchase(purchaseId) {
   function openBadgeInfoModal() { badgeInfoModal.style.display = 'flex'; }
   function closeBadgeInfoModal() { badgeInfoModal.style.display = 'none'; }
 
-// MEVCUT openPublicUserDetailModal FONKSİYONUNU SİL VE BUNU YAPIŞTIR
 async function openPublicUserDetailModal(username) {
     if (!username) return;
 
     const modal = document.getElementById('publicUserDetailModal');
     if (!modal) return;
+    
+    // --- YENİ EKLENEN ADMİN KONTROLÜ BAŞLANGICI ---
+    // Eğer profili açılan kişi o an giriş yapmış admin ise, veritabanına gitme.
+    if (isAdmin && username === currentUser) {
+        document.getElementById('publicUserName').textContent = 'WeizendTv (Admin)';
+        document.getElementById('publicUserAvatar').src = 'https://i.hizliresim.com/mtwdr1x.png'; // Sabit admin avatarı
+        document.getElementById('publicUserProfileBadges').innerHTML = '👑';
+        
+        // Admin için istatistik alanlarını gizle
+        modal.querySelector('.grid').style.display = 'none';
+        document.getElementById('publicUserChampionships').style.display = 'none';
+        
+        modal.style.display = 'flex';
+        document.body.classList.add('modal-open');
+        return; // Fonksiyonu burada bitir.
+    }
+    // --- YENİ EKLENEN ADMİN KONTROLÜ SONU ---
 
     modal.style.display = 'flex';
     document.body.classList.add('modal-open');
@@ -9152,6 +9168,14 @@ async function removeTyChampionship(username) {
 
 function closePublicUserDetailModal() {
     const publicUserDetailModal = document.getElementById('publicUserDetailModal');
+    
+    // --- YENİ EKLENEN KISIM BAŞLANGICI ---
+    // Pencere kapandığında, admin için gizlediğimiz istatistik alanlarını
+    // tekrar görünür yapıyoruz ki normal bir kullanıcıya tıklandığında sorun olmasın.
+    publicUserDetailModal.querySelector('.grid').style.display = '';
+    document.getElementById('publicUserChampionships').style.display = '';
+    // --- YENİ EKLENEN KISIM SONU ---
+
     publicUserDetailModal.style.display = 'none';
     document.body.classList.remove('modal-open');
 
@@ -17605,11 +17629,26 @@ function listenForAvatarBaseStats() {
 // Hangi kullanıcının profilini dinlediğimizi takip etmek için global bir değişken
 let activeProfileListener = null;
 
-// --- YENİ VE İSTEDİĞİN GÖRÜNÜMDEKİ FONKSİYON ---
 async function openAvatarStatsModal(username) {
     const modal = document.getElementById('avatarStatsModal');
     const contentEl = document.getElementById('statsModalContent');
     const titleEl = document.getElementById('statsModalUsername');
+
+    // --- YENİ EKLENEN ADMİN KONTROLÜ BAŞLANGICI ---
+    // Eğer profili açılan kişi o an giriş yapmış admin ise, veritabanına gitme.
+    if (isAdmin && username === currentUser) {
+        titleEl.textContent = `WeizendTv (Admin) Avatar Özellikleri`;
+        contentEl.innerHTML = `
+            <div class="flex flex-col items-center mb-4">
+                <img src="https://i.hizliresim.com/mtwdr1x.png" alt="Admin Avatar" class="w-24 h-24 rounded-full border-2 border-yellow-500 mb-2">
+                <span class="text-lg font-bold text-white">WeizendTv</span>
+            </div>
+            <p class="text-center text-gray-400">Admin hesabının oyun içi istatistikleri bulunmamaktadır.</p>
+        `;
+        modal.style.display = 'flex';
+        return; // Fonksiyonu burada bitir.
+    }
+    // --- YENİ EKLENEN ADMİN KONTROLÜ SONU ---
 
     titleEl.textContent = `Yükleniyor...`;
     contentEl.innerHTML = '<p class="text-gray-400">Yükleniyor...</p>';
@@ -17657,7 +17696,7 @@ async function openAvatarStatsModal(username) {
             hp: (baseStats.hp || 1000) + (globalBuffs.hp || 0),
             minDamage: (baseStats.minDamage || 50) + (globalBuffs.damage || 0),
             maxDamage: (baseStats.maxDamage || 100) + (globalBuffs.damage || 0),
-            defense: (baseStats.defense || 0) + (globalBuffs.defense || 0), // Savunma artık yüzdelik
+            defense: (baseStats.defense || 0) + (globalBuffs.defense || 0),
             critChance: (baseStats.critChance || 5) + (globalBuffs.critChance || 0),
             critDamage: (baseStats.critDamage || 10) + (globalBuffs.critDamage || 0),
             dodgeChance: (baseStats.dodgeChance || 5) + (globalBuffs.dodgeChance || 0),
@@ -17673,7 +17712,6 @@ async function openAvatarStatsModal(username) {
             return cap ? ` / <span class="text-gray-400">${cap.toFixed(1)}%</span>` : '';
         };
 
-        // İSTEDİĞİN YENİ SIRALAMA VE METİNLER
         contentEl.innerHTML = `
             <div class="flex flex-col items-center mb-4">
                 <img src="${selectedAvatar.url}" alt="${selectedAvatar.name || 'Avatar'}" class="w-24 h-24 rounded-full border-2 border-green-500 mb-2">
