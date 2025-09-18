@@ -4997,8 +4997,9 @@ async function executeWeeklyReset() {
     }
 }
 
-// index.html dosyasındaki bu fonksiyonu aşağıdakiyle tamamen değiştir
+// BU FONKSİYONU BULUP TAMAMEN AŞAĞIDAKİYLE DEĞİŞTİRİN
 function showSection(sectionId) {
+    // Önceki sekme 'kart koleksiyonu' ise ve şimdi başka bir sekmeye geçiliyorsa, "yeni" listesini temizle.
     if (currentActiveSection === 'cardCollection' && sectionId !== 'cardCollection') {
         newlyAcquiredCards.clear();
     }
@@ -5010,6 +5011,7 @@ function showSection(sectionId) {
     const contentIds = ['gameContent', 'storeSection', 'announcementsContent', 'chanceWheelContent', 'clickCatchContent', 'cardCollectionContent', 'monsterBattleContent'];
     const tabButtonIds = ['gameTabBtn', 'storeTabBtn', 'announcementsTabBtn', 'chanceWheelTabBtn', 'clickCatchTabBtn', 'cardCollectionTabBtn', 'monsterBattleTabBtn'];
 
+    // Tüm içerik alanlarını gizle ve butonların stillerini sıfırla
     contentIds.forEach(id => document.getElementById(id)?.classList.add('hidden'));
     tabButtonIds.forEach(btnId => {
         const btn = document.getElementById(btnId);
@@ -5021,18 +5023,26 @@ function showSection(sectionId) {
 
     hideAllAdminControls();
 
+    // Tıklanan sekmeye ait içeriği göster
     const contentToShow = document.getElementById(`${sectionId}Content`) || document.getElementById(`${sectionId}Section`);
     if(contentToShow) contentToShow.classList.remove('hidden');
 
+    // Tıklanan butonun stilini aktif yap
     const activeBtn = document.getElementById(`${sectionId}TabBtn`);
     if (activeBtn) {
         activeBtn.classList.add('bg-red-700', 'hover:bg-red-600');
         activeBtn.classList.remove('bg-gray-700', 'hover:bg-gray-600');
     }
 
+    // ★★★ SORUNU ÇÖZEN ANA DEĞİŞİKLİK BURADA ★★★
+    // Artık 'else if' yerine bağımsız bir 'if' kullanıyoruz.
+    // Hangi sekmeye tıklandığını kontrol edip ilgili fonksiyonları çağırıyoruz.
+
     if (sectionId === 'game' && isAdmin) {
         document.getElementById('boxSettingsButton').classList.remove('hidden');
-    } else if (sectionId === 'store') {
+    } 
+    
+    if (sectionId === 'store') {
         loadStoreItems(); 
         if (isAdmin) {
             document.getElementById('adminStoreManagementButtonContainer').classList.remove('hidden');
@@ -5044,28 +5054,35 @@ function showSection(sectionId) {
         if (!storeFilter) {
             switchStoreTab('game');
         }
-    } else if (sectionId === 'announcements') {
+    } 
+    
+    if (sectionId === 'announcements') {
         if (isAdmin) {
             document.getElementById('adminAnnouncementControls').classList.remove('hidden');
         } else {
             document.getElementById('announcementIndicator').classList.add('hidden');
             db.ref(`users/${currentUser}/lastSeenAnnouncementTimestamp`).set(latestAnnouncementTimestamp);
         }
-    } else if (sectionId === 'clickCatch') {
+    } 
+    
+    if (sectionId === 'clickCatch') {
         if (isAdmin) {
             document.getElementById('clickCatchAdminButtonsContainer').classList.remove('hidden');
             loadSoloGameSettings();
         }
-    } else if (sectionId === 'chanceWheel') {
+    } 
+    
+    if (sectionId === 'chanceWheel') {
         const wheelSettingsBtn = document.getElementById('wheelSettingsButton');
         if (isAdmin) {
             wheelSettingsBtn.classList.remove('hidden');
         } else {
             wheelSettingsBtn.classList.add('hidden');
         }
-    } else if (sectionId === 'cardCollection') {
-        // ★★★ DÜZELTME BURADA ★★★
-        // Artık bu sekme her açıldığında albüm yeniden yüklenecek.
+    } 
+    
+    if (sectionId === 'cardCollection') {
+        // Bu sekmeye her girildiğinde albümü yeniden yükle. Bu sayede "YENİ" rozetleri görünür.
         loadCollectionAlbum(); 
         
         if (isAdmin) {
@@ -5073,13 +5090,16 @@ function showSection(sectionId) {
             loadMarketSettingsForAdmin();
             loadPrizeSettingsForAdmin();
         }
-    } else if (sectionId === 'monsterBattle') {
+    } 
+    
+    if (sectionId === 'monsterBattle') {
         renderMonsterBattleUI();
         if (isAdmin) {
             document.getElementById('monsterBattleAdminToggles')?.classList.remove('hidden');
         }
     }
     
+    // Son olarak, mevcut aktif sekmeyi güncelle
     currentActiveSection = sectionId;
 }
   
