@@ -8761,9 +8761,9 @@ async function openPublicUserDetailModal(username) {
     const modal = document.getElementById('publicUserDetailModal');
     if (!modal) return;
     
-    // --- YENİ EKLENEN ADMİN KONTROLÜ BAŞLANGICI ---
-    // Eğer profili açılan kişi o an giriş yapmış admin ise, veritabanına gitme.
-    if (isAdmin && username === currentUser) {
+    // --- YENİ VE NİHAİ DÜZELTME BURADA ---
+    // Artık kimin tıkladığına bakmaksızın, eğer profili açılan kişi 'weizendtv' ise özel admin panelini göster.
+    if (username.toLowerCase() === 'weizendtv') {
         document.getElementById('publicUserName').textContent = 'WeizendTv (Admin)';
         document.getElementById('publicUserAvatar').src = 'https://i.hizliresim.com/mtwdr1x.png'; // Sabit admin avatarı
         document.getElementById('publicUserProfileBadges').innerHTML = '👑';
@@ -8776,7 +8776,7 @@ async function openPublicUserDetailModal(username) {
         document.body.classList.add('modal-open');
         return; // Fonksiyonu burada bitir.
     }
-    // --- YENİ EKLENEN ADMİN KONTROLÜ SONU ---
+    // --- DÜZELTME SONU ---
 
     modal.style.display = 'flex';
     document.body.classList.add('modal-open');
@@ -8791,11 +8791,16 @@ async function openPublicUserDetailModal(username) {
     const userRef = db.ref('users/' + username);
     
     const userProfileCallback = async (userSnap) => {
+        // Fonksiyonun geri kalanı aynı...
         const userData = userSnap.val();
         if (!userData) {
             closePublicUserDetailModal();
             return;
         }
+
+        // İstatistik alanlarını tekrar görünür yap (admin profilinden sonra normale dönmesi için)
+        modal.querySelector('.grid').style.display = '';
+        document.getElementById('publicUserChampionships').style.display = '';
 
         const allUsersSnap = await db.ref('users').once('value');
         const leaders = await calculateAllLeaders(allUsersSnap.val());
@@ -17634,9 +17639,9 @@ async function openAvatarStatsModal(username) {
     const contentEl = document.getElementById('statsModalContent');
     const titleEl = document.getElementById('statsModalUsername');
 
-    // --- YENİ EKLENEN ADMİN KONTROLÜ BAŞLANGICI ---
-    // Eğer profili açılan kişi o an giriş yapmış admin ise, veritabanına gitme.
-    if (isAdmin && username === currentUser) {
+    // --- YENİ VE NİHAİ DÜZELTME BURADA ---
+    // Artık kimin tıkladığına bakmaksızın, eğer profili açılan kişi 'weizendtv' ise özel admin panelini göster.
+    if (username.toLowerCase() === 'weizendtv') {
         titleEl.textContent = `WeizendTv (Admin) Avatar Özellikleri`;
         contentEl.innerHTML = `
             <div class="flex flex-col items-center mb-4">
@@ -17648,7 +17653,7 @@ async function openAvatarStatsModal(username) {
         modal.style.display = 'flex';
         return; // Fonksiyonu burada bitir.
     }
-    // --- YENİ EKLENEN ADMİN KONTROLÜ SONU ---
+    // --- DÜZELTME SONU ---
 
     titleEl.textContent = `Yükleniyor...`;
     contentEl.innerHTML = '<p class="text-gray-400">Yükleniyor...</p>';
@@ -17661,6 +17666,7 @@ async function openAvatarStatsModal(username) {
     const userRef = db.ref(`users/${username}`);
     
     const userProfileCallback = (userSnap) => {
+        // Fonksiyonun geri kalanı aynı...
         const userData = userSnap.val();
 
         if (!userData) {
