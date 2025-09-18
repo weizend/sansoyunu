@@ -104,6 +104,13 @@
     cursor: pointer;
     transition: all 0.3s ease;
 }
+/* #chatToggleBtn stilinin içine bu satırı ekle veya transition varsa değiştir */
+transition: transform 0.3s ease; /* Yumuşak dönüş için */
+
+/* Bu yeni stili CSS dosyanın uygun bir yerine ekle */
+#chatToggleBtn.open {
+    transform: rotate(90deg); /* Açıkken 90 derece dönsün */
+}
 #chatToggleBtn:hover {
     transform: scale(1.1) rotate(15deg);
     box-shadow: 0 15px 30px rgba(0,0,0,0.4);
@@ -2383,7 +2390,14 @@ body.modal-open .modal-content {
     <option value="iflasShield">🛡️ İflas Kalkanı</option>
     <option value="tempMultiplier">✖️ Çarpan</option>
     <option value="wildcard">🃏 Joker Kart</option>
-    <option value="health_regen_potion">🧪 Can Yenileme İksiri</option> <option value="revival_stone">💎 Dirilme Taşı</option>
+    
+    <option value="card_pack">🎴 Standart Kart Paketi</option>
+    <option value="card_pack_normal">🥉 Bronz Kart Paketi</option>
+    <option value="card_pack_gumus">🥈 Gümüş Kart Paketi</option>
+    <option value="card_pack_altin">🥇 Altın Kart Paketi</option>
+    <option value="card_pack_efsanevi">🏆 Efsanevi Kart Paketi</option>
+    <option value="health_regen_potion">🧪 Can Yenileme İksiri</option> 
+    <option value="revival_stone">💎 Dirilme Taşı</option>
     <option value="health_potion">🧪 Can İksiri</option>
     <option value="damage_potion">⚔️ Hasar İksiri</option>
     <option value="defense_potion">🛡️ Savunma İksiri</option>
@@ -6190,7 +6204,19 @@ async function confirmBulkSendItem(isAdding = true) {
         if (user.approved && !user.blocked && username !== "weizendtv") {
             const userPath = `/users/${username}`;
             
-            if (type === 'health_regen_potion') {
+            // --- YENİ EKLENEN KART PAKETİ MANTIĞI ---
+            if (type.startsWith('card_pack')) {
+                if (isAdding) {
+                    const packKey = db.ref().push().key; // Benzersiz bir anahtar oluştur
+                    updates[`${userPath}/pendingActions/cardPacks/${packKey}`] = {
+                        type: type,
+                        count: value
+                    };
+                }
+                // Kart paketleri için silme işlemi desteklenmiyor, bu yüzden else bloğu yok.
+            }
+            // --- KART PAKETİ MANTIĞI SONU ---
+            else if (type === 'health_regen_potion') {
                  if(isAdding) {
                     const currentPotions = user.inventory?.health_regen_potion?.[value] || 0;
                     updates[`${userPath}/inventory/health_regen_potion/${value}`] = currentPotions + 1;
@@ -19070,15 +19096,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// --- YENİ EKLENECEK KOD: SOHBET SİSTEMİ FONKSİYONLARI ---
-
 /**
- * Sohbet panelinin görünürlüğünü açar veya kapatır.
+ * Sohbet panelinin görünürlüğünü açar veya kapatır. (GÜNCELLENDİ)
  */
 function toggleChat() {
     const panel = document.getElementById('chatPanel');
+    const btn = document.getElementById('chatToggleBtn'); // Butonu da seçiyoruz
     const dot = document.getElementById('chatNotificationDot');
+    
     panel.classList.toggle('open');
+    btn.classList.toggle('open'); // Butona da 'open' sınıfını ekleyip/kaldırıyoruz
     
     // Panel açıldığında bildirim noktasını gizle
     if (panel.classList.contains('open')) {
