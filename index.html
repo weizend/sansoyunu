@@ -19055,16 +19055,27 @@ async function sendMessage() {
     const text = input.value.trim();
     if (text === '') return;
 
-    const userSnap = await db.ref(`users/${currentUser}`).once('value');
-    const userData = userSnap.val();
-    
-    if (userData.chatMutedUntil && userData.chatMutedUntil > now) {
-        const remainingMinutes = Math.ceil((userData.chatMutedUntil - now) / 60000);
-        displayMessage(`Sohbetten uzaklaştırıldın. Kalan süre: ${remainingMinutes} dakika.`);
-        return;
-    }
+    let avatarUrl;
 
-    const avatarUrl = userData.selectedAvatar ? userData.selectedAvatar.url : defaultAvatarUrl;
+    if (isAdmin) {
+        // Admin ise avatar URL'sini direkt olarak ata
+        avatarUrl = 'https://i.hizliresim.com/mtwdr1x.png'; 
+    } else {
+        // Normal bir kullanıcı ise veritabanından bilgilerini çek
+        const userSnap = await db.ref(`users/${currentUser}`).once('value');
+        const userData = userSnap.val();
+
+        // Kullanıcı verisi yoksa veya mute'lu ise işlemi durdur
+        if (!userData) return;
+        if (userData.chatMutedUntil && userData.chatMutedUntil > now) {
+            const remainingMinutes = Math.ceil((userData.chatMutedUntil - now) / 60000);
+            displayMessage(`Sohbetten uzaklaştırıldın. Kalan süre: ${remainingMinutes} dakika.`);
+            return;
+        }
+
+        // Kullanıcının seçili avatarını veya varsayılan avatarı kullan
+        avatarUrl = userData.selectedAvatar ? userData.selectedAvatar.url : defaultAvatarUrl;
+    }
 
     const messageData = {
         username: currentUser,
