@@ -4738,7 +4738,46 @@ function listenForWeeklyCountdown() {
     ref.on('value', callback);
 }
       
-// executeWeeklyReset fonksiyonunu bununla değiştir
+// MEVCUT listenForWeeklyWinner FONKSİYONUNU SİL VE BUNU YAPIŞTIR
+function listenForWeeklyWinner() {
+    const ref = db.ref('gameStats/weeklyClickCatchWinner');
+    const container = document.getElementById('weeklyWinnerContainer');
+    const infoDiv = document.getElementById('weeklyWinnerInfo');
+    const clearBtn = document.getElementById('clearWeeklyWinnerBtn');
+
+    const callback = snap => {
+        const winnerData = snap.val();
+        if (winnerData) {
+            const ticketsUsedText = winnerData.ticketsUsed ? `<p>Harcanan Bilet: <b class="text-white">${winnerData.ticketsUsed}</b></p>` : '';
+            infoDiv.innerHTML = `
+                <p>Kazanan: <b class="text-white">${winnerData.winnerName}</b></p>
+                <p>Skor: <b class="text-white">${winnerData.winningScore}</b></p>
+                ${ticketsUsedText}
+                <p>Ödül: <b class="text-green-400">${winnerData.prizeAwarded}</b></p>
+            `;
+            container.classList.remove('hidden');
+            
+            // === DEĞİŞİKLİK BURADA: "X" butonu sadece admin için görünür yapıldı ===
+            if (isAdmin) {
+                clearBtn.classList.remove('hidden');
+            } else {
+                clearBtn.classList.add('hidden');
+            }
+            // === DEĞİŞİKLİK SONU ===
+
+        } else {
+            container.classList.add('hidden');
+        }
+    };
+    
+    if (activeListeners.weeklyWinner) {
+        activeListeners.weeklyWinner.ref.off('value', activeListeners.weeklyWinner.callback);
+    }
+    activeListeners.weeklyWinner = { ref, event: 'value', callback };
+    ref.on('value', callback);
+}
+
+// MEVCUT executeWeeklyReset FONKSİYONUNU SİL VE BUNU YAPIŞTIR
 async function executeWeeklyReset() {
     console.log("Haftalık sıfırlama işlemi tetiklendi...");
     const seasonEndDateSnap = await db.ref('gameConfig/seasonEndDate').once('value');
@@ -4771,10 +4810,8 @@ async function executeWeeklyReset() {
     }
     const prize = settings.prize;
 
-    // YENİ EKLENEN KISIM: Kazananın harcadığı bilet sayısını çek
     const ticketsSnap = await db.ref(`clickCatchWeeklyTickets/${winner.username}`).once('value');
     const ticketsUsedByWinner = ticketsSnap.val() || 0;
-    // YENİ KISIM SONU
     
     let prizeAwardedText = '';
     if (prize.type === 'tempMultiplier') {
@@ -4786,20 +4823,20 @@ async function executeWeeklyReset() {
         prizeAwardedText = `${prize.amount} ${prizeName}`;
     }
 
-    // GÜNCELLENEN KISIM: logActivity'e bilet bilgisi eklendi
+    // === DEĞİŞİKLİK BURADA: Haftanın kazananı artık "Son Eylemler" paneline log'lanıyor ===
     logActivity('weeklyChampion', 'WeizendTv', {
         winner: winner.username,
         score: winner.score,
         prize: prizeAwardedText,
-        ticketsUsed: ticketsUsedByWinner // Bilet bilgisi eklendi
+        ticketsUsed: ticketsUsedByWinner
     });
+    // === DEĞİŞİKLİK SONU ===
 
-    // GÜNCELLENEN KISIM: Haftanın kazananı paneline bilet bilgisi eklendi
     await db.ref('gameStats/weeklyClickCatchWinner').set({
         winnerName: winner.username,
         winningScore: winner.score,
         prizeAwarded: prizeAwardedText,
-        ticketsUsed: ticketsUsedByWinner, // Bilet bilgisi eklendi
+        ticketsUsed: ticketsUsedByWinner,
         timestamp: firebase.database.ServerValue.TIMESTAMP
     });
 
@@ -4814,7 +4851,6 @@ async function executeWeeklyReset() {
             updates[`${userPath}/clickCatchHighestScore`] = 0;
         }
         
-        // ÖNEMLİ: Mevcut biletleri silmek yerine, üzerine +1 ekliyoruz
         const currentTickets = allUsers[username].clickCatchTickets || 0;
         let finalTickets = currentTickets;
 
@@ -4875,7 +4911,7 @@ async function executeWeeklyReset() {
         }
     }
     updates['/clickCatchWeeklyScores'] = null;
-    updates['/clickCatchWeeklyTickets'] = null; // Harcanan bilet tablosunu da sıfırla
+    updates['/clickCatchWeeklyTickets'] = null;
     updates['/gameConfig/weeklyClickCatchReset'] = null;
     await db.ref().update(updates);
     const notificationMessage = `Tıkla-Yakala haftasının şampiyonu ${winner.username} oldu! Yeni hafta başladı ve tüm katılımcılara +1 bilet hediye edildi!`;
@@ -12521,40 +12557,7 @@ async function confirmAndAwardPrize() {
     closeSelectWinnerModal();
 }
 
-// listenForWeeklyWinner fonksiyonunu bununla değiştir
-function listenForWeeklyWinner() {
-    const ref = db.ref('gameStats/weeklyClickCatchWinner');
-    const container = document.getElementById('weeklyWinnerContainer');
-    const infoDiv = document.getElementById('weeklyWinnerInfo');
-    const clearBtn = document.getElementById('clearWeeklyWinnerBtn');
 
-    const callback = snap => {
-        const winnerData = snap.val();
-        if (winnerData) {
-            // GÜNCELLENEN KISIM: Harcanan bilet bilgisi eklendi
-            const ticketsUsedText = winnerData.ticketsUsed ? `<p>Harcanan Bilet: <b class="text-white">${winnerData.ticketsUsed}</b></p>` : '';
-            infoDiv.innerHTML = `
-                <p>Kazanan: <b class="text-white">${winnerData.winnerName}</b></p>
-                <p>Skor: <b class="text-white">${winnerData.winningScore}</b></p>
-                ${ticketsUsedText}
-                <p>Ödül: <b class="text-green-400">${winnerData.prizeAwarded}</b></p>
-            `;
-            // GÜNCELLENEN KISIM SONU
-            container.classList.remove('hidden');
-            if (isAdmin) {
-                clearBtn.classList.remove('hidden');
-            }
-        } else {
-            container.classList.add('hidden');
-        }
-    };
-    
-    if (activeListeners.weeklyWinner) {
-        activeListeners.weeklyWinner.ref.off('value', activeListeners.weeklyWinner.callback);
-    }
-    activeListeners.weeklyWinner = { ref, event: 'value', callback };
-    ref.on('value', callback);
-}
 
 // Adminin kazanan panelini kapatmasını sağlar
 async function clearWeeklyWinnerDisplay() {
