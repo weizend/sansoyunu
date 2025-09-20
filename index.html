@@ -6950,6 +6950,7 @@ function handleRowTypeChange(selectElement) {
     }
 }
 
+// MEVCUT openBox FONKSİYONUNU KOMPLE SİL VE BUNUNLA DEĞİŞTİR
 async function openBox(index) {
     const lastSurpriseSnap = await db.ref('gameStats/lastSurpriseInfo').once('value');
     const lastSurpriseData = lastSurpriseSnap.val();
@@ -6980,8 +6981,7 @@ async function openBox(index) {
         displayMessage("Kullanıcı verisi bulunamadı.");
         return;
     }
-    
-    // HAK KONTROLÜ BURADA KALIYOR (Client-side ön kontrol)
+
     if ((user.kutuHakki || 0) < BOX_RIGHTS_COST_PER_BOX) {
         displayMessageWithRedirect("Yetersiz kutu hakkı.", "Mağazaya Git", () => {
             storeFilter = { type: 'boxRights' };
@@ -6989,7 +6989,7 @@ async function openBox(index) {
         });
         return;
     }
-    
+
     const initialConfirm = await customConfirm(`<b>${boxes[index].id}</b> numaralı kutuyu açmak istediğinize emin misiniz?`);
     if (!initialConfirm) {
         return;
@@ -7019,29 +7019,24 @@ async function openBox(index) {
         displayMessage(`Seçtiğiniz kutu <b>${transactionResult.snapshot.val().opener}</b> tarafından açıldı. Haklarınız ve çarpanınız kullanılmadı.`);
         return;
     }
-    
-    // *** SORUNU ÇÖZEN DEĞİŞİKLİK BURADA BAŞLIYOR ***
-    // Kutu hakkını atomik olarak düşürmek için transaction kullanıyoruz.
+
     const kutuHakkiRef = userRef.child('kutuHakki');
     const hakTransaction = await kutuHakkiRef.transaction(currentHak => {
         if ((currentHak || 0) < BOX_RIGHTS_COST_PER_BOX) {
-            return; // Yetersiz hak, işlemi iptal et.
+            return;
         }
         return (currentHak || 0) - BOX_RIGHTS_COST_PER_BOX;
     });
 
-    // Eğer hak düşürme işlemi başarısız olduysa (yetersiz bakiye), kutuyu geri kapat ve işlemi durdur.
     if (!hakTransaction.committed) {
-        await boxRef.update({ opened: false, opener: '' }); // Kutuyu geri serbest bırak
+        await boxRef.update({ opened: false, opener: '' });
         displayMessage("Yetersiz kutu hakkı! İşlem iptal edildi.");
         return;
     }
-    // *** DEĞİŞİKLİK BURADA BİTİYOR ***
 
     await db.ref('gameLock').set(true);
     isGameLocked = true;
 
-    // Kutu hakkı başarıyla düşüldüğü için artık kalan işlemleri güvenle yapabiliriz.
     userSnap = await userRef.once('value');
     user = userSnap.val();
 
@@ -7049,42 +7044,45 @@ async function openBox(index) {
     const updates = {};
     let message = '';
 
-    // Kutu hakkı zaten düşüldü, o yüzden tekrar düşmüyoruz. Sadece diğer istatistikleri güncelliyoruz.
     updates['boxesOpenedCount'] = (user.boxesOpenedCount || 0) + 1;
     await db.ref(`gameStats/boxesOpenedByUsers/${currentUser}`).transaction(currentValue => (currentValue || 0) + 1);
-    
-    // Buradan sonraki kodun geri kalanı AYNI.
-    // Sadece `updates['kutuHakki']` satırını sildik çünkü o işlem yukarıda yapıldı.
+
     let finalMultiplier = 1;
     const multiplierWasActive = useMultiplier || user.multiplierSource === 'box';
-
-    if (multiplierWasActive && box.content !== 'surpriz') {
-        finalMultiplier = user.activeMultiplier;
-        if (user.multiplierSource === 'box') {
-            updates['activeMultiplier'] = 1;
-            updates['multiplierSource'] = 'none';
-        } else if (user.multiplierSource === 'store') {
-            updates['multiplierRemainingUses'] = (user.multiplierRemainingUses || 0) - 1;
-            if (updates['multiplierRemainingUses'] <= 0) {
-                updates['activeMultiplier'] = 1;
-                updates['multiplierSource'] = 'none';
-                updates['activeStoreMultiplierItemId'] = null;
-            }
-        }
-    } else if (multiplierWasActive && box.content === 'surpriz') {
-        finalMultiplier = user.activeMultiplier;
-    }
 
     const boxUpdate = {
         opened: true, opener: currentUser, id: box.id,
         content: box.content, value: box.value
     };
+    
+    // Geçici bir kullanıcı durumu objesi oluşturarak adımları sırayla işliyoruz.
+    let tempUserState = JSON.parse(JSON.stringify(user));
+
+    // Adım 1: Çarpan kullanıldıysa, önce geçici durumda bunu uygula.
+    if (multiplierWasActive && box.content !== 'surpriz') {
+        finalMultiplier = tempUserState.activeMultiplier;
+        if (tempUserState.multiplierSource === 'box') {
+            tempUserState.activeMultiplier = 1;
+            tempUserState.multiplierSource = 'none';
+        } else if (tempUserState.multiplierSource === 'store') {
+            tempUserState.multiplierRemainingUses = (tempUserState.multiplierRemainingUses || 0) - 1;
+            if (tempUserState.multiplierRemainingUses <= 0) {
+                tempUserState.activeMultiplier = 1;
+                tempUserState.multiplierSource = 'none';
+                tempUserState.activeStoreMultiplierItemId = null;
+            }
+        }
+    } else if (multiplierWasActive && box.content === 'surpriz') {
+        finalMultiplier = tempUserState.activeMultiplier;
+    }
+
     if (finalMultiplier > 1) {
         boxUpdate.multiplierApplied = finalMultiplier;
     }
 
+    // Adım 2: Kutudan çıkan ödüle göre geçici durumu güncelle.
     if (box.content === 'surpriz') {
-        updates['surpriseBoxesOpened'] = (user.surpriseBoxesOpened || 0) + 1;
+        tempUserState.surpriseBoxesOpened = (tempUserState.surpriseBoxesOpened || 0) + 1;
         const openedInTurnSnap = await db.ref(`gameStats/boxesOpenedByUsers/${currentUser}`).once('value');
         const openedBoxesThisRound = openedInTurnSnap.val() || 1;
         const sessionRef = db.ref('surprise_box_session');
@@ -7093,121 +7091,89 @@ async function openBox(index) {
         await sessionRef.update({ expirationTimestamp: snap.val().timestamp + 60000 });
     }
     else if (box.content === 'multiplier') {
-        updates['multiplierFoundCount'] = (user.multiplierFoundCount || 0) + 1;
+        tempUserState.multiplierFoundCount = (tempUserState.multiplierFoundCount || 0) + 1;
         const foundMultiplierValue = box.value;
-        const existingMultiplierValue = user.activeMultiplier || 1;
-        const existingMultiplierUses = user.multiplierRemainingUses || 0;
-        const existingMultiplierSource = user.multiplierSource || 'none';
+        const existingMultiplierValue = tempUserState.activeMultiplier || 1;
+        const existingMultiplierUses = tempUserState.multiplierRemainingUses || 0;
+        const existingMultiplierSource = tempUserState.multiplierSource || 'none';
 
         if (existingMultiplierSource === 'none') {
-            updates.activeMultiplier = foundMultiplierValue;
-            updates.multiplierSource = 'box';
+            tempUserState.activeMultiplier = foundMultiplierValue;
+            tempUserState.multiplierSource = 'box';
+            tempUserState.multiplierRemainingUses = 0; // Otomatik çarpanlar tek kullanımlıktır
             message = `Harika! <b>${foundMultiplierValue}x Çarpan</b> buldun. Bir sonraki kutu açılışında otomatik olarak kullanılacak!`;
             logActivity('multiplierFound', currentUser, { boxId: box.id, value: foundMultiplierValue, multiplier: finalMultiplier });
         } else if (foundMultiplierValue === existingMultiplierValue) {
-            updates.multiplierRemainingUses = existingMultiplierUses + 1;
-            updates.activeMultiplier = existingMultiplierValue;
-            updates.multiplierSource = existingMultiplierSource;
-            
-            message = `Süper! Mevcut <b>${existingMultiplierValue}x</b> çarpanınla aynı değerde bir tane daha buldun. Kullanım hakkın <b class="text-teal-300">+1</b> artarak <b>${updates.multiplierRemainingUses}</b> oldu!`;
+            tempUserState.multiplierRemainingUses = existingMultiplierUses + 1;
+            message = `Süper! Mevcut <b>${existingMultiplierValue}x</b> çarpanınla aynı değerde bir tane daha buldun. Kullanım hakkın <b class="text-teal-300">+1</b> artarak <b>${tempUserState.multiplierRemainingUses}</b> oldu!`;
             logActivity('multiplierStacked', currentUser, { boxId: box.id, value: foundMultiplierValue, uses: 1, multiplier: finalMultiplier });
         } else if (foundMultiplierValue > existingMultiplierValue) {
             const combinedValue = existingMultiplierValue + foundMultiplierValue;
-            updates.activeMultiplier = combinedValue;
-            updates.multiplierSource = 'box';
-            updates.multiplierRemainingUses = 0;
-            const refundedBoxRights = multiplierWasActive ? existingMultiplierUses + 1 : existingMultiplierUses;
-            updates.kutuHakki = (user.kutuHakki || 0) + refundedBoxRights;
-            
+            tempUserState.activeMultiplier = combinedValue;
+            tempUserState.multiplierSource = 'box';
+            tempUserState.multiplierRemainingUses = 0;
+            const refundedBoxRights = existingMultiplierUses + (useMultiplier ? 1 : 0);
+            tempUserState.kutuHakki = (tempUserState.kutuHakki || 0) + refundedBoxRights;
             message = `İNANILMAZ! Mevcut ${existingMultiplierValue}x çarpanın, bulduğun ${foundMultiplierValue}x ile birleşerek tek kullanımlık <b class="text-purple-400">${combinedValue}x</b> gücüne ulaştı! Eski çarpan hakların için <b class="text-green-400">+${refundedBoxRights} Kutu Hakkı</b> iade edildi!`;
             logActivity('multiplierCombined', currentUser, { boxId: box.id, foundValue: foundMultiplierValue, combinedValue: combinedValue, refundedRights: refundedBoxRights, multiplier: finalMultiplier });
-        } else { 
+        } else {
             const boxRightsFromMultiplier = foundMultiplierValue;
-            updates.kutuHakki = (user.kutuHakki || 0) + boxRightsFromMultiplier;
+            tempUserState.kutuHakki = (tempUserState.kutuHakki || 0) + boxRightsFromMultiplier;
             message = `Mevcut <b>${existingMultiplierValue}x</b> çarpanın daha güçlü olduğu için korundu. Bulduğun ${foundMultiplierValue}x çarpan ise <b class="text-green-400">+${boxRightsFromMultiplier} Kutu Hakkı</b>'na dönüştürüldü!`;
-            
-            logActivity('multiplierConvertedToBoxRights', currentUser, {
-                boxId: box.id,
-                rewardValue: foundMultiplierValue,
-                boxRights: boxRightsFromMultiplier,
-                source: 'Kutudan',
-                multiplier: finalMultiplier,
-                existingValue: existingMultiplierValue,
-                existingUses: existingMultiplierUses  
-            });
+            logActivity('multiplierConvertedToBoxRights', currentUser, { boxId: box.id, rewardValue: foundMultiplierValue, boxRights: boxRightsFromMultiplier, source: 'Kutudan', multiplier: finalMultiplier, existingValue: existingMultiplierValue, existingUses: existingMultiplierUses });
         }
     }
     else if (box.content === 'points') {
         const pointsGained = box.value * finalMultiplier;
-        updates['balance'] = (user.balance || 0) + pointsGained;
-        updates['kariyerPuani'] = (user.kariyerPuani || 0) + pointsGained;
+        tempUserState.balance = (tempUserState.balance || 0) + pointsGained;
+        tempUserState.kariyerPuani = (tempUserState.kariyerPuani || 0) + pointsGained;
         message = `+${pointsGained} puan kazandınız!`;
         boxUpdate.basePoints = box.value;
         boxUpdate.finalPoints = pointsGained;
-        logActivity('openBox', currentUser, { boxId: box.id, points: pointsGained, multiplier: finalMultiplier, newBalance: updates['balance'] });
+        logActivity('openBox', currentUser, { boxId: box.id, points: pointsGained, multiplier: finalMultiplier, newBalance: tempUserState.balance });
     } else if (box.content === 'iflas') {
-        const shieldWasUsed = (user.iflasShieldUses || 0) > 0;
-        const lostPoints = user.balance || 0;
-        
-        updates['iflasCount'] = (user.iflasCount || 0) + 1;
-
+        const shieldWasUsed = (tempUserState.iflasShieldUses || 0) > 0;
+        const lostPoints = tempUserState.balance || 0;
+        tempUserState.iflasCount = (tempUserState.iflasCount || 0) + 1;
         if (shieldWasUsed) {
-            updates['iflasShieldUses'] = user.iflasShieldUses - 1;
-            updates['iflasShieldUsedCount'] = (user.iflasShieldUsedCount || 0) + 1;
+            tempUserState.iflasShieldUses -= 1;
+            tempUserState.iflasShieldUsedCount = (tempUserState.iflasShieldUsedCount || 0) + 1;
             message = `İflas! 🛡️ Kalkanın seni korudu!`;
             boxUpdate.shieldUsed = true;
             boxUpdate.lostPoints = 0;
-            logActivity('iflas', currentUser, { shieldUsed: true, lostPoints: 0, boxId: box.id, multiplier: finalMultiplier, newBalance: user.balance });
+            logActivity('iflas', currentUser, { shieldUsed: true, lostPoints: 0, boxId: box.id, multiplier: finalMultiplier, newBalance: tempUserState.balance });
         } else {
-            updates['balance'] = 0;
+            tempUserState.balance = 0;
             message = `İflas! Tüm puanların (-${lostPoints} puan) silindi.`;
             boxUpdate.shieldUsed = false;
             boxUpdate.lostPoints = lostPoints;
             logActivity('iflas', currentUser, { shieldUsed: false, lostPoints: lostPoints, boxId: box.id, multiplier: finalMultiplier, newBalance: 0 });
         }
-    } 
-    else if (box.content.endsWith('_potion')) {
-        const itemsGained = (box.value || 1) * finalMultiplier;
-        const statKeyMap = { health_potion: 'hp', damage_potion: 'damage', defense_potion: 'defense', crit_potion: 'critChance', crit_damage_potion: 'critDamage', dodge_potion: 'dodgeChance', pierce_potion: 'pierceChance' };
-        const statKey = statKeyMap[box.content];
-        
-        if(statKey) {
-            if (!user.globalPotionBuffs) user.globalPotionBuffs = {};
-            updates[`globalPotionBuffs/${statKey}`] = (user.globalPotionBuffs[statKey] || 0) + itemsGained;
-        }
-        
-        message = `Kutudan kalıcı bonus veren <b>+${itemsGained} ${typeToName[box.content]}</b> kazandın!`;
-        boxUpdate.baseValue = box.value || 1;
-        boxUpdate.finalValue = itemsGained;
-        logActivity('newItemFound', currentUser, { itemName: `+${itemsGained} ${typeToName[box.content]}`, itemType: box.content, boxId: box.id, multiplier: finalMultiplier });
-    }
-    else if (box.content === 'revival_stone') {
-        const itemsGained = (box.value || 1) * finalMultiplier;
-        if (!user.inventory) user.inventory = {};
-        updates['inventory/revival_stone'] = (user.inventory?.revival_stone || 0) + itemsGained;
-        
-        message = `Kutudan <b>+${itemsGained} ${typeToName[box.content]}</b> kazandın!`;
-        boxUpdate.baseValue = box.value || 1;
-        boxUpdate.finalValue = itemsGained;
-        logActivity('newItemFound', currentUser, { itemName: `+${itemsGained} ${typeToName[box.content]}`, itemType: box.content, boxId: box.id, multiplier: finalMultiplier });
-    }
-    else {
+    } else {
         const itemsGained = (box.value || 1) * finalMultiplier;
         const dbKeys = { wheelTicket: 'carkBileti', clickCatchTicket: 'clickCatchTickets', iflasShield: 'iflasShieldUses', wildcard: 'wildcards' };
         const itemName = typeToName[box.content] || 'Eşya';
-        
         if (box.content.startsWith('card_pack')) {
             startCardPackOpening(itemsGained, `${box.id} numaralı kutu`, finalMultiplier, box.content);
             message = `Tebrikler! Kutudan ${itemsGained} adet ${itemName} buldun!`;
         } else {
-            updates[dbKeys[box.content]] = (user[dbKeys[box.content]] || 0) + itemsGained;
+            tempUserState[dbKeys[box.content]] = (tempUserState[dbKeys[box.content]] || 0) + itemsGained;
             message = `Kutudan <b>+${itemsGained} ${itemName}</b> kazandın!`;
         }
-        
         boxUpdate.baseValue = box.value || 1;
         boxUpdate.finalValue = itemsGained;
         logActivity('newItemFound', currentUser, { itemName: `+${itemsGained} ${itemName}`, itemType: box.content, boxId: box.id, multiplier: finalMultiplier });
     }
+
+    // Adım 3: Geçici durumdan nihai `updates` objesini oluştur.
+    // Orijinal `user` objesi ile `tempUserState` arasındaki farkları bulup `updates` objesine ekliyoruz.
+    for (const key in tempUserState) {
+        if (tempUserState[key] !== user[key]) {
+            updates[key] = tempUserState[key];
+        }
+    }
+    // `kutuHakki` zaten transaction ile düşürüldüğü için onu `updates` objesinden çıkarıyoruz.
+    delete updates.kutuHakki;
 
     await userRef.update(updates);
     await db.ref('boxes/' + index).update(boxUpdate);
