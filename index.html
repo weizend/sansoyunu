@@ -4823,14 +4823,12 @@ async function executeWeeklyReset() {
         prizeAwardedText = `${prize.amount} ${prizeName}`;
     }
 
-    // === DEĞİŞİKLİK BURADA: Haftanın kazananı artık "Son Eylemler" paneline log'lanıyor ===
     logActivity('weeklyChampion', 'WeizendTv', {
         winner: winner.username,
         score: winner.score,
         prize: prizeAwardedText,
         ticketsUsed: ticketsUsedByWinner
     });
-    // === DEĞİŞİKLİK SONU ===
 
     await db.ref('gameStats/weeklyClickCatchWinner').set({
         winnerName: winner.username,
@@ -4851,13 +4849,24 @@ async function executeWeeklyReset() {
             updates[`${userPath}/clickCatchHighestScore`] = 0;
         }
         
-        const currentTickets = allUsers[username].clickCatchTickets || 0;
-        let finalTickets = currentTickets;
+        // ==========================================================
+        // ★★★ SORUNU ÇÖZEN DEĞİŞİKLİK BURADA BAŞLIYOR ★★★
+        // ==========================================================
+        
+        // 1. Adım: Herkesin biletini varsayılan olarak 0 yap.
+        let finalTickets = 0;
 
+        // 2. Adım: Eğer kullanıcı o hafta katılım gösterdiyse, hediye 1 bileti ver.
         if (participants.includes(username)) {
-            finalTickets += 1;
+            finalTickets = 1;
         }
+        
+        // 3. Adım: Hesaplanan nihai bilet sayısını güncelleme listesine ekle.
         updates[`${userPath}/clickCatchTickets`] = finalTickets;
+        
+        // ==========================================================
+        // ★★★ DEĞİŞİKLİK BURADA BİTİYOR ★★★
+        // ==========================================================
         
         if (username === winner.username) {
             if (prize.type === 'special') {
