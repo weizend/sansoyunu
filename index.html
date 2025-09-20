@@ -17980,80 +17980,173 @@ async function loadAvatarStatsForAdmin() {
     }
 }
       
-// MEVCUT saveAndSpawnMonster FONKSİYONUNU SİL VE BUNU YAPIŞTIR
-async function saveAndSpawnMonster() {
-    if (!isAdmin) return;
+/**
+     * YENİ: Adminin mevcut canavarı düzenlemek için yönetim panelini açmasını sağlar ve GÜNCELLEME moduna geçirir.
+     */
+    async function editCurrentMonster() {
+        if (!isAdmin || !monsterBattleData.monsterDetails) return;
+        
+        const monster = monsterBattleData.monsterDetails;
+        const rewards = monsterBattleData.rewards || {};
+        const tiers = monsterBattleData.damageTiers || [];
 
-    // ★★★ YENİ KOD BAŞLANGICI: Yeni canavar gelmeden önce eski şampiyonu temizle ★★★
-    await db.ref('gameStats/lastMonsterChampion').remove();
-    // ★★★ YENİ KOD SONU ★★★
+        // Formu mevcut canavarın bilgileriyle doldur
+        document.getElementById('adminMonsterName').value = monster.name || '';
+        document.getElementById('adminMonsterImageUrl').value = monster.imageUrl || '';
+        document.getElementById('adminMonsterMaxHP').value = monster.maxHP || '';
+        document.getElementById('adminMonsterMinDamage').value = monster.minDamage || '';
+        document.getElementById('adminMonsterMaxDamage').value = monster.maxDamage || '';
+        document.getElementById('adminMonsterDefense').value = monster.defense || '';
+        document.getElementById('adminMonsterCritChance').value = monster.critChance || '';
+        document.getElementById('adminMonsterCritDamage').value = monster.critDamage || '';
+        document.getElementById('adminMonsterDodgeChance').value = monster.dodgeChance || '';
+        document.getElementById('adminMonsterPierceChance').value = monster.pierceChance || '';
 
-    const minDamage = parseInt(document.getElementById('adminMonsterMinDamage').value) || 500;
-    const maxDamage = parseInt(document.getElementById('adminMonsterMaxDamage').value) || 1000;
+        if (rewards.onKillLeader) {
+            document.getElementById('adminMonsterKillRewardType').value = rewards.onKillLeader.type || 'points';
+            document.getElementById('adminMonsterKillReward').value = rewards.onKillLeader.value || '';
+        }
 
-    if (minDamage > maxDamage) {
-        displayMessage("Canavarın minimum hasarı, maksimum hasarından büyük olamaz.");
-        return;
+        const tiersContainer = document.getElementById('damageTiersContainer');
+        tiersContainer.innerHTML = '';
+        tiers.forEach(tier => addDamageTierRow(tier));
+
+        // ANA DEĞİŞİKLİK: Kaydet butonunun işlevini ve metnini GÜNCELLEMEK için değiştiriyoruz.
+        const saveBtn = document.querySelector('#monsterAdminControls > button.w-full');
+        if (saveBtn) {
+            saveBtn.textContent = 'Mevcut Canavarı Güncelle';
+            saveBtn.onclick = updateMonsterStats; // Yeni güncelleme fonksiyonunu ata
+        }
+        
+        // Paneli aç
+        document.getElementById('monsterAdminControls').classList.remove('hidden');
     }
 
-    const monsterDetails = {
-        name: document.getElementById('adminMonsterName').value.trim() || 'İsimsiz Dehşet',
-        imageUrl: document.getElementById('adminMonsterImageUrl').value.trim(),
-        maxHP: parseInt(document.getElementById('adminMonsterMaxHP').value) || 1000000,
-        minDamage: minDamage,
-        maxDamage: maxDamage,
-        defense: parseInt(document.getElementById('adminMonsterDefense').value) || 100,
-        critChance: parseFloat(String(document.getElementById('adminMonsterCritChance').value).replace(',', '.')) || 5,
-        critDamage: parseFloat(String(document.getElementById('adminMonsterCritDamage').value).replace(',', '.')) || 10,
-        dodgeChance: parseFloat(String(document.getElementById('adminMonsterDodgeChance').value).replace(',', '.')) || 5,
-        pierceChance: parseFloat(String(document.getElementById('adminMonsterPierceChance').value).replace(',', '.')) || 5,
-    };
-    monsterDetails.currentHP = monsterDetails.maxHP;
-    
-    const onKillRewardType = document.getElementById('adminMonsterKillRewardType').value;
-    const onKillRewardValue = parseStatValue(onKillRewardType, document.getElementById('adminMonsterKillReward').value);
+    /**
+     * YENİ: Mevcut canavarın özelliklerini, savaşı sıfırlamadan günceller.
+     */
+    async function updateMonsterStats() {
+        if (!isAdmin) return;
 
-    const rewards = {
-        onKillLeader: {
-            type: onKillRewardType,
-            value: onKillRewardValue || 50000
+        // Mevcut savaş verilerini al
+        const currentBattleData = (await db.ref('gameConfig/monsterBattle').once('value')).val();
+        if (!currentBattleData || !currentBattleData.monsterDetails) {
+            displayMessage("Güncellenecek aktif bir canavar bulunamadı.");
+            return;
         }
-    };
-    
-    const damageTiers = [];
-    document.querySelectorAll('.damage-tier-row').forEach(tierRow => {
-        const minDamage = parseInt(tierRow.querySelector('.min-damage').value);
-        if (isNaN(minDamage) || minDamage <= 0) return;
-        
-        const tierRewards = [];
-        tierRow.querySelectorAll('.rewards-list > .grid').forEach(rewardRow => {
-            const type = rewardRow.querySelector('.reward-type').value;
-            const value = parseStatValue(type, rewardRow.querySelector('.reward-value').value);
-            const chance = parseInt(rewardRow.querySelector('.reward-chance').value);
 
-            if (type && !isNaN(value) && !isNaN(chance) && value > 0 && chance > 0) {
-                tierRewards.push({ type, value, chance });
-            }
+        const minDamage = parseInt(document.getElementById('adminMonsterMinDamage').value) || 500;
+        const maxDamage = parseInt(document.getElementById('adminMonsterMaxDamage').value) || 1000;
+        if (minDamage > maxDamage) {
+            displayMessage("Canavarın minimum hasarı, maksimum hasarından büyük olamaz.");
+            return;
+        }
+        
+        const newMaxHP = parseInt(document.getElementById('adminMonsterMaxHP').value) || 1000000;
+        let newCurrentHP = currentBattleData.monsterDetails.currentHP;
+        // Eğer yeni max can, mevcut candan düşükse, mevcut canı yeni max cana eşitle
+        if (newMaxHP < newCurrentHP) {
+            newCurrentHP = newMaxHP;
+        }
+
+        // Güncellenecek verileri bir obje içinde topla
+        const updates = {};
+        updates['/monsterDetails/name'] = document.getElementById('adminMonsterName').value.trim() || 'İsimsiz Dehşet';
+        updates['/monsterDetails/imageUrl'] = document.getElementById('adminMonsterImageUrl').value.trim();
+        updates['/monsterDetails/maxHP'] = newMaxHP;
+        updates['/monsterDetails/currentHP'] = newCurrentHP; // Güncellenmiş mevcut can
+        updates['/monsterDetails/minDamage'] = minDamage;
+        updates['/monsterDetails/maxDamage'] = maxDamage;
+        updates['/monsterDetails/defense'] = parseInt(document.getElementById('adminMonsterDefense').value) || 100;
+        updates['/monsterDetails/critChance'] = parseFloat(String(document.getElementById('adminMonsterCritChance').value).replace(',', '.')) || 5;
+        updates['/monsterDetails/critDamage'] = parseFloat(String(document.getElementById('adminMonsterCritDamage').value).replace(',', '.')) || 10;
+        updates['/monsterDetails/dodgeChance'] = parseFloat(String(document.getElementById('adminMonsterDodgeChance').value).replace(',', '.')) || 5;
+        updates['/monsterDetails/pierceChance'] = parseFloat(String(document.getElementById('adminMonsterPierceChance').value).replace(',', '.')) || 5;
+        
+        // Ödülleri de güncelle
+        const onKillRewardType = document.getElementById('adminMonsterKillRewardType').value;
+        const onKillRewardValue = parseStatValue(onKillRewardType, document.getElementById('adminMonsterKillReward').value);
+        updates['/rewards/onKillLeader'] = { type: onKillRewardType, value: onKillRewardValue || 50000 };
+
+        const damageTiers = [];
+        document.querySelectorAll('.damage-tier-row').forEach(tierRow => {
+            const minDamage = parseInt(tierRow.querySelector('.min-damage').value);
+            if (isNaN(minDamage) || minDamage <= 0) return;
+            const tierRewards = [];
+            tierRow.querySelectorAll('.rewards-list > .grid').forEach(rewardRow => {
+                const type = rewardRow.querySelector('.reward-type').value;
+                const value = parseStatValue(type, rewardRow.querySelector('.reward-value').value);
+                const chance = parseInt(rewardRow.querySelector('.reward-chance').value);
+                if (type && !isNaN(value) && !isNaN(chance) && value > 0 && chance > 0) {
+                    tierRewards.push({ type, value, chance });
+                }
+            });
+            if(tierRewards.length > 0) damageTiers.push({ minDamage, rewards: tierRewards });
         });
-        
-        if(tierRewards.length > 0) {
-            damageTiers.push({ minDamage, rewards: tierRewards });
+        updates['/damageTiers'] = damageTiers;
+
+        // Onay al ve veritabanını güncelle
+        const confirmed = await customConfirm(`Canavarın özellikleri güncellenecek. Savaş kaldığı yerden devam edecek. Onaylıyor musun?`);
+        if (confirmed) {
+            await db.ref('gameConfig/monsterBattle').update(updates);
+            displayMessage("Canavarın özellikleri başarıyla güncellendi!");
+            toggleMonsterAdminPanel();
         }
-    });
-
-    const confirmed = await customConfirm(`<b>${monsterDetails.name}</b> canavarı ${formatNumber(monsterDetails.maxHP)} can ile çağrılacak. Mevcut savaş ilerlemesi (varsa) sıfırlanacak. Onaylıyor musun?`);
-    if (!confirmed) return;
-
-    await db.ref('gameConfig/monsterBattle').set({
-        monsterDetails: monsterDetails,
-        rewards: rewards,
-        damageTiers: damageTiers,
-        damageLeaderboard: null 
-    });
-
-    displayMessage("Canavar başarıyla çağrıldı ve savaş başladı!");
-    toggleMonsterAdminPanel();
-}
+    }
+    
+    /**
+     * YENİ CANAVARI ÇAĞIRIR VE MEVCUT SAVAŞI TAMAMEN SIFIRLAR (Bu fonksiyon orijinal haliyle aynı, sadece adı değişti)
+     */
+    async function saveAndSpawnMonster() {
+        if (!isAdmin) return;
+        await db.ref('gameStats/lastMonsterChampion').remove();
+        const minDamage = parseInt(document.getElementById('adminMonsterMinDamage').value) || 500;
+        const maxDamage = parseInt(document.getElementById('adminMonsterMaxDamage').value) || 1000;
+        if (minDamage > maxDamage) {
+            displayMessage("Canavarın minimum hasarı, maksimum hasarından büyük olamaz.");
+            return;
+        }
+        const monsterDetails = {
+            name: document.getElementById('adminMonsterName').value.trim() || 'İsimsiz Dehşet',
+            imageUrl: document.getElementById('adminMonsterImageUrl').value.trim(),
+            maxHP: parseInt(document.getElementById('adminMonsterMaxHP').value) || 1000000,
+            minDamage: minDamage, maxDamage: maxDamage,
+            defense: parseInt(document.getElementById('adminMonsterDefense').value) || 100,
+            critChance: parseFloat(String(document.getElementById('adminMonsterCritChance').value).replace(',', '.')) || 5,
+            critDamage: parseFloat(String(document.getElementById('adminMonsterCritDamage').value).replace(',', '.')) || 10,
+            dodgeChance: parseFloat(String(document.getElementById('adminMonsterDodgeChance').value).replace(',', '.')) || 5,
+            pierceChance: parseFloat(String(document.getElementById('adminMonsterPierceChance').value).replace(',', '.')) || 5,
+        };
+        monsterDetails.currentHP = monsterDetails.maxHP;
+        const onKillRewardType = document.getElementById('adminMonsterKillRewardType').value;
+        const onKillRewardValue = parseStatValue(onKillRewardType, document.getElementById('adminMonsterKillReward').value);
+        const rewards = { onKillLeader: { type: onKillRewardType, value: onKillRewardValue || 50000 } };
+        const damageTiers = [];
+        document.querySelectorAll('.damage-tier-row').forEach(tierRow => {
+            const minDamage = parseInt(tierRow.querySelector('.min-damage').value);
+            if (isNaN(minDamage) || minDamage <= 0) return;
+            const tierRewards = [];
+            tierRow.querySelectorAll('.rewards-list > .grid').forEach(rewardRow => {
+                const type = rewardRow.querySelector('.reward-type').value;
+                const value = parseStatValue(type, rewardRow.querySelector('.reward-value').value);
+                const chance = parseInt(rewardRow.querySelector('.reward-chance').value);
+                if (type && !isNaN(value) && !isNaN(chance) && value > 0 && chance > 0) {
+                    tierRewards.push({ type, value, chance });
+                }
+            });
+            if(tierRewards.length > 0) damageTiers.push({ minDamage, rewards: tierRewards });
+        });
+        const confirmed = await customConfirm(`<b>${monsterDetails.name}</b> canavarı ${formatNumber(monsterDetails.maxHP)} can ile çağrılacak. Mevcut savaş ilerlemesi (varsa) sıfırlanacak. Onaylıyor musun?`);
+        if (!confirmed) return;
+        await db.ref('gameConfig/monsterBattle').set({
+            monsterDetails: monsterDetails,
+            rewards: rewards,
+            damageTiers: damageTiers,
+            damageLeaderboard: null 
+        });
+        displayMessage("Canavar başarıyla çağrıldı ve savaş başladı!");
+        toggleMonsterAdminPanel();
+    }
 
 function updateHealthBar(currentHP, maxHP) {
   const healthBarEl = document.getElementById('monsterHealthBar');
@@ -18539,45 +18632,6 @@ async function useRevivalStone() {
     } finally {
         reviveBtn.disabled = false;
     }
-}
-
-/**
- * Adminin mevcut canavarı düzenlemek için yönetim panelini açmasını sağlar.
- */
-async function editCurrentMonster() {
-    if (!isAdmin || !monsterBattleData.monsterDetails) return;
-    
-    const monster = monsterBattleData.monsterDetails;
-    const rewards = monsterBattleData.rewards || {};
-    const tiers = monsterBattleData.damageTiers || [];
-
-    // Formu mevcut canavarın bilgileriyle doldur
-    document.getElementById('adminMonsterName').value = monster.name || '';
-    document.getElementById('adminMonsterImageUrl').value = monster.imageUrl || '';
-    document.getElementById('adminMonsterMaxHP').value = monster.maxHP || '';
-    document.getElementById('adminMonsterMinDamage').value = monster.minDamage || '';
-    document.getElementById('adminMonsterMaxDamage').value = monster.maxDamage || '';
-    document.getElementById('adminMonsterDefense').value = monster.defense || '';
-    document.getElementById('adminMonsterCritChance').value = monster.critChance || '';
-    
-    // ★★★ EKSİK OLAN VE YENİ EKLENEN SATIRLAR ★★★
-    document.getElementById('adminMonsterCritDamage').value = monster.critDamage || '';
-    document.getElementById('adminMonsterDodgeChance').value = monster.dodgeChance || '';
-    document.getElementById('adminMonsterPierceChance').value = monster.pierceChance || '';
-    // ★★★ EKLENEN SATIRLARIN SONU ★★★
-
-    if (rewards.onKillLeader) {
-        document.getElementById('adminMonsterKillRewardType').value = rewards.onKillLeader.type || 'points';
-        document.getElementById('adminMonsterKillReward').value = rewards.onKillLeader.value || '';
-    }
-
-    // Hasar aralıklarını temizle ve yeniden doldur
-    const tiersContainer = document.getElementById('damageTiersContainer');
-    tiersContainer.innerHTML = '';
-    tiers.forEach(tier => addDamageTierRow(tier));
-
-    // Paneli aç
-    document.getElementById('monsterAdminControls').classList.remove('hidden');
 }
 
 /**
