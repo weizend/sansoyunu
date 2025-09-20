@@ -2263,6 +2263,10 @@ body.modal-open .modal-content {
               <option value="special">🚀 Özel Ürün (Onay Gerektirir)</option>
             </select>
             <input type="text" id="newItemValue" placeholder="Değer (Kutu Hakkı Adedi / Çarpan Değeri / Kalkan Sayısı)" class="w-full p-2 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
+            <div id="storeItemAvatarFields" class="hidden space-y-2 mb-2">
+    <input type="text" id="newItemAvatarName" placeholder="Avatarın Adı (Envanterde Görünecek)" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
+    <input type="text" id="newItemAvatarImageUrl" placeholder="Avatarın Gerçek Resim URL'si" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
+</div>
             <input type="number" id="newItemMultiplierDuration" placeholder="Çarpan Süresi (Kutu Sayısı)" min="1" class="w-full p-2 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white hidden focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
             <input type="number" id="newItemPriceIncrease" placeholder="Her Alımda Fiyat Artışı (Puan)" min="0" class="w-full p-2 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white hidden focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
             
@@ -8871,17 +8875,19 @@ async function reorderStoreItem(itemId, newIndex) {
     // Not: Arayüz, veritabanı dinleyicisi sayesinde otomatik olarak güncellenecektir.
 }
 
-// YENİ VE GÜNCELLENMİŞ FONKSİYON
+// BU FONKSİYONU BUL VE AŞAĞIDAKİYLE DEĞİŞTİR
 function handleStoreItemTypeChange() {
     const type = document.getElementById('newItemType').value;
     const valueInput = document.getElementById('newItemValue');
     const durationInput = document.getElementById('newItemMultiplierDuration');
     const priceIncreaseInput = document.getElementById('newItemPriceIncrease');
-    
+    const avatarFields = document.getElementById('storeItemAvatarFields'); // YENİ EKLENDİ
+
     // Önce tüm özel alanları varsayılan durumuna getirelim
     valueInput.classList.remove('hidden');
     durationInput.classList.add('hidden');
     priceIncreaseInput.classList.add('hidden');
+    avatarFields.classList.add('hidden'); // YENİ EKLENDİ
     valueInput.placeholder = 'Değer (Kutu Hakkı Adedi / Çarpan Değeri / Kalkan Sayısı)';
 
     if (type === 'tempMultiplier') {
@@ -8892,14 +8898,16 @@ function handleStoreItemTypeChange() {
         if (isPercent) {
             valueInput.placeholder = 'Değer (örn: 2.5)';
         }
-    } else if (type === 'avatar' || type === 'special') {
-        // Avatar veya Özel Ürün için Değer ve Süre alanları gereksiz
+    } else if (type === 'avatar') {
+        // YENİ EKLENEN AVATAR MANTIĞI
         valueInput.classList.add('hidden');
-        durationInput.classList.add('hidden');
+        avatarFields.classList.remove('hidden');
+    } else if (type === 'special') {
+        valueInput.classList.add('hidden');
     }
 }
 
-// GÜNCELLENMİŞ FONKSİYON
+// BU FONKSİYONU BUL VE AŞAĞIDAKİYLE DEĞİŞTİR
 function resetStoreItemForm() {
     document.getElementById('newItemName').value = '';
     document.getElementById('newItemDescription').value = '';
@@ -8908,8 +8916,12 @@ function resetStoreItemForm() {
     document.getElementById('newItemType').value = '';
     document.getElementById('newItemValue').value = '';
     document.getElementById('newItemMultiplierDuration').value = '';
-    document.getElementById('newItemPriceIncrease').value = ''; // Yeni alanı da temizle
+    document.getElementById('newItemPriceIncrease').value = '';
     
+    // YENİ EKLENEN AVATAR ALANLARINI TEMİZLEME
+    document.getElementById('newItemAvatarName').value = '';
+    document.getElementById('newItemAvatarImageUrl').value = '';
+
     document.getElementById('storeItemCountdownDays').value = '';
     document.getElementById('storeItemCountdownHours').value = '';
     document.getElementById('storeItemCountdownMinutes').value = '';
@@ -8918,13 +8930,12 @@ function resetStoreItemForm() {
     document.getElementById('newItemImageUrl').value = '';
     document.getElementById('addUpdateStoreItemBtn').textContent = 'ÜRÜN EKLE';
     
-    // Formu görsel olarak sıfırla
     handleStoreItemTypeChange();
     
     editingItemId = null; 
 }
 
-// YENİ VE GÜNCELLENMİŞ FONKSİYON
+// BU FONKSİYONU BUL VE AŞAĞIDAKİYLE DEĞİŞTİR
 async function saveStoreItem() {
     if (!isAdmin) return;
 
@@ -8967,8 +8978,12 @@ async function saveStoreItem() {
             itemData.value = value;
             itemData.duration = multiplierDuration;
         } else if (type === 'avatar') {
-            // Avatar tipinin özel bir "value" değeri olmadığı için bu blok boş kalacak.
-            // Bu, aşağıdaki 'else' bloğunun hata vermesini engeller.
+            // YENİ EKLENEN AVATAR KAYDETME MANTIĞI
+            itemData.avatarName = document.getElementById('newItemAvatarName').value.trim();
+            itemData.avatarImageUrl = document.getElementById('newItemAvatarImageUrl').value.trim();
+            if (!itemData.avatarName || !itemData.avatarImageUrl) {
+                throw new Error("Avatar tipi için 'Avatar Adı' ve 'Avatar Resim URL'si' alanları zorunludur.");
+            }
         } else {
             const typesThatNeedValue = [
                 'boxRights', 'wheelTicket', 'clickCatchTicket', 'iflasShield', 'wildcard', 
@@ -13255,7 +13270,7 @@ async function selectAvatar(itemId, imageUrl) {
     closeAvatarSelectionModal();
 }
 
-// MEVCUT editStoreItem FONKSİYONUNU SİLİP BU YENİ VERSİYONU YAPIŞTIRIN
+// BU FONKSİYONU BUL VE AŞAĞIDAKİYLE DEĞİŞTİR
 async function editStoreItem(itemId) {
     if (!isAdmin) return;
     
@@ -13273,10 +13288,13 @@ async function editStoreItem(itemId) {
     document.getElementById('newItemType').value = item.type;
     document.getElementById('newItemValue').value = item.value;
     document.getElementById('newItemImageUrl').value = item.imageUrl || '';
-    
-    // ★★★ DÜZELTME BURADA: Artık "Fiyat Artışı" 0 ise bile input'ta doğru şekilde "0" görünecek. ★★★
-    // '||' operatörü 0'ı 'false' kabul ettiği için boş gösteriyordu, bu düzeltildi.
     document.getElementById('newItemPriceIncrease').value = (item.priceIncrease !== undefined && item.priceIncrease !== null) ? item.priceIncrease : '';
+
+    // YENİ EKLENEN AVATAR DÜZENLEME MANTIĞI
+    if (item.type === 'avatar') {
+        document.getElementById('newItemAvatarName').value = item.avatarName || '';
+        document.getElementById('newItemAvatarImageUrl').value = item.avatarImageUrl || '';
+    }
 
     const totalMins = item.countdownDurationMinutes || 0;
     const days = Math.floor(totalMins / 1440);
@@ -13317,7 +13335,7 @@ async function buyItem(itemId) {
 
     if (!user || !item) return;
 
-    // YENİ EKLENEN KONTROL: Avatar için satın almadan önce sahiplik kontrolü
+    // Avatar için satın almadan önce sahiplik kontrolü
     if (item.type === 'avatar' && user.avatars && user.avatars[itemId]) {
         displayMessage("Bu avatara zaten sahipsin!");
         return;
@@ -13326,7 +13344,6 @@ async function buyItem(itemId) {
     const isPotion = ['health_potion', 'damage_potion', 'defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion', 'health_regen_potion'].includes(item.type);
 
     if (isPotion) {
-        // İksir satın alma mantığı (Bu kısım değişmedi)
         if (item.type === 'health_regen_potion') {
             const purchaseCount = user.potionPurchaseCounts?.[itemId] || 0;
             const priceIncrease = item.hasOwnProperty('priceIncrease') ? item.priceIncrease : 1000;
@@ -13534,14 +13551,14 @@ async function buyItem(itemId) {
             message = `Tebrikler! Mağazadan ${itemValue} adet Joker Kart satın aldın!`;
         } 
         else if (item.type === 'avatar') {
-            // YENİ EKLENEN BLOK: Avatarı kullanıcının envanterine ekler.
+            // Avatar satın alma mantığı: item.avatarName ve item.avatarImageUrl kullanılır
             if (!updates.avatars) updates.avatars = user.avatars || {};
             updates[`avatars/${itemId}`] = {
                 id: itemId,
-                name: item.name,
-                imageUrl: item.imageUrl
+                name: item.avatarName, // Mağaza ürününün adı değil, avatarın kendi adı
+                imageUrl: item.avatarImageUrl // Avatarın kendi resmi
             };
-            message = `'${item.name}' avatarı koleksiyonuna eklendi!`;
+            message = `'${item.avatarName}' avatarı koleksiyonuna eklendi!`;
         }
 
         let itemUpdates = {};
