@@ -2259,6 +2259,7 @@ body.modal-open .modal-content {
               <option value="dodge_potion">💨 Sıyrılma Şansı İksiri</option>
               <option value="pierce_potion">📌 Delici Şansı İksiri</option>
               <option value="crit_potion">💥 Kritik Şansı İksiri</option>
+              <option value="avatar">👤 Avatar</option>
               <option value="special">🚀 Özel Ürün (Onay Gerektirir)</option>
             </select>
             <input type="text" id="newItemValue" placeholder="Değer (Kutu Hakkı Adedi / Çarpan Değeri / Kalkan Sayısı)" class="w-full p-2 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
@@ -8870,30 +8871,31 @@ async function reorderStoreItem(itemId, newIndex) {
     // Not: Arayüz, veritabanı dinleyicisi sayesinde otomatik olarak güncellenecektir.
 }
 
-// YENİ YARDIMCI FONKSİYON: Admin panelinde seçilen ürün türüne göre inputları ayarlar.
+// YENİ VE GÜNCELLENMİŞ FONKSİYON
 function handleStoreItemTypeChange() {
     const type = document.getElementById('newItemType').value;
+    const valueInput = document.getElementById('newItemValue');
     const durationInput = document.getElementById('newItemMultiplierDuration');
     const priceIncreaseInput = document.getElementById('newItemPriceIncrease');
-    const valueInput = document.getElementById('newItemValue');
-
-    const percentPotions = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion'];
     
-    // Varsayılan placeholder'ı ayarla
-    valueInput.placeholder = 'Değer (Adet / Çarpan Değeri)';
+    // Önce tüm özel alanları varsayılan durumuna getirelim
+    valueInput.classList.remove('hidden');
+    durationInput.classList.add('hidden');
+    priceIncreaseInput.classList.add('hidden');
+    valueInput.placeholder = 'Değer (Kutu Hakkı Adedi / Çarpan Değeri / Kalkan Sayısı)';
 
     if (type === 'tempMultiplier') {
         durationInput.classList.remove('hidden');
-        priceIncreaseInput.classList.add('hidden');
-    } else if (type.endsWith('_potion')) { // Tüm iksir türleri için
-        durationInput.classList.add('hidden');
-        priceIncreaseInput.classList.remove('hidden'); // Fiyat artış alanını göster
-        if (percentPotions.includes(type)) {
-            valueInput.placeholder = 'Değer (örn: 2.5)'; // Yüzdelikse placeholder'ı değiştir
+    } else if (type.endsWith('_potion')) {
+        priceIncreaseInput.classList.remove('hidden');
+        const isPercent = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion'].includes(type);
+        if (isPercent) {
+            valueInput.placeholder = 'Değer (örn: 2.5)';
         }
-    } else {
+    } else if (type === 'avatar' || type === 'special') {
+        // Avatar veya Özel Ürün için Değer ve Süre alanları gereksiz
+        valueInput.classList.add('hidden');
         durationInput.classList.add('hidden');
-        priceIncreaseInput.classList.add('hidden');
     }
 }
 
@@ -8922,7 +8924,7 @@ function resetStoreItemForm() {
     editingItemId = null; 
 }
 
-// GÜNCELLENMİŞ FONKSİYON
+// YENİ VE GÜNCELLENMİŞ FONKSİYON
 async function saveStoreItem() {
     if (!isAdmin) return;
 
@@ -8948,10 +8950,8 @@ async function saveStoreItem() {
         const stock = (stockInput === '' || stockInput === null) ? null : parseInt(stockInput);
         const itemData = { name, description, cost, stock, type, imageUrl: imageUrl || 'https://via.placeholder.com/150' };
 
-        // ★★★ DEĞİŞİKLİK BURADA: Fiyat artışı 0 olduğunda bile çalışacak şekilde düzeltildi ★★★
         if (type.endsWith('_potion')) {
             const priceIncreaseInput = document.getElementById('newItemPriceIncrease').value;
-            // Input boşsa 0, doluysa sayısal değerini al.
             const priceIncrease = priceIncreaseInput === '' ? 0 : parseInt(priceIncreaseInput);
             if (isNaN(priceIncrease) || priceIncrease < 0) {
                 throw new Error("İksirler için geçerli bir 'Fiyat Artışı' (0 veya daha büyük) girmelisiniz.");
@@ -8966,6 +8966,9 @@ async function saveStoreItem() {
             if (isNaN(multiplierDuration) || multiplierDuration <= 0) { throw new Error("Çarpan için geçerli bir 'Kullanım Sayısı' girmelisiniz."); }
             itemData.value = value;
             itemData.duration = multiplierDuration;
+        } else if (type === 'avatar') {
+            // Avatar tipinin özel bir "value" değeri olmadığı için bu blok boş kalacak.
+            // Bu, aşağıdaki 'else' bloğunun hata vermesini engeller.
         } else {
             const typesThatNeedValue = [
                 'boxRights', 'wheelTicket', 'clickCatchTicket', 'iflasShield', 'wildcard', 
@@ -8975,7 +8978,6 @@ async function saveStoreItem() {
             ];
 
             if (typesThatNeedValue.includes(type)) {
-                // ★★★ DEĞİŞİKLİK BURADA: Artık ondalıklı sayıları doğru işleyen 'parseStatValue' fonksiyonunu kullanıyoruz. ★★★
                 const value = parseStatValue(type, document.getElementById('newItemValue').value);
                 if (isNaN(value) || value <= 0) {
                     const friendlyName = typeToName[type] || type;
@@ -13302,8 +13304,6 @@ async function editStoreItem(itemId) {
     openAdminStoreModal();
 }
 
-// MEVCUT buyItem FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
-
 async function buyItem(itemId) {
     if (isAdmin) {
         displayMessage("Adminler alışveriş yapamaz.");
@@ -13317,9 +13317,16 @@ async function buyItem(itemId) {
 
     if (!user || !item) return;
 
+    // YENİ EKLENEN KONTROL: Avatar için satın almadan önce sahiplik kontrolü
+    if (item.type === 'avatar' && user.avatars && user.avatars[itemId]) {
+        displayMessage("Bu avatara zaten sahipsin!");
+        return;
+    }
+
     const isPotion = ['health_potion', 'damage_potion', 'defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion', 'health_regen_potion'].includes(item.type);
 
     if (isPotion) {
+        // İksir satın alma mantığı (Bu kısım değişmedi)
         if (item.type === 'health_regen_potion') {
             const purchaseCount = user.potionPurchaseCounts?.[itemId] || 0;
             const priceIncrease = item.hasOwnProperty('priceIncrease') ? item.priceIncrease : 1000;
@@ -13354,7 +13361,6 @@ async function buyItem(itemId) {
                 newBalance: newBalance
             });
             
-            // ★★★ İSTEĞE GÖRE GÜNCELLENEN BAŞARI MESAJI ★★★
             displayMessage(`Başarılı! '${item.name}' envanterine eklendi.`);
 
         } else {
@@ -13413,7 +13419,6 @@ async function buyItem(itemId) {
                 newBalance: newBalance
             });
 
-            // ★★★ İSTEĞE GÖRE GÜNCELLENEN BAŞARI MESAJI ★★★
             const displayPrefix = isPercentPotion ? '%' : '+';
             displayMessage(`Başarılı! Kalıcı olarak ${displayPrefix}${valueToAdd.toFixed(1)} ${item.name} bonusu eklendi.`);
         }
@@ -13485,10 +13490,6 @@ async function buyItem(itemId) {
             }
         }
     }
-    if (item.type === 'avatar' && user.avatars && user.avatars[itemId]) {
-        displayMessage("Bu avatara zaten sahipsin!");
-        return;
-    }
 
     const confirmed = await customConfirm(`${item.name} ürününü ${item.cost} puana almak istiyor musunuz?`);
     if (confirmed) {
@@ -13533,8 +13534,13 @@ async function buyItem(itemId) {
             message = `Tebrikler! Mağazadan ${itemValue} adet Joker Kart satın aldın!`;
         } 
         else if (item.type === 'avatar') {
-            const newAvatarId = db.ref().push().key;
-            updates[`avatars/${itemId}`] = { id: itemId, name: item.name, imageUrl: item.imageUrl };
+            // YENİ EKLENEN BLOK: Avatarı kullanıcının envanterine ekler.
+            if (!updates.avatars) updates.avatars = user.avatars || {};
+            updates[`avatars/${itemId}`] = {
+                id: itemId,
+                name: item.name,
+                imageUrl: item.imageUrl
+            };
             message = `'${item.name}' avatarı koleksiyonuna eklendi!`;
         }
 
