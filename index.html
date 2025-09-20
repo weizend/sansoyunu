@@ -6950,7 +6950,6 @@ function handleRowTypeChange(selectElement) {
     }
 }
 
-// MEVCUT openBox FONKSİYONUNU KOMPLE SİL VE BUNUNLA DEĞİŞTİR
 async function openBox(index) {
     const lastSurpriseSnap = await db.ref('gameStats/lastSurpriseInfo').once('value');
     const lastSurpriseData = lastSurpriseSnap.val();
@@ -6981,7 +6980,8 @@ async function openBox(index) {
         displayMessage("Kullanıcı verisi bulunamadı.");
         return;
     }
-
+    
+    // HAK KONTROLÜ BURADA KALIYOR (Client-side ön kontrol)
     if ((user.kutuHakki || 0) < BOX_RIGHTS_COST_PER_BOX) {
         displayMessageWithRedirect("Yetersiz kutu hakkı.", "Mağazaya Git", () => {
             storeFilter = { type: 'boxRights' };
@@ -7019,10 +7019,29 @@ async function openBox(index) {
         displayMessage(`Seçtiğiniz kutu <b>${transactionResult.snapshot.val().opener}</b> tarafından açıldı. Haklarınız ve çarpanınız kullanılmadı.`);
         return;
     }
+    
+    // *** SORUNU ÇÖZEN DEĞİŞİKLİK BURADA BAŞLIYOR ***
+    // Kutu hakkını atomik olarak düşürmek için transaction kullanıyoruz.
+    const kutuHakkiRef = userRef.child('kutuHakki');
+    const hakTransaction = await kutuHakkiRef.transaction(currentHak => {
+        if ((currentHak || 0) < BOX_RIGHTS_COST_PER_BOX) {
+            return; // Yetersiz hak, işlemi iptal et.
+        }
+        return (currentHak || 0) - BOX_RIGHTS_COST_PER_BOX;
+    });
+
+    // Eğer hak düşürme işlemi başarısız olduysa (yetersiz bakiye), kutuyu geri kapat ve işlemi durdur.
+    if (!hakTransaction.committed) {
+        await boxRef.update({ opened: false, opener: '' }); // Kutuyu geri serbest bırak
+        displayMessage("Yetersiz kutu hakkı! İşlem iptal edildi.");
+        return;
+    }
+    // *** DEĞİŞİKLİK BURADA BİTİYOR ***
 
     await db.ref('gameLock').set(true);
     isGameLocked = true;
 
+    // Kutu hakkı başarıyla düşüldüğü için artık kalan işlemleri güvenle yapabiliriz.
     userSnap = await userRef.once('value');
     user = userSnap.val();
 
@@ -7030,10 +7049,12 @@ async function openBox(index) {
     const updates = {};
     let message = '';
 
-    updates['kutuHakki'] = (user.kutuHakki || 0) - BOX_RIGHTS_COST_PER_BOX;
+    // Kutu hakkı zaten düşüldü, o yüzden tekrar düşmüyoruz. Sadece diğer istatistikleri güncelliyoruz.
     updates['boxesOpenedCount'] = (user.boxesOpenedCount || 0) + 1;
     await db.ref(`gameStats/boxesOpenedByUsers/${currentUser}`).transaction(currentValue => (currentValue || 0) + 1);
     
+    // Buradan sonraki kodun geri kalanı AYNI.
+    // Sadece `updates['kutuHakki']` satırını sildik çünkü o işlem yukarıda yapıldı.
     let finalMultiplier = 1;
     const multiplierWasActive = useMultiplier || user.multiplierSource === 'box';
 
@@ -7096,31 +7117,24 @@ async function openBox(index) {
             updates.multiplierSource = 'box';
             updates.multiplierRemainingUses = 0;
             const refundedBoxRights = multiplierWasActive ? existingMultiplierUses + 1 : existingMultiplierUses;
-            updates.kutuHakki += refundedBoxRights;
+            updates.kutuHakki = (user.kutuHakki || 0) + refundedBoxRights;
             
             message = `İNANILMAZ! Mevcut ${existingMultiplierValue}x çarpanın, bulduğun ${foundMultiplierValue}x ile birleşerek tek kullanımlık <b class="text-purple-400">${combinedValue}x</b> gücüne ulaştı! Eski çarpan hakların için <b class="text-green-400">+${refundedBoxRights} Kutu Hakkı</b> iade edildi!`;
             logActivity('multiplierCombined', currentUser, { boxId: box.id, foundValue: foundMultiplierValue, combinedValue: combinedValue, refundedRights: refundedBoxRights, multiplier: finalMultiplier });
-        } else { // foundMultiplierValue < existingMultiplierValue
+        } else { 
             const boxRightsFromMultiplier = foundMultiplierValue;
-            updates.kutuHakki += boxRightsFromMultiplier;
+            updates.kutuHakki = (user.kutuHakki || 0) + boxRightsFromMultiplier;
             message = `Mevcut <b>${existingMultiplierValue}x</b> çarpanın daha güçlü olduğu için korundu. Bulduğun ${foundMultiplierValue}x çarpan ise <b class="text-green-400">+${boxRightsFromMultiplier} Kutu Hakkı</b>'na dönüştürüldü!`;
             
-            // =========================================================================
-            // ★★★ İSTEDİĞİN DEĞİŞİKLİK İÇİN DÜZELTME BURADA ★★★
-            // Eksik olan 'existingValue' ve 'existingUses' log kaydına ekleniyor.
-            // =========================================================================
             logActivity('multiplierConvertedToBoxRights', currentUser, {
                 boxId: box.id,
                 rewardValue: foundMultiplierValue,
                 boxRights: boxRightsFromMultiplier,
                 source: 'Kutudan',
                 multiplier: finalMultiplier,
-                existingValue: existingMultiplierValue, // <-- BU SATIR EKLENDİ
-                existingUses: existingMultiplierUses   // <-- BU SATIR EKLENDİ
+                existingValue: existingMultiplierValue,
+                existingUses: existingMultiplierUses  
             });
-            // =========================================================================
-            // ★★★ DEĞİŞİKLİK SONU ★★★
-            // =========================================================================
         }
     }
     else if (box.content === 'points') {
