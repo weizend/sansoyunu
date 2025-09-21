@@ -13266,6 +13266,7 @@ async function editStoreItem(itemId) {
     openAdminStoreModal();
 }
 
+// MEVCUT buyItem FONKSİYONUNU SİL VE BUNUNLA DEĞİŞTİR
 async function buyItem(itemId) {
     if (isAdmin) {
         displayMessage("Adminler alışveriş yapamaz.");
@@ -13494,16 +13495,18 @@ async function buyItem(itemId) {
             updates.wildcards = (user.wildcards || 0) + itemValue;
             message = `Tebrikler! Mağazadan ${itemValue} adet Joker Kart satın aldın!`;
         } 
+        // --- DEĞİŞTİRİLEN KISIM BAŞLANGICI ---
         else if (item.type === 'avatar') {
-            // Avatar satın alma mantığı: item.avatarName ve item.avatarImageUrl kullanılır
-            if (!updates.avatars) updates.avatars = user.avatars || {};
+            // Hatalı olan "if (!updates.avatars)" satırı kaldırıldı.
+            // Artık Firebase'in anlayacağı doğru path (yol) formatını kullanıyoruz.
             updates[`avatars/${itemId}`] = {
                 id: itemId,
-                name: item.avatarName, // Mağaza ürününün adı değil, avatarın kendi adı
-                imageUrl: item.avatarImageUrl // Avatarın kendi resmi
+                name: item.avatarName,
+                imageUrl: item.avatarImageUrl
             };
             message = `'${item.avatarName}' avatarı koleksiyonuna eklendi!`;
         }
+        // --- DEĞİŞTİRİLEN KISIM SONU ---
 
         let itemUpdates = {};
         if (item.stock !== undefined && item.stock !== null) itemUpdates.stock = item.stock - 1;
