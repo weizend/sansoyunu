@@ -12269,103 +12269,80 @@ async function endSoloClickCatchGame() {
     const user = userSnap.val();
     if (!user) return;
 
+    // --- 1. ADIM: TÜM NİHAİ ÖDÜLLERİ HESAPLA ---
     const finalScore = clickCatchScore * ticketsUsedThisRound;
-    
-    // ★★★ YENİ MANTIK BAŞLANGICI: ÖDÜLLERİ GRUPLAMA ★★★
-    
-    // Adım 1: Tüm kazanılan özel ödülleri tek bir yerde toplamak için bir obje oluşturalım.
-    const aggregatedSpecialItems = {};
-    
-    // Yardımcı bir fonksiyon: Aynı türdeki ödülleri bu objeye ekleyip toplayacak.
-    const aggregateItem = (type, value, name, isPercent = false) => {
-        if (!aggregatedSpecialItems[type]) {
-            aggregatedSpecialItems[type] = { totalValue: 0, name: name, isPercent: isPercent };
-        }
-        aggregatedSpecialItems[type].totalValue += value;
-    };
-
-    // Adım 2: Bilet sayısıyla çarpılmış basit ödülleri toplayalım.
     const finalBoxRights = collectedBoxRights * ticketsUsedThisRound;
     const finalIflasShields = collectedIflasShields * ticketsUsedThisRound;
     const finalWheelTickets = collectedWheelTickets * ticketsUsedThisRound;
     const finalWildcards = collectedWildcards * ticketsUsedThisRound;
 
-    if (finalBoxRights > 0) aggregateItem('boxRights', finalBoxRights, 'Kutu Hakkı');
-    if (finalIflasShields > 0) aggregateItem('iflasShield', finalIflasShields, 'İflas Kalkanı');
-    if (finalWheelTickets > 0) aggregateItem('wheelTicket', finalWheelTickets, 'Çark Bileti');
-    if (finalWildcards > 0) aggregateItem('wildcard', finalWildcards, 'Joker Kart');
-    
-    // ★★★ DÜZELTME BURADA: Eksik olan iksir işleme döngüsü eklendi ★★★
-    // Adım 3: Yakalanan her iksiri bilet sayısıyla çarparak toplayalım.
+    const finalPotions = [];
     collectedPotions.forEach(potion => {
-        const totalPotionValue = potion.value * ticketsUsedThisRound;
-        const isPercent = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion'].includes(potion.type);
-        aggregateItem(potion.type, totalPotionValue, typeToName[potion.type], isPercent);
+        for (let i = 0; i < ticketsUsedThisRound; i++) {
+            finalPotions.push(potion);
+        }
     });
-    // ★★★ DÜZELTME SONU ★★★
 
-    // Adım 4: Yakalanan çarpanları toplayalım (bunlar farklı bir mantıkla işler).
     const aggregatedMultipliers = collectedMultipliers.reduce((acc, multiplier) => {
         const key = multiplier.value;
         if (!acc[key]) {
             acc[key] = { value: key, totalUses: 0 };
         }
-        acc[key].totalUses += (multiplier.uses * ticketsUsedThisRound);
+        acc[key].totalUses += multiplier.uses;
         return acc;
     }, {});
-    
-    // ★★★ YENİ MANTIK SONU ★★★
 
+    // --- 2. ADIM: GÜNCELLEME VE LOGLAMA İÇİN VERİLERİ HAZIRLA ---
     const updates = {};
     const specialItemsWonDetails = [];
-    let finalUser = JSON.parse(JSON.stringify(user));
+    let finalUser = JSON.parse(JSON.stringify(user)); 
+
+    if (finalBoxRights > 0) {
+        finalUser.kutuHakki = (finalUser.kutuHakki || 0) + finalBoxRights;
+        specialItemsWonDetails.push({ name: 'Kutu Hakkı', amount: `+${finalBoxRights}` });
+    }
+    if (finalIflasShields > 0) {
+        finalUser.iflasShieldUses = (finalUser.iflasShieldUses || 0) + finalIflasShields;
+        specialItemsWonDetails.push({ name: 'İflas Kalkanı', amount: `+${finalIflasShields}` });
+    }
+    if (finalWheelTickets > 0) {
+        finalUser.carkBileti = (finalUser.carkBileti || 0) + finalWheelTickets;
+        specialItemsWonDetails.push({ name: 'Çark Bileti', amount: `+${finalWheelTickets}` });
+    }
+    if (finalWildcards > 0) {
+        finalUser.wildcards = (finalUser.wildcards || 0) + finalWildcards;
+        specialItemsWonDetails.push({ name: 'Joker Kart', amount: `+${finalWildcards}` });
+    }
 
     const statKeyMap = { 
         health_potion: 'hp', damage_potion: 'damage', defense_potion: 'defense', 
         crit_potion: 'critChance', crit_damage_potion: 'critDamage', 
         dodge_potion: 'dodgeChance', pierce_potion: 'pierceChance' 
     };
-    
-    // ★★★ YENİ MANTIK: GRUPLANMIŞ ÖDÜLLERİ İŞLEME ★★★
-    for (const type in aggregatedSpecialItems) {
-        const item = aggregatedSpecialItems[type];
-        
-        // Kalıcı iksir bonuslarını işle
-        const statKey = statKeyMap[type];
+
+    finalPotions.forEach(potion => {
+        const statKey = statKeyMap[potion.type];
         if (statKey) {
-            const capCheck = checkPotionCap(finalUser, type, item.totalValue);
+            const capCheck = checkPotionCap(finalUser, potion.type, potion.value);
             if (capCheck.canAdd && capCheck.amount > 0) {
                 if (!finalUser.globalPotionBuffs) finalUser.globalPotionBuffs = {};
                 finalUser.globalPotionBuffs[statKey] = (finalUser.globalPotionBuffs[statKey] || 0) + capCheck.amount;
                 
-                const prefix = item.isPercent ? '%' : '+';
-                specialItemsWonDetails.push({ name: item.name, amount: `${prefix}${capCheck.amount.toFixed(1)}` });
+                const potionName = typeToName[potion.type] || 'İksir';
+                const isPercent = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion'].includes(potion.type);
+                const prefix = isPercent ? '%' : '+';
+                specialItemsWonDetails.push({ name: potionName, amount: `${prefix}${capCheck.amount.toFixed(1)}` });
             }
-        } 
-        // Diğer envanter eşyalarını işle
-        else {
-             const dbKeyMap = {
-                boxRights: 'kutuHakki', iflasShield: 'iflasShieldUses',
-                wheelTicket: 'carkBileti', wildcard: 'wildcards', revival_stone: 'inventory/revival_stone'
-             };
-             const dbKey = dbKeyMap[type];
-             if (dbKey) {
-                if(dbKey.startsWith('inventory/')) {
-                    const invKey = dbKey.split('/')[1];
-                    if(!finalUser.inventory) finalUser.inventory = {};
-                    finalUser.inventory[invKey] = (finalUser.inventory[invKey] || 0) + item.totalValue;
-                } else {
-                    finalUser[dbKey] = (finalUser[dbKey] || 0) + item.totalValue;
-                }
-                specialItemsWonDetails.push({ name: item.name, amount: `+${item.totalValue}` });
-             }
+        } else if (potion.type === 'revival_stone') {
+             if (!finalUser.inventory) finalUser.inventory = {};
+             finalUser.inventory.revival_stone = (finalUser.inventory.revival_stone || 0) + potion.value;
+             specialItemsWonDetails.push({ name: 'Dirilme Taşı', amount: `+${potion.value}` });
         }
-    }
-    // ★★★ İŞLEME SONU ★★★
-    
+    });
+
     for (const key in aggregatedMultipliers) {
         const multiplierGroup = aggregatedMultipliers[key];
-        const finalTotalUses = multiplierGroup.totalUses;
+        const finalTotalUses = multiplierGroup.totalUses * ticketsUsedThisRound;
         const hasActiveMultiplier = (finalUser.multiplierSource && finalUser.multiplierSource !== 'none') && (finalUser.multiplierRemainingUses > 0 || finalUser.multiplierSource === 'box');
         
         if (hasActiveMultiplier) {
@@ -12382,14 +12359,31 @@ async function endSoloClickCatchGame() {
         specialItemsWonDetails.push({ name: `${multiplierGroup.value}x Çarpan`, amount: `+${finalTotalUses} Kullanım` });
     }
 
-    updates[`/users/${currentUser}`] = finalUser; // Tüm kullanıcı objesini tek seferde güncelle
+    // Final güncellemelerini hazırla
+    updates[`/users/${currentUser}/kutuHakki`] = finalUser.kutuHakki;
+    updates[`/users/${currentUser}/iflasShieldUses`] = finalUser.iflasShieldUses;
+    updates[`/users/${currentUser}/carkBileti`] = finalUser.carkBileti;
+    updates[`/users/${currentUser}/wildcards`] = finalUser.wildcards;
+    updates[`/users/${currentUser}/activeMultiplier`] = finalUser.activeMultiplier;
+    updates[`/users/${currentUser}/multiplierRemainingUses`] = finalUser.multiplierRemainingUses;
+    updates[`/users/${currentUser}/multiplierSource`] = finalUser.multiplierSource;
     
+    // ★★★ SORUNU KÖKÜNDEN ÇÖZEN SATIR ★★★
+    // Hesaplanan yeni iksir bonuslarını veritabanına göndermek için bu satırı ekliyoruz.
+    updates[`/users/${currentUser}/globalPotionBuffs`] = finalUser.globalPotionBuffs;
+
+    if(finalUser.inventory && finalUser.inventory.revival_stone) {
+        updates[`/users/${currentUser}/inventory/revival_stone`] = finalUser.inventory.revival_stone;
+    }
+    
+    // Skorları güncelle
     const weeklyScoreRef = db.ref(`clickCatchWeeklyScores/${currentUser}`);
     const currentWeeklyScore = (await weeklyScoreRef.once('value')).val() || 0;
     const newTotalWeeklyScore = currentWeeklyScore + Math.max(0, finalScore);
     updates[`/clickCatchWeeklyScores/${currentUser}`] = newTotalWeeklyScore;
     updates[`/users/${currentUser}/clickCatchHighestScore`] = newTotalWeeklyScore;
 
+    // --- 3. ADIM: AKTİVİTE KAYDINI OLUŞTUR ---
     logActivity('clickCatchSolo', currentUser, {
         baseScore: clickCatchScore,
         finalScore: finalScore,
@@ -12398,22 +12392,26 @@ async function endSoloClickCatchGame() {
         newWeeklyScore: newTotalWeeklyScore
     });
 
+    // --- 4. ADIM: KULLANICIYA BİLDİRİM GÖNDER ---
     let endMessage = `Oyun bitti! Bu turdaki toplam skorun: <b>${finalScore}</b>. <br><small class="text-gray-400">(Skor: ${clickCatchScore} x ${ticketsUsedThisRound} Bilet)</small>`;
     if (specialItemsWonDetails.length > 0) {
         const itemsText = specialItemsWonDetails.map(item => `${item.amount} ${item.name}`).join(', ');
         endMessage += `<br>Ayrıca, <b>${itemsText}</b> kazandın!`;
     }
-    const totalCardPacks = collectedCardPacks.reduce((sum, pack) => sum + pack.value, 0) * ticketsUsedThisRound;
-    if (totalCardPacks > 0) {
-        endMessage += `<br>Ve <b class="text-purple-400">${totalCardPacks} adet Kart Paketi</b> kazandın! Paketler şimdi açılacak...`;
+    if (collectedCardPacks.length > 0) {
+        const totalPacks = collectedCardPacks.reduce((sum, pack) => sum + pack.value, 0) * ticketsUsedThisRound;
+        endMessage += `<br>Ve <b class="text-purple-400">${totalPacks} adet Kart Paketi</b> kazandın! Paketler şimdi açılacak...`;
     }
     displayMessage(endMessage);
 
+    // --- 5. ADIM: TÜM GÜNCELLEMELERİ VERİTABANINA YAZ ---
     await db.ref().update(updates);
 
-    if (totalCardPacks > 0) {
+    // --- 6. ADIM: KART PAKETLERİNİ AÇ ---
+    if (collectedCardPacks.length > 0) {
+        const totalPacks = collectedCardPacks.reduce((sum, pack) => sum + pack.value, 0) * ticketsUsedThisRound;
         const packType = collectedCardPacks[0].type; 
-        await startCardPackOpening(totalCardPacks, 'Tıkla-Yakala Oyunu', 1, packType);
+        await startCardPackOpening(totalPacks, 'Tıkla-Yakala Oyunu', 1, packType);
     }
     
     ticketsUsedThisRound = 1;
