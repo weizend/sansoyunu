@@ -12276,22 +12276,6 @@ async function endSoloClickCatchGame() {
     const finalWheelTickets = collectedWheelTickets * ticketsUsedThisRound;
     const finalWildcards = collectedWildcards * ticketsUsedThisRound;
 
-    const finalPotions = [];
-    collectedPotions.forEach(potion => {
-        for (let i = 0; i < ticketsUsedThisRound; i++) {
-            finalPotions.push(potion);
-        }
-    });
-
-    const aggregatedMultipliers = collectedMultipliers.reduce((acc, multiplier) => {
-        const key = multiplier.value;
-        if (!acc[key]) {
-            acc[key] = { value: key, totalUses: 0 };
-        }
-        acc[key].totalUses += multiplier.uses;
-        return acc;
-    }, {});
-
     // --- 2. ADIM: GÜNCELLEME VE LOGLAMA İÇİN VERİLERİ HAZIRLA ---
     const updates = {};
     const specialItemsWonDetails = [];
@@ -12319,45 +12303,49 @@ async function endSoloClickCatchGame() {
         crit_potion: 'critChance', crit_damage_potion: 'critDamage', 
         dodge_potion: 'dodgeChance', pierce_potion: 'pierceChance' 
     };
+    
+    // ★★★ DEĞİŞİKLİĞİN YAPILDIĞI ANA BÖLÜM BURASI ★★★
+    // Önce yakalanan tüm iksirleri türlerine göre topluyoruz.
+    const aggregatedPotions = {};
+    collectedPotions.forEach(potion => {
+        if (!aggregatedPotions[potion.type]) {
+            aggregatedPotions[potion.type] = { value: 0 };
+        }
+        aggregatedPotions[potion.type].value += potion.value;
+    });
 
-    finalPotions.forEach(potion => {
-        const statKey = statKeyMap[potion.type];
+    // Şimdi toplanmış iksirler üzerinden işlem yapıyoruz.
+    for (const potionType in aggregatedPotions) {
+        const totalValue = aggregatedPotions[potionType].value * ticketsUsedThisRound;
+        const statKey = statKeyMap[potionType];
+
         if (statKey) {
-            const capCheck = checkPotionCap(finalUser, potion.type, potion.value);
+            const capCheck = checkPotionCap(finalUser, potionType, totalValue);
             if (capCheck.canAdd && capCheck.amount > 0) {
                 if (!finalUser.globalPotionBuffs) finalUser.globalPotionBuffs = {};
                 finalUser.globalPotionBuffs[statKey] = (finalUser.globalPotionBuffs[statKey] || 0) + capCheck.amount;
                 
-                const potionName = typeToName[potion.type] || 'İksir';
-                const isPercent = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion'].includes(potion.type);
+                const potionName = typeToName[potionType] || 'İksir';
+                const isPercent = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion'].includes(potionType);
                 const prefix = isPercent ? '%' : '+';
                 specialItemsWonDetails.push({ name: potionName, amount: `${prefix}${capCheck.amount.toFixed(1)}` });
             }
-        } else if (potion.type === 'revival_stone') {
+        } else if (potionType === 'revival_stone') {
              if (!finalUser.inventory) finalUser.inventory = {};
-             finalUser.inventory.revival_stone = (finalUser.inventory.revival_stone || 0) + potion.value;
-             specialItemsWonDetails.push({ name: 'Dirilme Taşı', amount: `+${potion.value}` });
+             finalUser.inventory.revival_stone = (finalUser.inventory.revival_stone || 0) + totalValue;
+             specialItemsWonDetails.push({ name: 'Dirilme Taşı', amount: `+${totalValue}` });
         }
-    });
-
-    for (const key in aggregatedMultipliers) {
-        const multiplierGroup = aggregatedMultipliers[key];
-        const finalTotalUses = multiplierGroup.totalUses * ticketsUsedThisRound;
-        const hasActiveMultiplier = (finalUser.multiplierSource && finalUser.multiplierSource !== 'none') && (finalUser.multiplierRemainingUses > 0 || finalUser.multiplierSource === 'box');
-        
-        if (hasActiveMultiplier) {
-            if (multiplierGroup.value === finalUser.activeMultiplier) {
-                finalUser.multiplierRemainingUses = (finalUser.multiplierRemainingUses || 0) + finalTotalUses;
-            } else {
-                finalUser.kutuHakki = (finalUser.kutuHakki || 0) + finalTotalUses;
-            }
-        } else {
-            finalUser.activeMultiplier = multiplierGroup.value;
-            finalUser.multiplierRemainingUses = finalTotalUses;
-            finalUser.multiplierSource = 'store';
-        }
-        specialItemsWonDetails.push({ name: `${multiplierGroup.value}x Çarpan`, amount: `+${finalTotalUses} Kullanım` });
     }
+    // ★★★ DEĞİŞİKLİK SONU ★★★
+
+    const aggregatedMultipliers = collectedMultipliers.reduce((acc, multiplier) => {
+        const key = multiplier.value;
+        if (!acc[key]) {
+            acc[key] = { value: key, totalUses: 0 };
+        }
+        acc[key].totalUses += multiplier.uses;
+        return acc;
+    }, {});
 
     // Final güncellemelerini hazırla
     updates[`/users/${currentUser}/kutuHakki`] = finalUser.kutuHakki;
@@ -12367,9 +12355,6 @@ async function endSoloClickCatchGame() {
     updates[`/users/${currentUser}/activeMultiplier`] = finalUser.activeMultiplier;
     updates[`/users/${currentUser}/multiplierRemainingUses`] = finalUser.multiplierRemainingUses;
     updates[`/users/${currentUser}/multiplierSource`] = finalUser.multiplierSource;
-    
-    // ★★★ SORUNU KÖKÜNDEN ÇÖZEN SATIR ★★★
-    // Hesaplanan yeni iksir bonuslarını veritabanına göndermek için bu satırı ekliyoruz.
     updates[`/users/${currentUser}/globalPotionBuffs`] = finalUser.globalPotionBuffs;
 
     if(finalUser.inventory && finalUser.inventory.revival_stone) {
