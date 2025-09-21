@@ -4103,6 +4103,8 @@ function getSyncedTime() {
   let attackCooldown = false; // Saldırı bekleme süresi için
   let hasShownLobbyNotification = false;
   let currentUser = null;
+  let collectedWildcards = 0;
+  let collectedPotions = [];
       let activeStreakTimers = {};
   let allUsersCache = [];
   let isAdmin = false;
@@ -4256,6 +4258,8 @@ const defaultWheelSegments = [
   let collectedIflasShields = 0;
   let collectedWheelTickets = 0;
   let collectedCardPacks = [];
+  collectedWildcards = 0;
+  collectedPotions = [];
   
   // Haftanın liderini bu değişkende tutacağız. Sıralama güncellendiğinde bu da güncellenir.
   let clickCatchLeader = null; 
@@ -7636,7 +7640,7 @@ function renderActivityFeed(activities) {
                     const { baseScore, finalScore, ticketsUsed, specialItems, newWeeklyScore } = details;
                     message = `${userHtml}, Tıkla-Yakala oyununda <b class="text-white">${ticketsUsed} bilet</b> kullandı ve <span class="text-green-300 font-bold">${finalScore} Skor</span> topladı. <small class="text-gray-400">(Skor: ${baseScore} x ${ticketsUsed} Bilet)</small>`;
                     if (specialItems && specialItems.length > 0) {
-                        const itemsText = specialItems.map(item => `<b class="text-cyan-300">+${item.amount} ${item.name}</b>`).join(', ');
+                        const itemsText = specialItems.map(item => `<b class="text-cyan-300">${item.amount} ${item.name}</b>`).join(', ');
                         message += ` - (Ayrıca, ${itemsText}) kazandı.`;
                     } else { message += ' - (Özel eşya yakalanmadı)'; }
                     const weeklyScoreText = (newWeeklyScore !== undefined) ? ` <span class="text-gray-400">(Haftalık Skor: ${newWeeklyScore})</span>` : '';
@@ -11265,89 +11269,6 @@ async function clearLastWinner() {
     }
 }
   
-  async function handleSoloItemClick(event) {
-    if (!clickCatchGameActive) return;
-    
-    // Düzeltilen kısım: Tıklanan element ne olursa olsun, en yakın ebeveyn catch-item'ı bulur
-    const item = event.target.closest('.catch-item');
-    if (!item) return; // Eğer doğru element bulunamazsa işlemi durdur
-
-    const type = item.dataset.type;
-    const value = parseInt(item.dataset.value);
-    const uses = parseInt(item.dataset.uses);
-    const emoji = item.dataset.emoji;
-    
-    let floatingText = '';
-
-    // Bu switch-case yapısı, hangi türde eşyanın tıklandığını belirler ve ilgili işlemi yapar.
-    switch(type) {
-        case 'points':
-            clickCatchScore = Number(clickCatchScore) + value;
-            document.getElementById('clickCatchScore').textContent = clickCatchScore;
-            floatingText = (value > 0 ? '+' : '') + value + ' Skor';
-            break;
-        case 'time':
-            clickCatchTimer += value;
-            document.getElementById('clickCatchTimer').textContent = clickCatchTimer;
-            floatingText = `+${value} Saniye`;
-            break;
-        case 'boxRight':
-            collectedBoxRights += value;
-            floatingText = `+${value} Kutu Hakkı`;
-            document.getElementById('collectedSpecials').innerHTML += `<span class="text-xl">${emoji}</span>`;
-            break;
-        case 'iflasShield':
-            collectedIflasShields += value;
-            floatingText = `+${value} İflas Kalkanı`;
-            document.getElementById('collectedSpecials').innerHTML += `<span class="text-xl">${emoji}</span>`;
-            break;
-        case 'wheelTicket':
-            collectedWheelTickets += value;
-            floatingText = `+${value} Çark Bileti`;
-            document.getElementById('collectedSpecials').innerHTML += `<span class="text-xl">${emoji}</span>`;
-            break;
-        case 'tempMultiplier':
-            collectedMultipliers.push({ value: value, uses: uses });
-            floatingText = `${value}x Çarpan (${uses} kullanım)`;
-            document.getElementById('collectedSpecials').innerHTML += `<span class="text-xl">${emoji}</span>`;
-            break;
-        case 'wildcard':
-            collectedWildcards += value; // collectedWildcards değişkenini globalde tanımlamayı unutma
-            floatingText = `+${value} 🃏 Joker Kart Yakalandı!`;
-            document.getElementById('collectedSpecials').innerHTML += `<span class="text-xl">${emoji}</span>`;
-            break;
-        // Tüm kart paketi türleri için tek bir case
-        case 'card_pack':
-        case 'card_pack_normal':
-        case 'card_pack_gumus':
-        case 'card_pack_altin':
-        case 'card_pack_efsanevi':
-            const packName = typeToName[type] || 'Kart Paketi';
-            collectedCardPacks.push({ type: type, value: value });
-            floatingText = `+${value} ${packName} Yakalandı!`;
-            // ★★★ DÜZELTME BURADA: Artık doğru emojiyi kullanıyor ★★★
-            document.getElementById('collectedSpecials').innerHTML += `<span class="text-xl">${emoji}</span>`;
-            break;
-        // Tüm iksir türleri için tek bir case
-        case 'revival_stone':
-        case 'health_potion':
-        case 'damage_potion':
-        case 'defense_potion':
-        case 'crit_potion':
-        case 'crit_damage_potion':
-        case 'dodge_potion':
-        case 'pierce_potion':
-             const potionName = typeToName[type] || 'İksir';
-             collectedPotions.push({ type: type, value: value }); // collectedPotions globalde tanımlanmalı
-             floatingText = `+${value} ${potionName} Yakalandı!`;
-             document.getElementById('collectedSpecials').innerHTML += `<span class="text-xl">${emoji}</span>`;
-             break;
-    }
-    
-    showFloatingText(floatingText, event.clientX, event.clientY);
-    item.remove();
-}
-  
 async function deleteUserFromLeaderboard(event, username) {
       event.stopPropagation(); // Olayın yayılmasını engeller
       if (!isAdmin) return;
@@ -12248,7 +12169,6 @@ async function startSoloClickCatchGame() {
     showGameCountdown(_actuallyStartSoloGame);
 }
       
-// handleSoloItemClick fonksiyonunu bununla değiştir
 async function handleSoloItemClick(event) {
     if (!clickCatchGameActive) return;
     
@@ -12349,114 +12269,108 @@ async function endSoloClickCatchGame() {
     const user = userSnap.val();
     if (!user) return;
 
-    // --- 1. ADIM: TÜM NİHAİ ÖDÜLLERİ HESAPLA ---
     const finalScore = clickCatchScore * ticketsUsedThisRound;
-    const finalBoxRights = collectedBoxRights * ticketsUsedThisRound;
-    const finalIflasShields = collectedIflasShields * ticketsUsedThisRound;
-    const finalWheelTickets = collectedWheelTickets * ticketsUsedThisRound;
+    
+    // --- YENİ VE BASİTLEŞTİRİLMİŞ ÖDÜL İŞLEME MANTIĞI ---
 
-    // ★★★ SORUNU ÇÖZEN ANA MANTIK BAŞLANGICI ★★★
-    // Yakalanan çarpanları değerlerine göre gruplayalım (örn: tüm 2x'leri bir arada topla)
-    const aggregatedMultipliers = collectedMultipliers.reduce((acc, multiplier) => {
-        const key = multiplier.value; // Anahtar olarak çarpan değeri (2, 3 vb.)
-        if (!acc[key]) {
-            acc[key] = { value: key, totalUses: 0 };
-        }
-        acc[key].totalUses += multiplier.uses;
-        return acc;
-    }, {});
-    // ★★★ SORUNU ÇÖZEN ANA MANTIK SONU ★★★
+    // 1. Adım: Tüm toplanan ödülleri tek bir listede toplayalım.
+    const allCollectedRewards = [];
+    if (collectedBoxRights > 0) allCollectedRewards.push({ type: 'boxRights', value: collectedBoxRights });
+    if (collectedIflasShields > 0) allCollectedRewards.push({ type: 'iflasShield', value: collectedIflasShields });
+    if (collectedWheelTickets > 0) allCollectedRewards.push({ type: 'wheelTicket', value: collectedWheelTickets });
+    if (collectedWildcards > 0) allCollectedRewards.push({ type: 'wildcard', value: collectedWildcards });
 
-    // --- 2. ADIM: GÜNCELLEME VE LOGLAMA İÇİN VERİLERİ HAZIRLA ---
-    const updates = {};
+    // Toplanan tüm iksirleri, kart paketlerini ve çarpanları da listeye ekle
+    collectedPotions.forEach(p => allCollectedRewards.push(p));
+    collectedCardPacks.forEach(p => allCollectedRewards.push(p));
+    collectedMultipliers.forEach(m => allCollectedRewards.push({ type: 'tempMultiplier', value: m.value, uses: m.uses }));
+
+    let finalUser = JSON.parse(JSON.stringify(user)); // Güncellenecek kullanıcı verisinin bir kopyasını oluştur
     const specialItemsWonDetails = [];
-    let finalUser = JSON.parse(JSON.stringify(user)); // Kullanıcı verisinin derin bir kopyasını al
+    let cardPacksToOpenFromRewards = [];
 
-    // Basit ödülleri ekle
-    if (finalBoxRights > 0) {
-        finalUser.kutuHakki = (finalUser.kutuHakki || 0) + finalBoxRights;
-        specialItemsWonDetails.push({ name: 'Kutu Hakkı', amount: finalBoxRights });
-    }
-    if (finalIflasShields > 0) {
-        finalUser.iflasShieldUses = (finalUser.iflasShieldUses || 0) + finalIflasShields;
-        specialItemsWonDetails.push({ name: 'İflas Kalkanı', amount: finalIflasShields });
-    }
-    if (finalWheelTickets > 0) {
-        finalUser.carkBileti = (finalUser.carkBileti || 0) + finalWheelTickets;
-        specialItemsWonDetails.push({ name: 'Çark Bileti', amount: finalWheelTickets });
-    }
-
-    // ★★★ BİRLEŞTİRİLMİŞ ÇARPANLARI İŞLE ★★★
-    for (const key in aggregatedMultipliers) {
-        const multiplierGroup = aggregatedMultipliers[key];
-        const finalTotalUses = multiplierGroup.totalUses * ticketsUsedThisRound; // Bilet sayısıyla çarp
-
-        const hasActiveMultiplier = (finalUser.multiplierSource && finalUser.multiplierSource !== 'none') && (finalUser.multiplierRemainingUses > 0 || finalUser.multiplierSource === 'box');
+    // 2. Adım: Her ödülü bilet sayısıyla çarpıp kullanıcıya uygulayalım
+    for (const reward of allCollectedRewards) {
+        // Her ödül türünü bilet sayısıyla çarp
+        const totalValue = (reward.value || 1) * ticketsUsedThisRound;
+        const totalUses = (reward.uses || 1) * ticketsUsedThisRound;
         
-        if (hasActiveMultiplier) {
-            if (multiplierGroup.value === finalUser.activeMultiplier) {
-                finalUser.multiplierRemainingUses = (finalUser.multiplierRemainingUses || 0) + finalTotalUses;
-            } else {
-                finalUser.kutuHakki = (finalUser.kutuHakki || 0) + finalTotalUses;
+        const rewardToApply = { ...reward, value: totalValue, uses: totalUses };
+        
+        // Ödülü kullanıcı verisine işlemek için merkezi applyRewardToUser fonksiyonunu kullan
+        const result = applyRewardToUser(finalUser, rewardToApply);
+        
+        // Eğer kart paketi varsa, oyun sonunda açmak için listeye ekle
+        if (result.cardPacksToOpen.length > 0) {
+            cardPacksToOpenFromRewards.push(...result.cardPacksToOpen);
+        }
+
+        // Oyun sonu mesajı için detayları kaydet
+        const isPotion = reward.type.includes('_potion');
+        if (isPotion) {
+            const capCheck = checkPotionCap(user, reward.type, totalValue);
+            if (capCheck.canAdd && capCheck.amount > 0) {
+                 specialItemsWonDetails.push({ name: typeToName[reward.type], amount: capCheck.amount, isPercent: ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion', 'health_regen_potion'].includes(reward.type) });
             }
         } else {
-            finalUser.activeMultiplier = multiplierGroup.value;
-            finalUser.multiplierRemainingUses = finalTotalUses;
-            finalUser.multiplierSource = 'store';
+             if(reward.type === 'tempMultiplier') {
+                specialItemsWonDetails.push({ name: `${totalValue}x ${typeToName[reward.type]}`, amount: totalUses, isPercent: false, isMultiplier: true });
+            } else {
+                specialItemsWonDetails.push({ name: typeToName[reward.type] || reward.type, amount: totalValue, isPercent: false });
+            }
         }
-        specialItemsWonDetails.push({ name: `${multiplierGroup.value}x Çarpan`, amount: `${finalTotalUses} Kullanım` });
     }
-    // ★★★ İŞLEME SONU ★★★
 
-    // Final güncellemelerini hazırla
-    updates[`/users/${currentUser}/kutuHakki`] = finalUser.kutuHakki;
-    updates[`/users/${currentUser}/iflasShieldUses`] = finalUser.iflasShieldUses;
-    updates[`/users/${currentUser}/carkBileti`] = finalUser.carkBileti;
-    updates[`/users/${currentUser}/activeMultiplier`] = finalUser.activeMultiplier;
-    updates[`/users/${currentUser}/multiplierRemainingUses`] = finalUser.multiplierRemainingUses;
-    updates[`/users/${currentUser}/multiplierSource`] = finalUser.multiplierSource;
-    
-    // Skorları güncelle
+    const updates = {};
+    updates[`/users/${currentUser}`] = finalUser; // Tüm kullanıcı objesini tek seferde güncelle
+
     const weeklyScoreRef = db.ref(`clickCatchWeeklyScores/${currentUser}`);
     const currentWeeklyScore = (await weeklyScoreRef.once('value')).val() || 0;
     const newTotalWeeklyScore = currentWeeklyScore + Math.max(0, finalScore);
     updates[`/clickCatchWeeklyScores/${currentUser}`] = newTotalWeeklyScore;
     updates[`/users/${currentUser}/clickCatchHighestScore`] = newTotalWeeklyScore;
 
-    // --- 3. ADIM: AKTİVİTE KAYDINI OLUŞTUR (TEK SEFERDE) ---
+    // Loglama için kazanılan özel eşyaların metnini oluştur
+    const logSpecialItems = specialItemsWonDetails.map(item => {
+        const prefix = item.isPercent ? '%' : '+';
+        const amount = item.isPercent ? item.amount.toFixed(1) : item.amount;
+        if(item.isMultiplier){
+            return { name: item.name, amount: `${prefix}${amount} Kullanım`};
+        }
+        return { name: item.name, amount: `${prefix}${amount}` };
+    });
+
     logActivity('clickCatchSolo', currentUser, {
         baseScore: clickCatchScore,
         finalScore: finalScore,
         ticketsUsed: ticketsUsedThisRound,
-        specialItems: specialItemsWonDetails, // Artık birleştirilmiş liste
+        specialItems: logSpecialItems, 
         newWeeklyScore: newTotalWeeklyScore
     });
 
-    // --- 4. ADIM: KULLANICIYA BİLDİRİM GÖNDER ---
+    // Oyun sonu mesajını oluştur
     let endMessage = `Oyun bitti! Bu turdaki toplam skorun: <b>${finalScore}</b>. <br><small class="text-gray-400">(Skor: ${clickCatchScore} x ${ticketsUsedThisRound} Bilet)</small>`;
-    if (specialItemsWonDetails.length > 0) {
-        const itemsText = specialItemsWonDetails.map(item => `+${item.amount} ${item.name}`).join(', ');
+    if (logSpecialItems.length > 0) {
+        const itemsText = logSpecialItems.map(item => `${item.amount} ${item.name}`).join(', ');
         endMessage += `<br>Ayrıca, <b>${itemsText}</b> kazandın!`;
     }
-    if (collectedCardPacks.length > 0) {
-        const totalPacks = collectedCardPacks.length * ticketsUsedThisRound;
-        endMessage += `<br>Ve <b class="text-purple-400">${totalPacks} adet Kart Paketi</b> kazandın! Paketler şimdi açılacak...`;
+    
+    const totalCardPacks = cardPacksToOpenFromRewards.reduce((sum, pack) => sum + (pack.value || 1), 0);
+    if (totalCardPacks > 0) {
+        endMessage += `<br>Ve <b class="text-purple-400">${totalCardPacks} adet Kart Paketi</b> kazandın! Paketler şimdi açılacak...`;
     }
+    
     displayMessage(endMessage);
 
-    // --- 5. ADIM: TÜM GÜNCELLEMELERİ VERİTABANINA YAZ ---
     await db.ref().update(updates);
 
-    // --- 6. ADIM: KART PAKETLERİNİ AÇ ---
-    if (collectedCardPacks.length > 0) {
-        const totalPacks = collectedCardPacks.reduce((sum, pack) => sum + pack.value, 0) * ticketsUsedThisRound;
-        const packType = collectedCardPacks[0].type; // Varsayalım ki tek tür paket toplanıyor
-        await startCardPackOpening(totalPacks, 'Tıkla-Yakala Oyunu', 1, packType);
+    // Kart paketlerini aç
+    for (const pack of cardPacksToOpenFromRewards) {
+        await startCardPackOpening(pack.value || 1, 'Tıkla-Yakala Oyunu', 1, pack.type);
     }
     
     ticketsUsedThisRound = 1;
 }
-
 
   // ... VE YERİNE BU YENİ VERSİYONU YAPIŞTIR
 async function openSelectWinnerModal() {
