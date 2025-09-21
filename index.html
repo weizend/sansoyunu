@@ -12295,12 +12295,14 @@ async function endSoloClickCatchGame() {
     if (finalWheelTickets > 0) aggregateItem('wheelTicket', finalWheelTickets, 'Çark Bileti');
     if (finalWildcards > 0) aggregateItem('wildcard', finalWildcards, 'Joker Kart');
     
+    // ★★★ DÜZELTME BURADA: Eksik olan iksir işleme döngüsü eklendi ★★★
     // Adım 3: Yakalanan her iksiri bilet sayısıyla çarparak toplayalım.
     collectedPotions.forEach(potion => {
         const totalPotionValue = potion.value * ticketsUsedThisRound;
         const isPercent = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion'].includes(potion.type);
         aggregateItem(potion.type, totalPotionValue, typeToName[potion.type], isPercent);
     });
+    // ★★★ DÜZELTME SONU ★★★
 
     // Adım 4: Yakalanan çarpanları toplayalım (bunlar farklı bir mantıkla işler).
     const aggregatedMultipliers = collectedMultipliers.reduce((acc, multiplier) => {
