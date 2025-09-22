@@ -7589,9 +7589,9 @@ function renderActivityFeed(activities) {
                         message = `${userHtml}, mağazadan <b class="text-red-500">-${costText}</b> harcayarak <b class="text-green-400">${bonusText} ${details.itemName}</b> satın aldı. (Mevcut ${balanceUnit}: ${formatNumber(balance)})`;
                     } 
                     else if (details.itemValue) {
-                         message = `${userHtml}, mağazadan <b class="text-red-500">-${costText}</b> harcayarak <b class="text-green-400">+${details.itemValue} ${details.itemName}</b> aldı. (Mevcut ${balanceUnit}: ${formatNumber(balance)})`;
+                         message = `${userHtml}, mağazadan <b class="text-red-500">-${costText}</b> harcayarak <b class="text-green-400">+${details.itemValue} ${details.itemName}</b> satın aldı. (Mevcut ${balanceUnit}: ${formatNumber(balance)})`;
                     } else {
-                        message = `${userHtml}, mağazadan <b class="text-red-500">-${costText}</b> harcayarak <b class="text-green-400">${details.itemName}</b> aldı. (Mevcut ${balanceUnit}: ${formatNumber(balance)})`;
+                        message = `${userHtml}, mağazadan <b class="text-red-500">-${costText}</b> harcayarak <b class="text-green-400">${details.itemName}</b> satın aldı. (Mevcut ${balanceUnit}: ${formatNumber(balance)})`;
                     }
                     break;
                 case 'surpriseBox':
@@ -7899,7 +7899,7 @@ function listenForActivityFeed() {
                     const costText = isKP ? details.itemCost : `${formatNumber(details.itemCost)} Puan`;
                     const balance = isKP ? details.newKasaBalance : details.newBalance;
                     const balanceUnit = isKP ? 'KP' : 'Puanı';
-                    message = `<b class="text-yellow-300">${activity.username}</b>, mağazadan <b class="text-red-500">-${costText}</b> harcayarak <b class="text-green-400">${details.itemName}</b> aldı. (Mevcut ${balanceUnit}: ${formatNumber(balance)})`;
+                    message = `<b class="text-yellow-300">${activity.username}</b>, mağazadan <b class="text-red-500">-${costText}</b> harcayarak <b class="text-green-400">${details.itemName}</b> satın aldı. (Mevcut ${balanceUnit}: ${formatNumber(balance)})`;
                     break;
 
                 case 'spinWheel':
