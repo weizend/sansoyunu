@@ -5354,11 +5354,16 @@ function loadBalanceAndBoxRights() {
         document.getElementById("currentUser").innerHTML = `${currentUser}`;
         return;
     }
-    const ref = db.ref('users/' + currentUser);
-    const allUsersRef = db.ref('users');
-
+    // HATA BURADAYDI: Eskiden sadece mevcut kullanıcıyı dinliyordu.
+    // DÜZELTME: Artık tüm kullanıcıları dinliyor.
+    const ref = db.ref('users'); 
+    
     const callback = async snap => {
-        const userData = snap.val();
+        const allUsersData = snap.val();
+        if (!allUsersData) return;
+
+        // Mevcut kullanıcının kendi verisini tüm veriler içinden çekiyoruz.
+        const userData = allUsersData[currentUser];
         if (!userData) return;
 
         if (userData.blocked && userData.blockedUntil && Date.now() < userData.blockedUntil) {
@@ -5387,8 +5392,8 @@ function loadBalanceAndBoxRights() {
             renderMonsterBattleUI();
         }
 
-        const allUsersSnap = await allUsersRef.once('value');
-        const leaders = await calculateAllLeaders(allUsersSnap.val());
+        // Liderleri tüm kullanıcı verisi üzerinden hesapla
+        const leaders = await calculateAllLeaders(allUsersData);
         const userLeaderStatus = {
             isCurrentLeader: currentUser === leaders.currentBalanceUser,
             isHighLeader: currentUser === leaders.highEverBalanceUser,
@@ -5399,7 +5404,8 @@ function loadBalanceAndBoxRights() {
             isBoxLeader: currentUser === leaders.boxUser,
             isShieldLeader: currentUser === leaders.shieldUser,
             isClickCatchLeader: currentUser === leaders.clickCatchLeaderUser,
-            isWheelSpinLeader: currentUser === leaders.wheelSpinUser
+            isWheelSpinLeader: currentUser === leaders.wheelSpinUser,
+            isMonsterLeader: currentUser === leaders.monsterDamageUser
         };
         const badgesHtml = getInlineBadgesHtmlFromStatus(userLeaderStatus);
         document.getElementById("currentUserBadges").innerHTML = badgesHtml;
