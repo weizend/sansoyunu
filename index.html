@@ -5354,18 +5354,26 @@ function loadBalanceAndBoxRights() {
         document.getElementById("currentUser").innerHTML = `${currentUser}`;
         return;
     }
-    // HATA BURADAYDI: Eskiden sadece mevcut kullanıcıyı dinliyordu.
-    // DÜZELTME: Artık tüm kullanıcıları dinliyor.
-    const ref = db.ref('users'); 
-    
-    const callback = async snap => {
-        const allUsersData = snap.val();
-        if (!allUsersData) return;
 
-        // Mevcut kullanıcının kendi verisini tüm veriler içinden çekiyoruz.
-        const userData = allUsersData[currentUser];
-        if (!userData) return;
+    // Gerekli referansları en başta tanımla
+    const usersRef = db.ref('users');
+    const monsterRef = db.ref('gameConfig/monsterBattle');
 
+    // Verileri önbellekte tutmak için değişkenler
+    let allUsersDataCache = null;
+    let monsterDataCache = null;
+
+    // Hem kullanıcılar hem de canavar verisi geldiğinde çalışan ana render fonksiyonu
+    const renderPanel = async () => {
+        // Eğer iki veri de henüz gelmediyse, işlem yapma
+        if (allUsersDataCache === null || monsterDataCache === null) {
+            return;
+        }
+
+        const userData = allUsersDataCache[currentUser];
+        if (!userData) return; // Kullanıcı verisi yoksa çık
+
+        // Fonksiyonun geri kalanı aynı, sadece artık önbellekteki veriyi kullanıyor
         if (userData.blocked && userData.blockedUntil && Date.now() < userData.blockedUntil) {
             displayBlockedMessage(userData.blockedUntil, currentUser);
         } else if (userData.blocked) {
@@ -5392,8 +5400,8 @@ function loadBalanceAndBoxRights() {
             renderMonsterBattleUI();
         }
 
-        // Liderleri tüm kullanıcı verisi üzerinden hesapla
-        const leaders = await calculateAllLeaders(allUsersData);
+        // Liderleri her zaman en güncel verilerle hesapla
+        const leaders = await calculateAllLeaders(allUsersDataCache, monsterDataCache);
         const userLeaderStatus = {
             isCurrentLeader: currentUser === leaders.currentBalanceUser,
             isHighLeader: currentUser === leaders.highEverBalanceUser,
@@ -5411,10 +5419,36 @@ function loadBalanceAndBoxRights() {
         document.getElementById("currentUserBadges").innerHTML = badgesHtml;
         document.getElementById("currentUser").innerHTML = `${currentUser}`;
     };
+
+    // Önceki dinleyicileri temizle
+    if (activeListeners.balance) {
+        if(activeListeners.balance.usersRef) activeListeners.balance.usersRef.off('value', activeListeners.balance.usersCallback);
+        if(activeListeners.balance.monsterRef) activeListeners.balance.monsterRef.off('value', activeListeners.balance.monsterCallback);
+    }
     
-    if(activeListeners.balance) activeListeners.balance.ref.off('value', activeListeners.balance.callback);
-    activeListeners.balance = { ref, event: 'value', callback };
-    ref.on('value', callback);
+    // Kullanıcı verileri değiştiğinde çalışacak callback
+    const usersCallback = (snap) => {
+        allUsersDataCache = snap.val();
+        renderPanel();
+    };
+    
+    // Canavar verisi değiştiğinde çalışacak callback
+    const monsterCallback = (snap) => {
+        monsterDataCache = snap.val() || {}; // Canavar yoksa boş obje ata
+        renderPanel();
+    };
+
+    // İki dinleyiciyi de aktif et
+    usersRef.on('value', usersCallback);
+    monsterRef.on('value', monsterCallback);
+
+    // Dinleyicileri daha sonra kapatabilmek için sakla
+    activeListeners.balance = { 
+        usersRef, 
+        usersCallback, 
+        monsterRef, 
+        monsterCallback 
+    };
 }
       
 // --- YENİ EKLENECEK SİHİRLİ ROZET FONKSİYONU ---
@@ -5504,9 +5538,8 @@ function loadUserRankingsAndBoxCounts() {
     });
 }
 
-// calculateAllLeaders fonksiyonunu bul ve bu yeni versiyonla değiştir
-
-async function calculateAllLeaders(allUsersData) {
+// --- BU FONKSİYONU ESKİSİYLE KOMPLE DEĞİŞTİRİN ---
+async function calculateAllLeaders(allUsersData, currentMonsterData) {
     const currentClickCatchLeader = await getClickCatchLeaderUsername();
     let leaders = {
         highestCurrentBalance: -1, currentBalanceUser: null,
@@ -5518,7 +5551,7 @@ async function calculateAllLeaders(allUsersData) {
         maxBoxesOpened: -1, boxUser: null,
         maxShieldUsed: -1, shieldUser: null,
         maxWheelSpins: -1, wheelSpinUser: null,
-        maxMonsterDamage: -1, monsterDamageUser: null // YENİ EKLENDİ
+        maxMonsterDamage: -1, monsterDamageUser: null
     };
 
     for (const username in allUsersData) {
@@ -5580,8 +5613,8 @@ async function calculateAllLeaders(allUsersData) {
         }
     }
     
-    // YENİ EKLENEN KOD BLOĞU
-    const monsterLeaderboard = monsterBattleData.damageLeaderboard || {};
+    // DEĞİŞİKLİK: Artık global 'monsterBattleData' yerine argüman olarak gelen 'currentMonsterData' kullanılıyor.
+    const monsterLeaderboard = currentMonsterData?.damageLeaderboard || {};
     for (const username in monsterLeaderboard) {
         const userData = monsterLeaderboard[username];
         const userDamage = userData.totalDamage || 0;
@@ -5590,7 +5623,6 @@ async function calculateAllLeaders(allUsersData) {
             leaders.monsterDamageUser = username;
         }
     }
-    // YENİ KOD BLOĞU SONU
     
     leaders.clickCatchLeaderUser = currentClickCatchLeader;
     
