@@ -17884,12 +17884,16 @@ function listenForMonsterBattleData() {
             renderMonsterBattleUI();
         }
         
-        // --- SORUNU ÇÖZEN YENİ EKLENEN SATIRLAR ---
-        // Canavar verisi her değiştiğinde, lider durumu değişmiş olabileceğinden
-        // her iki sıralama listesini de yeniden çizmesi için tetikliyoruz.
-        renderUserRankings();
-        loadLeaderboardRanking();
-        // --- YENİ SATIRLARIN SONU ---
+        // --- NİHAİ ÇÖZÜM BURADA ---
+        // Canavar verisi her değiştiğinde, sadece ana sıralama tablolarını değil,
+        // aynı zamanda en üstteki ana kullanıcı rozetlerini de güncelleyen
+        // ana fonksiyonu yeniden çağırıyoruz. Sorunu bu çözecek.
+        loadBalanceAndBoxRights(); 
+        
+        // Bu iki satır artık gereksiz çünkü loadBalanceAndBoxRights()
+        // zaten bu fonksiyonları dolaylı olarak tetikliyor.
+        // renderUserRankings();
+        // loadLeaderboardRanking();
     };
 
     if (activeListeners.monsterBattle) ref.off('value', activeListeners.monsterBattle.callback);
