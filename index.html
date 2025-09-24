@@ -5347,7 +5347,7 @@ function selectChatSuggestion(username) {
     input.focus(); // Input'a geri odaklan
 }
 
-// --- BU GÜNCEL FONKSİYONU ESKİSİNİN YERİNE YAPIŞTIRIN ---
+// BU GÜNCEL FONKSİYONU ESKİSİNİN YERİNE YAPIŞTIRIN
 function loadBalanceAndBoxRights() {
     if (isAdmin) {
         document.getElementById("balance").textContent = "Admin Paneli Aktif";
@@ -5399,7 +5399,10 @@ function loadBalanceAndBoxRights() {
             isBoxLeader: currentUser === leaders.boxUser,
             isShieldLeader: currentUser === leaders.shieldUser,
             isClickCatchLeader: currentUser === leaders.clickCatchLeaderUser,
-            isWheelSpinLeader: currentUser === leaders.wheelSpinUser
+            isWheelSpinLeader: currentUser === leaders.wheelSpinUser,
+            // ★★★ SORUNU ÇÖZEN DEĞİŞİKLİK BURADA ★★★
+            // Eksik olan Canavar Lideri kontrolünü ekliyoruz.
+            isMonsterLeader: currentUser === leaders.monsterDamageUser
         };
         const badgesHtml = getInlineBadgesHtmlFromStatus(userLeaderStatus);
         document.getElementById("currentUserBadges").innerHTML = badgesHtml;
@@ -5415,9 +5418,12 @@ function loadBalanceAndBoxRights() {
 function getInlineBadgesHtmlFromStatus(userLeaderStatus) {
     if (!userLeaderStatus) return '';
 
+    // ★★★ SORUNU ÇÖZEN İKİNCİ DEĞİŞİKLİK BURADA ★★★
+    // Kral Tacı kontrolüne Canavar Liderini de dahil ediyoruz.
     const hasKingCrown = userLeaderStatus.isCurrentLeader && userLeaderStatus.isHighLeader && userLeaderStatus.isSurpriseLeader &&
                          userLeaderStatus.isBombLeader && userLeaderStatus.isStoreLeader && userLeaderStatus.isMultiplierLeader &&
-                         userLeaderStatus.isBoxLeader && userLeaderStatus.isShieldLeader && userLeaderStatus.isClickCatchLeader && userLeaderStatus.isWheelSpinLeader;
+                         userLeaderStatus.isBoxLeader && userLeaderStatus.isShieldLeader && userLeaderStatus.isClickCatchLeader && 
+                         userLeaderStatus.isWheelSpinLeader && userLeaderStatus.isMonsterLeader;
 
     if (hasKingCrown) {
         return `<span class="inline-badge" title="Tüm Liderlik Rozetlerinin Sahibi!">👑</span>`;
@@ -5429,6 +5435,10 @@ function getInlineBadgesHtmlFromStatus(userLeaderStatus) {
     if (userLeaderStatus.isClickCatchLeader) badges.push(`<span class="inline-badge" title="Tıkla-Yakala Lideri">🎯</span>`);
     if (userLeaderStatus.isWheelSpinLeader) badges.push(`<span class="inline-badge" title="Çark Lideri">🎡</span>`);
     if (userLeaderStatus.isBoxLeader) badges.push(`<span class="inline-badge" title="Kutu Lideri">📦</span>`);
+    
+    // ★★★ VE ROZET LİSTESİNE DE CANAVAR ROZETİNİ EKLEME KODU ★★★
+    if (userLeaderStatus.isMonsterLeader) badges.push(`<span class="inline-badge" title="Canavar Savaşı Lideri">👹</span>`);
+    
     if (userLeaderStatus.isSurpriseLeader) badges.push(`<span class="inline-badge" title="Sürpriz Kutu Lideri">🎉</span>`);
     if (userLeaderStatus.isBombLeader) badges.push(`<span class="inline-badge" title="Bomba Lideri">💣</span>`);
     if (userLeaderStatus.isMultiplierLeader) badges.push(`<span class="inline-badge" title="Çarpan Lideri">✖️</span>`);
