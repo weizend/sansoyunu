@@ -16809,92 +16809,144 @@ async function loadCollectionLeaderboard() {
     const leaderboardContainer = document.getElementById('collectionFinishersLeaderboard');
     const listEl = document.getElementById('finishersList');
     listEl.innerHTML = '<p class="text-gray-400">Sıralama yükleniyor...</p>';
-    listEl.classList.add('scrollable-list'); 
+    listEl.classList.add('scrollable-list');
 
-    const usersRef = db.ref('users');
-
+    // Performans için önceki dinleyiciyi temizliyoruz.
     if (activeListeners.collectionLeaderboard) {
-        usersRef.off('value', activeListeners.collectionLeaderboard.callback);
+        db.ref('users').off('value', activeListeners.collectionLeaderboard.callback);
     }
 
+    // Bu fonksiyon her çalıştığında tüm verileri anlık olarak çeker ve sıralar.
     const callback = async (snapshot) => {
         const allUsersData = snapshot.val() || {};
-        
-        const masterCardsSnap = await db.ref('gameConfig/cardCollection').once('value');
+
+        // Gerekli olan tüm diğer verileri (kart listesi, bitirenler listesi) tek seferde çekiyoruz.
+        const [masterCardsSnap, finishersSnap] = await Promise.all([
+            db.ref('gameConfig/cardCollection').once('value'),
+            db.ref('gameStats/collectionFinishers').once('value')
+        ]);
+
         const masterCards = masterCardsSnap.val() || {};
         const totalCardCount = Object.keys(masterCards).length;
+        const finishersData = finishersSnap.val() || {};
 
-        const playersWithCards = Object.values(allUsersData).filter(user => 
-            user.cardCollection && Object.keys(user.cardCollection).length > 0
-        );
+        // Bitiren kullanıcıları ve bitirme zamanlarını hızlı erişim için bir haritaya alıyoruz.
+        const finishersMap = new Map();
+        Object.values(finishersData).forEach(finisher => {
+            finishersMap.set(finisher.username, finisher.timestamp);
+        });
+        
+        // Sıralama için tüm kullanıcı verilerini işleyip yeni bir diziye atıyoruz.
+        const playersForSorting = Object.entries(allUsersData)
+            .filter(([username, userData]) => userData.approved && username.toLowerCase() !== 'weizendtv') // Sadece onaylı kullanıcıları dahil et
+            .map(([username, userData]) => {
+                const isFinisher = finishersMap.has(username);
+                return {
+                    username: username,
+                    ...userData, // Kullanıcının diğer tüm verilerini de ekle
+                    isFinisher: isFinisher,
+                    completionTimestamp: isFinisher ? finishersMap.get(username) : Infinity, // Bitirmeyenlerin bitirme zamanı sonsuz olsun
+                    cardCount: Object.keys(userData.cardCollection || {}).length,
+                    firstCardTimestamp: userData.collectionInfo?.firstCardTimestamp || Infinity // İlk kartı olmayanların zamanı sonsuz olsun
+                };
+            });
 
-        if (playersWithCards.length === 0) {
+        // Eğer sıralanacak oyuncu yoksa paneli gizle.
+        if (playersForSorting.length === 0) {
             leaderboardContainer.classList.add('hidden');
             return;
         }
 
         leaderboardContainer.classList.remove('hidden');
 
-        playersWithCards.sort((a, b) => {
-            const cardCountA = Object.keys(a.cardCollection || {}).length;
-            const cardCountB = Object.keys(b.cardCollection || {}).length;
-            if (cardCountB !== cardCountA) {
-                return cardCountB - cardCountA;
+        // İsteğine göre çok seviyeli özel sıralama mantığı
+        playersForSorting.sort((a, b) => {
+            // 1. Kural: Bitirenler her zaman bitirmeyenlerden önce gelir.
+            if (a.isFinisher && !b.isFinisher) return -1;
+            if (!a.isFinisher && b.isFinisher) return 1;
+
+            // 2. Kural: Eğer ikisi de bitirdiyse, tamamlama zamanına göre sırala (eskiden yeniye).
+            if (a.isFinisher && b.isFinisher) {
+                return a.completionTimestamp - b.completionTimestamp;
             }
-            const firstCardTimeA = a.collectionInfo?.firstCardTimestamp || 0;
-            const firstCardTimeB = b.collectionInfo?.firstCardTimestamp || 0;
-            return firstCardTimeA - firstCardTimeB;
+
+            // 3. Kural: Eğer ikisi de bitirmediyse, kart sayısına göre sırala (çoktan aza).
+            if (b.cardCount !== a.cardCount) {
+                return b.cardCount - a.cardCount;
+            }
+            
+            // 4. Kural: Kart sayıları da aynıysa, ilk kartı toplama zamanına göre sırala (eskiden yeniye).
+            return a.firstCardTimestamp - b.firstCardTimestamp;
         });
 
+        // Sıralanmış listeye göre HTML'i oluşturma
         let html = '';
-        playersWithCards.forEach((userData, index) => {
-    const username = Object.keys(allUsersData).find(key => allUsersData[key] === userData);
-    if (!username) return;
+        playersForSorting.forEach((userData, index) => {
+            const rank = index + 1;
+            const rankIcon = rank === 1 ? '🥇' : (rank === 2 ? '🥈' : (rank === 3 ? '🥉' : `${rank}.`));
+            
+            const rowClass = userData.isFinisher 
+                ? (rank === 1 ? 'bg-amber-800/50 border-amber-500' : 'bg-green-800/50 border-green-600') 
+                : 'bg-gray-700/50 border-gray-600';
+            
+            const avatarUrl = userData.selectedAvatar?.url || defaultAvatarUrl;
 
-    const rank = index + 1;
-    const rankIcon = rank === 1 ? '🥇' : (rank === 2 ? '🥈' : (rank === 3 ? '🥉' : `${rank}.`));
-    const rowClass = rank === 1 ? 'bg-amber-800/50 border-amber-500' : 'bg-gray-700/50 border-gray-600';
-
-    const ownedCardCount = Object.keys(userData.cardCollection || {}).length;
-    const avatarUrl = userData.selectedAvatar?.url || defaultAvatarUrl;
-
-    let progressHtml = '';
-    // Bu kısım aynı kalıyor, sadece nereye yerleştireceğimiz değişiyor
-    if (ownedCardCount >= totalCardCount && totalCardCount > 0) {
-        progressHtml = `
-            <span class="font-bold text-sm text-green-400 cursor-pointer hover:underline" onclick="openUserAlbumViewer('${username}')">
-                Tamamlandı (${ownedCardCount}/${totalCardCount})
-            </span>
-        `;
-    } else {
-        progressHtml = `
-            <span class="font-bold text-sm text-yellow-300 cursor-pointer hover:underline" onclick="openUserAlbumViewer('${username}')">
-                ${ownedCardCount}/${totalCardCount}
-            </span>
-        `;
-    }
-
-    html += `
-        <div class="flex items-center p-3 rounded-lg border ${rowClass}">
-            <div class="flex items-center gap-4">
-                <span class="font-bold text-xl w-8 text-center">${rankIcon}</span>
-                <img src="${avatarUrl}" class="w-12 h-12 rounded-md object-cover cursor-pointer" onclick="event.stopPropagation(); openAvatarStatsModal('${username}')">
-                
-                <div class="flex flex-col">
-                    <span class="text-lg text-white cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${username}')">
-                        ${username}
+            let progressHtml = '';
+            if (userData.isFinisher) {
+                 progressHtml = `
+                    <span class="font-bold text-sm text-green-400 cursor-pointer hover:underline" onclick="openUserAlbumViewer('${userData.username}')">
+                        Tamamlandı (${userData.cardCount}/${totalCardCount})
                     </span>
-                    ${progressHtml}
-                </div>
+                 `;
+            } else {
+                progressHtml = `
+                    <span class="font-bold text-sm text-yellow-300 cursor-pointer hover:underline" onclick="openUserAlbumViewer('${userData.username}')">
+                        ${userData.cardCount}/${totalCardCount}
+                    </span>
+                `;
+            }
 
-            </div>
-            </div>
-    `;
-});
+            // =======================================================
+            // ★★★ İSTEDİĞİN DEĞİŞİKLİK BURADA ★★★
+            // =======================================================
+            let timestampHtml = '';
+            if (userData.isFinisher) {
+                const completionDate = new Date(userData.completionTimestamp);
+                const dateString = completionDate.toLocaleDateString('tr-TR'); // Sadece tarihi alır (örn: 24.09.2025)
+                const timeString = completionDate.toLocaleTimeString('tr-TR'); // Sadece saati alır (örn: 10:07:37)
+                timestampHtml = `
+                    <div class="text-xs text-gray-400 text-right flex-shrink-0">
+                        <span>${dateString}</span><br>
+                        <span>${timeString}</span>
+                    </div>`;
+            }
+            // =======================================================
+            // ★★★ DEĞİŞİKLİK SONU ★★★
+            // =======================================================
+            
+            html += `
+                <div class="flex items-center justify-between p-3 rounded-lg border ${rowClass}">
+                    <div class="flex items-center gap-4 flex-grow">
+                        <span class="font-bold text-xl w-8 text-center">${rankIcon}</span>
+                        <img src="${avatarUrl}" class="w-12 h-12 rounded-md object-cover cursor-pointer" onclick="event.stopPropagation(); openAvatarStatsModal('${userData.username}')">
+                        
+                        <div class="flex flex-col">
+                            <span class="text-lg text-white cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${userData.username}')">
+                                ${userData.username}
+                            </span>
+                            ${progressHtml}
+                        </div>
+                    </div>
+                    ${timestampHtml}
+                </div>
+            `;
+        });
         listEl.innerHTML = html;
     };
     
-    activeListeners.collectionLeaderboard = { callback };
+    // Artık 'users' referansını dinliyoruz, çünkü birisi yeni kart aldığında veya koleksiyonu tamamladığında sıralama anında değişmeli.
+    const usersRef = db.ref('users');
+    activeListeners.collectionLeaderboard = { ref: usersRef, callback };
     usersRef.on('value', callback);
 }
 
