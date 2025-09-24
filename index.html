@@ -5347,53 +5347,68 @@ function selectChatSuggestion(username) {
     input.focus(); // Input'a geri odaklan
 }
 
-// BU FONKSİYONU BUL VE AŞAĞIDAKİYLE DEĞİŞTİR
+// --- BU GÜNCEL FONKSİYONU ESKİSİNİN YERİNE YAPIŞTIRIN ---
 function loadBalanceAndBoxRights() {
     if (isAdmin) {
         document.getElementById("balance").textContent = "Admin Paneli Aktif";
         document.getElementById("currentUser").innerHTML = `${currentUser}`;
         return;
     }
+    const ref = db.ref('users/' + currentUser);
+    const allUsersRef = db.ref('users');
 
-    // ★★★ DEĞİŞİKLİK 1: Dinleyici artık TÜM kullanıcıları değil, SADECE mevcut kullanıcıyı dinliyor. ★★★
-    const userRef = db.ref('users/' + currentUser);
-
-    if (activeListeners.balance) {
-        activeListeners.balance.ref.off('value', activeListeners.balance.callback);
-    }
-
-    const callback = (snap) => {
+    const callback = async snap => {
         const userData = snap.val();
         if (!userData) return;
 
-        // Engellenme kontrolü
         if (userData.blocked && userData.blockedUntil && Date.now() < userData.blockedUntil) {
             displayBlockedMessage(userData.blockedUntil, currentUser);
         } else if (userData.blocked) {
             db.ref('users/' + currentUser).update({ blocked: false, blockedUntil: null });
         }
 
-        // ★★★ DEĞİŞİKLİK 2: Arayüzdeki envanter bilgileri artık buradan anlık olarak güncelleniyor. ★★★
-        let statusText = `💰 Mevcut Puanı: ${formatNumber(userData.balance || 0)} | 📦 Kutu Hakkı: ${formatNumber(userData.kutuHakki || 0)}`;
-        if ((userData.carkBileti || 0) > 0) statusText += ` | ️🎫 Çark Bileti: ${formatNumber(userData.carkBileti)}`;
-        if ((userData.clickCatchTickets || 0) > 0) statusText += ` | 🎟 T-Y Bileti: ${formatNumber(userData.clickCatchTickets)}`;
-        if (userData.iflasShieldUses > 0) statusText += ` | 🛡️ Kalkan: ${formatNumber(userData.iflasShieldUses)}`;
+        let statusText = `💰 Mevcut Puanı: ${userData.balance || 0} | 📦 Kutu Hakkı: ${userData.kutuHakki || 0}`;
+        if ((userData.carkBileti || 0) > 0) statusText += ` | ️🎫 Çark Bileti: ${userData.carkBileti}`;
+        if ((userData.clickCatchTickets || 0) > 0) statusText += ` | 🎟 T-Y Bileti: ${userData.clickCatchTickets}`;
+        if (userData.iflasShieldUses > 0) statusText += ` | 🛡️ Kalkan: ${userData.iflasShieldUses}`;
         if (userData.multiplierSource === 'store' && userData.multiplierRemainingUses > 0) statusText += ` | ✖️ Çarpan: ${userData.activeMultiplier}x (${userData.multiplierRemainingUses} kullanım)`;
         else if (userData.multiplierSource === 'box') statusText += ` | ✖️ Çarpan: ${userData.activeMultiplier}x (Otomatik)`;
 
         document.getElementById("balance").textContent = statusText;
-        document.getElementById('storeCurrentUserBalance').textContent = formatNumber(userData.balance || 0);
-        document.getElementById('storeCurrentUserSpent').textContent = formatNumber(userData.totalSpentPoints || 0);
-        document.getElementById('storeCurrentUserKasaBalance').textContent = formatNumber(userData.kasaPuani || 0);
-        document.getElementById('wheelTicketBalance').textContent = formatNumber(userData.carkBileti || 0);
+        document.getElementById('storeCurrentUserBalance').textContent = userData.balance || 0;
+        document.getElementById('storeCurrentUserSpent').textContent = userData.totalSpentPoints || 0;
+        document.getElementById('storeCurrentUserKasaBalance').textContent = userData.kasaPuani || 0;
+        document.getElementById('wheelTicketBalance').textContent = userData.carkBileti || 0;
 
-        // ★★★ DEĞİŞİKLİK 3: Rozet güncelleme mantığı bu fonksiyondan çıkarıldı. ★★★
-        // Artık sadece kullanıcı adı gösteriliyor, rozetler diğer fonksiyondan gelecek.
+        if (currentActiveSection === 'cardCollection') {
+            loadCollectionAlbum();
+        }
+        if (currentActiveSection === 'monsterBattle') {
+            renderMonsterBattleUI();
+        }
+
+        const allUsersSnap = await allUsersRef.once('value');
+        const leaders = await calculateAllLeaders(allUsersSnap.val());
+        const userLeaderStatus = {
+            isCurrentLeader: currentUser === leaders.currentBalanceUser,
+            isHighLeader: currentUser === leaders.highEverBalanceUser,
+            isSurpriseLeader: currentUser === leaders.surpriseBoxUser,
+            isBombLeader: currentUser === leaders.bombUser,
+            isStoreLeader: currentUser === leaders.spentPointsUser,
+            isMultiplierLeader: currentUser === leaders.multiplierUser,
+            isBoxLeader: currentUser === leaders.boxUser,
+            isShieldLeader: currentUser === leaders.shieldUser,
+            isClickCatchLeader: currentUser === leaders.clickCatchLeaderUser,
+            isWheelSpinLeader: currentUser === leaders.wheelSpinUser
+        };
+        const badgesHtml = getInlineBadgesHtmlFromStatus(userLeaderStatus);
+        document.getElementById("currentUserBadges").innerHTML = badgesHtml;
         document.getElementById("currentUser").innerHTML = `${currentUser}`;
     };
-
-    activeListeners.balance = { ref: userRef, event: 'value', callback };
-    userRef.on('value', callback);
+    
+    if(activeListeners.balance) activeListeners.balance.ref.off('value', activeListeners.balance.callback);
+    activeListeners.balance = { ref, event: 'value', callback };
+    ref.on('value', callback);
 }
       
 // --- YENİ EKLENECEK SİHİRLİ ROZET FONKSİYONU ---
@@ -5483,8 +5498,9 @@ function loadUserRankingsAndBoxCounts() {
     });
 }
 
-// --- BU FONKSİYONU ESKİSİYLE KOMPLE DEĞİŞTİRİN ---
-async function calculateAllLeaders(allUsersData, currentMonsterData) {
+// calculateAllLeaders fonksiyonunu bul ve bu yeni versiyonla değiştir
+
+async function calculateAllLeaders(allUsersData) {
     const currentClickCatchLeader = await getClickCatchLeaderUsername();
     let leaders = {
         highestCurrentBalance: -1, currentBalanceUser: null,
@@ -5496,7 +5512,7 @@ async function calculateAllLeaders(allUsersData, currentMonsterData) {
         maxBoxesOpened: -1, boxUser: null,
         maxShieldUsed: -1, shieldUser: null,
         maxWheelSpins: -1, wheelSpinUser: null,
-        maxMonsterDamage: -1, monsterDamageUser: null
+        maxMonsterDamage: -1, monsterDamageUser: null // YENİ EKLENDİ
     };
 
     for (const username in allUsersData) {
@@ -5558,8 +5574,8 @@ async function calculateAllLeaders(allUsersData, currentMonsterData) {
         }
     }
     
-    // DEĞİŞİKLİK: Artık global 'monsterBattleData' yerine argüman olarak gelen 'currentMonsterData' kullanılıyor.
-    const monsterLeaderboard = currentMonsterData?.damageLeaderboard || {};
+    // YENİ EKLENEN KOD BLOĞU
+    const monsterLeaderboard = monsterBattleData.damageLeaderboard || {};
     for (const username in monsterLeaderboard) {
         const userData = monsterLeaderboard[username];
         const userDamage = userData.totalDamage || 0;
@@ -5568,6 +5584,7 @@ async function calculateAllLeaders(allUsersData, currentMonsterData) {
             leaders.monsterDamageUser = username;
         }
     }
+    // YENİ KOD BLOĞU SONU
     
     leaders.clickCatchLeaderUser = currentClickCatchLeader;
     
@@ -6036,48 +6053,28 @@ async function renderUserRankings() {
     document.getElementById("totalUsers").textContent = allUsersCache.length;
 }
 
-// BU FONKSİYONU DA BULUP AŞAĞIDAKİ GÜNCEL HALİYLE DEĞİŞTİR
+// loadLeaderboardRanking fonksiyonunu bul ve bu yeni versiyonla değiştir
+
 async function loadLeaderboardRanking() {
     const ref = db.ref('users');
 
     if (activeListeners.leaderboard && activeListeners.leaderboard.ref) {
-        activeListeners.leaderboard.ref.off('value', activeListeners.leaderboard.callback);
+        activeListeners.leaderboard.ref.off();
     }
-    
+
     activeListeners.leaderboard = { ref: ref };
 
     const renderLeaders = async (snap) => {
         const usersData = snap.val() || {};
-        const monsterData = (await db.ref('gameConfig/monsterBattle').once('value')).val() || {}; // Canavar verisini de alalım
 
         if (Object.keys(usersData).length === 0) {
             document.getElementById("badgedUsersRanking").innerHTML = "<div class='text-center text-gray-400'>Henüz lider kullanıcı yok.</div>";
             return;
         }
 
-        const leaders = await calculateAllLeaders(usersData, monsterData); // Canavar verisini de gönder
+        const leaders = await calculateAllLeaders(usersData);
         
-        // ★★★ YENİ EKLENEN KISIM BAŞLANGICI ★★★
-        // Bu bölüm, ana paneldeki mevcut kullanıcının rozetlerini anlık olarak günceller.
-        if(currentUser && !isAdmin) {
-             const currentUserLeaderStatus = {
-                isCurrentLeader: currentUser === leaders.currentBalanceUser,
-                isHighLeader: currentUser === leaders.highEverBalanceUser,
-                isSurpriseLeader: currentUser === leaders.surpriseBoxUser,
-                isBombLeader: currentUser === leaders.bombUser,
-                isStoreLeader: currentUser === leaders.spentPointsUser,
-                isMultiplierLeader: currentUser === leaders.multiplierUser,
-                isBoxLeader: currentUser === leaders.boxUser,
-                isShieldLeader: currentUser === leaders.shieldUser,
-                isClickCatchLeader: currentUser === leaders.clickCatchLeaderUser,
-                isWheelSpinLeader: currentUser === leaders.wheelSpinUser,
-                isMonsterLeader: currentUser === leaders.monsterDamageUser
-            };
-            const currentUserBadgesHtml = getInlineBadgesHtmlFromStatus(currentUserLeaderStatus);
-            document.getElementById("currentUserBadges").innerHTML = currentUserBadgesHtml;
-        }
-        // ★★★ YENİ EKLENEN KISIM SONU ★★★
-        
+        // --- HATA BURADAYDI: 'leaders.monsterDamageUser' bu listeye eklenmemişti. ARTIK EKLENDİ. ---
         const leaderUsernames = new Set([
             leaders.currentBalanceUser, leaders.highEverBalanceUser, leaders.surpriseBoxUser,
             leaders.bombUser, leaders.spentPointsUser, leaders.multiplierUser,
@@ -6102,7 +6099,7 @@ async function loadLeaderboardRanking() {
                 if (user.username === leaders.shieldUser) count++;
                 if (user.username === leaders.clickCatchLeaderUser) count++;
                 if (user.username === leaders.wheelSpinUser) count++;
-                if (user.username === leaders.monsterDamageUser) count++;
+                if (user.username === leaders.monsterDamageUser) count++; // Canavar lideri de sayıma eklendi
                 return count;
             };
 
@@ -6114,6 +6111,7 @@ async function loadLeaderboardRanking() {
         });
 
         const html = leaderUsers.map((u, i) => {
+            // --- HATA BURADAYDI: 'isMonsterLeader' kontrolü bu objede eksikti. ARTIK EKLENDİ. ---
             const userLeaderStatus = {
                 isCurrentLeader: u.username === leaders.currentBalanceUser,
                 isHighLeader: u.username === leaders.highEverBalanceUser,
@@ -6144,6 +6142,78 @@ async function loadLeaderboardRanking() {
     };
 
     ref.on('value', renderLeaders);
+}
+  
+  function loadPendingUsers() {
+    const ref = db.ref('users');
+    const callback = snap => {
+      const data = snap.val();
+      let html = "";
+      if (data) {
+          for (const u in data) {
+            if (data[u].approved === false) {
+              html += `<div class="flex justify-between items-center p-3 mb-2 bg-gray-700 rounded-md border-l-4 border-red-500">
+                <span class="text-gray-200">${u}</span>
+                <div class="flex space-x-2">
+                <button onclick="approveUser('${u}')" class="py-1 px-3 bg-green-600 hover:bg-green-500 text-white text-sm font-bold rounded-md">Onayla</button>
+                <button onclick="denyUser('${u}', true)" class="py-1 px-3 bg-red-600 hover:bg-red-500 text-white text-sm font-bold rounded-md">Sil</button></div></div>`;
+            }
+          }
+      }
+      document.getElementById("pendingUsers").innerHTML = html || "<div class='text-center text-gray-400'>Onay bekleyen kullanıcı yok.</div>";
+    };
+    activeListeners.pendingUsers = { ref, event: 'value', callback };
+    ref.on('value', callback);
+  }
+
+  function loadAllUsers() {
+    const ref = db.ref('users');
+    const callback = snap => {
+      const data = snap.val();
+      let html = "";
+      if (data) {
+          for (const u in data) {
+            if (u.toLowerCase() === "weizendtv") continue;
+            const user = data[u];
+            let blockedStatusHtml = '';
+            const isCurrentlyBlocked = user.blocked && user.blockedUntil && Date.now() < user.blockedUntil;
+            if (isCurrentlyBlocked) {
+                blockedStatusHtml = `<span class="text-red-400">(Engelli - <span id="admin-countdown-${u}">--:--</span>)</span>`;
+                if (!activeBlockedUserTimers[u]) {
+                    const timerId = setInterval(() => {
+                        const timeLeft = user.blockedUntil - Date.now();
+                        const el = document.getElementById(`admin-countdown-${u}`);
+                        if (timeLeft <= 0) {
+                            clearInterval(timerId);
+                            if(el) el.parentElement.innerHTML = '<span class="text-green-400">(Engel Kalktı)</span>';
+                        } else {
+                            const minutes = Math.floor(timeLeft / 60000);
+                            const seconds = Math.floor((timeLeft % 60000) / 1000).toString().padStart(2, '0');
+                            if(el) el.textContent = `${minutes}:${seconds}`;
+                        }
+                    }, 1000);
+                    activeBlockedUserTimers[u] = timerId;
+                }
+            } else if (user.blocked) {
+                blockedStatusHtml = `<span class="text-green-400">(Engel Süresi Doldu)</span>`;
+            }
+
+            const avatarUrl = user.selectedAvatar ? user.selectedAvatar.url : defaultAvatarUrl;
+            // --- DEĞİŞİKLİK BURADA: onclick event'ine "event" parametresi eklendi ---
+            html += `<div class="flex items-center justify-between p-3 mb-2 bg-gray-700 rounded-md border-l-4 border-blue-500 cursor-pointer hover:bg-gray-600 transition-colors" onclick="openUserManagementModal(event, '${u}')">
+                        <div class="flex items-center">
+                            <img src="${avatarUrl}" class="w-12 h-12 rounded-md mr-3 object-contain">
+                            <span class="text-gray-200">${u} ${blockedStatusHtml}</span>
+                        </div>
+                        <span class="text-yellow-300">Puan: ${user.balance || 0}</span>
+                    </div>`;
+            // --------------------------------------------------------------------
+          }
+      }
+      document.getElementById("allUsers").innerHTML = html || "<div class='text-center text-gray-400'>Kullanıcı yok.</div>";
+    };
+    activeListeners.allUsers = { ref, event: 'value', callback };
+    ref.on('value', callback);
 }
   
   function displayMessage(message) { document.getElementById('generalMessageContent').innerHTML = message; generalMessageModal.style.display = 'flex'; }
