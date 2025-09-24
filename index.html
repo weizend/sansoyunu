@@ -1689,7 +1689,7 @@ body.modal-open .modal-content {
     </div>
 
     <div id="collectionFinishersLeaderboard" class="hidden my-6 p-6 bg-gray-800 rounded-xl shadow-lg border-2 border-green-400 max-w-4xl mx-auto text-center">
-    <h3 class="text-2xl font-bold text-green-300 mb-4">🏆 Koleksiyon Liderlik Sıralaması 🏆</h3>
+    <h3 class="text-2xl font-bold text-green-300 mb-4">Albüm Tamamlama Sıralaması 🃏</h3>
     <div id="finishersList" class="space-y-3 text-left">
         </div>
 </div>
@@ -1863,7 +1863,7 @@ body.modal-open .modal-content {
         </div>
 
         <div class="leaderboard-container lg:col-span-2 bg-gray-900/50 p-4 rounded-lg">
-            <h4 class="text-xl font-bold text-yellow-300 mb-3 border-b border-gray-600 pb-2">En Çok Hasar Verenler</h4>
+            <h4 class="text-xl font-bold text-yellow-300 mb-3 border-b border-gray-600 pb-2">Canavar Hasar Sıralaması 👹</h4>
             <div id="monsterLeaderboard" class="space-y-2 max-h-80 overflow-y-auto scrollable-list pr-2 mb-4">
             </div>
 
@@ -2040,7 +2040,7 @@ body.modal-open .modal-content {
     <button onclick="openClickCatchInfoModal()" class="info-button" title="Oyun Modları Hakkında Bilgi">?</button>
 </div>
             <div id="weeklyWinnerContainer" class="hidden w-full max-w-2xl mx-auto mt-6 mb-4 bg-gray-800 p-4 rounded-xl shadow-lg border-2 border-green-500 text-center relative">
-<h4 class="text-green-300 text-xl font-bold mb-3">🏆 Haftanın Tıkla-Yakala Şampiyonu 🏆</h4>
+<h4 class="text-green-300 text-xl font-bold mb-3">🎯 Haftanın Tıkla-Yakala Şampiyonu 🎯</h4>
 <div id="weeklyWinnerInfo" class="text-lg text-gray-200 space-y-2">
     </div>
 <button id="clearWeeklyWinnerBtn" onclick="clearWeeklyWinnerDisplay()" class="hidden absolute -top-3 -right-3 bg-red-600 hover:bg-red-500 text-white rounded-full h-8 w-8 flex items-center justify-center text-lg font-bold" title="Kazanan Panelini Gizle">&times;</button>
@@ -2111,7 +2111,7 @@ body.modal-open .modal-content {
         </div>
 
         <div class="tableBox bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700 w-full md:flex-1 min-w-[280px] mt-6 mx-auto max-w-2xl">
-<h3 class="text-yellow-400 text-xl font-bold border-b border-gray-600 pb-3 mb-4">TIKLA-YAKALA HAFTALIK SKOR SIRALAMASI 🎯</h3>
+<h3 class="text-yellow-400 text-xl font-bold border-b border-gray-600 pb-3 mb-4">HAFTALIK SKOR SIRALAMASI 🎯</h3>
 <input type="text" id="searchClickCatchRanking" oninput="loadClickCatchRankings()" placeholder="Sıralamada Kullanıcı Ara..." class="w-full p-3 mb-4 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
 
 <div id="weeklyResetCountdownContainer" class="hidden text-center bg-purple-900/50 border border-purple-400 text-purple-200 p-3 rounded-lg mb-4">
@@ -3863,7 +3863,7 @@ body.modal-open .modal-content {
       </div>
     
     <div class="border-t border-gray-700 pt-4">
-        <h4 class="text-yellow-300 text-xl font-bold mb-3">🏆 Liderlik Ödülü</h4>
+        <h4 class="text-yellow-300 text-xl font-bold mb-3">👹 Liderlik Ödülü</h4>
         <p id="modalKillReward" class="text-gray-300"></p>
     </div>
 
@@ -14799,16 +14799,16 @@ async function openWeeklyResetInfoModal() {
             if (prize.type === 'tempMultiplier') {
                 prizeText = `${prize.amount}x Çarpan (${prize.uses} kullanım)`;
             } else if (prize.type === 'special') {
-                prizeText = `Özel Ürün: ${prize.name}`; // Özel ürün adını göster
+                prizeText = `${prize.name}`; // Özel ürün adını göster
             } else {
                 const prizeName = typeToName[prize.type] || prize.type;
                 prizeText = `${prize.amount} ${prizeName}`;
             }
             
-            prizeHtml = `<strong>🏆 Şampiyon Ödülü:</strong> <span class="text-white font-bold">${prizeText}</span>`;
+            prizeHtml = `<strong>🎯 Şampiyon Ödülü:</strong> <span class="text-white font-bold">${prizeText}</span>`;
 
         } else {
-            prizeHtml = '<strong>🏆 Şampiyon Ödülü:</strong> <span class="text-gray-400">Henüz admin tarafından belirlenmedi.</span>';
+            prizeHtml = '<strong>🎯 Şampiyon Ödülü:</strong> <span class="text-gray-400">Henüz admin tarafından belirlenmedi.</span>';
         }
         detailsContainer.innerHTML = prizeHtml;
 
@@ -18846,7 +18846,7 @@ function openMonsterInfoModal() {
     const killRewardEl = document.getElementById('modalKillReward');
     if (killReward) {
         const prizeText = formatRewardText(killReward.type, killReward.value);
-        killRewardEl.innerHTML = `Canavarı öldüren takımın lideri <b class="text-green-400">${prizeText}</b> kazanır.`;
+        killRewardEl.innerHTML = `Canavar yok edildiği zaman hasar tablosunda 1. sırada olan oyuncu <b class="text-green-400">${prizeText}</b> kazanır.`;
     } else {
         killRewardEl.textContent = 'Liderlik ödülü belirlenmemiş.';
     }
