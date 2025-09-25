@@ -7026,7 +7026,9 @@ function handleRowTypeChange(selectElement) {
     }
 }
 
-// MEVCUT openBox FONKSİYONUNU KOMPLE SİL VE BUNUNLA DEĞİŞTİR
+// =================================================================================
+// DÜZELTİLMİŞ VE DOĞRU ÇALIŞAN openBox FONKSİYONU
+// =================================================================================
 async function openBox(index) {
     const lastSurpriseSnap = await db.ref('gameStats/lastSurpriseInfo').once('value');
     const lastSurpriseData = lastSurpriseSnap.val();
@@ -7117,56 +7119,31 @@ async function openBox(index) {
     user = userSnap.val();
 
     const box = boxes[index];
-    const updates = {};
     let message = '';
+    
+    // ★★★ MANTIK DEĞİŞİKLİĞİ BURADA BAŞLIYOR ★★★
 
-    updates['boxesOpenedCount'] = (user.boxesOpenedCount || 0) + 1;
+    // Geçici bir kullanıcı durumu objesi oluşturarak adımları sırayla işliyoruz.
+    let tempUserState = JSON.parse(JSON.stringify(user));
+
+    // Çarpanın bu turda aktif olup olmayacağını en başta belirliyoruz.
+    const multiplierWasActive = useMultiplier || tempUserState.multiplierSource === 'box';
+    let finalMultiplier = multiplierWasActive ? (tempUserState.activeMultiplier || 1) : 1;
+    
+    // Veritabanına yazılacak nihai güncellemeleri bu objede toplayacağız.
+    const updates = {};
+    updates[`/users/${currentUser}/boxesOpenedCount`] = (tempUserState.boxesOpenedCount || 0) + 1;
     await db.ref(`gameStats/boxesOpenedByUsers/${currentUser}`).transaction(currentValue => (currentValue || 0) + 1);
 
-    let finalMultiplier = 1;
-    const multiplierWasActive = useMultiplier || user.multiplierSource === 'box';
-
+    // Kutunun içeriğine göre yapılacak güncellemeleri bu objede tutacağız.
     const boxUpdate = {
         opened: true, opener: currentUser, id: box.id,
         content: box.content, value: box.value
     };
-    
-    // Geçici bir kullanıcı durumu objesi oluşturarak adımları sırayla işliyoruz.
-    let tempUserState = JSON.parse(JSON.stringify(user));
 
-    // Adım 1: Çarpan kullanıldıysa, önce geçici durumda bunu uygula.
-    if (multiplierWasActive && box.content !== 'surpriz') {
-        finalMultiplier = tempUserState.activeMultiplier;
-        if (tempUserState.multiplierSource === 'box') {
-            tempUserState.activeMultiplier = 1;
-            tempUserState.multiplierSource = 'none';
-        } else if (tempUserState.multiplierSource === 'store') {
-            tempUserState.multiplierRemainingUses = (tempUserState.multiplierRemainingUses || 0) - 1;
-            if (tempUserState.multiplierRemainingUses <= 0) {
-                tempUserState.activeMultiplier = 1;
-                tempUserState.multiplierSource = 'none';
-                tempUserState.activeStoreMultiplierItemId = null;
-            }
-        }
-    } else if (multiplierWasActive && box.content === 'surpriz') {
-        finalMultiplier = tempUserState.activeMultiplier;
-    }
-
-    if (finalMultiplier > 1) {
-        boxUpdate.multiplierApplied = finalMultiplier;
-    }
-
-    // Adım 2: Kutudan çıkan ödüle göre geçici durumu güncelle.
-    if (box.content === 'surpriz') {
-        tempUserState.surpriseBoxesOpened = (tempUserState.surpriseBoxesOpened || 0) + 1;
-        const openedInTurnSnap = await db.ref(`gameStats/boxesOpenedByUsers/${currentUser}`).once('value');
-        const openedBoxesThisRound = openedInTurnSnap.val() || 1;
-        const sessionRef = db.ref('surprise_box_session');
-        await sessionRef.set({ active: true, user: currentUser, boxId: box.id, multiplier: finalMultiplier, cards: shuffleArray([...cardValues]), selection: null, result: null, timestamp: firebase.database.ServerValue.TIMESTAMP, boxesOpenedThisRound: openedBoxesThisRound });
-        const snap = await sessionRef.once('value');
-        await sessionRef.update({ expirationTimestamp: snap.val().timestamp + 60000 });
-    }
-    else if (box.content === 'multiplier') {
+    if (box.content === 'multiplier') {
+        // --- EĞER KUTUDAN YENİ BİR ÇARPAN ÇIKARSA ---
+        
         tempUserState.multiplierFoundCount = (tempUserState.multiplierFoundCount || 0) + 1;
         const foundMultiplierValue = box.value;
         const existingMultiplierValue = tempUserState.activeMultiplier || 1;
@@ -7176,7 +7153,7 @@ async function openBox(index) {
         if (existingMultiplierSource === 'none') {
             tempUserState.activeMultiplier = foundMultiplierValue;
             tempUserState.multiplierSource = 'box';
-            tempUserState.multiplierRemainingUses = 0; // Otomatik çarpanlar tek kullanımlıktır
+            tempUserState.multiplierRemainingUses = 0;
             message = `Harika! <b>${foundMultiplierValue}x Çarpan</b> buldun. Bir sonraki kutu açılışında otomatik olarak kullanılacak!`;
             logActivity('multiplierFound', currentUser, { boxId: box.id, value: foundMultiplierValue, multiplier: finalMultiplier });
         } else if (foundMultiplierValue === existingMultiplierValue) {
@@ -7198,60 +7175,92 @@ async function openBox(index) {
             message = `Mevcut <b>${existingMultiplierValue}x</b> çarpanın daha güçlü olduğu için korundu. Bulduğun ${foundMultiplierValue}x çarpan ise <b class="text-green-400">+${boxRightsFromMultiplier} Kutu Hakkı</b>'na dönüştürüldü!`;
             logActivity('multiplierConvertedToBoxRights', currentUser, { boxId: box.id, rewardValue: foundMultiplierValue, boxRights: boxRightsFromMultiplier, source: 'Kutudan', multiplier: finalMultiplier, existingValue: existingMultiplierValue, existingUses: existingMultiplierUses });
         }
-    }
-    else if (box.content === 'points') {
-        const pointsGained = box.value * finalMultiplier;
-        tempUserState.balance = (tempUserState.balance || 0) + pointsGained;
-        tempUserState.kariyerPuani = (tempUserState.kariyerPuani || 0) + pointsGained;
-        message = `+${pointsGained} puan kazandınız!`;
-        boxUpdate.basePoints = box.value;
-        boxUpdate.finalPoints = pointsGained;
-        logActivity('openBox', currentUser, { boxId: box.id, points: pointsGained, multiplier: finalMultiplier, newBalance: tempUserState.balance });
-    } else if (box.content === 'iflas') {
-        const shieldWasUsed = (tempUserState.iflasShieldUses || 0) > 0;
-        const lostPoints = tempUserState.balance || 0;
-        tempUserState.iflasCount = (tempUserState.iflasCount || 0) + 1;
-        if (shieldWasUsed) {
-            tempUserState.iflasShieldUses -= 1;
-            tempUserState.iflasShieldUsedCount = (tempUserState.iflasShieldUsedCount || 0) + 1;
-            message = `İflas! 🛡️ Kalkanın seni korudu!`;
-            boxUpdate.shieldUsed = true;
-            boxUpdate.lostPoints = 0;
-            logActivity('iflas', currentUser, { shieldUsed: true, lostPoints: 0, boxId: box.id, multiplier: finalMultiplier, newBalance: tempUserState.balance });
-        } else {
-            tempUserState.balance = 0;
-            message = `İflas! Tüm puanların (-${lostPoints} puan) silindi.`;
-            boxUpdate.shieldUsed = false;
-            boxUpdate.lostPoints = lostPoints;
-            logActivity('iflas', currentUser, { shieldUsed: false, lostPoints: lostPoints, boxId: box.id, multiplier: finalMultiplier, newBalance: 0 });
-        }
+
     } else {
-        const itemsGained = (box.value || 1) * finalMultiplier;
-        const dbKeys = { wheelTicket: 'carkBileti', clickCatchTicket: 'clickCatchTickets', iflasShield: 'iflasShieldUses', wildcard: 'wildcards' };
-        const itemName = typeToName[box.content] || 'Eşya';
-        if (box.content.startsWith('card_pack')) {
-            startCardPackOpening(itemsGained, `${box.id} numaralı kutu`, finalMultiplier, box.content);
-            message = `Tebrikler! Kutudan ${itemsGained} adet ${itemName} buldun!`;
-        } else {
-            tempUserState[dbKeys[box.content]] = (tempUserState[dbKeys[box.content]] || 0) + itemsGained;
-            message = `Kutudan <b>+${itemsGained} ${itemName}</b> kazandın!`;
+        // --- EĞER KUTUDAN NORMAL BİR ÖDÜL ÇIKARSA ---
+
+        // ★★★ DÜZELTME: Çarpan düşürme mantığını buraya taşıdık. ★★★
+        // Sadece normal ödül çıktığında çarpan hakkı düşecek.
+        if (multiplierWasActive && box.content !== 'surpriz') {
+            if (tempUserState.multiplierSource === 'box') {
+                tempUserState.activeMultiplier = 1;
+                tempUserState.multiplierSource = 'none';
+            } else if (tempUserState.multiplierSource === 'store') {
+                tempUserState.multiplierRemainingUses = (tempUserState.multiplierRemainingUses || 0) - 1;
+                if (tempUserState.multiplierRemainingUses <= 0) {
+                    tempUserState.activeMultiplier = 1;
+                    tempUserState.multiplierSource = 'none';
+                    tempUserState.activeStoreMultiplierItemId = null;
+                }
+            }
         }
-        boxUpdate.baseValue = box.value || 1;
-        boxUpdate.finalValue = itemsGained;
-        logActivity('newItemFound', currentUser, { itemName: `+${itemsGained} ${itemName}`, itemType: box.content, boxId: box.id, multiplier: finalMultiplier });
+        
+        if (finalMultiplier > 1) {
+            boxUpdate.multiplierApplied = finalMultiplier;
+        }
+
+        if (box.content === 'surpriz') {
+            tempUserState.surpriseBoxesOpened = (tempUserState.surpriseBoxesOpened || 0) + 1;
+            const openedInTurnSnap = await db.ref(`gameStats/boxesOpenedByUsers/${currentUser}`).once('value');
+            const openedBoxesThisRound = openedInTurnSnap.val() || 1;
+            const sessionRef = db.ref('surprise_box_session');
+            await sessionRef.set({ active: true, user: currentUser, boxId: box.id, multiplier: finalMultiplier, cards: shuffleArray([...cardValues]), selection: null, result: null, timestamp: firebase.database.ServerValue.TIMESTAMP, boxesOpenedThisRound: openedBoxesThisRound });
+            const snap = await sessionRef.once('value');
+            await sessionRef.update({ expirationTimestamp: snap.val().timestamp + 60000 });
+        }
+        else if (box.content === 'points') {
+            const pointsGained = box.value * finalMultiplier;
+            tempUserState.balance = (tempUserState.balance || 0) + pointsGained;
+            tempUserState.kariyerPuani = (tempUserState.kariyerPuani || 0) + pointsGained;
+            message = `+${pointsGained} puan kazandınız!`;
+            boxUpdate.basePoints = box.value;
+            boxUpdate.finalPoints = pointsGained;
+            logActivity('openBox', currentUser, { boxId: box.id, points: pointsGained, multiplier: finalMultiplier, newBalance: tempUserState.balance });
+        } else if (box.content === 'iflas') {
+            const shieldWasUsed = (tempUserState.iflasShieldUses || 0) > 0;
+            const lostPoints = tempUserState.balance || 0;
+            tempUserState.iflasCount = (tempUserState.iflasCount || 0) + 1;
+            if (shieldWasUsed) {
+                tempUserState.iflasShieldUses -= 1;
+                tempUserState.iflasShieldUsedCount = (tempUserState.iflasShieldUsedCount || 0) + 1;
+                message = `İflas! 🛡️ Kalkanın seni korudu!`;
+                boxUpdate.shieldUsed = true;
+                boxUpdate.lostPoints = 0;
+                logActivity('iflas', currentUser, { shieldUsed: true, lostPoints: 0, boxId: box.id, multiplier: finalMultiplier, newBalance: tempUserState.balance });
+            } else {
+                tempUserState.balance = 0;
+                message = `İflas! Tüm puanların (-${lostPoints} puan) silindi.`;
+                boxUpdate.shieldUsed = false;
+                boxUpdate.lostPoints = lostPoints;
+                logActivity('iflas', currentUser, { shieldUsed: false, lostPoints: lostPoints, boxId: box.id, multiplier: finalMultiplier, newBalance: 0 });
+            }
+        } else { // Diğer tüm item'lar (bilet, kalkan, paket vb.)
+            const itemsGained = (box.value || 1) * finalMultiplier;
+            const dbKeys = { wheelTicket: 'carkBileti', clickCatchTicket: 'clickCatchTickets', iflasShield: 'iflasShieldUses', wildcard: 'wildcards' };
+            const itemName = typeToName[box.content] || 'Eşya';
+            if (box.content.startsWith('card_pack')) {
+                startCardPackOpening(itemsGained, `${box.id} numaralı kutu`, finalMultiplier, box.content);
+                message = `Tebrikler! Kutudan ${itemsGained} adet ${itemName} buldun!`;
+            } else {
+                tempUserState[dbKeys[box.content]] = (tempUserState[dbKeys[box.content]] || 0) + itemsGained;
+                message = `Kutudan <b>+${itemsGained} ${itemName}</b> kazandın!`;
+            }
+            boxUpdate.baseValue = box.value || 1;
+            boxUpdate.finalValue = itemsGained;
+            logActivity('newItemFound', currentUser, { itemName: `+${itemsGained} ${itemName}`, itemType: box.content, boxId: box.id, multiplier: finalMultiplier });
+        }
     }
 
-    // Adım 3: Geçici durumdan nihai `updates` objesini oluştur.
-    // Orijinal `user` objesi ile `tempUserState` arasındaki farkları bulup `updates` objesine ekliyoruz.
+    // Geçici durumdan nihai `updates` objesini oluştur.
     for (const key in tempUserState) {
-        if (tempUserState[key] !== user[key]) {
-            updates[key] = tempUserState[key];
+        if (JSON.stringify(tempUserState[key]) !== JSON.stringify(user[key])) {
+            updates[`/users/${currentUser}/${key}`] = tempUserState[key];
         }
     }
-    // `kutuHakki` zaten transaction ile düşürüldüğü için onu `updates` objesinden çıkarıyoruz.
-    delete updates.kutuHakki;
+    delete updates[`/users/${currentUser}/kutuHakki`]; // Bu zaten transaction ile düşürüldü.
 
-    await userRef.update(updates);
+    // Tüm güncellemeleri tek seferde yap.
+    await db.ref().update(updates);
     await db.ref('boxes/' + index).update(boxUpdate);
 
     if (box.content !== 'surpriz') {
@@ -9894,37 +9903,69 @@ function loadAnnouncements() {
     showSection('announcements');
 }
 
-    async function openUnopenedBoxContentsModal() {
+    // =================================================================================
+// ADIM 2: BU FONKSİYONU GÜNCELLE
+// =================================================================================
+async function openUnopenedBoxContentsModal() {
+    const unopenedBoxContentsModal = document.getElementById('unopenedBoxContentsModal');
     const listEl = document.getElementById('unopenedBoxContentsList');
     listEl.innerHTML = 'Yükleniyor...';
-    
+
     try {
-        const configSnap = await db.ref('gameConfig/boxContents').once('value');
+        const [configSnap, boxesSnap] = await Promise.all([
+            db.ref('gameConfig/boxContents').once('value'),
+            db.ref('boxes').once('value')
+        ]);
+        
         const defaultBoxConfig = [ { type: 'surpriz', value: 0, count: 1 }, { type: 'points', value: 1000, count: 2 }, { type: 'iflas', count: 2 }, { type: 'points', value: 750, count: 4 }, { type: 'points', value: 500, count: 6 }, { type: 'points', value: 250, count: 8 }, { type: 'points', value: 100, count: 10 }, { type: 'points', value: 50, count: 15 }, { type: 'points', value: 10, count: 20 }, { type: 'points', value: 1, count: 30 }, { type: 'multiplier', value: 2, count: 1 }, { type: 'multiplier', value: 3, count: 1 } ];
         const boxConfig = configSnap.exists() ? configSnap.val() : defaultBoxConfig;
+        const currentBoxes = boxesSnap.val() || [];
 
-        const boxesSnap = await db.ref('boxes').once('value');
-        const currentBoxes = boxesSnap.val();
+        // --- YENİ EKLENEN KISIM BAŞLANGICI ---
+        const totalBoxes = currentBoxes.length;
+        const openedCount = currentBoxes.filter(box => box && box.opened).length;
+        const remainingCount = totalBoxes - openedCount;
+
+        const titleEl = unopenedBoxContentsModal.querySelector('h4');
+        let summaryEl = document.getElementById('unopened-stats-summary'); // Tekrarlamayı önlemek için ID ile kontrol
+        if (summaryEl) {
+            summaryEl.remove();
+        }
+        summaryEl = document.createElement('div');
+        summaryEl.id = 'unopened-stats-summary';
+        summaryEl.className = 'grid grid-cols-3 gap-2 text-center mb-4 p-3 bg-gray-900 rounded-lg';
+        summaryEl.innerHTML = `
+            <div>
+                <p class="text-sm text-gray-400">Toplam Kutu</p>
+                <p class="text-xl font-bold text-white">${totalBoxes}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-400">Açılan Kutu</p>
+                <p class="text-xl font-bold text-green-400">${openedCount}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-400">Kalan Kutu</p>
+                <p class="text-xl font-bold text-red-400">${remainingCount}</p>
+            </div>
+        `;
+        titleEl.insertAdjacentElement('afterend', summaryEl);
+        // --- YENİ EKLENEN KISIM SONU ---
 
         const remainingContents = {};
-
         boxConfig.forEach(item => {
             const key = `${item.type}-${item.value}`;
             remainingContents[key] = (remainingContents[key] || 0) + item.count;
         });
 
-        if (currentBoxes) {
-            currentBoxes.forEach(box => {
-                if (box.opened) {
-                    const key = `${box.content}-${box.value}`;
-                    if (remainingContents[key]) {
-                        remainingContents[key]--;
-                    }
+        currentBoxes.forEach(box => {
+            if (box && box.opened) {
+                const key = `${box.content}-${box.value}`;
+                if (remainingContents[key]) {
+                    remainingContents[key]--;
                 }
-            });
-        }
+            }
+        });
         
-        listEl.innerHTML = '';
         let html = '';
         Object.entries(remainingContents).forEach(([key, count]) => {
             if (count > 0) {
@@ -9957,7 +9998,7 @@ function loadAnnouncements() {
         listEl.innerHTML = '<p class="text-red-500">İçerik yüklenemedi.</p>';
     }
 
-    document.getElementById('unopenedBoxContentsModal').style.display = 'flex';
+    unopenedBoxContentsModal.style.display = 'flex';
 }
 
     function closeUnopenedBoxContentsModal() {
@@ -10584,24 +10625,71 @@ async function reorderDailyRewardItem(rewardId, newIndex) {
         ref.on('value', callback);
     }
   
-    function openBoxStatsModal() {
-      const listEl = document.getElementById('boxStatsList');
-      listEl.innerHTML = 'Yükleniyor...';
-      db.ref('gameStats/boxesOpenedByUsers').orderByValue().once('value').then(snap => {
-          const stats = snap.val();
-          if (!stats) {
-              listEl.innerHTML = '<p class="text-center text-gray-400">Bu turda henüz kimse kutu açmadı.</p>';
-          } else {
-              let html = '';
-              const sortedUsers = Object.entries(stats).sort(([, countA], [, countB]) => countB - countA);
-              sortedUsers.forEach(([user, count]) => {
-                  html += `<p class="p-2 bg-gray-800 rounded mb-2">${user}: <span class="font-bold text-yellow-300">${count}</span> kutu</p>`;
-              });
-              listEl.innerHTML = html;
-          }
-          boxStatsModal.style.display = 'flex';
-      });
+    // =================================================================================
+// ADIM 1: BU FONKSİYONU GÜNCELLE
+// =================================================================================
+async function openBoxStatsModal() {
+    const boxStatsModal = document.getElementById('boxStatsModal');
+    const listEl = document.getElementById('boxStatsList');
+    listEl.innerHTML = 'Yükleniyor...';
+
+    try {
+        // Gerekli verileri (kutu istatistikleri ve tüm kutular) aynı anda çekiyoruz
+        const [statsSnap, boxesSnap] = await Promise.all([
+            db.ref('gameStats/boxesOpenedByUsers').orderByValue().once('value'),
+            db.ref('boxes').once('value')
+        ]);
+
+        const allBoxes = boxesSnap.val() || [];
+        const totalBoxes = allBoxes.length;
+        const openedCount = allBoxes.filter(box => box && box.opened).length;
+        const remainingCount = totalBoxes - openedCount;
+
+        // --- YENİ EKLENEN KISIM BAŞLANGICI ---
+        const titleEl = boxStatsModal.querySelector('h4');
+        let summaryEl = document.getElementById('box-stats-summary'); // Tekrarlamayı önlemek için ID ile kontrol
+        if (summaryEl) {
+            summaryEl.remove();
+        }
+        summaryEl = document.createElement('div');
+        summaryEl.id = 'box-stats-summary';
+        summaryEl.className = 'grid grid-cols-3 gap-2 text-center mb-4 p-3 bg-gray-900 rounded-lg';
+        summaryEl.innerHTML = `
+            <div>
+                <p class="text-sm text-gray-400">Toplam Kutu</p>
+                <p class="text-xl font-bold text-white">${totalBoxes}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-400">Açılan Kutu</p>
+                <p class="text-xl font-bold text-green-400">${openedCount}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-400">Kalan Kutu</p>
+                <p class="text-xl font-bold text-red-400">${remainingCount}</p>
+            </div>
+        `;
+        // Yeni bilgi panelini başlığın altına ekliyoruz
+        titleEl.insertAdjacentElement('afterend', summaryEl);
+        // --- YENİ EKLENEN KISIM SONU ---
+
+        const stats = statsSnap.val();
+        if (!stats) {
+            listEl.innerHTML = '<p class="text-center text-gray-400">Bu turda henüz kimse kutu açmadı.</p>';
+        } else {
+            let html = '';
+            const sortedUsers = Object.entries(stats).sort(([, countA], [, countB]) => countB - countA);
+            sortedUsers.forEach(([user, count]) => {
+                html += `<p class="p-2 bg-gray-800 rounded mb-2">${user}: <span class="font-bold text-yellow-300">${count}</span> kutu</p>`;
+            });
+            listEl.innerHTML = html;
+        }
+        boxStatsModal.style.display = 'flex';
+    } catch (error) {
+        console.error("Kutu istatistikleri yüklenirken hata oluştu:", error);
+        listEl.innerHTML = '<p class="text-red-500">İstatistikler yüklenirken bir hata oluştu.</p>';
     }
+}
+
     function closeBoxStatsModal() {
       boxStatsModal.style.display = 'none';
     }
