@@ -4139,26 +4139,27 @@ function getSyncedTime() {
   const defaultAvatarUrl = 'https://i.hizliresim.com/n01dnz4.png?_gl=1*11uaptm*_ga*NTE1MDc3ODEyLjE3Mzg5Mjg1MDk.*_ga_M9ZRXYS2YN*czE3NTQ2OTEwMTgkbzkkZzEkdDE3NTQ2OTEwMjYkajUyJGwwJGgw'; // Varsayılan profil resmi
   
   // ★★★ SENİN İSTEDİĞİN YENİ VARSAYILAN AYARLAR ★★★
-  const BOX_CONTENTS = [
-    { type: 'surpriz', value: 0, count: 1 },
-    { type: 'points', value: 1000, count: 2 },
-    { type: 'points', value: 750, count: 3 },
-    { type: 'points', value: 500, count: 4 },
-    { type: 'points', value: 250, count: 5 },
-    { type: 'points', value: 100, count: 10 },
-    { type: 'points', value: 50, count: 15 },
-    { type: 'points', value: 25, count: 20 },
-    { type: 'iflas', value: 0, count: 10 },
-    { type: 'multiplier', value: 2, count: 1 },
-    { type: 'multiplier', value: 3, count: 1 },
-    { type: 'card_pack', value: 1, count: 6 },
-    { type: 'card_pack_normal', value: 1, count: 5 },
-    { type: 'card_pack_gumus', value: 1, count: 4 },
-    { type: 'card_pack_altin', value: 1, count: 3 },
-    { type: 'card_pack_efsanevi', value: 1, count: 1 },
-    { type: 'wheelTicket', value: 1, count: 5 },
-    { type: 'clickCatchTicket', value: 1, count: 4 }
-  ];
+const BOX_CONTENTS = [
+  { type: 'surpriz', value: 0, count: 1 },
+  { type: 'points', value: 1000, count: 2 },
+  { type: 'points', value: 750, count: 3 },
+  { type: 'points', value: 500, count: 4 },
+  { type: 'points', value: 250, count: 5 },
+  { type: 'points', value: 100, count: 10 },
+  { type: 'points', value: 50, count: 15 },
+  { type: 'points', value: 25, count: 20 },
+  { type: 'iflas', value: 0, count: 10 },
+  { type: 'multiplier', value: 2, count: 1 },
+  { type: 'multiplier', value: 3, count: 1 },
+  { type: 'card_pack', value: 1, count: 6 },
+  { type: 'card_pack_normal', value: 1, count: 5 },
+  { type: 'card_pack_gumus', value: 1, count: 4 },
+  { type: 'card_pack_altin', value: 1, count: 3 },
+  { type: 'card_pack_efsanevi', value: 1, count: 1 },
+  { type: 'wheelTicket', value: 1, count: 5 },
+  { type: 'clickCatchTicket', value: 1, count: 4 },
+  { type: 'revival_stone', value: 1, count: 2 } // YENİ EKLENEN SATIR
+];
   const TOTAL_BOXES = BOX_CONTENTS.reduce((sum, item) => sum + item.count, 0);
 
   // Modal elementleri
@@ -9973,20 +9974,21 @@ async function openUnopenedBoxContentsModal() {
                 let label = '';
                 let icon = '❓';
                 switch(type) {
-                    case 'points': label = `${value} Puan`; icon = '💰'; break;
-                    case 'iflas': label = 'İflas (Bomba)'; icon = '💣'; break;
-                    case 'surpriz': label = 'Sürpriz Kutu'; icon = '🎉'; break;
-                    case 'multiplier': label = `${value}x Çarpan`; icon = '✖️'; break;
-                    case 'iflasShield': label = 'İflas Kalkanı'; icon = '🛡️'; break;
-                    case 'wheelTicket': label = 'Çark Bileti'; icon = '️🎫'; break;
-                    case 'clickCatchTicket': label = 'Tıkla-Yakala Bileti'; icon = '🎟️'; break;
-                    case 'wildcard': label = 'Joker Kart'; icon = '🃏'; break;
-                    case 'card_pack': label = 'Standart Kart Paketi'; icon = '🎴'; break;
-                    case 'card_pack_normal': label = 'Bronz Kart Paketi'; icon = '🥉'; break;
-                    case 'card_pack_gumus': label = 'Gümüş Kart Paketi'; icon = '🥈'; break;
-                    case 'card_pack_altin': label = 'Altın Kart Paketi'; icon = '🥇'; break;
-                    case 'card_pack_efsanevi': label = 'Efsanevi Kart Paketi'; icon = '🏆'; break;
-                }
+                case 'points': label = `${value} Puan`; icon = '💰'; break;
+                case 'iflas': label = 'İflas (Bomba)'; icon = '💣'; break;
+                case 'surpriz': label = 'Sürpriz Kutu'; icon = '🎉'; break;
+                case 'multiplier': label = `${value}x Çarpan`; icon = '✖️'; break;
+                case 'iflasShield': label = 'İflas Kalkanı'; icon = '🛡️'; break;
+                case 'wheelTicket': label = 'Çark Bileti'; icon = '️🎫'; break;
+                case 'clickCatchTicket': label = 'Tıkla-Yakala Bileti'; icon = '🎟️'; break;
+                case 'wildcard': label = 'Joker Kart'; icon = '🃏'; break;
+                case 'card_pack': label = 'Standart Kart Paketi'; icon = '🎴'; break;
+                case 'card_pack_normal': label = 'Bronz Kart Paketi'; icon = '🥉'; break;
+                case 'card_pack_gumus': label = 'Gümüş Kart Paketi'; icon = '🥈'; break;
+                case 'card_pack_altin': label = 'Altın Kart Paketi'; icon = '🥇'; break;
+                case 'card_pack_efsanevi': label = 'Efsanevi Kart Paketi'; icon = '🏆'; break;
+                case 'revival_stone': label = 'Dirilme Taşı'; icon = '💎'; break; // YENİ EKLENEN SATIR
+            }
                 html += `<p class="flex justify-between items-center p-2 bg-gray-800 rounded mb-2 text-white"><span>${icon} ${label}</span> <span class="font-bold text-yellow-300">${count} Adet</span></p>`;
             }
         });
