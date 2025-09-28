@@ -11,6 +11,29 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
 <style>
+@media (max-width: 768px) { /* md breakpoint ve altı için */
+    #cardSelectionModal .modal-content {
+        /* Pencerenin dikeyde en fazla ekranın %85'ini kaplamasını sağlıyoruz */
+        max-height: 85vh;
+        /* İçerik (kartlar) sığmazsa dikeyde kaydırma çubuğu ekliyoruz */
+        overflow-y: auto;
+    }
+}
+/* --- YENİ EKLENECEK KOD: MOBİL KART PAKETİ AÇMA EKRANI KAYDIRMA --- */
+@media (max-width: 768px) { /* Orta boy ve altındaki ekranlar için geçerli */
+    #cardPackOpeningModal {
+        /* İçeriğin dikeyde ortalanması yerine üstten başlamasını sağlıyoruz */
+        justify-content: flex-start;
+        /* Ekranın en fazla %90'ını kaplamasını sağlıyoruz */
+        max-height: 90vh;
+        /* İçerik ekrana sığmazsa dikeyde kaydırma çubuğu ekliyoruz */
+        overflow-y: auto;
+        /* Üst ve alttan boşluk bırakarak daha iyi bir görünüm sağlıyoruz */
+        padding-top: 5rem;
+        padding-bottom: 5rem;
+    }
+}
+/* --- KOD SONU --- */
 /* --- YENİ EKLENECEK KOD: KULLANICI ETİKETLEME ÖNERİ KUTUSU --- */
 #chatSuggestions {
     position: absolute;
