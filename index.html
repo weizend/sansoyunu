@@ -11378,7 +11378,8 @@ function closeClickCatchStatsModal() {
     document.getElementById('clickCatchStatsModal').style.display = 'none';
 }
 
-// MEVCUT openClickCatchStatsModal FONKSİYONUNU SİLİP BUNUNLA DEĞİŞTİR
+// MEVCUT openClickCatchStatsModal FONKSİYONUNU SİLİP BU YENİ VE DOĞRU VERSİYONU YAPIŞTIRIN
+// MEVCUT openClickCatchStatsModal FONKSİYONUNU SİLİP BU YENİ VERSİYONU DA YAPIŞTIRIN
 async function openClickCatchStatsModal(username) {
     const modal = document.getElementById('clickCatchStatsModal');
     const titleEl = document.getElementById('clickCatchStatsTitle');
@@ -11406,8 +11407,8 @@ async function openClickCatchStatsModal(username) {
             return;
         }
 
-        let html = `<p class="mb-4">Bu skoru elde ederken toplam <b class="text-yellow-300">${ticketsUsed}</b> bilet harcandı.</p>`;
-        html += '<div class="space-y-3">';
+        let html = `<p class="mb-4 text-center">Bu skoru elde ederken toplam (<b class="text-yellow-300">${ticketsUsed} bilet x 🎟️</b>) harcandı.</p>`;
+        html += '<div class="space-y-4">';
 
         const scoreItems = [
             { emoji: '🥮', count: stats.normalCount, value: settings.normalValue, name: 'Puan' },
@@ -11418,30 +11419,29 @@ async function openClickCatchStatsModal(username) {
 
         scoreItems.forEach(item => {
             if (item.count > 0) {
-                const totalValue = item.count * item.value;
+                const isTime = item.name === 'Saniye';
+                const totalValue = isTime ? (item.count * item.value) : (item.count * item.value * ticketsUsed);
                 const valueClass = totalValue >= 0 ? 'text-green-400' : 'text-red-400';
                 const valuePrefix = item.value >= 0 ? '+' : '';
 
                 html += `
-                    <div class="flex justify-between items-center text-lg">
-                        <span>${item.emoji} ${valuePrefix}${formatNumber(item.value)} ${item.name}</span>
-                        <div class="flex items-center gap-x-4">
-                            <span>x${item.count}</span>
-                            <span>(<b class="${valueClass}">${totalValue >= 0 ? '+' : ''}${formatNumber(totalValue)} ${item.name}</b>)</span>
-                        </div>
+                    <div class="border-b border-gray-700 pb-3">
+                        <p class="text-lg">${item.emoji} ${valuePrefix}${formatNumber(item.value)} ${item.name}</p>
+                        <p class="text-base text-gray-300 pl-8">${item.count}x${isTime ? '' : '🎟️'}</p>
+                        <p class="text-base font-bold ${valueClass} pl-8">(${totalValue >= 0 ? '+' : ''}${formatNumber(totalValue)} ${item.name})</p>
                     </div>`;
             }
         });
         
-        html += `<hr class="border-gray-600 my-2">`;
+        html += `<hr class="border-gray-600 my-2 opacity-0">`;
         html += `
-            <div class="flex justify-between items-center text-xl font-bold">
+            <div class="flex justify-between items-center text-xl font-bold mt-2">
                 <span>🎯 Toplam Skor:</span>
                 <span class="text-yellow-300">${formatNumber(finalWeeklyScore)}</span>
             </div>`;
 
         if (stats.specialItems && Object.keys(stats.specialItems).length > 0) {
-            html += '<hr class="border-gray-600 my-2"><p class="font-bold text-teal-300 text-xl mt-4 mb-2">Yakalanan Özel Hediyeler:</p>';
+            html += '<hr class="border-gray-600 my-3"><p class="font-bold text-teal-300 text-xl mb-2">Yakalanan Özel Hediyeler:</p>';
             
             for (const type in stats.specialItems) {
                 const count = stats.specialItems[type];
@@ -11471,23 +11471,20 @@ async function openClickCatchStatsModal(username) {
                 let totalText = '';
 
                 if (type === 'tempMultiplier') {
+                    const totalUses = count * specialSettings.uses * ticketsUsed;
                     baseText = `+${specialSettings.uses} Kullanım ${specialSettings.value}x Çarpan`;
-                    totalText = `+${count * specialSettings.uses} Kullanım`;
+                    totalText = `+${totalUses} Kullanım Hakkı`;
                 } else {
-                    const isPercent = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion'].includes(type);
-                    const prefix = isPercent ? '%' : '+';
-                    baseText = `${prefix}${specialSettings.value} ${name}`;
-                    // HATAYI DÜZELTEN SATIR: totalText içindeki parantez kaldırıldı
-                    totalText = `${prefix}${formatNumber(count * specialSettings.value)}${isPercent ? '' : ' ' + name}`;
+                    const totalValue = count * specialSettings.value * ticketsUsed;
+                    baseText = `+${specialSettings.value} ${name}`;
+                    totalText = `+${formatNumber(totalValue)} ${name}`;
                 }
                 
                 html += `
-                    <div class="flex justify-between items-center text-lg">
-                        <span>${specialSettings.emoji} ${baseText}</span>
-                        <div class="flex items-center gap-x-4">
-                            <span>x${count}</span>
-                            <span>(<b class="text-green-400">${totalText}</b>)</span>
-                        </div>
+                    <div class="border-b border-gray-700 pb-3 mt-2">
+                        <p class="text-lg">${specialSettings.emoji} ${baseText}</p>
+                        <p class="text-base text-gray-300 pl-8">${count}x🎟️</p>
+                        <p class="text-base font-bold text-green-400 pl-8">(${totalText})</p>
                     </div>`;
             }
         }
@@ -11500,7 +11497,7 @@ async function openClickCatchStatsModal(username) {
         contentEl.innerHTML = '<p class="text-center text-red-500">Veriler yüklenirken bir hata oluştu.</p>';
     }
 }
-
+      
 // Lobi bildirim penceresini gösterir
 function showLobbyNotification(lobbyData) {
     const infoDiv = document.getElementById('lobbyNotificationInfo');
@@ -12436,20 +12433,21 @@ async function endSoloClickCatchGame() {
     const finalWheelTickets = collectedWheelTickets * ticketsUsedThisRound;
     const finalWildcards = collectedWildcards * ticketsUsedThisRound;
 
-    // ★★★ DEĞİŞİKLİK BURADA BAŞLIYOR: Yakalanan öğelerin istatistiklerini kaydetme ★★★
+    // ★★★ ANA DÜZELTME BURADA: Veritabanına artık biletle çarpılmamış HAM tıklanma sayıları kaydediliyor. ★★★
     const weeklyStatsRef = db.ref(`clickCatchWeeklyStats/${currentUser}`);
     await weeklyStatsRef.transaction(currentStats => {
         if (!currentStats) {
             currentStats = { bombCount: 0, normalCount: 0, goldCount: 0, timeCount: 0, specialItemCount: 0, specialItems: {} };
         }
-        currentStats.bombCount = (currentStats.bombCount || 0) + ((soloGameItemCounts.bomb || 0) * ticketsUsedThisRound);
-        currentStats.normalCount = (currentStats.normalCount || 0) + ((soloGameItemCounts.normal || 0) * ticketsUsedThisRound);
-        currentStats.goldCount = (currentStats.goldCount || 0) + ((soloGameItemCounts.gold || 0) * ticketsUsedThisRound);
-        currentStats.timeCount = (currentStats.timeCount || 0) + ((soloGameItemCounts.time || 0) * ticketsUsedThisRound);
+        // Artık ticketsUsedThisRound ile çarpmıyoruz!
+        currentStats.bombCount = (currentStats.bombCount || 0) + (soloGameItemCounts.bomb || 0);
+        currentStats.normalCount = (currentStats.normalCount || 0) + (soloGameItemCounts.normal || 0);
+        currentStats.goldCount = (currentStats.goldCount || 0) + (soloGameItemCounts.gold || 0);
+        currentStats.timeCount = (currentStats.timeCount || 0) + (soloGameItemCounts.time || 0);
         
         if (soloGameItemCounts.special > 0) {
             const specialItemType = soloGameSettings.specialItemType || ' bilinmiyor';
-            const specialCount = (soloGameItemCounts.special || 0) * ticketsUsedThisRound;
+            const specialCount = (soloGameItemCounts.special || 0); // Çarpma işlemi kaldırıldı
             
             if (!currentStats.specialItems) {
                 currentStats.specialItems = {};
@@ -12460,7 +12458,7 @@ async function endSoloClickCatchGame() {
         }
         return currentStats;
     });
-    // ★★★ DEĞİŞİKLİK BURADA BİTİYOR ★★★
+    // ★★★ DÜZELTME SONU ★★★
 
     // --- 2. ADIM: GÜNCELLEME VE LOGLAMA İÇİN VERİLERİ HAZIRLA ---
     const updates = {};
