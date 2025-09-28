@@ -1621,6 +1621,7 @@ body.modal-open .modal-content {
             </button>
             <button id="inventoryButton" onclick="openInventoryModal()" class="py-2 px-6 bg-purple-700 hover:bg-purple-600 text-white font-bold rounded-lg shadow-md">Envanter</button>
             <button id="adminPanelToggleButton" onclick="openAdminPanelModal()" class="py-2 px-6 bg-blue-700 hover:bg-blue-600 text-white font-bold rounded-lg shadow-md hidden">Admin Paneli</button>
+            <button id="avatarCodexBtn" onclick="openAvatarCodexModal()" class="py-2 px-6 bg-teal-700 hover:bg-teal-600 text-white font-bold rounded-lg shadow-md">Avatar Kodeksi</button>
             <button id="helpButton" onclick="openHelpModal()" class="py-2 px-6 bg-gray-600 hover:bg-gray-500 text-white font-bold rounded-lg shadow-md">Yardım</button>
         </div>
         <div id="activityBellContainer" class="absolute top-3 right-3 hidden">
@@ -2440,6 +2441,11 @@ body.modal-open .modal-content {
             <button onclick="confirmBulkSendItem(false)" class="flex-1 py-3 bg-red-800 hover:bg-red-700 text-white font-bold rounded-lg shadow-md">TÜM KULLANICILARDAN SİL</button>
             <button onclick="confirmBulkSendItem(true)" class="flex-1 py-3 bg-green-800 hover:bg-green-700 text-white font-bold rounded-lg shadow-md">TÜM KULLANICILARA GÖNDER</button>
         </div>
+        
+        <div class="bg-gray-800/80 p-6 rounded-xl border border-teal-500">
+    <h4 class="text-teal-300 text-xl font-semibold mb-4 border-b border-gray-600 pb-2">📖 Avatar Kodeks Yönetimi</h4>
+    <button onclick="openAdminAvatarCodexModal()" class="w-full py-3 bg-teal-800 hover:bg-teal-700 text-white font-bold rounded-lg">Kodeks Ayarlarını Aç</button>
+</div>
 
         <div class="mt-4 pt-4 border-t border-gray-600">
             <button onclick="resetAllPotionBonuses()" class="w-full py-3 bg-pink-800 hover:bg-pink-700 text-white font-bold rounded-lg shadow-md">
@@ -4025,6 +4031,43 @@ body.modal-open .modal-content {
     <h4 id="clickCatchStatsTitle" class="text-yellow-400 text-2xl font-bold mb-6 text-center">Haftalık Skor Detayları</h4>
     <div id="clickCatchStatsContent" class="scrollable-list max-h-[60vh] overflow-y-auto bg-gray-900 p-4 rounded-lg text-left">
       Yükleniyor...
+    </div>
+  </div>
+</div>
+<div id="avatarCodexModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-[10001] hidden">
+  <div class="modal-content bg-gray-900/95 backdrop-blur-sm p-6 rounded-2xl shadow-2xl border border-teal-500 w-11/12 max-w-5xl h-[90vh] text-center relative flex flex-col">
+    <button class="modal-close-button" onclick="closeAvatarCodexModal()">&times;</button>
+    <h3 class="text-teal-300 text-3xl font-bold mb-4 flex-shrink-0">Avatar Kodeksi</h3>
+    <div id="avatarCodexGrid" class="flex-grow overflow-y-auto scrollable-list pr-2 grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] sm:grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-6 p-4 bg-gray-900/50 rounded-xl border border-gray-700">
+        </div>
+  </div>
+</div>
+
+<div id="avatarDetailModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[10002] hidden">
+  <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-cyan-500 w-11/12 max-w-md text-left relative">
+    <button class="modal-close-button" onclick="closeAvatarDetailModal()">&times;</button>
+    <div id="avatarDetailContent" class="space-y-4">
+        <div class="flex flex-col items-center mb-4">
+            <img id="detailAvatarImage" src="" alt="Avatar Resmi" class="w-28 h-28 rounded-full border-4 border-green-500 mb-3 object-cover">
+            <h3 id="detailAvatarName" class="text-cyan-300 text-3xl font-bold text-center">Avatar Adı</h3>
+        </div>
+        <div id="detailAvatarStats" class="space-y-2 text-lg bg-gray-900/50 p-4 rounded-lg">
+            </div>
+        <div class="mt-4 pt-4 border-t border-gray-700">
+            <h4 class="text-yellow-300 text-xl font-bold mb-2">Nasıl Elde Edilir?</h4>
+            <p id="detailAvatarObtainMethod" class="text-gray-300"></p>
+        </div>
+    </div>
+  </div>
+</div>
+<div id="adminAvatarCodexModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-[10003] hidden">
+  <div class="modal-content bg-gray-900/95 p-6 rounded-2xl shadow-2xl border border-purple-500 w-11/12 max-w-6xl h-[95vh] text-left relative flex flex-col">
+    <button class="modal-close-button" onclick="closeAdminAvatarCodexModal()">&times;</button>
+    <h3 class="text-purple-300 text-3xl font-bold mb-4 text-center flex-shrink-0">Admin: Avatar Kodeks Yönetimi</h3>
+    <div id="adminCodexEditor" class="flex-grow overflow-y-auto scrollable-list pr-4 space-y-4">
+        </div>
+    <div class="flex-shrink-0 mt-4 pt-4 border-t border-gray-700 text-center">
+        <button onclick="saveAllCodexAndStats()" class="py-3 px-8 bg-green-700 hover:bg-green-600 text-white font-bold rounded-lg shadow-md">TÜM DEĞİŞİKLİKLERİ KAYDET</button>
     </div>
   </div>
 </div>
@@ -14580,7 +14623,7 @@ async function executeSeasonReset(isManual = false) {
             if(puanAvatar) {
                 const newAvatarId = `sezon_odul_puan_${Date.now()}`;
                 updates[`${userPath}/selectedAvatar`] = { id: newAvatarId, url: puanAvatar };
-                updates[`${userPath}/avatars/${newAvatarId}`] = { id: newAvatarId, name: 'Puan Şampiyonu Avatarı', imageUrl: puanAvatar };
+                updates[`${userPath}/avatars/${newAvatarId}`] = { id: newAvatarId, name: '1.. SEZON KARİYER PUAN LİDERİ', imageUrl: puanAvatar };
             }
             const puanChampionships = userData.puanChampionships || [];
             puanChampionships.push({
@@ -14593,7 +14636,7 @@ async function executeSeasonReset(isManual = false) {
             if(rozetAvatar) {
                 const newAvatarId = `sezon_odul_rozet_${Date.now()}`;
                 updates[`${userPath}/selectedAvatar`] = { id: newAvatarId, url: rozetAvatar };
-                updates[`${userPath}/avatars/${newAvatarId}`] = { id: newAvatarId, name: 'Rozet Şampiyonu Avatarı', imageUrl: rozetAvatar };
+                updates[`${userPath}/avatars/${newAvatarId}`] = { id: newAvatarId, name: '1. SEZON ROZET LİDERİ', imageUrl: rozetAvatar };
             }
             const rozetChampionships = userData.rozetChampionships || [];
             rozetChampionships.push({
@@ -19725,6 +19768,277 @@ async function shareActivityToChat(buttonElement) {
         db.ref('chat/messages').push(messageData);
         displayTemporaryNotification("Eylem sohbette paylaşıldı!", 'bg-green-600');
     }
+}
+
+// =======================================================
+// YENİ ÖZELLİK: AVATAR KODEKSİ SİSTEMİ
+// =======================================================
+
+let avatarCodexCache = {}; // Kodeks bilgilerini (nasıl elde edilir vb.) önbellekte tutar
+
+// --- KULLANICI FONKSİYONLARI ---
+
+/**
+ * Kullanıcı için Avatar Kodeksi penceresini açar ve tüm avatarları listeler.
+ */
+async function openAvatarCodexModal() {
+    const modal = document.getElementById('avatarCodexModal');
+    const grid = document.getElementById('avatarCodexGrid');
+    grid.innerHTML = '<p class="text-center col-span-full text-gray-400">Avatarlar yükleniyor...</p>';
+    modal.style.display = 'flex';
+
+    try {
+        const [codexSnap, statsSnap] = await Promise.all([
+            db.ref('gameConfig/avatarCodex').once('value'),
+            db.ref('gameConfig/avatarBaseStats').once('value')
+        ]);
+        
+        const codexData = codexSnap.val() || {};
+        avatarCodexCache = codexData; // Cache'i güncelle
+        const statsData = statsSnap.val() || {};
+
+        if (Object.keys(codexData).length === 0) {
+            grid.innerHTML = '<p class="text-center col-span-full">Henüz kodekse eklenmiş bir avatar bulunmuyor.</p>';
+            return;
+        }
+
+        grid.innerHTML = '';
+        
+        // Admin tarafından belirlenen sıraya göre göster
+        const sortedAvatars = Object.entries(codexData).sort((a, b) => (a[1].order || 0) - (b[1].order || 0));
+
+        for (const [sanitizedId, avatarInfo] of sortedAvatars) {
+            const avatarCard = document.createElement('div');
+            avatarCard.className = 'relative p-2 rounded-lg cursor-pointer transition-transform hover:scale-105 bg-gray-800';
+            avatarCard.onclick = () => showAvatarDetails(sanitizedId);
+            
+            avatarCard.innerHTML = `
+                <img src="${avatarInfo.imageUrl}" alt="${avatarInfo.name}" class="w-full h-auto rounded-md object-cover aspect-square">
+                <p class="text-xs mt-2 text-white font-bold truncate">${avatarInfo.name}</p>
+                <div class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                    <span class="text-white text-xs font-bold">Detaylar</span>
+                </div>
+            `;
+            grid.appendChild(avatarCard);
+        }
+
+    } catch (error) {
+        console.error("Avatar Kodeksi yüklenirken hata:", error);
+        grid.innerHTML = '<p class="text-center col-span-full text-red-500">Avatarlar yüklenemedi.</p>';
+    }
+}
+
+/**
+ * Avatar Kodeksi ana penceresini kapatır.
+ */
+function closeAvatarCodexModal() {
+    document.getElementById('avatarCodexModal').style.display = 'none';
+}
+
+// YENİ FONKSİYON: Avatarı Kodeks'ten kaldırır. (GÜNCELLENDİ)
+async function removeAvatarFromCodex(buttonElement, sanitizedId) {
+    if (!isAdmin) return;
+
+    const confirmed = await customConfirm(
+        "Bu avatarı Kodeks'ten kaldırmak istediğinize emin misiniz? <br><br><small>Bu işlem avatarın istatistiklerini silmez, sadece kullanıcıların görebileceği listeden kaldırır. Değişiklik kalıcı olacaktır.</small>"
+    );
+
+    if (confirmed) {
+        try {
+            // 1. Veritabanından avatarın kodeks verisini sil
+            await db.ref(`gameConfig/avatarCodex/${sanitizedId}`).remove();
+            
+            // 2. Paneli yeniden yüklemek yerine, sadece tıklanan butonun ait olduğu satırı ekrandan kaldır.
+            const rowToRemove = buttonElement.closest('[data-avatar-id]');
+            if (rowToRemove) {
+                rowToRemove.remove();
+            }
+            
+            displayMessage("Avatar Kodeks'ten başarıyla kaldırıldı.");
+            
+            // Artık openAdminAvatarCodexModal() fonksiyonunu burada çağırmıyoruz!
+
+        } catch (error) {
+            console.error("Avatar Kodeks'ten kaldırılırken hata oluştu:", error);
+            displayMessage("Avatar kaldırılırken bir hata meydana geldi.");
+        }
+    }
+}
+
+/**
+ * Seçilen avatarın detay penceresini açar ve bilgileri doldurur.
+ */
+function showAvatarDetails(sanitizedId) {
+    const avatarInfo = avatarCodexCache[sanitizedId];
+    const avatarStats = avatarBaseStats[sanitizedId] || {};
+
+    if (!avatarInfo) return;
+
+    document.getElementById('detailAvatarImage').src = avatarInfo.imageUrl;
+    document.getElementById('detailAvatarName').textContent = avatarInfo.name;
+    document.getElementById('detailAvatarObtainMethod').textContent = avatarInfo.obtainMethod || 'Henüz bir açıklama eklenmemiş.';
+
+    const statsEl = document.getElementById('detailAvatarStats');
+    statsEl.innerHTML = `
+        <p>❤️ Can: <b class="text-white">${formatNumber(avatarStats.hp || 1000)}</b></p>
+        <p>⚔️ Hasar: <b class="text-white">${formatNumber(avatarStats.minDamage || 50)} - ${formatNumber(avatarStats.maxDamage || 100)}</b></p>
+        <p>🎯 Kritik Hasar: <b class="text-white">+%${(avatarStats.critDamage || 10).toFixed(1)}</b></p>
+        <p>🛡️ Savunma: <b class="text-white">%${(avatarStats.defense || 0).toFixed(1)}</b></p>
+        <p>💨 Sıyrılma: <b class="text-white">%${(avatarStats.dodgeChance || 5).toFixed(1)}</b></p>
+        <p>📌 Delici Vuruş: <b class="text-white">%${(avatarStats.pierceChance || 5).toFixed(1)}</b></p>
+        <p>💥 Kritik Şansı: <b class="text-white">%${(avatarStats.critChance || 5).toFixed(1)}</b></p>
+    `;
+
+    document.getElementById('avatarDetailModal').style.display = 'flex';
+}
+
+/**
+ * Avatar detay penceresini kapatır.
+ */
+function closeAvatarDetailModal() {
+    document.getElementById('avatarDetailModal').style.display = 'none';
+}
+
+
+/**
+ * Admin için Avatar Kodeksi yönetim panelini açar.
+ */
+async function openAdminAvatarCodexModal() {
+    if (!isAdmin) return;
+    const editorEl = document.getElementById('adminCodexEditor');
+    editorEl.innerHTML = '<p class="text-gray-400">Tüm benzersiz avatarlar taranıyor...</p>';
+    document.getElementById('adminAvatarCodexModal').style.display = 'flex';
+
+    const allAvatars = new Map();
+    // (Bu tarama mantığı zaten `loadAvatarStatsForAdmin` fonksiyonunda var, onu kopyalıyoruz)
+    const sources = [
+        db.ref('storeItems').orderByChild('type').equalTo('avatar').once('value'),
+        db.ref('dailyRewardOptions').once('value'),
+        db.ref('gameConfig/loginStreakRewards').once('value'),
+        db.ref('gameConfig/collectionGrandPrize').once('value'),
+        db.ref('users').once('value'),
+        db.ref('gameConfig/seasonSettings').once('value')
+    ];
+    const snapshots = await Promise.all(sources);
+    snapshots.forEach((snapshot, index) => {
+        if (!snapshot.exists()) return;
+        switch (index) {
+            case 0: /* Mağaza */ snapshot.forEach(s => { const i = s.val(); if (i.avatarImageUrl) allAvatars.set(i.avatarImageUrl, { name: i.avatarName, imageUrl: i.avatarImageUrl }); }); break;
+            case 1: /* Günlük Ödül */ snapshot.forEach(s => { const r = s.val(); if (r.type === 'avatar' && r.avatarImageUrl) allAvatars.set(r.avatarImageUrl, { name: r.avatarName, imageUrl: r.avatarImageUrl }); }); break;
+            case 2: /* Giriş Serisi */ snapshot.val().forEach(d => (d.rewards || []).forEach(r => { if (r.type === 'avatar' && r.avatarImageUrl) allAvatars.set(r.avatarImageUrl, { name: r.avatarName, imageUrl: r.avatarImageUrl }); })); break;
+            case 3: /* Koleksiyon */ const p = snapshot.val(); if (p.avatarName && p.avatarImageUrl) allAvatars.set(p.avatarImageUrl, { name: p.avatarName, imageUrl: p.avatarImageUrl }); break;
+            case 4: /* Kullanıcılar */ snapshot.forEach(u => { const a = u.val().avatars; if(a) for (const k in a) if(a[k].imageUrl) allAvatars.set(a[k].imageUrl, { name: a[k].name, imageUrl: a[k].imageUrl }); }); break;
+            case 5: /* Sezon */ const s = snapshot.val(); if(s && s.rewards) { if(s.rewards.puanLeaderAvatarUrl) allAvatars.set(s.rewards.puanLeaderAvatarUrl, {name: 'Puan Lideri Sezon Avatarı', imageUrl: s.rewards.puanLeaderAvatarUrl}); if(s.rewards.rozetLeaderAvatarUrl) allAvatars.set(s.rewards.rozetLeaderAvatarUrl, {name: 'Rozet Lideri Sezon Avatarı', imageUrl: s.rewards.rozetLeaderAvatarUrl}); } break;
+        }
+    });
+
+    const [codexSnap, statsSnap] = await Promise.all([
+        db.ref('gameConfig/avatarCodex').once('value'),
+        db.ref('gameConfig/avatarBaseStats').once('value')
+    ]);
+    const codexData = codexSnap.val() || {};
+    const statsData = statsSnap.val() || {};
+
+    editorEl.innerHTML = '';
+    let orderCounter = 0;
+    for (const avatar of allAvatars.values()) {
+        const sanitizedId = sanitizeFirebaseKey(avatar.imageUrl);
+        const currentCodex = codexData[sanitizedId] || {};
+        const currentStats = statsData[sanitizedId] || {};
+
+        const avatarHtml = `
+            <div class="relative p-4 bg-gray-800 rounded-lg border border-gray-700" data-avatar-id="${sanitizedId}" data-image-url="${avatar.imageUrl}">
+                
+                <button onclick="removeAvatarFromCodex(this, '${sanitizedId}')" class="absolute top-2 right-2 bg-red-700 hover:bg-red-600 text-white font-bold rounded-full w-7 h-7 flex items-center justify-center text-lg z-10" title="Bu Avatarı Kodeksten Kaldır">
+    &times;
+</button>
+
+                <div class="flex items-start gap-4">
+                    <img src="${avatar.imageUrl}" class="w-24 h-24 rounded-md object-cover flex-shrink-0">
+                    <div class="flex-grow space-y-2">
+                        <input type="text" class="box-setting-input codex-name" placeholder="Avatar Adı" value="${currentCodex.name || avatar.name}">
+                        <textarea class="box-setting-input codex-obtain" placeholder="Nasıl Elde Edilir? Açıklaması..." rows="2">${currentCodex.obtainMethod || ''}</textarea>
+                        <input type="number" class="box-setting-input codex-order" placeholder="Sıra No" value="${currentCodex.order !== undefined ? currentCodex.order : orderCounter}">
+                    </div>
+                </div>
+                <div class="mt-3 pt-3 border-t border-gray-600 grid grid-cols-2 md:grid-cols-4 gap-2">
+                    <input type="number" class="box-setting-input stat-hp" placeholder="Can (örn: 1000)" value="${currentStats.hp || ''}">
+                    <input type="number" class="box-setting-input stat-min-damage" placeholder="Min Hasar (örn: 50)" value="${currentStats.minDamage || ''}">
+                    <input type="number" class="box-setting-input stat-max-damage" placeholder="Max Hasar (örn: 100)" value="${currentStats.maxDamage || ''}">
+                    <input type="text" class="box-setting-input stat-crit-damage" placeholder="Kritik Hasar % (örn: 10.0)" value="${currentStats.critDamage || ''}">
+                    <input type="text" class="box-setting-input stat-defense" placeholder="Savunma % (örn: 0.0)" value="${currentStats.defense || ''}">
+                    <input type="text" class="box-setting-input stat-dodge" placeholder="Sıyrılma % (örn: 5.0)" value="${currentStats.dodgeChance || ''}">
+                    <input type="text" class="box-setting-input stat-pierce" placeholder="Delici Vuruş % (örn: 5.0)" value="${currentStats.pierceChance || ''}">
+                    <input type="text" class="box-setting-input stat-crit" placeholder="Kritik Şansı % (örn: 5.0)" value="${currentStats.critChance || ''}">
+                </div>
+            </div>
+        `;
+        editorEl.innerHTML += avatarHtml;
+        orderCounter++;
+    }
+}
+
+/**
+ * Admin için Avatar Kodeksi yönetim panelini kapatır.
+ */
+function closeAdminAvatarCodexModal() {
+    document.getElementById('adminAvatarCodexModal').style.display = 'none';
+}
+
+/**
+ * Admin panelindeki tüm avatar bilgilerini (Kodeks + İstatistikler) Firebase'e kaydeder.
+ */
+async function saveAllCodexAndStats() {
+    if (!isAdmin) return;
+
+    const confirmed = await customConfirm("Tüm avatarların Kodeks bilgilerini ve temel istatistiklerini kaydetmek istediğinize emin misiniz?");
+    if (!confirmed) return;
+
+    const codexUpdates = {};
+    const statsUpdates = {};
+    let hasError = false;
+
+    document.querySelectorAll('#adminCodexEditor > div[data-avatar-id]').forEach(row => {
+        if (hasError) return;
+        const sanitizedId = row.dataset.avatarId;
+        const imageUrl = row.dataset.imageUrl;
+        
+        // Kodeks Bilgileri
+        codexUpdates[`/gameConfig/avatarCodex/${sanitizedId}`] = {
+            name: row.querySelector('.codex-name').value.trim(),
+            imageUrl: imageUrl,
+            obtainMethod: row.querySelector('.codex-obtain').value.trim(),
+            order: parseInt(row.querySelector('.codex-order').value) || 0
+        };
+
+        // İstatistik Bilgileri
+        const hp = parseInt(row.querySelector('.stat-hp').value);
+        const minDamage = parseInt(row.querySelector('.stat-min-damage').value);
+        // ...diğer statları da aynı şekilde oku
+        const maxDamage = parseInt(row.querySelector('.stat-max-damage').value);
+        const defense = parseFloat(String(row.querySelector('.stat-defense').value).replace(',', '.'));
+        const critDamage = parseFloat(String(row.querySelector('.stat-crit-damage').value).replace(',', '.'));
+        const dodgeChance = parseFloat(String(row.querySelector('.stat-dodge').value).replace(',', '.'));
+        const pierceChance = parseFloat(String(row.querySelector('.stat-pierce').value).replace(',', '.'));
+        const critChance = parseFloat(String(row.querySelector('.stat-crit').value).replace(',', '.'));
+        
+        // Eğer bir alanda geçersiz bir değer varsa (NaN), kullanıcıyı uyar ve işlemi durdur.
+        if (isNaN(hp) || isNaN(minDamage) || isNaN(maxDamage) || isNaN(defense) || isNaN(critDamage) || isNaN(dodgeChance) || isNaN(pierceChance) || isNaN(critChance)) {
+            displayMessage(`Lütfen '${codexUpdates[`/gameConfig/avatarCodex/${sanitizedId}`].name}' avatarının tüm istatistik alanlarını geçerli sayılarla doldurun. Ondalıklı sayılar için nokta (.) kullanın.`);
+            hasError = true;
+            return;
+        }
+
+        statsUpdates[`/gameConfig/avatarBaseStats/${sanitizedId}`] = {
+            hp, minDamage, maxDamage, defense, critDamage, dodgeChance, pierceChance, critChance
+        };
+    });
+
+    if (hasError) return;
+    
+    await db.ref().update({ ...codexUpdates, ...statsUpdates });
+    displayMessage("Tüm Avatar Kodeksi ve İstatistikleri başarıyla kaydedildi!");
+    closeAdminAvatarCodexModal();
 }
 
 </script>
