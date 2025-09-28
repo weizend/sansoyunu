@@ -6830,13 +6830,10 @@ async function deleteUserAvatar(username, avatarId) {
             
             let openedContentHtml = '';
 
-            // --- DÜZELTİLEN KISIM BAŞLANGICI ---
-            // Artık JS ile ikon eklemiyoruz, sadece CSS'in işini yapması için doğru sınıfı ve gerekli div'i ekliyoruz.
             if (box.content && (box.content.startsWith('card_pack') || box.content === 'wildcard')) {
                 div.classList.add(box.content);
-                openedContentHtml = `<div class="box-content"></div>`; // Bu div, CSS'in ikonu göstermesi için gerekli
+                openedContentHtml = `<div class="box-content"></div>`; 
             }
-            // --- DÜZELTİLEN KISIM SONU ---
             else if (box.content === 'points') { 
                 openedContentHtml = `<span class="box-content text-green-400 text-xl">+${box.finalPoints || box.value}</span>`; 
                 div.classList.add('bg-green-700', 'border-green-500', 'animate-pulse'); 
@@ -6855,6 +6852,9 @@ async function deleteUserAvatar(username, avatarId) {
             } else if (box.content === 'clickCatchTicket') {
                 openedContentHtml = `<div class="box-content text-orange-400 text-2xl">🎟️</div>`;
                 div.classList.add('bg-orange-700', 'border-orange-500', 'animate-pulse');
+            } else if (box.content === 'revival_stone') {
+                openedContentHtml = `<div class="box-content text-sky-400 text-2xl">💎</div>`;
+                div.classList.add('bg-sky-700', 'border-sky-500', 'animate-pulse');
             } else if (box.content === 'iflasShield') {
                 openedContentHtml = `<div class="box-content text-cyan-400 text-2xl">🛡️</div>`;
                 div.classList.add('bg-cyan-700', 'border-cyan-500', 'animate-pulse');
@@ -6890,7 +6890,7 @@ async function deleteUserAvatar(username, avatarId) {
         container.appendChild(div); 
     }); 
 }
-
+      
 function showOpenedBoxInfo(box) {
     let contentDisplay = '';
 
@@ -6903,7 +6903,8 @@ function showOpenedBoxInfo(box) {
         card_pack_normal: 'Bronz Kart Paketi',
         card_pack_gumus: 'Gümüş Kart Paketi',
         card_pack_altin: 'Altın Kart Paketi',
-        card_pack_efsanevi: 'Efsanevi Kart Paketi'
+        card_pack_efsanevi: 'Efsanevi Kart Paketi',
+        revival_stone: 'Dirilme Taşı'
     };
 
     if (box.content === 'points') {
@@ -6922,27 +6923,21 @@ function showOpenedBoxInfo(box) {
     else if (box.content === 'surpriz') {
         contentDisplay = 'Sürpriz Kutu';
     }
-    // --- KESİN ÇÖZÜMÜ İÇEREN BLOK ---
     else if (itemNames[box.content]) {
         const itemName = itemNames[box.content];
         
-        // DEĞİŞİKLİK 1: Değeri al ve her ihtimale karşı temizle
         let finalValue = box.finalValue || box.value || 1;
-        // Bu satır, finalValue'nin "+1" gibi bir string olması ihtimaline karşı
-        // onu temizleyip saf bir sayıya dönüştürür ve '++' hatasını engeller.
         finalValue = Math.abs(parseInt(String(finalValue).replace('+', '')));
 
         contentDisplay = `<b>+${finalValue} ${itemName}</b>`;
 
         if (box.multiplierApplied && box.multiplierApplied > 1) {
-            // DEĞİŞİKLİK 2: Aynı temizleme işlemini çarpan açıklaması için de yap
             let baseValue = box.baseValue || 1;
             baseValue = Math.abs(parseInt(String(baseValue).replace('+', '')));
             
             contentDisplay += `<br><span class="text-sm text-gray-400">(${baseValue} x ${box.multiplierApplied} Çarpan)</span>`;
         }
     }
-    // --- DÜZELTME SONU ---
 
     const contentHtml = `<div class='text-center mb-4'><p class='text-gray-400'>${box.id} Nolu Kutuyu Açan</p><p class='text-2xl font-bold text-green-400 py-2'>${box.opener}</p></div><hr class="border-gray-600 my-3"><p class="text-xl"><b>İçerik:</b> ${contentDisplay}</p>`;
     document.getElementById('openedBoxInfoContent').innerHTML = contentHtml;
@@ -7112,29 +7107,21 @@ async function openBox(index) {
     const box = boxes[index];
     let message = '';
     
-    // ★★★ MANTIK DEĞİŞİKLİĞİ BURADA BAŞLIYOR ★★★
-
-    // Geçici bir kullanıcı durumu objesi oluşturarak adımları sırayla işliyoruz.
     let tempUserState = JSON.parse(JSON.stringify(user));
 
-    // Çarpanın bu turda aktif olup olmayacağını en başta belirliyoruz.
     const multiplierWasActive = useMultiplier || tempUserState.multiplierSource === 'box';
     let finalMultiplier = multiplierWasActive ? (tempUserState.activeMultiplier || 1) : 1;
     
-    // Veritabanına yazılacak nihai güncellemeleri bu objede toplayacağız.
     const updates = {};
     updates[`/users/${currentUser}/boxesOpenedCount`] = (tempUserState.boxesOpenedCount || 0) + 1;
     await db.ref(`gameStats/boxesOpenedByUsers/${currentUser}`).transaction(currentValue => (currentValue || 0) + 1);
 
-    // Kutunun içeriğine göre yapılacak güncellemeleri bu objede tutacağız.
     const boxUpdate = {
         opened: true, opener: currentUser, id: box.id,
         content: box.content, value: box.value
     };
 
     if (box.content === 'multiplier') {
-        // --- EĞER KUTUDAN YENİ BİR ÇARPAN ÇIKARSA ---
-        
         tempUserState.multiplierFoundCount = (tempUserState.multiplierFoundCount || 0) + 1;
         const foundMultiplierValue = box.value;
         const existingMultiplierValue = tempUserState.activeMultiplier || 1;
@@ -7168,10 +7155,6 @@ async function openBox(index) {
         }
 
     } else {
-        // --- EĞER KUTUDAN NORMAL BİR ÖDÜL ÇIKARSA ---
-
-        // ★★★ DÜZELTME: Çarpan düşürme mantığını buraya taşıdık. ★★★
-        // Sadece normal ödül çıktığında çarpan hakkı düşecek.
         if (multiplierWasActive && box.content !== 'surpriz') {
             if (tempUserState.multiplierSource === 'box') {
                 tempUserState.activeMultiplier = 1;
@@ -7225,14 +7208,18 @@ async function openBox(index) {
                 boxUpdate.lostPoints = lostPoints;
                 logActivity('iflas', currentUser, { shieldUsed: false, lostPoints: lostPoints, boxId: box.id, multiplier: finalMultiplier, newBalance: 0 });
             }
-        } else { // Diğer tüm item'lar (bilet, kalkan, paket vb.)
+        } else { 
             const itemsGained = (box.value || 1) * finalMultiplier;
             const dbKeys = { wheelTicket: 'carkBileti', clickCatchTicket: 'clickCatchTickets', iflasShield: 'iflasShieldUses', wildcard: 'wildcards' };
             const itemName = typeToName[box.content] || 'Eşya';
             if (box.content.startsWith('card_pack')) {
                 startCardPackOpening(itemsGained, `${box.id} numaralı kutu`, finalMultiplier, box.content);
                 message = `Tebrikler! Kutudan ${itemsGained} adet ${itemName} buldun!`;
-            } else {
+            } else if (box.content === 'revival_stone') {
+                if (!tempUserState.inventory) tempUserState.inventory = {};
+                tempUserState.inventory.revival_stone = (tempUserState.inventory.revival_stone || 0) + itemsGained;
+                message = `Kutudan <b>+${itemsGained} ${itemName}</b> kazandın!`;
+            } else { 
                 tempUserState[dbKeys[box.content]] = (tempUserState[dbKeys[box.content]] || 0) + itemsGained;
                 message = `Kutudan <b>+${itemsGained} ${itemName}</b> kazandın!`;
             }
@@ -7242,15 +7229,13 @@ async function openBox(index) {
         }
     }
 
-    // Geçici durumdan nihai `updates` objesini oluştur.
     for (const key in tempUserState) {
         if (JSON.stringify(tempUserState[key]) !== JSON.stringify(user[key])) {
             updates[`/users/${currentUser}/${key}`] = tempUserState[key];
         }
     }
-    delete updates[`/users/${currentUser}/kutuHakki`]; // Bu zaten transaction ile düşürüldü.
+    delete updates[`/users/${currentUser}/kutuHakki`]; 
 
-    // Tüm güncellemeleri tek seferde yap.
     await db.ref().update(updates);
     await db.ref('boxes/' + index).update(boxUpdate);
 
@@ -7262,75 +7247,6 @@ async function openBox(index) {
     isGameLocked = false;
 }
       
-// Senaryo A: Çarpanla kutu açarken yeni bir çarpan bulma seçeneği
-function openMultiplierUpgradeChoiceModal(existing, found, boxId) {
-    const modal = document.getElementById('multiplierChoiceModal');
-    const infoEl = document.getElementById('multiplierChoiceInfo');
-    const convertBtn = document.getElementById('choiceConvertBtn');
-    const combineBtn = document.getElementById('choiceCombineBtn');
-
-    pendingMultiplierChoice = { existing, found, boxId };
-
-    const boxRightsFromFound = found.value;
-    const convertText = `Yeni ${found.value}x Çarpanı, <b>+${boxRightsFromFound} Kutu Hakkı</b>'na dönüştür. <br><small>(Mevcut ${existing.value}x çarpanın korunur)</small>`;
-    
-    const combinedValue = existing.value + found.value;
-    const combineText = `İki çarpanı birleştirip <b>1 kullanımlık ${combinedValue}x</b> elde et. <br><small>(Kullandığın 1 Kutu Hakkı iade edilecek!)</small>`;
-
-    infoEl.innerHTML = `Çarpanla açtığın kutudan yeni bir <b class="text-yellow-300">${found.value}x Çarpan</b> daha çıktı! Ne yapmak istersin?`;
-    convertBtn.innerHTML = convertText;
-    combineBtn.innerHTML = combineText;
-    
-    convertBtn.onclick = () => resolveMultiplierUpgradeChoice('convert');
-    combineBtn.onclick = () => resolveMultiplierUpgradeChoice('upgrade');
-    
-    modal.style.display = 'flex';
-}
-
-// Senaryo A'nın seçim sonucunu işleyen fonksiyon
-async function resolveMultiplierUpgradeChoice(choice) {
-    if (!pendingMultiplierChoice) return;
-
-    const { existing, found, boxId } = pendingMultiplierChoice;
-    const userRef = db.ref('users/' + currentUser);
-    const userSnap = await userRef.once('value');
-    const user = userSnap.val();
-    const updates = {};
-    let message = '';
-    
-    if (choice === 'convert') {
-        updates.kutuHakki = (user.kutuHakki || 0) + found.value;
-        message = `Seçimin üzerine, yeni ${found.value}x çarpan <b>+${found.value} Kutu Hakkı</b>'na dönüştürüldü ve mevcut çarpanların korundu!`;
-        logActivity('multiplierConvertedOnUsedOpen', currentUser, { 
-            boxId: boxId,
-            foundValue: found.value,
-            existingValue: existing.value,
-            existingUses: existing.uses,
-            boxRights: found.value
-        });
-    } else if (choice === 'upgrade') {
-        const combinedValue = existing.value + found.value;
-        updates.activeMultiplier = combinedValue;
-        updates.multiplierSource = 'box';
-        updates.multiplierRemainingUses = 0;
-        updates.kutuHakki = (user.kutuHakki || 0) + 1;
-        message = `Harika seçim! Mevcut çarpanların birleştirilerek <b>tek kullanımlık ${combinedValue}x</b> gücüne ulaştı ve 1 Kutu Hakkın iade edildi!`;
-        logActivity('multiplierUpgradedWithRefund', currentUser, {
-            boxId: boxId,
-            foundValue: found.value,
-            existingValue: existing.value,
-            existingUses: existing.uses,
-            combinedValue: combinedValue
-        });
-    }
-
-    await userRef.update(updates);
-    displayMessage(message);
-    closeMultiplierChoiceModal();
-    db.ref('gameLock').set(false);
-    isGameLocked = false;
-}
-
 // Senaryo B: Normal kutu açarken yeni bir çarpan bulma seçeneği
 function openMultiplierSwapChoiceModal(existing, found, boxId) {
     const modal = document.getElementById('multiplierChoiceModal');
@@ -7408,7 +7324,6 @@ function closeMultiplierChoiceModal() {
     pendingMultiplierChoice = null; 
 }
 
-// ESKİ getActivityIcon FONKSİYONUNU SİL VE BUNU YAPIŞTIR
 function getActivityIcon(type, details = {}) {
     let icon = '🔔';
     let bgColor = 'bg-gray-500';
@@ -7518,6 +7433,7 @@ function getActivityIcon(type, details = {}) {
             else if (itemType === 'card_pack_normal') { icon = '🥉'; bgColor = 'bg-amber-600'; } 
             else if (itemType === 'card_pack') { icon = '🎴'; bgColor = 'bg-indigo-500'; } 
             else if (itemType === 'wildcard') { icon = '🃏'; bgColor = 'bg-purple-500'; } 
+            else if (itemType === 'revival_stone') { icon = '💎'; bgColor = 'bg-sky-500'; } 
             else if (itemType === 'iflasShield') { icon = '🛡️'; bgColor = 'bg-cyan-500'; } 
             else if (itemType === 'wheelTicket') { icon = '🎫'; bgColor = 'bg-cyan-500'; } 
             else if (itemType === 'clickCatchTicket') { icon = '🎟️'; bgColor = 'bg-cyan-500'; } 
@@ -17230,6 +17146,8 @@ function handleSoloSpecialTypeChange() {
 
 let loginStreakRewardsCache = []; // Admin ayarlarını önbellekte tutmak için
 
+// MEVCUT typeToName OBJESİNİ BUL VE GÜNCELLE
+
 const typeToName = {
     points: 'Puan',
     boxRights: 'Kutu Hakkı',
@@ -17243,9 +17161,9 @@ const typeToName = {
     card_pack_gumus: 'Gümüş Kart Paketi',
     card_pack_altin: 'Altın Kart Paketi',
     card_pack_efsanevi: 'Efsanevi Kart Paketi',
-    health_regen_potion: 'Can Yenileme İksiri', // ★★★ BU SATIRIN EKLİ OLDUĞUNDAN EMİN OL ★★★
+    health_regen_potion: 'Can Yenileme İksiri',
+    revival_stone: 'Dirilme Taşı', // YENİ EKLENEN SATIR
     health_potion: 'Can İksiri',
-    revival_stone: 'Dirilme Taşı',
     defense_potion: 'Savunma İksiri',
     damage_potion: 'Hasar İksiri',
     crit_potion: 'Kritik Vuruş İksiri',
