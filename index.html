@@ -4800,6 +4800,7 @@ function listenForWeeklyWinner() {
 }
 
 // MEVCUT executeWeeklyReset FONKSİYONUNU SİL VE BUNU YAPIŞTIR
+
 async function executeWeeklyReset() {
     console.log("Haftalık sıfırlama işlemi tetiklendi...");
     const seasonEndDateSnap = await db.ref('gameConfig/seasonEndDate').once('value');
@@ -4871,24 +4872,12 @@ async function executeWeeklyReset() {
             updates[`${userPath}/clickCatchHighestScore`] = 0;
         }
         
-        // ==========================================================
-        // ★★★ SORUNU ÇÖZEN DEĞİŞİKLİK BURADA BAŞLIYOR ★★★
-        // ==========================================================
-        
-        // 1. Adım: Herkesin biletini varsayılan olarak 0 yap.
         let finalTickets = 0;
-
-        // 2. Adım: Eğer kullanıcı o hafta katılım gösterdiyse, hediye 1 bileti ver.
         if (participants.includes(username)) {
             finalTickets = 1;
         }
         
-        // 3. Adım: Hesaplanan nihai bilet sayısını güncelleme listesine ekle.
         updates[`${userPath}/clickCatchTickets`] = finalTickets;
-        
-        // ==========================================================
-        // ★★★ DEĞİŞİKLİK BURADA BİTİYOR ★★★
-        // ==========================================================
         
         if (username === winner.username) {
             if (prize.type === 'special') {
@@ -4943,6 +4932,7 @@ async function executeWeeklyReset() {
     }
     updates['/clickCatchWeeklyScores'] = null;
     updates['/clickCatchWeeklyTickets'] = null;
+    updates['/clickCatchWeeklyStats'] = null; // YENİ EKLENEN VE SORUNU ÇÖZEN SATIR
     updates['/gameConfig/weeklyClickCatchReset'] = null;
     await db.ref().update(updates);
     const notificationMessage = `Tıkla-Yakala haftasının şampiyonu ${winner.username} oldu! Yeni hafta başladı ve tüm katılımcılara +1 bilet hediye edildi!`;
@@ -11204,6 +11194,8 @@ function closeLobbySettingsModal() {
     }
   }
     
+// MEVCUT resetClickCatchLeaderboard FONKSİYONUNU SİL VE BUNU YAPIŞTIR
+
 async function resetClickCatchLeaderboard() {
     if (!isAdmin) {
         displayMessage("Bu işlemi yapmaya yetkiniz yok.");
@@ -11211,7 +11203,7 @@ async function resetClickCatchLeaderboard() {
     }
 
     const confirmed = await customConfirm(
-        "Tüm 'Tıkla-Yakala' sıralamasını ve tüm kullanıcıların kişisel rekorlarını kalıcı olarak silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!"
+        "Tüm 'Tıkla-Yakala' sıralamasını, tüm kullanıcıların kişisel rekorlarını ve bu haftaya ait TÜM DETAYLI İSTATİSTİKLERİ kalıcı olarak silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!"
     );
 
     if (!confirmed) {
@@ -11219,15 +11211,17 @@ async function resetClickCatchLeaderboard() {
     }
 
     try {
-        // 1. Haftalık skor tablosunu tamamen sil.
-        await db.ref('clickCatchWeeklyScores').remove();
-
-        // 2. Tüm kullanıcıların kişisel rekorlarını sıfırla.
         const usersRef = db.ref('users');
         const usersSnap = await usersRef.once('value');
         const usersData = usersSnap.val();
         
         const updates = {};
+        
+        // Haftalık skor, bilet ve detaylı istatistik tablolarını sil
+        updates['/clickCatchWeeklyScores'] = null;
+        updates['/clickCatchWeeklyTickets'] = null;
+        updates['/clickCatchWeeklyStats'] = null; // YENİ EKLENEN VE SORUNU ÇÖZEN SATIR
+
         if (usersData) {
             for (const username in usersData) {
                 if (usersData[username].hasOwnProperty('clickCatchHighestScore')) {
@@ -11240,18 +11234,12 @@ async function resetClickCatchLeaderboard() {
             await db.ref().update(updates);
         }
 
-        // 3. Global lider değişkenini temizle
         clickCatchLeader = null;
 
-        // --- YENİ EKLENEN ARAYÜZ YENİLEME KODLARI ---
-        // Bu kodlar, veritabanı güncellendikten sonra ekrandaki
-        // liderlik tablolarını anında yeniden çizer.
-        console.log("Tıkla-Yakala sıfırlandı, liderlik tabloları yenileniyor...");
-        await loadLeaderboardRanking(); // Rozetli Liderler Sıralamasını yeniler.
-        await renderUserRankings();     // Kariyer Puanı Sıralamasını (ve rozetleri) yeniler.
-        // --- YENİ KODLARIN SONU ---
+        await loadLeaderboardRanking();
+        await renderUserRankings();
 
-        displayMessage("Tüm Tıkla-Yakala sıralaması ve kişisel rekorlar başarıyla sıfırlandı.");
+        displayMessage("Tüm Tıkla-Yakala sıralaması, kişisel rekorlar ve haftalık istatistikler başarıyla sıfırlandı.");
         
     } catch (error) {
         console.error("Tıkla-Yakala sıralaması sıfırlanırken hata oluştu:", error);
