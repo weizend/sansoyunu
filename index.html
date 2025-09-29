@@ -3895,9 +3895,10 @@ body.modal-open .modal-content {
           </div>
       
       <div class="flex-shrink-0 mt-4 pt-4 border-t border-gray-700 flex flex-wrap gap-4 justify-center">
-          <button onclick="addLoginStreakDay()" class="py-3 px-6 bg-green-700 hover:bg-green-600 text-white font-bold rounded-lg">Yeni Gün Ekle</button>
-          <button onclick="saveLoginStreakRewards()" class="py-3 px-6 bg-blue-700 hover:bg-blue-600 text-white font-bold rounded-lg">Tüm Ayarları Kaydet</button>
-      </div>
+    <button onclick="addLoginStreakDay()" class="py-2 px-4 bg-green-700 hover:bg-green-600 text-white font-bold rounded-lg">Yeni Gün Ekle</button>
+    <button onclick="saveLoginStreakRewards(false)" class="py-2 px-4 bg-blue-700 hover:bg-blue-600 text-white font-bold rounded-lg">Ayarları Kaydet (İlerlemeyi Koru)</button>
+    <button onclick="saveLoginStreakRewards(true)" class="py-2 px-4 bg-orange-700 hover:bg-orange-600 text-white font-bold rounded-lg">Kaydet ve Tüm Serileri Sıfırla</button>
+</div>
   </div>
 </div>
 <div id="avatarStatsModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[10002] hidden">
@@ -17468,8 +17469,8 @@ function handleAdminRewardTypeChange(selectElement, rewardData = {}) {
     container.innerHTML = fieldsHtml;
 }
 
-// ESKİ saveLoginStreakRewards FONKSİYONUNU SİL VE BUNU YAPIŞTIR
-async function saveLoginStreakRewards() {
+// YENİ JAVASCRIPT KODU (BUNU YAPIŞTIR)
+async function saveLoginStreakRewards(shouldResetProgress = false) {
     if (!isAdmin) return;
     const container = document.getElementById('adminLoginStreakRowsContainer');
     const newRewardsData = [];
@@ -17504,7 +17505,6 @@ async function saveLoginStreakRewards() {
                     hasError = true; return;
                 }
             }
-
             dayRewards.push(reward);
         });
         
@@ -17527,21 +17527,43 @@ async function saveLoginStreakRewards() {
 
     if (hasError) return;
 
-    const confirmed = await customConfirm(`${newRewardsData.length} günlük yeni bir Giriş Serisi oluşturulacak. Mevcut seri silinecek ve tüm kullanıcıların ilerlemesi SIFIRLANACAK. Emin misiniz?`);
-    if (confirmed) {
-        const usersSnap = await db.ref('users').once('value');
-        const updates = {};
-        if(usersSnap.exists()) {
-            usersSnap.forEach(user => {
-                updates[`/users/${user.key}/loginStreak`] = null;
-            });
-        }
-        await db.ref().update(updates);
+    // --- DEĞİŞİKLİK BURADA BAŞLIYOR ---
 
+    // 1. Basılan butona göre (true/false) farklı bir onay mesajı gösteriyoruz.
+    let confirmationMessage = '';
+    if (shouldResetProgress) {
+        confirmationMessage = `${newRewardsData.length} günlük yeni bir Giriş Serisi oluşturulacak. Mevcut seri silinecek ve tüm kullanıcıların ilerlemesi SIFIRLANACAK. Emin misiniz?`;
+    } else {
+        confirmationMessage = `Giriş serisi ödüllerini bu ayarlarla güncellemek istediğinize emin misiniz? <br><br><small class="text-yellow-300">Bu işlem oyuncuların mevcut serilerini SIFIRLAMAZ, sadece ödülleri günceller.</small>`;
+    }
+
+    const confirmed = await customConfirm(confirmationMessage);
+    if (confirmed) {
+        // 2. Eğer "Sıfırla" butonuna basıldıysa (shouldResetProgress === true ise) bu blok çalışır.
+        if (shouldResetProgress) {
+            const usersSnap = await db.ref('users').once('value');
+            const updates = {};
+            if(usersSnap.exists()) {
+                usersSnap.forEach(user => {
+                    updates[`/users/${user.key}/loginStreak`] = null;
+                });
+            }
+            await db.ref().update(updates);
+        }
+
+        // Bu kısım her iki durumda da çalışır: Ödül ayarlarını kaydeder.
         await db.ref('gameConfig/loginStreakRewards').set(newRewardsData);
         loginStreakRewardsCache = newRewardsData;
 
-        displayMessage("Giriş Serisi başarıyla güncellendi ve tüm oyuncuların ilerlemesi sıfırlandı.");
+        // 3. Başarı mesajını da basılan butona göre dinamik olarak gösteriyoruz.
+        let successMessage = '';
+        if (shouldResetProgress) {
+            successMessage = "Giriş Serisi başarıyla güncellendi ve tüm oyuncuların ilerlemesi sıfırlandı.";
+        } else {
+            successMessage = "Giriş Serisi başarıyla güncellendi. Oyuncuların ilerlemesi korunmuştur.";
+        }
+        displayMessage(successMessage);
+
         closeAdminLoginStreakModal();
         openLoginStreakModal();
     }
