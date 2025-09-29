@@ -8731,7 +8731,8 @@ function loadStoreItems() {
       }
   }
 
-  async function renderStoreItems(items, userData = {}) {
+  // MEVCUT renderStoreItems FONKSİYONUNU SİLİP BUNU YAPIŞTIR
+async function renderStoreItems(items, userData = {}) {
     const gameContainer = document.getElementById('gameStoreItemsContainer');
     const avatarContainer = document.getElementById('avatarStoreItemsContainer');
     const monsterContainer = document.getElementById('monsterStoreItemsContainer');
@@ -8830,31 +8831,39 @@ function loadStoreItems() {
                   </button>
               </div>`;
         }
+        
+        // --- GÜNCELLEME BURADA BAŞLIYOR ---
+        // Avatar ise, resme onclick özelliği ekliyoruz. Değilse, eklemiyoruz.
+        let imageOnClick = '';
+        if (isAvatar) {
+            const sanitizedId = sanitizeFirebaseKey(item.avatarImageUrl);
+            imageOnClick = `onclick="showAvatarDetails('${sanitizedId}')"`;
+        }
+        // --- GÜNCELLEME BURADA BİTİYOR ---
 
         const cardDiv = document.createElement('div');
         cardDiv.id = `store-item-${itemId}`; 
         cardDiv.className = `relative bg-gray-800 p-6 rounded-xl shadow-lg border-2 border-red-700 text-center flex flex-col justify-between transition-all`;
         
-        // YENİ KOD BLOĞU (BUNU YAPIŞTIR)
-cardDiv.innerHTML = `
-    ${adminControlsHtml} 
-    <div>
-      <img src="${item.imageUrl || 'https://via.placeholder.com/150'}" alt="${item.name}" class="w-24 h-24 mx-auto mb-4 rounded-lg object-cover">
-      <h4 class="text-yellow-400 text-xl font-bold">${item.name}</h4>
-      <p class="text-gray-300 mb-2 flex-grow">${item.description}</p>
-    </div>
-    <div>
-      ${countdownHtml}
-      <p class="text-gray-400 text-sm mb-2">Stok: ${item.stock !== undefined && item.stock !== null ? item.stock : 'Sınırsız'}</p>
-
-      <p class="text-gray-400 text-sm mb-2">Satılan Adet: ${item.purchaseCount || 0}</p>
-
-      <p class="text-green-400 text-2xl font-bold mb-4" id="price-${itemId}">${priceText}</p>
-      <button id="buy-btn-${itemId}" onclick="buyItem('${itemId}')" ${disabled ? 'disabled' : ''} class="w-full py-3 mt-auto ${disabled ? 'bg-gray-600 cursor-not-allowed' : 'bg-red-700 hover:bg-red-600'} text-white font-bold rounded-lg transition duration-300">
-        ${isExpired ? 'Süre Doldu' : (outOfStock ? 'Stok Tükendi' : 'Satın Al')}
-      </button>
-    </div>
-  `;
+        cardDiv.innerHTML = `
+            ${adminControlsHtml} 
+            <div>
+              <img src="${item.imageUrl || 'https://via.placeholder.com/150'}" alt="${item.name}" 
+                   class="w-24 h-24 mx-auto mb-4 rounded-lg object-cover ${isAvatar ? 'cursor-pointer' : ''}" 
+                   ${imageOnClick}>
+              <h4 class="text-yellow-400 text-xl font-bold">${item.name}</h4>
+              <p class="text-gray-300 mb-2 flex-grow">${item.description}</p>
+            </div>
+            <div>
+              ${countdownHtml}
+              <p class="text-gray-400 text-sm mb-2">Stok: ${item.stock !== undefined && item.stock !== null ? item.stock : 'Sınırsız'}</p>
+              <p class="text-gray-400 text-sm mb-2">Satılan Adet: ${item.purchaseCount || 0}</p>
+              <p class="text-green-400 text-2xl font-bold mb-4" id="price-${itemId}">${priceText}</p>
+              <button id="buy-btn-${itemId}" onclick="buyItem('${itemId}')" ${disabled ? 'disabled' : ''} class="w-full py-3 mt-auto ${disabled ? 'bg-gray-600 cursor-not-allowed' : 'bg-red-700 hover:bg-red-600'} text-white font-bold rounded-lg transition duration-300">
+                ${isExpired ? 'Süre Doldu' : (outOfStock ? 'Stok Tükendi' : 'Satın Al')}
+              </button>
+            </div>
+          `;
         targetContainer.appendChild(cardDiv);
     });
 
@@ -10140,6 +10149,7 @@ function closeDailyRewardModal() {
     }
 }
     
+// MEVCUT openDailyRewardModal FONKSİYONUNU SİLİP BUNU YAPIŞTIR
 async function openDailyRewardModal() {
     const dailyRewardModal = document.getElementById('dailyRewardModal');
     if (!dailyRewardModal) {
@@ -10184,20 +10194,15 @@ async function openDailyRewardModal() {
             const cooldown = reward.cooldownMs || 0;
             const nextAvailableTime = lastClaim + cooldown;
 
-            // --- DEĞİŞTİRİLEN KONTROL MANTIĞI BAŞLANGICI ---
             let canClaim = false;
             if (!isAdmin) {
-                // Eğer bekleme süresi 0 ise (tek seferlik) VE daha önce alınmamışsa (lastClaim === 0), alınabilir.
                 if (cooldown === 0) {
                     canClaim = (lastClaim === 0);
                 } 
-                // Eğer bekleme süresi varsa, normal zaman kontrolü yapılır.
                 else {
                     canClaim = (Date.now() > nextAvailableTime);
                 }
             }
-            // --- DEĞİŞTİRİLEN KONTROL MANTIĞI SONU ---
-
 
             const card = document.createElement('div');
             card.className = 'relative bg-gray-900 p-4 rounded-xl shadow-lg border border-yellow-600 text-center flex flex-col justify-between';
@@ -10238,7 +10243,6 @@ async function openDailyRewardModal() {
                         }
 
                         if (timeLeft <= 0) {
-                            // DEĞİŞTİRİLEN KISIM: Tek seferlik ödüller için bu blok çalışmamalı.
                             if(cooldown > 0){
                                 el.innerHTML = '<span class="text-green-400">Şimdi Alınabilir!</span>';
                                 const claimButton = el.closest('.relative').querySelector('button');
@@ -10273,10 +10277,20 @@ async function openDailyRewardModal() {
                 }
             }
 
+            // --- GÜNCELLEME BURADA BAŞLIYOR ---
+            let imageOnClick = '';
+            if (reward.type === 'avatar' && reward.avatarImageUrl) {
+                const sanitizedId = sanitizeFirebaseKey(reward.avatarImageUrl);
+                imageOnClick = `onclick="showAvatarDetails('${sanitizedId}')"`;
+            }
+            // --- GÜNCELLEME BURADA BİTİYOR ---
+
             card.innerHTML = `
                 ${adminControlsHtml}
                 <div>
-                    <img src="${reward.imageUrl || 'https://via.placeholder.com/150'}" alt="${reward.name}" class="w-20 h-20 mx-auto mb-3 rounded-lg object-cover">
+                    <img src="${reward.imageUrl || 'https://via.placeholder.com/150'}" alt="${reward.name}" 
+                         class="w-20 h-20 mx-auto mb-3 rounded-lg object-cover ${reward.type === 'avatar' ? 'cursor-pointer' : ''}" 
+                         ${imageOnClick}>
                     <h4 class="text-yellow-300 text-lg font-bold">${reward.name}</h4>
                     <p class="text-gray-400 text-sm mb-3">${reward.description}</p>
                     ${cooldownHTML}
@@ -17597,12 +17611,9 @@ async function openLoginStreakModal() {
             let rewardsListHtml = '<ul class="text-left list-disc list-inside space-y-1 text-sm text-gray-400 flex-grow mb-4">';
             (dayData.rewards || []).forEach(reward => {
                 let rewardText = '';
-                // ★★★ DEĞİŞİKLİK BURADA BAŞLIYOR ★★★
                 if (reward.type === 'tempMultiplier') {
-                    // İstenen yeni format: +3 Kullanım Hakkı 3x Çarpan
                     rewardText = `+${reward.uses} Kullanım Hakkı ${reward.value}x Çarpan`;
                 } 
-                // ★★★ DEĞİŞİKLİK BURADA BİTİYOR ★★★
                 else if (reward.type === 'avatar') {
                     rewardText = `'${reward.avatarName}' Avatarı`;
                 } else {
@@ -17611,13 +17622,25 @@ async function openLoginStreakModal() {
                 rewardsListHtml += `<li>${rewardText}</li>`;
             });
             rewardsListHtml += '</ul>';
+            
+            // --- GÜNCELLEME BURADA BAŞLIYOR ---
+            // Eğer paketin içinde avatar ödülü varsa, resme onclick özelliği ekleyeceğiz.
+            const avatarReward = (dayData.rewards || []).find(r => r.type === 'avatar');
+            let imageOnClick = '';
+            if (avatarReward && avatarReward.avatarImageUrl) {
+                const sanitizedId = sanitizeFirebaseKey(avatarReward.avatarImageUrl);
+                imageOnClick = `onclick="showAvatarDetails('${sanitizedId}')"`;
+            }
+            // --- GÜNCELLEME BURADA BİTİYOR ---
 
             const card = document.createElement('div');
             card.className = `streak-card ${status}`;
             card.id = `streak-card-${day}`;
             card.innerHTML = `
                 <div class="day-number">${day}. Gün</div>
-                <img src="${dayData.imageUrl || 'https://i.hizliresim.com/pntfb6j.png'}" alt="${dayData.name}" class="reward-image">
+                <img src="${dayData.imageUrl || 'https://i.hizliresim.com/pntfb6j.png'}" alt="${dayData.name}" 
+                     class="reward-image ${avatarReward ? 'cursor-pointer' : ''}" 
+                     ${imageOnClick}>
                 <h4 class="reward-name">${dayData.name || day + '. Gün Paketi'}</h4>
                 <div class="reward-description">${rewardsListHtml}</div>
                 <button 
@@ -19977,22 +20000,21 @@ function closeAvatarDetailModal() {
 
 let editingAvatarData = null; // Hangi avatarın düzenlendiğini tutar
 
-// openAdminAvatarCodexModal FONKSİYONUNUN ESKİ HALİNİ SİLİP BUNU YAPIŞTIR
+// MEVCUT openAdminAvatarCodexModal FONKSİYONUNU SİLİP BUNU YAPIŞTIR
 async function openAdminAvatarCodexModal() {
     if (!isAdmin) return;
     const listEl = document.getElementById('adminCodexList');
     listEl.innerHTML = '<p class="text-gray-400 text-center">Avatarlar taranıyor ve listeleniyor...</p>';
     document.getElementById('adminAvatarCodexModal').style.display = 'flex';
 
-    try {
-        const [codexSnap, statsSnap] = await Promise.all([
-            db.ref('gameConfig/avatarCodex').once('value'),
-            db.ref('gameConfig/avatarBaseStats').once('value')
-        ]);
-        
-        const codexData = codexSnap.val() || {};
-        const statsData = statsSnap.val() || {};
+    // Önceki dinleyiciyi temizle ki tekrar tekrar eklenmesin
+    if (activeListeners.adminCodex && activeListeners.adminCodex.ref) {
+        activeListeners.adminCodex.ref.off('value', activeListeners.adminCodex.callback);
+    }
 
+    const ref = db.ref('gameConfig/avatarCodex');
+    const callback = (codexSnap) => {
+        const codexData = codexSnap.val() || {};
         if (Object.keys(codexData).length === 0) {
             listEl.innerHTML = '<p class="text-center col-span-full">Kodekste hiç avatar bulunmuyor. Eklemek için "Yeni Avatar Ekle" butonunu kullanın.</p>';
             return;
@@ -20026,17 +20048,20 @@ async function openAdminAvatarCodexModal() {
             `;
             listEl.innerHTML += avatarHtml;
         });
-
-    } catch (error) {
-        console.error("Admin Kodeks paneli yüklenirken hata:", error);
-        listEl.innerHTML = '<p class="text-center text-red-500">Panel yüklenirken bir hata oluştu.</p>';
-    }
+    };
+    
+    // Dinleyiciyi başlat ve referansını kaydet
+    ref.on('value', callback);
+    activeListeners.adminCodex = { ref, callback };
 }
 
-/**
- * Admin Avatar Kodeksi yönetim panelini kapatır.
- */
+// MEVCUT closeAdminAvatarCodexModal FONKSİYONUNU SİLİP BUNU YAPIŞTIR
 function closeAdminAvatarCodexModal() {
+    // Paneli kapatmadan önce, açık olan dinleyiciyi durdur
+    if (activeListeners.adminCodex && activeListeners.adminCodex.ref) {
+        activeListeners.adminCodex.ref.off('value', activeListeners.adminCodex.callback);
+        delete activeListeners.adminCodex; // Referansı temizle
+    }
     document.getElementById('adminAvatarCodexModal').style.display = 'none';
 }
 
@@ -20105,9 +20130,7 @@ function closeAvatarCreatorModal() {
     editingAvatarData = null;
 }
 
-/**
- * Avatar ekleme/düzenleme formundaki verileri kaydeder.
- */
+// MEVCUT saveAvatarData FONKSİYONUNU SİLİP BUNU YAPIŞTIR
 async function saveAvatarData() {
     if (!isAdmin) return;
 
@@ -20156,7 +20179,7 @@ async function saveAvatarData() {
         await db.ref().update(updates);
         displayMessage(`Avatar '${name}' başarıyla kaydedildi!`);
         closeAvatarCreatorModal();
-        openAdminAvatarCodexModal(); // Yönetim panelini yenile
+        // ARTIK BURADA openAdminAvatarCodexModal() ÇAĞIRMIYORUZ! Değişiklik anlık olarak zaten yansıyacak.
 
     } catch (error) {
         console.error("Avatar kaydedilirken hata:", error);
