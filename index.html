@@ -2767,6 +2767,8 @@ body.modal-open .modal-content {
     <button onclick="denyUser(selectedUserForManagement, false, true)" class="py-3 bg-gray-600 hover:bg-gray-500 text-white font-bold rounded-lg shadow-md">Kullanıcıyı Sil</button>
     
     <button onclick="resetUserPotionBonuses(selectedUserForManagement)" class="py-3 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-lg shadow-md lg:col-span-3">🧪 İksir Bonuslarını Sıfırla</button>
+    
+    <button onclick="resetUserCards(selectedUserForManagement)" class="py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg shadow-md lg:col-span-3">🃏 Kartları Sıfırla</button>
 </div>
         <div class="bg-gray-900 p-6 rounded-lg border border-gray-700 mt-6">
             <h4 class="text-yellow-300 text-xl font-semibold mb-4">Avatar Yönetimi</h4>
@@ -14644,6 +14646,10 @@ async function executeSeasonReset(isManual = false) {
         if (!confirmed) return;
     }
 
+    // ★★★ DEĞİŞİKLİK BURADA: Pazarı temizleme fonksiyonunu en başa ekliyoruz ★★★
+    await clearTradeMarketForSeasonEnd();
+    // ★★★ DEĞİŞİKLİK SONU ★★★
+
     displayMessage("Sezon sonu işlemleri başlatıldı... Bu işlem birkaç saniye sürebilir. Lütfen bekleyin.");
 
     const allUsersSnap = await db.ref('users').once('value');
@@ -14653,7 +14659,7 @@ async function executeSeasonReset(isManual = false) {
     const seasonSettings = settingsSnap.val();
     
     const puanLeader = leaders.highEverBalanceUser; 
-    const rozetLeaderData = await getTopBadgeHolder(allUsersData, leaders); // ★★★ YENİ: Hem ismi hem rozet sayısını al
+    const rozetLeaderData = await getTopBadgeHolder(allUsersData, leaders);
     const rozetLeader = rozetLeaderData.username;
     
     const puanAvatar = seasonSettings?.rewards?.puanLeaderAvatarUrl;
@@ -14678,7 +14684,6 @@ async function executeSeasonReset(isManual = false) {
         updates[`${userPath}/clickCatchTickets`] = (userData.clickCatchTickets || 0) + giftPackage.clickCatchTickets;
         updates[`${userPath}/iflasShieldUses`] = (userData.iflasShieldUses || 0) + giftPackage.iflasShieldUses;
         
-        // ★★★ DEĞİŞEN KISIM BAŞLANGICI: Detaylı başarım verisi kaydediliyor ★★★
         if (username === puanLeader) {
             if(puanAvatar) {
                 const newAvatarId = `sezon_odul_puan_${Date.now()}`;
@@ -14688,7 +14693,7 @@ async function executeSeasonReset(isManual = false) {
             const puanChampionships = userData.puanChampionships || [];
             puanChampionships.push({
                 timestamp: firebase.database.ServerValue.TIMESTAMP,
-                score: leaders.highestEverBalance // Kazandığı anki kariyer puanı
+                score: leaders.highestEverBalance
             });
             updates[`${userPath}/puanChampionships`] = puanChampionships;
         }
@@ -14701,11 +14706,10 @@ async function executeSeasonReset(isManual = false) {
             const rozetChampionships = userData.rozetChampionships || [];
             rozetChampionships.push({
                 timestamp: firebase.database.ServerValue.TIMESTAMP,
-                badgeCount: rozetLeaderData.badgeCount // Kazandığı anki rozet sayısı
+                badgeCount: rozetLeaderData.badgeCount
             });
             updates[`${userPath}/rozetChampionships`] = rozetChampionships;
         }
-        // ★★★ DEĞİŞEN KISIM SONU ★★★
         
         updates[`${userPath}/balance`] = 0;
         updates[`${userPath}/kariyerPuani`] = 0;
@@ -14719,7 +14723,6 @@ async function executeSeasonReset(isManual = false) {
         updates[`${userPath}/clickCatchHighestScore`] = 0;
         updates[`${userPath}/cardCollection`] = null;
         updates[`${userPath}/completedCollection`] = null;
-        // Eski sayaçları da sıfırla (isteğe bağlı ama tutarlılık için iyi)
         updates[`${userPath}/puanChampionshipsWon`] = null;
         updates[`${userPath}/rozetChampionshipsWon`] = null;
     }
@@ -15385,26 +15388,26 @@ async function deleteCard(cardId) {
     }
 }
 
+// MEVCUT resetWholeCollection FONKSİYONUNU SİL VE BUNU YAPIŞTIR
+
 async function resetWholeCollection() {
     if (!isAdmin) return;
-    // Onay mesajı aynı kalabilir, kullanıcı zaten bunu görüyor.
     const confirmed = await customConfirm("Bu işlem mevcut tüm kartları, kullanıcı ilerlemelerini ve şampiyonlukları SİLEREK yepyeni bir sezon başlatacaktır. Emin misiniz?");
     if (confirmed) {
+        // ★★★ DEĞİŞİKLİK BURADA: Her şeyi sıfırlamadan önce pazarı temizliyoruz ★★★
+        await clearTradeMarketForSeasonEnd();
+        // ★★★ DEĞİŞİKLİK SONU ★★★
+
         const updates = {};
-        // updates['/gameConfig/cardCollection'] = null; // <<<--- BU SATIR SİLİNDİ! ANA KART LİSTESİ ARTIK GÜVENDE.
         updates['/gameConfig/collectionWinner'] = null;
-        // Ödülü silmek yerine sıfırlanmasını beklemek daha mantıklı olabilir, ama şimdilik kalsın.
-        // updates['/gameConfig/collectionGrandPrize'] = null; 
         updates['/gameConfig/cardCollectionStatus'] = 'inactive'; 
 
         const usersSnap = await db.ref('users').once('value');
         if (usersSnap.exists()) {
             usersSnap.forEach(userSnap => {
                 const username = userSnap.key;
-                // Sadece kullanıcıların kart ilerlemesini ve durumunu sıfırlıyoruz.
                 updates[`/users/${username}/cardCollection`] = null;
                 updates[`/users/${username}/completedCollection`] = null;
-                // Şampiyonluklar bir başarı olduğu için kalıcı olabilir, ama isteğe göre bu satır da kalabilir.
                 updates[`/users/${username}/achievements/collectionChampion`] = null;
             });
         }
@@ -16681,21 +16684,24 @@ async function saveGrandPrizeAndCloseModal() {
     closeGrandPrizeSettingsModal(); // Modalı kapat
 }
 
-      // YENİ AKILLI FONKSİYON: Sezonu başlatır veya bitirir.
+      // MEVCUT toggleCardSeason FONKSİYONUNU SİL VE BUNU YAPIŞTIR
+
 async function toggleCardSeason() {
     if (!isAdmin) return;
 
-    // 1. Mevcut sezon durumunu kontrol et
     const statusRef = db.ref('gameConfig/cardCollectionStatus');
     const statusSnap = await statusRef.once('value');
     const currentStatus = statusSnap.val() || 'inactive';
 
-    // 2. Eğer sezon aktifse, BİTİRME işlemini yap
     if (currentStatus === 'active') {
         const confirmed = await customConfirm("Bu işlem mevcut sezonu sonlandıracak. Tüm kullanıcıların topladığı kartlar, joker kartları ve koleksiyon tamamlama durumları sıfırlanacak. ANA KART LİSTENİZ SİLİNMEZ. Emin misiniz?");
         if (!confirmed) return;
 
         try {
+            // ★★★ DEĞİŞİKLİK BURADA: Sezonu bitirmeden önce pazarı temizliyoruz ★★★
+            await clearTradeMarketForSeasonEnd();
+            // ★★★ DEĞİŞİKLİK SONU ★★★
+
             const updates = {};
             updates['/gameConfig/cardCollectionStatus'] = 'inactive';
             updates['/gameConfig/collectionWinner'] = null;
@@ -16711,21 +16717,20 @@ async function toggleCardSeason() {
             }
             await db.ref().update(updates);
             displayMessage("Sezon başarıyla bitirildi! Tüm kullanıcıların kart ilerlemesi sıfırlandı.");
-            loadCollectionAlbum(); // Arayüzü güncelle
+            loadCollectionAlbum();
         } catch (error) {
             console.error("Sezon bitirilirken hata oluştu:", error);
             displayMessage("Sezon bitirilirken bir hata meydana geldi.");
         }
     } 
-    // 3. Eğer sezon aktif değilse (bitmiş veya duraklatılmışsa), YENİ SEZON BAŞLATMA işlemini yap
     else {
         const confirmed = await customConfirm("Bu işlem mevcut tüm kartları, kullanıcı ilerlemelerini ve şampiyonlukları SİLEREK yepyeni bir sezon başlatacaktır. Emin misiniz?");
         if (!confirmed) return;
 
-        await resetWholeCollection(); // Bu fonksiyon zaten ilerlemeyi sıfırlıyor
+        await resetWholeCollection();
         await statusRef.set('active');
         displayMessage("YENİ KOLEKSİYON SEZONU BAŞLATILDI!");
-        loadCollectionAlbum(); // Arayüzü güncelle
+        loadCollectionAlbum();
     }
 }
 
@@ -20191,6 +20196,100 @@ async function reorderAvatarInCodex(sanitizedId, direction) {
 
     await db.ref().update(updates);
     openAdminAvatarCodexModal(); // Paneli anında yenile
+}
+
+// =======================================================
+// YENİ GÜNCELLENMİŞ: PAZARI TEMİZLEME (ÜCRET İADESİZ) FONKSİYONU
+// =======================================================
+
+/**
+ * Aktif tüm takas tekliflerini iptal eder, KARTLARI sahiplerine iade eder. İŞLEM ÜCRETLERİ İADE EDİLMEZ.
+ */
+async function clearTradeMarketForSeasonEnd() {
+    console.log("Sezon sonu: Takas pazarı temizleniyor (ücret iadesiz)...");
+
+    const tradesRef = db.ref('trades');
+    const usersRef = db.ref('users');
+
+    const [tradesSnap, usersSnap] = await Promise.all([
+        tradesRef.once('value'),
+        usersRef.once('value')
+    ]);
+
+    if (!tradesSnap.exists()) {
+        console.log("Pazarda temizlenecek aktif takas teklifi bulunamadı.");
+        return;
+    }
+
+    const trades = tradesSnap.val();
+    const usersData = usersSnap.val();
+    const updates = {};
+
+    for (const tradeId in trades) {
+        const trade = trades[tradeId];
+        const offerer = trade.offerer;
+        const offeredCardId = trade.offeredCardId;
+
+        if (usersData && usersData[offerer]) {
+            const userPath = `/users/${offerer}`;
+            const userData = usersData[offerer];
+
+            // 1. KART İADESİ: Sadece teklife konulan kartın sayısını 1 artır.
+            const currentCardCount = userData.cardCollection?.[offeredCardId]?.count || 0;
+            updates[`${userPath}/cardCollection/${offeredCardId}/count`] = currentCardCount + 1;
+
+            // ★★★ DEĞİŞİKLİK BURADA: Ücret iadesi yapan kod bloğu tamamen kaldırıldı. ★★★
+
+            // 2. BİLDİRİM GÜNCELLEMESİ: Kullanıcıya sadece kartının iade edildiğini söyle.
+            const notifKey = db.ref().push().key;
+            updates[`${userPath}/notifications/${notifKey}`] = {
+                message: `Kart sezonu bittiği için pazardaki takas teklifin otomatik olarak iptal edildi ve kartın envanterine iade edildi.`,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            };
+        }
+    }
+
+    // 3. TÜM TEKLİFLERİ SİL
+    updates['/trades'] = null;
+
+    if (Object.keys(updates).length > 0) {
+        await db.ref().update(updates);
+        console.log("Takas pazarı başarıyla temizlendi, kartlar iade edildi (ücretler iade edilmedi).");
+    }
+}
+
+/**
+ * YENİ: Belirtilen kullanıcının kart koleksiyonunu, joker kartlarını ve albüm tamamlama durumunu sıfırlar.
+ */
+async function resetUserCards(username) {
+    if (!isAdmin || !username) return;
+
+    const confirmed = await customConfirm(
+        `<b>${username}</b> adlı kullanıcının <b>tüm kart koleksiyonunu, joker kartlarını ve albüm tamamlama durumunu</b> kalıcı olarak sıfırlamak istediğinize emin misiniz? Bu işlem geri alınamaz!`
+    );
+
+    if (!confirmed) return;
+
+    try {
+        const userRef = db.ref(`users/${username}`);
+        
+        // Sıfırlanacak verileri tek bir işlemde güncellemek için bir obje hazırlıyoruz.
+        const updates = {};
+        updates['/cardCollection'] = null;      // Tüm kart koleksiyonunu siler.
+        updates['/completedCollection'] = null; // Albüm tamamlama durumunu siler.
+        updates['/wildcards'] = 0;              // Joker kart sayısını sıfırlar.
+
+        await userRef.update(updates);
+        
+        displayMessage(`${username} adlı kullanıcının tüm kart verileri başarıyla sıfırlandı.`);
+        
+        // Arayüzü anında güncellemek için yönetim penceresini yeniden aç
+        openUserManagementModal(event, username);
+        
+    } catch (error) {
+        console.error("Kullanıcının kartları sıfırlanırken hata oluştu:", error);
+        displayMessage("Kartlar sıfırlanırken bir hata meydana geldi: " + error.message);
+    }
 }
 
 </script>
