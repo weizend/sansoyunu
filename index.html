@@ -10278,8 +10278,11 @@ async function openDailyRewardModal() {
             }
 
             // --- GÜNCELLEME BURADA BAŞLIYOR ---
+            const isAvatarReward = reward.type === 'avatar';
+            // Avatar ödülü ise onun kendi resmini, değilse genel paket resmini kullan
+            const imageUrlToDisplay = isAvatarReward ? reward.avatarImageUrl : (reward.imageUrl || 'https://via.placeholder.com/150');
             let imageOnClick = '';
-            if (reward.type === 'avatar' && reward.avatarImageUrl) {
+            if (isAvatarReward && reward.avatarImageUrl) {
                 const sanitizedId = sanitizeFirebaseKey(reward.avatarImageUrl);
                 imageOnClick = `onclick="showAvatarDetails('${sanitizedId}')"`;
             }
@@ -10288,8 +10291,8 @@ async function openDailyRewardModal() {
             card.innerHTML = `
                 ${adminControlsHtml}
                 <div>
-                    <img src="${reward.imageUrl || 'https://via.placeholder.com/150'}" alt="${reward.name}" 
-                         class="w-20 h-20 mx-auto mb-3 rounded-lg object-cover ${reward.type === 'avatar' ? 'cursor-pointer' : ''}" 
+                    <img src="${imageUrlToDisplay}" alt="${reward.name}" 
+                         class="w-20 h-20 mx-auto mb-3 rounded-lg object-cover ${isAvatarReward ? 'cursor-pointer' : ''}" 
                          ${imageOnClick}>
                     <h4 class="text-yellow-300 text-lg font-bold">${reward.name}</h4>
                     <p class="text-gray-400 text-sm mb-3">${reward.description}</p>
@@ -10305,10 +10308,7 @@ async function openDailyRewardModal() {
     }
 }
       
-// =================================================================================
-// ADIM 2: MEVCUT claimDailyReward FONKSİYONUNU SİLİP, BU YENİ VERSİYONU YAPIŞTIR
-// =================================================================================
-
+// MEVCUT claimDailyReward FONKSİYONUNU SİLİP BUNU YAPIŞTIR
 async function claimDailyReward(rewardId) {
     if (isAdmin) {
         displayMessage("Adminler ödül alamaz.");
@@ -10345,7 +10345,6 @@ async function claimDailyReward(rewardId) {
             throw new Error("Bu ödül için bekleme süresi henüz dolmadı.");
         }
         
-        // Çarpan ödülü için ön kontrol ve onay
         if (reward.type === 'tempMultiplier') {
             const hasActiveMultiplier = (user.multiplierSource === 'box') || (user.multiplierSource === 'store' && (user.multiplierRemainingUses || 0) > 0);
             if (hasActiveMultiplier) {
@@ -10382,7 +10381,6 @@ async function claimDailyReward(rewardId) {
 
                 userData.dailyRewardsClaimed[rewardId] = getSyncedTime();
 
-                // Çarpan mantığı burada ayrıca ele alınır
                 if (reward.type === 'tempMultiplier') {
                     const hasActiveMultiplier = (userData.multiplierSource === 'box') || (userData.multiplierSource === 'store' && (userData.multiplierRemainingUses || 0) > 0);
                     if (hasActiveMultiplier) {
@@ -10409,16 +10407,17 @@ async function claimDailyReward(rewardId) {
                     }
                     activityLogDetails = { rewardUses: reward.uses };
                 } else {
-                    // Diğer tüm ödüller için yardımcı fonksiyonu kullan
                     const result = applyRewardToUser(userData, reward);
-                    cardPacksToOpen = result.cardPacksToOpen; // Kart paketlerini dışarıda işlemek için al
+                    cardPacksToOpen = result.cardPacksToOpen;
                 }
             }
             return userData;
         });
 
         if (committed) {
-            const rewardNameForMessage = formatRewardText(reward.type, reward.value, reward.uses);
+            // --- DEĞİŞİKLİK BURADA: Artık avatar ise `reward.avatarName` kullanılıyor ---
+            const valueForMessage = reward.type === 'avatar' ? reward.avatarName : reward.value;
+            const rewardNameForMessage = formatRewardText(reward.type, valueForMessage, reward.uses);
             displayMessage(`Tebrikler! '${reward.name}' ödülünü başarıyla aldın: ${rewardNameForMessage}`);
             
             logActivity('dailyReward', currentUser, { 
@@ -10427,7 +10426,7 @@ async function claimDailyReward(rewardId) {
                 rewardType: reward.type, 
                 rewardValue: reward.type === 'avatar' ? reward.avatarName : reward.value,
                 rewardUses: reward.uses || 0,
-                newBalance: snapshot.val().balance // Log için yeni bakiye
+                newBalance: snapshot.val().balance
             });
             
             const hasPotion = reward.type.includes('_potion');
@@ -17624,12 +17623,12 @@ async function openLoginStreakModal() {
             rewardsListHtml += '</ul>';
             
             // --- GÜNCELLEME BURADA BAŞLIYOR ---
-            // Eğer paketin içinde avatar ödülü varsa, resme onclick özelliği ekleyeceğiz.
             const avatarReward = (dayData.rewards || []).find(r => r.type === 'avatar');
             let imageOnClick = '';
             if (avatarReward && avatarReward.avatarImageUrl) {
                 const sanitizedId = sanitizeFirebaseKey(avatarReward.avatarImageUrl);
-                imageOnClick = `onclick="showAvatarDetails('${sanitizedId}')"`;
+                // Artık "false" parametresini de ekliyoruz ki "Nasıl Elde Edilir" bilgisi gizlensin.
+                imageOnClick = `onclick="showAvatarDetails('${sanitizedId}', false)"`;
             }
             // --- GÜNCELLEME BURADA BİTİYOR ---
 
@@ -19960,10 +19959,13 @@ async function removeAvatarFromCodex(sanitizedId) {
     }
 }
 
+// MEVCUT showAvatarDetails FONKSİYONUNU SİLİP BUNU YAPIŞTIR
 /**
  * Seçilen avatarın detay penceresini açar ve bilgileri doldurur.
+ * @param {string} sanitizedId - Avatarın temizlenmiş ID'si.
+ * @param {boolean} showObtainMethod - "Nasıl Elde Edilir?" bilgisinin gösterilip gösterilmeyeceği.
  */
-function showAvatarDetails(sanitizedId) {
+function showAvatarDetails(sanitizedId, showObtainMethod = true) {
     const avatarInfo = avatarCodexCache[sanitizedId];
     const avatarStats = avatarBaseStats[sanitizedId] || {};
 
@@ -19971,7 +19973,16 @@ function showAvatarDetails(sanitizedId) {
 
     document.getElementById('detailAvatarImage').src = avatarInfo.imageUrl;
     document.getElementById('detailAvatarName').textContent = avatarInfo.name;
-    document.getElementById('detailAvatarObtainMethod').textContent = avatarInfo.obtainMethod || 'Henüz bir açıklama eklenmemiş.';
+    
+    // --- GÜNCELLEME BURADA ---
+    const obtainMethodContainer = document.getElementById('detailAvatarObtainMethod').parentElement;
+    if (showObtainMethod) {
+        document.getElementById('detailAvatarObtainMethod').textContent = avatarInfo.obtainMethod || 'Henüz bir açıklama eklenmemiş.';
+        obtainMethodContainer.style.display = 'block';
+    } else {
+        obtainMethodContainer.style.display = 'none'; // "Nasıl Elde Edilir?" bölümünü gizle
+    }
+    // --- GÜNCELLEME SONU ---
 
     const statsEl = document.getElementById('detailAvatarStats');
     statsEl.innerHTML = `
@@ -20064,7 +20075,7 @@ function closeAdminAvatarCodexModal() {
     }
     document.getElementById('adminAvatarCodexModal').style.display = 'none';
 }
-
+      
 /**
  * Avatar ekleme/düzenleme formunu açar.
  */
