@@ -5073,6 +5073,8 @@ async function executeWeeklyReset() {
     document.getElementById("loginContainer").style.display = "none";
     document.getElementById("gameDiv").style.display = "block";
     
+    await loadCodexAndStatsCache(); // Avatarların tıklanabilmesi
+    
     document.getElementById('chatToggleBtn').style.display = 'flex';
     
     document.getElementById("currentUser").textContent = currentUser;
@@ -7600,7 +7602,7 @@ function getActivityIcon(type, details = {}) {
     `;
 }
       
-// MEVCUT renderActivityFeed FONKSİYONUNU SİLİP BUNU YAPIŞTIR
+// YENİ VE GÜNCEL KODU KOPYALA ▼
 function renderActivityFeed(activities) {
     const activityFeedList = document.getElementById('activityFeedList');
     activityFeedList.innerHTML = '';
@@ -7745,9 +7747,6 @@ function renderActivityFeed(activities) {
                     message = `${userHtml}, ${upgradeSource}'den aldığı <b>${details.newValue}x (${details.newUses} kullanım)</b> çarpan ile mevcut çarpanını yükseltti. Eski <b>${details.oldValue}x (${details.oldUses} kullanım)</b> çarpanı için <b class="text-green-300 font-bold">+${details.boxRights} Kutu Hakkı</b> iade edildi.`;
                     break;
 
-                // =========================================================================
-                // ★★★ İSTEDİĞİN DEĞİŞİKLİK BURADA ★★★
-                // =========================================================================
                 case 'multiplierConvertedToBoxRights':
                 case 'multiplierConvertedOnUsedOpen':
                 case 'multiplierConvertedOnUnusedOpen':
@@ -7765,16 +7764,12 @@ function renderActivityFeed(activities) {
                     const keptValue = details.keptMultiplierValue || details.existingValue;
                     const keptUses = details.existingUses;
 
-                    // Yeni mesaj formatı burada oluşturuluyor.
                     if (keptValue && keptUses) {
                         keptMultiplierText = ` Mevcut <b>${keptValue}x</b> (${keptUses} kullanım) hakkı daha yüksek olduğu için korundu.`;
                     }
 
                     message = `${userHtml}, ${conversionSourceText} kazandığı <b>${details.rewardValue || details.foundValue}x</b> çarpanı, <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b>'na dönüştürüldü.${keptMultiplierText}`;
                     break;
-                // =========================================================================
-                // ★★★ DEĞİŞİKLİK SONU ★★★
-                // =========================================================================
 
                 case 'multiplierStackedFromStore':
                      message = `${userHtml}, mağazadan aldığı çarpan ile mevcut <b>${details.multiplierValue}x</b> çarpanının kullanım hakkını <b class="text-teal-300 font-bold">+${details.usesAdded}</b> artırarak toplam <b class="text-teal-300 font-bold">${details.newTotalUses}</b> adete çıkardı.`;
@@ -7839,7 +7834,13 @@ function renderActivityFeed(activities) {
                     const rewardValue = details.rewardValue;
                     let dailyBalanceText = rewardType === 'points' ? ` <span class="text-gray-400">(Mevcut Puan: ${details.newBalance})</span>` : '';
                     if (rewardType === 'avatar') { 
-                        rewardText = `<span class="text-sky-300 font-bold">'${rewardValue}' </span>`;
+                        const avatarEntry = Object.entries(avatarCodexCache).find(([id, data]) => data.name === rewardValue);
+                        const sanitizedId = avatarEntry ? avatarEntry[0] : null;
+                        if(sanitizedId) {
+                            rewardText = `<span class="text-sky-300 font-bold cursor-pointer hover:underline" onclick="showAvatarDetails('${sanitizedId}', false)">'${rewardValue}' </span>`;
+                        } else {
+                            rewardText = `<span class="text-sky-300 font-bold">'${rewardValue}'</span>`;
+                        }
                         message = `${userHtml}, günlük ödül olarak ${rewardText} avatarını aldı.`;
                     } else {
                         const isPercentDaily = percentPotions.includes(rewardType);
@@ -8838,7 +8839,8 @@ async function renderStoreItems(items, userData = {}) {
         let imageOnClick = '';
         if (isAvatar) {
             const sanitizedId = sanitizeFirebaseKey(item.avatarImageUrl);
-            imageOnClick = `onclick="showAvatarDetails('${sanitizedId}')"`;
+            // Değişecek satır:
+imageOnClick = `onclick="showAvatarDetails('${sanitizedId}', false)"`;
         }
         // --- GÜNCELLEME BURADA BİTİYOR ---
 
@@ -10285,7 +10287,8 @@ async function openDailyRewardModal() {
             let imageOnClick = '';
             if (isAvatarReward && reward.avatarImageUrl) {
                 const sanitizedId = sanitizeFirebaseKey(reward.avatarImageUrl);
-                imageOnClick = `onclick="showAvatarDetails('${sanitizedId}')"`;
+                // Değişecek satır:
+imageOnClick = `onclick="showAvatarDetails('${sanitizedId}', false)"`;
             }
             // --- GÜNCELLEME BURADA BİTİYOR ---
 
@@ -19928,7 +19931,8 @@ async function openAvatarCodexModal() {
         for (const [sanitizedId, avatarInfo] of sortedAvatars) {
             const avatarCard = document.createElement('div');
             avatarCard.className = 'relative p-2 rounded-lg cursor-pointer transition-transform hover:scale-105 bg-gray-800';
-            avatarCard.onclick = () => showAvatarDetails(sanitizedId);
+            // Değişecek satır:
+avatarCard.onclick = () => showAvatarDetails(sanitizedId, true);
 
             avatarCard.innerHTML = `
                 <img src="${avatarInfo.imageUrl}" alt="${avatarInfo.name}" class="w-full h-auto rounded-md object-cover aspect-square">
@@ -19981,7 +19985,7 @@ async function removeAvatarFromCodex(sanitizedId) {
     }
 }
 
-// MEVCUT showAvatarDetails FONKSİYONUNU SİLİP BUNU YAPIŞTIR
+// YENİ KODU YAPIŞTIR ▼
 /**
  * Seçilen avatarın detay penceresini açar ve bilgileri doldurur.
  * @param {string} sanitizedId - Avatarın temizlenmiş ID'si.
@@ -20345,6 +20349,24 @@ async function resetUserCards(username) {
     } catch (error) {
         console.error("Kullanıcının kartları sıfırlanırken hata oluştu:", error);
         displayMessage("Kartlar sıfırlanırken bir hata meydana geldi: " + error.message);
+    }
+}
+
+// YENİ FONKSİYON (BUNU EKLE)
+/**
+ * Avatar Kodeksi ve Temel İstatistik verilerini sunucudan çekip önbelleğe alır.
+ */
+async function loadCodexAndStatsCache() {
+    try {
+        const [codexSnap, statsSnap] = await Promise.all([
+            db.ref('gameConfig/avatarCodex').once('value'),
+            db.ref('gameConfig/avatarBaseStats').once('value')
+        ]);
+        avatarCodexCache = codexSnap.val() || {};
+        avatarBaseStats = statsSnap.val() || {};
+        console.log("Avatar önbellekleri başarıyla yüklendi.");
+    } catch (error) {
+        console.error("Avatar önbellekleri yüklenirken hata oluştu:", error);
     }
 }
 
