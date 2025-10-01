@@ -1587,7 +1587,7 @@ body.modal-open .modal-content {
     </div>
 
     <div id="loginDiv">
-        <input type="text" id="loginUsername" placeholder="Kick Kullanıcı Adı" autocomplete="username"
+        <input type="text" id="loginUsername" placeholder="YouTube Kullanıcı Adı" autocomplete="username"
                class="w-full p-3 mb-4 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300" />
         <input type="password" id="loginPassword" placeholder="Şifre" autocomplete="current-password"
                class="w-full p-3 mb-6 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300" />
@@ -1603,13 +1603,13 @@ body.modal-open .modal-content {
     </div>
 
     <div id="registerDiv" class="hidden">
-        <div id="kickWarning" class="bg-yellow-900/50 border border-yellow-400 text-yellow-300 px-4 py-3 rounded-lg relative mb-4 text-center">
-            <strong class="font-bold">Kick Kullanıcı Adı Zorunludur!</strong>
-            <span class="block sm:inline">Lütfen Kick platformundaki kullanıcı adınız ile kayıt olunuz.</span>
+        <div id="kickWarning" class="bg-red-900/50 border border-red-500 text-red-300 px-4 py-3 rounded-lg relative mb-4 text-center">
+            <strong class="font-bold">YouTube Kullanıcı Adı Zorunludur!</strong>
+            <span class="block sm:inline">Lütfen YouTube'daki kullanıcı adınız ile kayıt olunuz.</span>
             <br>
-            <span class="block sm:inline font-bold text-red-400 mt-2">ÖNEMLİ: Lütfen Kick şifrenizi değil, bu siteye özel yeni bir şifre oluşturun!</span>
+            <span class="block sm:inline font-bold text-yellow-300 mt-2">ÖNEMLİ: Lütfen YouTube şifrenizi değil, bu siteye özel yeni bir şifre oluşturun!</span>
         </div>
-        <input type="text" id="registerUsername" placeholder="Kick Kullanıcı Adı" autocomplete="username"
+        <input type="text" id="registerUsername" placeholder="YouTube Kullanıcı Adı" autocomplete="username"
                class="w-full p-3 mb-4 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300" />
         <input type="password" id="registerPassword" placeholder="Şifre (Yeni Bir Şifre Oluşturun)" autocomplete="new-password"
                class="w-full p-3 mb-4 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300" />
@@ -2605,14 +2605,14 @@ body.modal-open .modal-content {
 <div id="kickVerificationModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[9999] hidden">
   <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-red-700 w-11/12 max-w-md text-center relative">
     <button class="modal-close-button" onclick="closeKickVerificationModal()">&times;</button>
-    <h4 class="text-yellow-400 text-2xl font-bold mb-6">Kick Kullanıcı Adı Doğrulaması</h4>
+    <h4 class="text-yellow-400 text-2xl font-bold mb-6">YouTube Kanal Doğrulaması</h4>
     <p class="text-lg text-gray-300 mb-6">
-      Kayıt işleminin son adımı olarak, hesabınızı doğrulamak için Kick sohbet kanalımıza gidip
-      <span class="text-green-400 font-bold p-1 bg-gray-900 rounded">!doğrula</span>
-      yazarak göndermeniz gerekmektedir. Onaylandıktan sonra giriş yapabilirsiniz.
+      Kayıt işleminin son adımı olarak, hesabınızı doğrulamak için YouTube kanalımızdaki herhangi bir videonun altına 
+      <span class="text-red-400 font-bold p-1 bg-gray-900 rounded">❤️</span>
+       yorumu yapmanız gerekmektedir. Yorumunuz kontrol edildikten sonra hesabınız onaylanacaktır.
     </p>
-    <button onclick="window.open('https://kick.com/popout/weizendtv/chat', '_blank'); closeKickVerificationModal();" class="w-full py-3 bg-green-500 hover:bg-green-400 text-gray-900 font-bold rounded-lg">
-      Kick Sohbete Git
+    <button onclick="window.open('https://youtube.com/@weizend', '_blank'); closeKickVerificationModal();" class="w-full py-3 bg-red-700 hover:bg-red-600 text-white font-bold rounded-lg">
+      YouTube Kanalına Git
     </button>
   </div>
 </div>
@@ -2622,7 +2622,7 @@ body.modal-open .modal-content {
       <button class="modal-close-button" onclick="closePasswordResetModal()">&times;</button>
       <div id="resetStep1">
           <h4 class="text-yellow-400 text-2xl font-bold mb-6">Şifre Sıfırlama (Adım 1/2)</h4>
-          <input type="text" id="resetUsername" placeholder="Kick Kullanıcı Adı" class="w-full p-3 mb-4 bg-gray-700 rounded-lg">
+          <input type="text" id="resetUsername" placeholder="YouTube Kullanıcı Adı" class="w-full p-3 mb-4 bg-gray-700 rounded-lg">
           <input type="text" id="resetPin" placeholder="6 Haneli PIN" maxlength="6" class="w-full p-3 mb-4 bg-gray-700 rounded-lg">
           <button onclick="verifyResetInfo()" class="w-full py-3 mt-4 bg-red-700 hover:bg-red-600 rounded-lg font-bold">Bilgileri Doğrula</button>
       </div>
@@ -4537,11 +4537,11 @@ async function register() {
 
     const existingUsernameSnap = await db.ref('users/' + username).once('value');
     if (existingUsernameSnap.exists()) {
-        displayMessage("Bu Kick kullanıcı adı zaten alınmış.");
+        displayMessage("Bu YouTube kullanıcı adı zaten alınmış.");
         return;
     }
 
-    const confirmed = await customConfirm(`<b>${username}</b> kullanıcı adının Kick hesabınızla aynı olduğuna emin misiniz? Onay süreci bu isme göre yapılacaktır.`);
+    const confirmed = await customConfirm(`<b>${username}</b> kullanıcı adının YouTube hesabınızla aynı olduğuna emin misiniz? Onay süreci bu isme göre yapılacaktır.`);
     if (confirmed) {
         const newUser = {
             password: password,
@@ -13100,7 +13100,7 @@ function closeWheelSettingsModal() {
     wheelSettingsModal.style.display = 'none';
 }
 
-// Çark Ayarları için yeni satır ekler
+// MEVCUT addWheelSettingRow FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
 function addWheelSettingRow(item = {}) {
     const container = document.getElementById('wheelSettingsRowsContainer');
     const row = document.createElement('div');
@@ -13117,24 +13117,29 @@ function addWheelSettingRow(item = {}) {
     row.innerHTML = `
         <select class="setting-type col-span-1 bg-gray-700 p-2 rounded-md text-white border border-gray-600" onchange="handleWheelRowTypeChange(this)">
             <option value="points">💰 Puan</option>
-    <option value="boxRights">📦 Kutu Hakkı</option>
-    <option value="wheelTicket">🎫 Çark Bileti</option>
-    <option value="clickCatchTicket">🎟️ Tıkla-Yakala Bileti</option>
-    <option value="iflasShield">🛡️ İflas Kalkanı</option>
-    <option value="tempMultiplier">✖️ Çarpan</option>
-    <option value="avatar">👤 Avatar</option>
-    <option value="wildcard">🃏 Joker Kart</option>
-    <option value="card_pack">🎴 Standart Kart Paketi</option>
-    <option value="card_pack_normal">🥉 Bronz Kart Paketi</option>
-    <option value="card_pack_gumus">🥈 Gümüş Kart Paketi</option>
-    <option value="card_pack_altin">🥇 Altın Kart Paketi</option>
-    <option value="card_pack_efsanevi">🏆 Efsanevi Kart Paketi</option>
-    <option value="health_regen_potion">🧪 Can Yenileme İksiri</option>
-<option value="revival_stone">💎 Dirilme Taşı</option>
-<option value="health_potion">🧪 Can İksiri</option>
-<option value="defense_potion">🛡️ Savunma İksiri</option>
-<option value="damage_potion">⚔️ Hasar İksiri</option>
-<option value="crit_potion">💥 Kritik Vuruş İksiri</option>
+            <option value="boxRights">📦 Kutu Hakkı</option>
+            <option value="wheelTicket">🎫 Çark Bileti</option>
+            <option value="clickCatchTicket">🎟️ T-Y Bileti</option>
+            <option value="iflasShield">🛡️ İflas Kalkanı</option>
+            <option value="tempMultiplier">✖️ Çarpan</option>
+            <option value="avatar">👤 Avatar</option>
+            <option value="wildcard">🃏 Joker Kart</option>
+            <option value="card_pack">🎴 Standart Kart Paketi</option>
+            <option value="card_pack_normal">🥉 Bronz Kart Paketi</option>
+            <option value="card_pack_gumus">🥈 Gümüş Kart Paketi</option>
+            <option value="card_pack_altin">🥇 Altın Kart Paketi</option>
+            <option value="card_pack_efsanevi">🏆 Efsanevi Kart Paketi</option>
+            <option value="health_regen_potion">🧪 Can Yenileme İksiri</option>
+            <option value="revival_stone">💎 Dirilme Taşı</option>
+            <option value="health_potion">🧪 Can İksiri</option>
+            <option value="damage_potion">⚔️ Hasar İksiri</option>
+            <option value="defense_potion">🛡️ Savunma İksiri</option>
+            <option value="crit_potion">💥 Kritik Vuruş İksiri</option>
+            <option value="crit_damage_potion">🎯 Kritik Hasar İksiri</option>
+            <option value="dodge_potion">💨 Sıyrılma Şansı İksiri</option>
+            <option value="pierce_potion">📌 Delici Şansı İksiri</option>
+            <option value="pas">☠️ Pas</option>
+            <option value="surpriseBox">🎉 Sürpriz Kutu</option>
         </select>
         <input type="text" value="${label}" class="setting-label col-span-1 sm:col-span-2 bg-gray-700 p-2 rounded-md text-white" placeholder="Etiket (Örn: JOKER!)">
         <input type="text" value="${imageUrl}" class="setting-image-url col-span-1 sm:col-span-2 bg-gray-700 p-2 rounded-md text-white" placeholder="Resim URL (Opsiyonel)">
@@ -13146,6 +13151,9 @@ function addWheelSettingRow(item = {}) {
             <button class="bg-red-700 hover:bg-red-600 text-white p-2 rounded-md" onclick="this.parentElement.parentElement.remove();">Sil</button>
         </div>
     `;
+    // Select menüsünün değerini mevcut veriye göre ayarla
+    row.querySelector('.setting-type').value = type;
+    
     container.appendChild(row);
     handleWheelRowTypeChange(row.querySelector('.setting-type'));
 }
@@ -13182,6 +13190,7 @@ function handleWheelRowTypeChange(selectElement) {
     }
 }
 
+// MEVCUT saveWheelSettings FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
 async function saveWheelSettings() {
     if (!isAdmin) return;
 
@@ -13193,8 +13202,8 @@ async function saveWheelSettings() {
         const type = row.querySelector('.setting-type').value;
         const label = row.querySelector('.setting-label').value.trim();
         const imageUrl = row.querySelector('.setting-image-url').value.trim();
-        const value = parseInt(row.querySelector('.setting-value').value); // Değeri her zaman oku
-        const duration = parseInt(row.querySelector('.setting-duration').value); // Kullanım hakkını her zaman oku
+        const valueInput = row.querySelector('.setting-value').value; // Değeri string olarak al
+        const duration = parseInt(row.querySelector('.setting-duration').value);
         const color = row.querySelector('.setting-color').value;
         const weight = parseInt(row.querySelector('.setting-weight').value);
 
@@ -13206,15 +13215,23 @@ async function saveWheelSettings() {
 
         const segment = { type, label, imageUrl, color, weight, order: index };
         
-        // Değerin gerekli olduğu tipler için kontrol
-        const needsValue = ['points', 'boxRights', 'iflasShield', 'tempMultiplier', 'clickCatchTicket', 'wheelTicket', 'wildcard', 'card_pack', 'card_pack_normal', 'card_pack_gumus', 'card_pack_altin', 'card_pack_efsanevi'];
-        if(needsValue.includes(type)) {
-            if(isNaN(value)) {
+        // Değerin gerekli olduğu tipleri tanımla
+        const needsValue = [
+            'points', 'boxRights', 'iflasShield', 'tempMultiplier', 'clickCatchTicket', 'wheelTicket', 
+            'wildcard', 'card_pack', 'card_pack_normal', 'card_pack_gumus', 'card_pack_altin', 'card_pack_efsanevi',
+            'health_regen_potion', 'revival_stone', 'health_potion', 'damage_potion', 'defense_potion', 
+            'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion'
+        ];
+
+        // Sadece değer gerektiren tipler için değeri işle ve kontrol et
+        if (needsValue.includes(type)) {
+            const parsedValue = parseStatValue(type, valueInput); // Yüzdeli değerleri de doğru işler
+            if (isNaN(parsedValue)) {
                 displayMessage(`'${label}' adlı dilim için geçerli bir Değer girmelisiniz.`);
                 hasError = true;
                 return;
             }
-            segment.value = value;
+            segment.value = parsedValue;
         }
 
         // Sadece ÇARPAN tipi için Kullanım Hakkı'nı (duration) ekle
