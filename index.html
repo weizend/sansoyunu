@@ -10791,34 +10791,43 @@ function closeSpectatorModal() {
     spectatorViewingResult = false;
 }
     
-// ...VE YERİNE BU YENİ VERSİYONU YAPIŞTİR
+// BU FONKSİYONU BULUP TAMAMEN AŞAĞIDAKİYLE DEĞİŞTİRİN
+
 function renderWheel() {
     const wheelElement = document.getElementById('wheel');
     if (!wheelElement) { return; }
     
     wheelElement.innerHTML = ''; 
 
+    // --- YENİ EKLENEN KOD BAŞLANGICI: RENK PALETİ ---
+    // Her dilime atanacak birbirinden farklı renklerin listesi
+    const wheelColors = [
+        "#E74C3C", "#3498DB", "#2ECC71", "#F1C40F", "#9B59B6", "#1ABC9C", 
+        "#E67E22", "#34495E", "#F39C12", "#16A085", "#C0392B", "#2980B9",
+        "#27AE60", "#D35400", "#8E44AD", "#2C3E50"
+    ];
+    // --- YENİ EKLENEN KOD SONU ---
+
     const segments = wheelSegments;
     const segmentCount = segments.length;
     if (segmentCount === 0) return;
 
-    // --- MANUEL AYAR NOKTAN BURASI ---
-    // Bu sayıyı değiştirerek tüm simgelerin yönünü ayarla.
-    // Pozitif sayı = Saat yönünde kaydırır.
-    // Negatif sayı = Saat yönünün tersine kaydırır.
-    // 0 = Tam ortaya alır.
     const angleOffset = 188; 
-    // ------------------------------------
-
+    
     const segmentAngle = 360 / segmentCount;
     let gradientParts = [];
 
     segments.forEach((segment, i) => {
         const startAngle = segmentAngle * i;
         const endAngle = startAngle + segmentAngle;
-        gradientParts.push(`${segment.color || '#cccccc'} ${startAngle}deg ${endAngle}deg`);
 
-        // HESAPLAMA BURADA DEĞİŞTİ: Artık angleOffset'i hesaba katıyor.
+        // --- DEĞİŞEN SATIR BAŞLANGICI ---
+        // Eski kod: gradientParts.push(`${segment.color || '#cccccc'} ${startAngle}deg ${endAngle}deg`);
+        // Yeni kod: Renk paletimizden sırayla renk alıyoruz.
+        const color = wheelColors[i % wheelColors.length];
+        gradientParts.push(`${color} ${startAngle}deg ${endAngle}deg`);
+        // --- DEĞİŞEN SATIR SONU ---
+        
         const textAngle = startAngle + (segmentAngle / 2) + angleOffset;
         
         const textHolder = document.createElement('div');
