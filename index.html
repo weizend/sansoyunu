@@ -10807,7 +10807,7 @@ function renderWheel() {
     // Pozitif sayı = Saat yönünde kaydırır.
     // Negatif sayı = Saat yönünün tersine kaydırır.
     // 0 = Tam ortaya alır.
-    const angleOffset = 193; 
+    const angleOffset = 188; 
     // ------------------------------------
 
     const segmentAngle = 360 / segmentCount;
@@ -10897,7 +10897,6 @@ function renderWheel() {
     ref.on('value', callback);
 }
 
-// spinWheel fonksiyonunu bununla DEĞİŞTİR
 async function spinWheel() {
     // Sadece kullanıcıyı kilitleyen client-side kontrol
     if (isWheelSpinning) return;
@@ -10906,8 +10905,7 @@ async function spinWheel() {
         return;
     }
 
-    const userRef = db.ref('users/'
- + currentUser);
+    const userRef = db.ref('users/' + currentUser);
     const userSnap = await userRef.once('value');
     const userData = userSnap.val();
 
@@ -10930,7 +10928,7 @@ async function spinWheel() {
         }
     }
     
-    // ★★★ KİLİT SİSTEMİ BURADA BAŞLIYOR ★★★
+    // KİLİT SİSTEMİ BURADA BAŞLIYOR
     isWheelSpinning = true;
     spinBtn.disabled = true;
     spinBtn.textContent = 'Dönüyor...';
@@ -10975,7 +10973,7 @@ async function spinWheel() {
             }
 
             let message = '';
-            let updates = {};
+            const updates = { inventory: currentUserData.inventory || {} };
             let shouldLogActivity = true;
             
             const pendingRewardRef = userRef.child('pendingRewards').push();
@@ -10986,75 +10984,102 @@ async function spinWheel() {
             };
             await pendingRewardRef.set(pendingReward);
             
-            switch(winningSegment.type) {
-                case 'points':
-                    message = `Tebrikler, çarktan <b>+${winningSegment.value} Puan</b> kazandın!`;
-                    updates.balance = (currentUserData.balance || 0) + winningSegment.value;
-                    if(updates.balance > (currentUserData.highestBalanceEver || 0)) updates.highestBalanceEver = updates.balance;
-                    updates.kariyerPuani = (currentUserData.kariyerPuani || 0) + winningSegment.value;
-                    break;
-                case 'boxRights':
-                    message = `Tebrikler, çarktan <b>+${winningSegment.value} Kutu Hakkı</b> kazandın!`;
-                    updates.kutuHakki = (currentUserData.kutuHakki || 0) + winningSegment.value;
-                    break;
-                case 'iflasShield':
-                    message = `Tebrikler, çarktan <b>+${winningSegment.value} İflas Kalkanı</b> kazandın!`;
-                    updates.iflasShieldUses = (currentUserData.iflasShieldUses || 0) + winningSegment.value;
-                    break;
-                case 'clickCatchTicket':
-                     message = `Tebrikler, çarktan <b>+${winningSegment.value} Tıkla-Yakala Bileti</b> kazandın!`;
-                    updates.clickCatchTickets = (currentUserData.clickCatchTickets || 0) + winningSegment.value;
-                    break;
-                case 'wheelTicket':
-                     message = `Tebrikler, çarktan <b>+${winningSegment.value} Çark Bileti</b> kazandın!`;
-                     updates.carkBileti = (currentUserData.carkBileti || 0) + winningSegment.value;
-                    break;
-                case 'tempMultiplier':
-                    message = `Tebrikler, çarktan <b>${winningSegment.value}X Çarpan</b> kazandın!`;
-                    updates.activeMultiplier = winningSegment.value;
-                    updates.multiplierSource = 'store';
-                    updates.multiplierRemainingUses = winningSegment.duration;
-                    break;
-                case 'surpriseBox':
-                     const sessionRef = db.ref('surprise_box_session');
-                     await sessionRef.set({ 
-                         active: true, user: currentUser, boxId: 'Çark', 
-                         multiplier: 1, cards: shuffleArray([...cardValues]), 
-                         selection: null, result: null, 
-                         timestamp: firebase.database.ServerValue.TIMESTAMP
-                     });
-                     const snap = await sessionRef.once('value');
-                     const serverTimestamp = snap.val().timestamp;
-                     await sessionRef.update({ expirationTimestamp: serverTimestamp + 60000 });
-                     openCardSelectionModal(currentUser);
-                     message = "Vay canına! Çarktan Sürpriz Kutu çıktı! Şimdi bir kart seç.";
-                     shouldLogActivity = false;
-                     break;
-                case 'wildcard':
-                    message = `HARİKA! Çarktan en nadir ödül olan <b class="text-purple-400">+${winningSegment.value} JOKER KART</b> kazandın!`;
-                    updates.wildcards = (currentUserData.wildcards || 0) + winningSegment.value;
-                    break;
-                case 'card_pack':
-                case 'card_pack_normal':
-                case 'card_pack_gumus':
-                case 'card_pack_altin':
-                case 'card_pack_efsanevi':
-                    const packsToOpen = winningSegment.value || 1;
-                    const packNames = {
-                        'card_pack': `+${packsToOpen} Standart Kart Paketi`,
-                        'card_pack_normal': `+${packsToOpen} Bronz Kart Paketi`,
-                        'card_pack_gumus': `+${packsToOpen} Gümüş Kart Paketi`,
-                        'card_pack_altin': `+${packsToOpen} Altın Kart Paketi`,
-                        'card_pack_efsanevi': `+${packsToOpen} Efsanevi Kart Paketi`
-                    };
-                    const prizeText = packNames[winningSegment.type] || `+${packsToOpen} Kart Paketi`;
-                    message = `Tebrikler! Çarktan <b class="text-yellow-300">${prizeText}</b> kazandın!`;
-                    winningSegment.prizeName = prizeText;
-                    startCardPackOpening(packsToOpen, 'Şans Çarkı', 1, winningSegment.type);
-                    break;
-                case 'pas':
-                    message = "Bu seferlik pas! Bir dahaki sefere daha şanslı olabilirsin.";
-                    break;
+            if (winningSegment.type.endsWith('_potion')) {
+                const statKeyMap = { 
+                    'health_potion': 'hp', 'damage_potion': 'damage', 'defense_potion': 'defense', 
+                    'crit_potion': 'critChance', 'crit_damage_potion': 'critDamage', 
+                    'dodge_potion': 'dodgeChance', 'pierce_potion': 'pierceChance' 
+                };
+                const statKey = statKeyMap[winningSegment.type];
+                
+                if (winningSegment.type === 'health_regen_potion') {
+                    message = `Tebrikler, çarktan <b>+1 Adet %${winningSegment.value} Can Yenileme İksiri</b> kazandın!`;
+                    if (!updates.inventory.health_regen_potion) updates.inventory.health_regen_potion = {};
+                    const currentPotionCount = currentUserData.inventory?.health_regen_potion?.[winningSegment.value] || 0;
+                    updates.inventory.health_regen_potion[winningSegment.value] = currentPotionCount + 1;
+                } else if (statKey) {
+                    const isPercent = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion'].includes(winningSegment.type);
+                    const prefix = isPercent ? '%' : '+';
+                    message = `Tebrikler, kalıcı olarak <b class="text-green-400">${prefix}${winningSegment.value.toFixed(1)} ${typeToName[winningSegment.type]}</b> bonusu kazandın!`;
+                    if (!currentUserData.globalPotionBuffs) updates[`globalPotionBuffs`] = {};
+                    const currentBuff = currentUserData.globalPotionBuffs?.[statKey] || 0;
+                    updates[`globalPotionBuffs/${statKey}`] = currentBuff + winningSegment.value;
+                }
+            } else {
+                switch(winningSegment.type) {
+                    case 'points':
+                        message = `Tebrikler, çarktan <b>+${winningSegment.value} Puan</b> kazandın!`;
+                        updates.balance = (currentUserData.balance || 0) + winningSegment.value;
+                        if(updates.balance > (currentUserData.highestBalanceEver || 0)) updates.highestBalanceEver = updates.balance;
+                        updates.kariyerPuani = (currentUserData.kariyerPuani || 0) + winningSegment.value;
+                        break;
+                    case 'boxRights':
+                        message = `Tebrikler, çarktan <b>+${winningSegment.value} Kutu Hakkı</b> kazandın!`;
+                        updates.kutuHakki = (currentUserData.kutuHakki || 0) + winningSegment.value;
+                        break;
+                    case 'iflasShield':
+                        message = `Tebrikler, çarktan <b>+${winningSegment.value} İflas Kalkanı</b> kazandın!`;
+                        updates.iflasShieldUses = (currentUserData.iflasShieldUses || 0) + winningSegment.value;
+                        break;
+                    case 'clickCatchTicket':
+                         message = `Tebrikler, çarktan <b>+${winningSegment.value} Tıkla-Yakala Bileti</b> kazandın!`;
+                        updates.clickCatchTickets = (currentUserData.clickCatchTickets || 0) + winningSegment.value;
+                        break;
+                    case 'wheelTicket':
+                         message = `Tebrikler, çarktan <b>+${winningSegment.value} Çark Bileti</b> kazandın!`;
+                         updates.carkBileti = (currentUserData.carkBileti || 0) + winningSegment.value;
+                        break;
+                    case 'tempMultiplier':
+                        message = `Tebrikler, çarktan <b>${winningSegment.value}X Çarpan</b> kazandın!`;
+                        updates.activeMultiplier = winningSegment.value;
+                        updates.multiplierSource = 'store';
+                        updates.multiplierRemainingUses = winningSegment.duration;
+                        break;
+                    case 'surpriseBox':
+                         const sessionRef = db.ref('surprise_box_session');
+                         await sessionRef.set({ 
+                             active: true, user: currentUser, boxId: 'Çark', 
+                             multiplier: 1, cards: shuffleArray([...cardValues]), 
+                             selection: null, result: null, 
+                             timestamp: firebase.database.ServerValue.TIMESTAMP
+                         });
+                         const snap = await sessionRef.once('value');
+                         const serverTimestamp = snap.val().timestamp;
+                         await sessionRef.update({ expirationTimestamp: serverTimestamp + 60000 });
+                         openCardSelectionModal(currentUser);
+                         message = "Vay canına! Çarktan Sürpriz Kutu çıktı! Şimdi bir kart seç.";
+                         shouldLogActivity = false;
+                         break;
+                    case 'wildcard':
+                        message = `HARİKA! Çarktan en nadir ödül olan <b class="text-purple-400">+${winningSegment.value} JOKER KART</b> kazandın!`;
+                        updates.wildcards = (currentUserData.wildcards || 0) + winningSegment.value;
+                        break;
+                    case 'card_pack':
+                    case 'card_pack_normal':
+                    case 'card_pack_gumus':
+                    case 'card_pack_altin':
+                    case 'card_pack_efsanevi':
+                        const packsToOpen = winningSegment.value || 1;
+                        const packNames = {
+                            'card_pack': `+${packsToOpen} Standart Kart Paketi`,
+                            'card_pack_normal': `+${packsToOpen} Bronz Kart Paketi`,
+                            'card_pack_gumus': `+${packsToOpen} Gümüş Kart Paketi`,
+                            'card_pack_altin': `+${packsToOpen} Altın Kart Paketi`,
+                            'card_pack_efsanevi': `+${packsToOpen} Efsanevi Kart Paketi`
+                        };
+                        const prizeText = packNames[winningSegment.type] || `+${packsToOpen} Kart Paketi`;
+                        message = `Tebrikler! Çarktan <b class="text-yellow-300">${prizeText}</b> kazandın!`;
+                        winningSegment.prizeName = prizeText;
+                        startCardPackOpening(packsToOpen, 'Şans Çarkı', 1, winningSegment.type);
+                        break;
+                    case 'revival_stone':
+                        message = `Tebrikler, çarktan <b>+${winningSegment.value} Dirilme Taşı</b> kazandın!`;
+                        updates.inventory.revival_stone = (currentUserData.inventory?.revival_stone || 0) + winningSegment.value;
+                        break;
+                    case 'pas':
+                        message = "Bu seferlik pas! Bir dahaki sefere daha şanslı olabilirsin.";
+                        break;
+                }
             }
 
             if(Object.keys(updates).length > 0) await userRef.update(updates);
@@ -11083,8 +11108,6 @@ async function spinWheel() {
                 }
             });
             
-            // ★★★ SORUNU DÜZELTEN DEĞİŞİKLİK BURADA BAŞLIYOR ★★★
-            // "Son Eylemler" paneline kaydedilecek metni burada, ikon yerine metin olacak şekilde oluşturuyoruz.
             let prizeTextForLog;
             if (winningSegment.type === 'tempMultiplier') {
                 prizeTextForLog = `${winningSegment.value}x Çarpan (${winningSegment.duration} kullanım)`;
@@ -11092,14 +11115,18 @@ async function spinWheel() {
                 prizeTextForLog = 'Pas';
             } else if (winningSegment.type === 'surpriseBox') {
                  prizeTextForLog = 'Sürpriz Kutu';
+            } else if (winningSegment.type === 'health_regen_potion') {
+                prizeTextForLog = `+1 Adet %${winningSegment.value} ${typeToName[winningSegment.type]}`;
+            } else if (winningSegment.type.endsWith('_potion')) {
+                const isPercent = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion'].includes(winningSegment.type);
+                const prefix = isPercent ? '%' : '+';
+                prizeTextForLog = `${prefix}${winningSegment.value.toFixed(1)} ${typeToName[winningSegment.type]}`;
             } else {
                 const nameForLog = typeToName[winningSegment.type] || winningSegment.type;
                 prizeTextForLog = `+${winningSegment.value} ${nameForLog}`;
             }
-            // ★★★ DEĞİŞİKLİK BİTİŞ ★★★
 
             const logDetails = {
-                // ★★★ DEĞİŞİKLİK: Artık 'result' alanına her zaman oluşturduğumuz metni yazıyoruz. ★★★
                 result: prizeTextForLog,
                 type: winningSegment.type,
                 value: winningSegment.value !== undefined ? winningSegment.value : null,
@@ -13279,7 +13306,6 @@ async function resetWheelSettingsToDefault() {
     });
 }
 
-// MEVCUT loadWheelHistory FONKSİYONUNU SİL VE BUNU YAPIŞTIR
 function loadWheelHistory() {
     const historyRef = db.ref('wheelHistory').limitToLast(10);
     const listEl = document.getElementById('wheelHistoryList');
@@ -13302,7 +13328,9 @@ function loadWheelHistory() {
 
         const typeToIcon = {
             wildcard: '🃏', card_pack: '🎴', card_pack_normal: '🥉',
-            card_pack_gumus: '🥈', card_pack_altin: '🥇', card_pack_efsanevi: '🏆'
+            card_pack_gumus: '🥈', card_pack_altin: '🥇', card_pack_efsanevi: '🏆',
+            damage_potion: '⚔️', defense_potion: '🛡️', crit_potion: '💥',
+            crit_damage_potion: '🎯', dodge_potion: '💨', pierce_potion: '📌'
         };
 
         history.forEach(item => {
@@ -13341,6 +13369,19 @@ function loadWheelHistory() {
                 icon = typeToIcon[prizeType] || '🃏';
                 const name = typeToName[prizeType] || 'Kart Paketi';
                 prizeText = `+${prizeValue} ${name}`;
+            } else if (prizeType === 'revival_stone') {
+                icon = '💎';
+                prizeText = `+${prizeValue} Dirilme Taşı`;
+            } else if (prizeType.endsWith('_potion')) {
+                icon = typeToIcon[prizeType] || '🧪';
+                const name = typeToName[prizeType] || 'İksir';
+                if(prizeType === 'health_regen_potion'){
+                    prizeText = `+1 Adet %${prizeValue} ${name}`;
+                } else {
+                    const isPercent = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion'].includes(prizeType);
+                    const prefix = isPercent ? '%' : '+';
+                    prizeText = `${prefix}${prizeValue.toFixed(1)} ${name}`;
+                }
             } else if (prizeType === 'pas') {
                 icon = '☠️';
                 prizeText = 'PAS';
@@ -13355,7 +13396,6 @@ function loadWheelHistory() {
             const userData = allUsersCache.find(u => u.username === item.username);
             const avatarUrl = userData?.selectedAvatar?.url || defaultAvatarUrl;
 
-            // ★★★ İSTEĞİNİ YAPAN DEĞİŞİKLİK BURADA ★★★
             listEl.innerHTML += `
                 <div class="p-2 bg-gray-800 rounded-md mb-2 flex items-center gap-3">
                     <img src="${avatarUrl}" alt="${item.username}" 
@@ -13375,7 +13415,6 @@ function loadWheelHistory() {
                     </div>
                 </div>
             `;
-            // ★★★ DEĞİŞİKLİK SONU ★★★
         });
     };
 
