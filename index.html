@@ -8002,6 +8002,189 @@ function getActivityIcon(type, details = {}) {
         </div>
     `;
 }
+
+async function buyItem(itemId) {
+    if (isAdmin) {
+        displayMessage("Adminler ürün satın alamaz.");
+        return;
+    }
+
+    const itemRef = db.ref('storeItems/' + itemId);
+    const itemSnap = await itemRef.once('value');
+    if (!itemSnap.exists()) {
+        displayMessage("Bu ürün artık mevcut değil.");
+        return;
+    }
+
+    const item = itemSnap.val();
+    const userRef = db.ref('users/' + currentUser);
+    const userSnap = await userRef.once('value');
+    const userData = userSnap.val();
+    const isSpecial = item.type === 'special';
+    const isPotion = item.type && item.type.endsWith('_potion');
+
+    let quantity = 1;
+    const quantityInput = document.getElementById(`quantity-${itemId}`);
+    if (quantityInput) {
+        quantity = parseInt(quantityInput.value);
+        if (isNaN(quantity) || quantity < 1) {
+            displayMessage("Lütfen geçerli bir miktar girin.");
+            return;
+        }
+    }
+
+    let currentCost = item.cost;
+    if (isPotion && !isSpecial) {
+        const purchaseCount = (userData.potionPurchaseCounts && userData.potionPurchaseCounts[itemId]) || 0;
+        const priceIncrease = item.priceIncrease || 0;
+        currentCost = item.cost + (purchaseCount * priceIncrease);
+    }
+    const totalCost = currentCost * quantity;
+
+    if (isSpecial) {
+        if ((userData.kasaPuani || 0) < totalCost) {
+            displayMessage("Bu özel ürünü almak için yeterli Kasa Puanınız (KP) yok.");
+            return;
+        }
+    } else {
+        if ((userData.balance || 0) < totalCost) {
+            displayMessage("Bu ürünü almak için yeterli puanınız yok.");
+            return;
+        }
+    }
+
+    if (typeof item.stock === 'number' && item.stock < quantity) {
+        displayMessage("Maalesef bu üründe yeterli stok bulunmuyor.");
+        return;
+    }
+
+    const confirmed = await customConfirm(
+        `<b>${item.name}</b> ürününden <b>${quantity} adet</b> satın almak için <b>${totalCost} ${isSpecial ? 'Kasa Puanı' : 'Puan'}</b> harcanacak. Onaylıyor musunuz?`
+    );
+    if (!confirmed) return;
+
+    if (item.type === 'tempMultiplier') {
+        const hasActiveMultiplier = (userData.multiplierSource === 'box') || (userData.multiplierSource === 'store' && (userData.multiplierRemainingUses || 0) > 0);
+        if (hasActiveMultiplier) {
+            const rewardValue = parseInt(item.value);
+            const userMultiplierValue = parseInt(userData.activeMultiplier);
+
+            if (rewardValue === userMultiplierValue) {
+                const confirmedStack = await customConfirm(`Zaten ${userData.activeMultiplier}x çarpanın var. Bu alım, mevcut çarpanına <b>+${item.duration * quantity} kullanım hakkı</b> ekleyecek. Onaylıyor musun?`);
+                if (!confirmedStack) return;
+            } else if (rewardValue > userMultiplierValue) {
+                const kutuHakkiDonusum = userData.multiplierRemainingUses || 0;
+                const confirmedUpgrade = await customConfirm(`Mevcut ${userData.activeMultiplier}x çarpanını daha yüksek olan <b>${rewardValue}x</b> ile değiştirmek üzeresin. Mevcut çarpanının kalan <b>${userData.multiplierRemainingUses} kullanım hakkı</b>, envanterine <b>+${kutuHakkiDonusum} Kutu Hakkı</b> olarak eklenecek. Onaylıyor musun?`);
+                if (!confirmedUpgrade) return;
+            } else {
+                const kutuHakkiDonusum = item.duration * quantity;
+                const confirmedConvert = await customConfirm(`Mevcut <b>${userData.activeMultiplier}x</b> çarpanın bu <b>${rewardValue}x</b> ödülünden daha güçlü. Bu alımı yaparsan, çarpanın değişmeyecek ancak alacağın <b>${item.duration * quantity} kullanım hakkı</b>, envanterine <b>+${kutuHakkiDonusum} Kutu Hakkı</b> olarak eklenecek. Onaylıyor musun?`);
+                if (!confirmedConvert) return;
+            }
+        }
+    }
+    
+    let cardPacksToOpen = [];
+
+    const { committed, snapshot } = await userRef.transaction(currentData => {
+        if (!currentData) return;
+        
+        let currentBalance = isSpecial ? (currentData.kasaPuani || 0) : (currentData.balance || 0);
+        if (currentBalance < totalCost) return;
+
+        if (isSpecial) {
+            currentData.kasaPuani -= totalCost;
+        } else {
+            currentData.balance -= totalCost;
+            currentData.totalSpentPoints = (currentData.totalSpentPoints || 0) + totalCost;
+        }
+        
+        // ★★★ SORUNU ÇÖZEN DEĞİŞİKLİK BURADA BAŞLIYOR ★★★
+        // Ödül verisini, ürün tipine göre doğru şekilde hazırlıyoruz.
+        let rewardPayload = { ...item, amount: quantity };
+
+        if (item.type === 'tempMultiplier') {
+            // Çarpanlar için 'value' (örn: 5x) çarpılmaz, 'uses' (kullanım hakkı) çarpılır.
+            rewardPayload.value = item.value;
+            rewardPayload.uses = (item.duration || 1) * quantity;
+        } else if (item.type === 'health_regen_potion') {
+            // Can Yenileme İksiri için 'value' (yüzde) çarpılmaz. 'amount' kaç adet alındığını belirtir.
+            rewardPayload.value = item.value;
+            rewardPayload.amount = quantity;
+        } else {
+            // Puan, Kutu Hakkı, kalıcı stat iksirleri gibi diğer tüm ürünler için 'value' miktar ile çarpılır.
+            rewardPayload.value = (item.value || 1) * quantity;
+        }
+        
+        const result = applyRewardToUser(currentData, rewardPayload);
+        // ★★★ DEĞİŞİKLİK SONU ★★★
+
+        cardPacksToOpen = result.cardPacksToOpen;
+
+        if (isPotion && !isSpecial) {
+            if (!currentData.potionPurchaseCounts) currentData.potionPurchaseCounts = {};
+            currentData.potionPurchaseCounts[itemId] = (currentData.potionPurchaseCounts[itemId] || 0) + quantity;
+        }
+        
+        return currentData;
+    });
+
+    if (committed) {
+        const finalUserData = snapshot.val();
+        
+        if (typeof item.stock === 'number' && item.stock !== null) {
+            await itemRef.child('stock').transaction(currentStock => (currentStock || 0) - quantity);
+        }
+
+        await itemRef.child('purchaseCount').transaction(currentCount => (currentCount || 0) + quantity);
+
+        const purchaseId = db.ref('purchaseHistory').push().key;
+        await db.ref(`purchaseHistory/${purchaseId}`).set({
+            username: currentUser,
+            itemName: `${quantity > 1 ? quantity + 'x ' : ''}${item.name}`,
+            itemCost: totalCost,
+            imageUrl: item.imageUrl,
+            status: 'completed',
+            purchaseType: isSpecial ? 'kasaPuani' : 'puan',
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        if (isSpecial) {
+            await db.ref(`pendingSpecialPurchases/${purchaseId}`).set({
+                username: currentUser,
+                itemName: `${quantity > 1 ? quantity + 'x ' : ''}${item.name}`,
+                itemCost: totalCost,
+                source: "store",
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
+            displayMessage(`'${item.name}' alım talebiniz başarıyla oluşturuldu. Admin onayı bekleniyor.`);
+        } else {
+            displayMessage(`'${item.name}' başarıyla satın alındı!`);
+        }
+        
+        for (const pack of cardPacksToOpen) {
+            await startCardPackOpening(pack.value, 'Mağaza', 1, pack.type);
+        }
+        
+        const logDetails = {
+            itemName: `${quantity > 1 ? quantity + 'x ' : ''}${item.name}`,
+            itemCost: isSpecial ? `${totalCost} KP` : totalCost,
+            newBalance: finalUserData.balance,
+            newKasaBalance: finalUserData.kasaPuani,
+            itemType: item.type
+        };
+
+        if (isPotion) {
+            logDetails.itemEffectValue = item.value;
+        } else if(item.value) {
+            logDetails.itemValue = item.value * quantity;
+        }
+
+        logActivity('buyItem', currentUser, logDetails);
+    } else {
+        displayMessage("Satın alma işlemi başarısız oldu. Yetersiz bakiye veya stok olabilir.");
+    }
+}
       
 function renderActivityFeed(activities) {
     const activityFeedList = document.getElementById('activityFeedList');
@@ -8040,11 +8223,9 @@ function renderActivityFeed(activities) {
             const userHtml = `<b class="text-yellow-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${activity.username}')">${activity.username}</b>`;
 
             switch (activity.type) {
-                // YENİ EKLENEN CASE BLOĞU BAŞLANGICI
                 case 'craftItem':
                     message = `${userHtml}, atölyede <b class="text-green-400">${details.itemName}</b> üretti. <span class="text-gray-400">(Mevcut Puan: ${formatNumber(details.newBalance)})</span>`;
                     break;
-                // YENİ EKLENEN CASE BLOĞU SONU
                 
                 case 'buyItem':
                     const isKP = (details.itemCost || '').toString().includes('KP');
@@ -13953,7 +14134,8 @@ async function renderStoreItems(items, userData = {}) {
         }
 
         let quantityInputHtml = '';
-        if (!isAvatar && !isSpecial) {
+        // DEĞİŞİKLİK BURADA: Artık iksirler (isMonsterItem) için miktar input'u oluşturulmayacak.
+        if (!isAvatar && !isSpecial && !isMonsterItem) {
             quantityInputHtml = `
                 <div class="mb-4">
                     <label for="quantity-${itemId}" class="text-sm text-gray-400 block mb-1">Miktar:</label>
@@ -14004,137 +14186,6 @@ async function renderStoreItems(items, userData = {}) {
     if (storeFilter) {
         goToStoreWithFilter(storeFilter.type, storeFilter.itemId);
         storeFilter = null;
-    }
-}
-
-// buyItem FONKSİYONUNUN GÜNCELLENMİŞ HALİ
-async function buyItem(itemId) {
-    if (isAdmin) {
-        displayMessage("Adminler alışveriş yapamaz.");
-        return;
-    }
-    const userRef = db.ref('users/' + currentUser);
-    const itemRef = db.ref('storeItems/' + itemId);
-    const [userSnap, itemSnap] = await Promise.all([userRef.once('value'), itemRef.once('value')]);
-    const user = userSnap.val();
-    const item = itemSnap.val();
-
-    if (!user || !item) return;
-
-    const quantityInput = document.getElementById(`quantity-${itemId}`);
-    const quantity = quantityInput ? parseInt(quantityInput.value) : 1;
-
-    if (isNaN(quantity) || quantity < 1) {
-        displayMessage("Lütfen geçerli bir miktar girin.");
-        return;
-    }
-    
-    if (item.type === 'avatar') {
-        if (user.avatars && user.avatars[itemId]) {
-            displayMessage("Bu avatara zaten sahipsin!");
-            return;
-        }
-    }
-    
-    const isSpecial = item.type === 'special';
-    const isPotion = ['health_potion', 'damage_potion', 'defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion', 'health_regen_potion'].includes(item.type);
-
-    let singleItemCost = item.cost;
-    if (isPotion && !isSpecial) {
-        const purchaseCount = user.potionPurchaseCounts?.[itemId] || 0;
-        const priceIncrease = item.hasOwnProperty('priceIncrease') ? item.priceIncrease : 1000;
-        singleItemCost = item.cost + (purchaseCount * priceIncrease);
-    }
-    
-    const totalCost = singleItemCost * quantity;
-
-    if (isSpecial) {
-        const kasaPuani = user.kasaPuani || 0;
-        if (kasaPuani < totalCost) {
-            displayMessage(`Yetersiz Kasa Puanı! Bu alım için ${totalCost} KP gerekiyor.`);
-            return;
-        }
-    } else {
-        if ((user.balance || 0) < totalCost) {
-            displayMessage(`Yetersiz Puan! Bu alım için ${totalCost} Puan gerekiyor.`);
-            return;
-        }
-    }
-    
-    if (item.stock !== undefined && item.stock !== null && item.stock < quantity) {
-        displayMessage(`Stokta yeterli ürün yok! Sadece ${item.stock} adet kaldı.`);
-        return;
-    }
-
-    const confirmed = await customConfirm(`${quantity} adet '${item.name}' ürününü toplam ${totalCost} ${isSpecial ? 'KP' : 'Puana'} almak istiyor musunuz?`);
-    if (!confirmed) return;
-
-    try {
-        let updates = {};
-        let message = 'Satın alma başarılı!';
-        
-        if (isSpecial) {
-            updates[`/users/${currentUser}/kasaPuani`] = user.kasaPuani - totalCost;
-        } else {
-            updates[`/users/${currentUser}/balance`] = user.balance - totalCost;
-        }
-        updates[`/users/${currentUser}/totalSpentPoints`] = (user.totalSpentPoints || 0) + totalCost;
-        
-        const itemValue = parseInt(item.value) || 0;
-        const totalValue = itemValue * quantity;
-
-        switch (item.type) {
-            case 'boxRights': updates[`/users/${currentUser}/kutuHakki`] = (user.kutuHakki || 0) + totalValue; break;
-            case 'wheelTicket': updates[`/users/${currentUser}/carkBileti`] = (user.carkBileti || 0) + totalValue; break;
-            case 'clickCatchTicket': updates[`/users/${currentUser}/clickCatchTickets`] = (user.clickCatchTickets || 0) + totalValue; break;
-            case 'iflasShield': updates[`/users/${currentUser}/iflasShieldUses`] = (user.iflasShieldUses || 0) + totalValue; break;
-            case 'wildcard': updates[`/users/${currentUser}/wildcards`] = (user.wildcards || 0) + totalValue; break;
-            case 'avatar':
-                updates[`/users/${currentUser}/avatars/${itemId}`] = { id: itemId, name: item.avatarName, imageUrl: item.avatarImageUrl };
-                message = `'${item.avatarName}' avatarı koleksiyonuna eklendi!`;
-                break;
-            // Diğer item type'ları için benzer güncellemeler...
-        }
-
-        await db.ref().update(updates);
-        
-        await itemRef.transaction(currentItem => {
-            if (currentItem) {
-                if (currentItem.stock !== undefined && currentItem.stock !== null) {
-                    currentItem.stock -= quantity;
-                }
-                currentItem.purchaseCount = (currentItem.purchaseCount || 0) + quantity;
-            }
-            return currentItem;
-        });
-        
-        const purchaseId = db.ref('purchaseHistory').push().key;
-        await db.ref(`purchaseHistory/${purchaseId}`).set({ 
-            username: currentUser, 
-            itemName: `${quantity}x ${item.name}`, 
-            itemCost: totalCost, 
-            imageUrl: item.imageUrl, 
-            status: isSpecial ? 'pending' : 'completed', 
-            purchaseType: isSpecial ? 'kasaPuani' : 'puan',
-            timestamp: firebase.database.ServerValue.TIMESTAMP 
-        });
-
-        // *** EKSİK OLAN KOD BURAYA EKLENDİ ***
-        const friendlyItemName = `+${totalValue} ${item.name}`;
-        logActivity('buyItem', currentUser, { 
-            itemName: friendlyItemName,
-            itemCost: `${totalCost} ${isSpecial ? 'KP' : 'Puan'}`,
-            itemType: item.type, 
-            itemValue: quantity,
-            newBalance: isSpecial ? null : (user.balance - totalCost),
-            newKasaBalance: isSpecial ? (user.kasaPuani - totalCost) : null
-        });
-
-        displayMessage(message);
-
-    } catch (error) {
-        console.error("Satın alma hatası:", error);
-        displayMessage("Satın alma sırasında bir hata oluştu.");
     }
 }
       
@@ -17595,11 +17646,11 @@ function handleSoloSpecialTypeChange() {
 
 let loginStreakRewardsCache = []; // Admin ayarlarını önbellekte tutmak için
 
-// MEVCUT typeToName OBJESİNİ BUNUNLA DEĞİŞTİR
+// MEVCUT typeToName OBJESİNİ BUNUNLA DEĞİŞTİRİN
 const typeToName = {
     points: 'Puan',
     kasaPuani: 'Kasa Puanı',
-    boxRight: 'Kutu Hakkı', // ★★★ DEĞİŞİKLİK BURADA: 'boxRights' -> 'boxRight' OLDU ★★★
+    boxRights: 'Kutu Hakkı', // ★★★ SORUNU ÇÖZEN DEĞİŞİKLİK BURADA ★★★
     iflasShield: 'İflas Kalkanı',
     wheelTicket: 'Çark Bileti',
     clickCatchTicket: 'Tıkla-Yakala Bileti',
@@ -18721,12 +18772,9 @@ function closeCraftingDetailModal() {
     document.getElementById('craftingDetailModal').style.display = 'none';
 }
 
-/**
- * Belirtilen ödülü kullanıcı verisine uygular. (Transaction içinde kullanılır)
- */
 function applyRewardToUser(userData, reward) {
     const cardPacksToOpen = [];
-    const value = reward.amount || reward.value || 0;
+    const value = reward.value || 0;
     const uses = reward.uses || 0;
 
     switch (reward.type) {
@@ -18760,16 +18808,25 @@ function applyRewardToUser(userData, reward) {
             }
             userData.cardCollection[reward.cardId].count += (reward.amount || 1);
             break;
-        // --- KART PAKETİ MANTIĞI ESKİ SİSTEME DÖNDÜ ---
         case 'card_pack':
         case 'card_pack_normal':
         case 'card_pack_gumus':
         case 'card_pack_altin':
         case 'card_pack_efsanevi':
-            // Artık envantere eklenmiyor, direkt açılacaklar listesine ekleniyor.
             cardPacksToOpen.push({ type: reward.type, value: value });
             break;
-        // --- GÜNCELLEME SONU ---
+        
+        // ★★★ SORUNU ÇÖZEN DEĞİŞİKLİK BURADA ★★★
+        case 'health_regen_potion':
+            if (!userData.inventory) userData.inventory = {};
+            if (!userData.inventory.health_regen_potion) userData.inventory.health_regen_potion = {};
+            const percentage = reward.value; // Bu artık doğru yüzde değeri (örn: 30)
+            const amountToAdd = reward.amount || 1; // Bu artık doğru adet (örn: 3)
+            const currentPotions = userData.inventory.health_regen_potion[percentage] || 0;
+            userData.inventory.health_regen_potion[percentage] = currentPotions + amountToAdd;
+            break;
+        // ★★★ DEĞİŞİKLİK SONU ★★★
+
         default:
              const statKeyMap = { 'health_potion': 'hp', 'damage_potion': 'damage', 'defense_potion': 'defense', 'crit_potion': 'critChance', 'crit_damage_potion': 'critDamage', 'dodge_potion': 'dodgeChance', 'pierce_potion': 'pierceChance' };
              const statKey = statKeyMap[reward.type];
