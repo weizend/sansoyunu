@@ -11,7 +11,64 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
 <style>
-/* --- BU KOD BLOĞUNU DEĞİŞTİR --- */
+ /* ESKİ KELİME OYUNU STİLLERİNİ SİLİP BUNLARI YAPIŞTIR */
+
+.question-block {
+    background-color: #1f2937; /* bg-gray-800 */
+    border: 1px solid #4a5568; /* border-gray-600 */
+    border-radius: 0.75rem;
+    padding: 1rem;
+}
+
+.answer-letters-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.answer-letter {
+    width: 45px;
+    height: 45px;
+    background-color: #374151; /* bg-gray-700 */
+    border: 1px solid #1f2937; /* border-gray-800 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: white;
+    text-transform: uppercase;
+    position: relative;
+    user-select: none;
+    border-radius: 0.375rem;
+}
+
+.answer-letter.unsolved {
+    cursor: pointer;
+    background-color: #4b5563; /* bg-gray-600 */
+    transition: background-color 0.2s;
+}
+
+.answer-letter.unsolved:hover {
+    background-color: #5a677a;
+}
+
+.answer-letter .reward-icon {
+    position: absolute;
+    bottom: 0px;
+    right: 0px;
+    font-size: 0.8rem;
+    line-height: 1;
+}
+
+@media (max-width: 640px) {
+    .answer-letter {
+        width: 35px;
+        height: 35px;
+        font-size: 1.2rem;
+    }
+}
+/* --- KOD SONU --- */
 /* --- YENİ EKLENECEK KOD: ÜRETİM KARTI ADMİN KONTROLLERİ --- */
 .crafting-recipe-card .admin-controls {
     position: absolute;
@@ -1857,6 +1914,10 @@ body.modal-open .modal-content {
             class="relative py-3 px-8 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
       Canavar Savaşı
     </button>
+        <button id="wordGameTabBtn" onclick="showSection('wordGame')"
+        class="relative py-3 px-8 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
+  Kelime Oyunu
+</button>
     <button id="cardCollectionTabBtn" onclick="showSection('cardCollection')"
             class="relative py-3 px-8 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
       Kart Koleksiyonu
@@ -2190,6 +2251,32 @@ body.modal-open .modal-content {
 
         <div id="craftingRecipesContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             </div>
+    </div>
+</div>
+
+        <div id="wordGameContent" class="w-full hidden">
+    <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700">
+        <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
+            <h3 class="text-yellow-400 text-3xl font-bold text-center md:text-left">Ortak Akıl: Kelime Oyunu</h3>
+            <button id="wordGameAdminBtn" onclick="openWordGameAdminModal()" class="hidden py-2 px-4 bg-purple-600 hover:bg-purple-500 rounded-lg font-bold text-sm">
+                Yönetim Paneli
+            </button>
+        </div>
+
+        <div id="wordGameCooldownInfo" class="hidden text-center bg-red-900/50 border border-red-500 text-red-300 p-3 rounded-lg mb-4">
+            Yanlış harf girdin! Tekrar denemek için beklemen gereken süre: <b id="wordGameCooldownTimer" class="text-white"></b>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div id="questionsContainer" class="lg:col-span-2 space-y-6">
+                </div>
+
+            <div class="lg:col-span-1 bg-gray-900/50 p-4 rounded-lg">
+                <h4 class="text-xl font-bold text-yellow-300 mb-3 border-b border-gray-600 pb-2">En Çok Çözenler 🧠</h4>
+                <div id="wordGameLeaderboard" class="space-y-2 max-h-96 overflow-y-auto scrollable-list pr-2">
+                    </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -3000,7 +3087,7 @@ body.modal-open .modal-content {
   </div>
 </div>
 
-<div id="publicUserDetailModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-[10001] hidden" onclick="closeModalOnClickOutside(event)">
+<div id="publicUserDetailModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-[10002] hidden" onclick="closeModalOnClickOutside(event)">
   <div class="modal-content bg-gray-900/95 backdrop-blur-sm rounded-2xl shadow-2xl border border-yellow-500 w-11/12 max-w-2xl text-center relative max-h-[90vh] flex flex-col">
     
     <div class="p-6 pb-4 flex-shrink-0 relative">
@@ -4371,6 +4458,53 @@ body.modal-open .modal-content {
     </div>
   </div>
 </div>
+    <div id="letterInputModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[10001] hidden">
+  <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-yellow-500 w-11/12 max-w-sm text-center relative">
+    <button class="modal-close-button" onclick="closeLetterInputModal()">&times;</button>
+    <h4 id="letterInputTitle" class="text-yellow-400 text-2xl font-bold mb-6">Harfi Gir</h4>
+    <input type="text" id="letterInput" maxlength="1" class="w-full p-4 mb-6 bg-gray-700 border border-gray-600 rounded-lg text-white text-3xl text-center uppercase focus:outline-none focus:border-yellow-500 focus:ring-2 focus:ring-yellow-500">
+    <button onclick="submitLetter()" class="w-full py-3 bg-green-700 hover:bg-green-600 text-white font-bold rounded-lg shadow-md">Onayla</button>
+  </div>
+</div>
+
+<div id="solvedBoxInfoModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[10001] hidden">
+  <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-cyan-500 w-11/12 max-w-md text-center relative">
+    <button class="modal-close-button" onclick="closeSolvedBoxInfoModal()">&times;</button>
+    <h4 class="text-cyan-300 text-2xl font-bold mb-4">Kutu Bilgisi</h4>
+    <div id="solvedBoxInfoContent" class="text-lg text-gray-200 space-y-2">
+        </div>
+  </div>
+</div>
+
+<div id="wordGameAdminModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[50001] hidden">
+  <div class="modal-content bg-gray-900/95 p-6 rounded-2xl shadow-2xl border border-purple-500 w-11/12 max-w-5xl h-[90vh] text-left relative flex flex-col">
+    <button class="modal-close-button" onclick="closeWordGameAdminModal()">&times;</button>
+    <h3 class="text-purple-300 text-3xl font-bold mb-4 text-center">Kelime Oyunu Yönetim Paneli</h3>
+    
+    <div class="flex-grow overflow-y-auto scrollable-list pr-4 space-y-4">
+        <div class="bg-gray-800 p-4 rounded-lg">
+            <h4 class="text-lg font-bold text-yellow-300 mb-2">Genel Ayarlar</h4>
+            <div>
+                <label class="block text-sm text-gray-400">Yanlış Cevap Bekleme Süresi (saniye)</label>
+                <input type="number" id="cooldownInput" class="box-setting-input mt-1 w-full md:w-1/3" value="60">
+            </div>
+        </div>
+
+        <div class="bg-gray-800 p-4 rounded-lg">
+            <h4 class="text-lg font-bold text-yellow-300 mb-2">Sorular ve Cevaplar</h4>
+            <div id="questionBlocksContainer" class="space-y-4">
+                </div>
+            <button onclick="addQuestionBlock()" class="mt-4 py-2 px-4 bg-blue-600 hover:bg-blue-500 rounded-md font-bold text-sm">+ Yeni Soru Ekle</button>
+        </div>
+    </div>
+    
+    <div class="flex-shrink-0 mt-4 pt-4 border-t border-gray-700 flex flex-wrap gap-4 justify-center">
+    <button onclick="saveWordGameSettings(false)" class="py-3 px-6 bg-blue-700 hover:bg-blue-600 text-white font-bold rounded-lg">Ayarları Kaydet (İlerlemeyi Koru)</button>
+    <button onclick="saveWordGameSettings(true)" class="py-3 px-6 bg-green-700 hover:bg-green-600 text-white font-bold rounded-lg">Yeni Oyun Başlat (Her Şeyi Sıfırla)</button>
+    <button onclick="resetWordGame()" class="py-3 px-6 bg-red-800 hover:bg-red-700 text-white font-bold rounded-lg">Mevcut Oyunu Tamamen Sil</button>
+</div>
+  </div>
+</div>
   <script>
       
       // YENİ EKLENECEK GİZLİ ADMİN GİRİŞİ KODU
@@ -4504,6 +4638,9 @@ function getSyncedTime() {
   let editingRecipeId = null;    // Hangi tarifin düzenlendiğini tutar
   let isCraftingInProgress = false; // Çift tıklamayı engellemek için
   let allCardsCache = [];
+  let activeWordGameListener = null;
+  let wordGameCooldownEnd = 0;
+  let wordGameCooldownInterval = null;
 
   // YENİ: Kullanıcının son mesaj atma zamanını tutar
   let lastMessageTimestamp = 0;
@@ -5638,17 +5775,29 @@ async function craftItem(recipeId) {
     }
 }
 
+// MEVCUT showSection FONKSİYONUNU SİL VE BUNUNLA DEĞİŞTİR
+
 function showSection(sectionId) {
-    if (currentActiveSection === 'cardCollection' && sectionId !== 'cardCollection') {
-        newlyAcquiredCards.clear();
+    // Önceki bölümün dinleyicisini temizle (Eğer varsa)
+    if (currentActiveSection === 'wordGame' && activeWordGameListener) {
+        activeWordGameListener.ref.off('value', activeWordGameListener.callback);
+        activeWordGameListener = null; // Dinleyici referansını temizle
+        console.log("Kelime oyunu dinleyicisi kapatıldı.");
     }
 
+    if (currentActiveSection === 'cardCollection') {
+        newlyAcquiredCards.clear();
+    }
     if (sectionId !== 'store') {
         storeFilter = null;
     }
 
-    const contentIds = ['gameContent', 'storeSection', 'announcementsContent', 'chanceWheelContent', 'clickCatchContent', 'cardCollectionContent', 'monsterBattleContent', 'craftingContent'];
-    const tabButtonIds = ['gameTabBtn', 'storeTabBtn', 'announcementsTabBtn', 'chanceWheelTabBtn', 'clickCatchTabBtn', 'cardCollectionTabBtn', 'monsterBattleTabBtn', 'craftingTabBtn'];
+    // --- DEĞİŞEN KISIM BAŞLANGICI ---
+    // 'wordGameContent' ID'sini de gizlenecekler listesine ekledik.
+    const contentIds = ['gameContent', 'storeSection', 'announcementsContent', 'chanceWheelContent', 'clickCatchContent', 'cardCollectionContent', 'monsterBattleContent', 'craftingContent', 'wordGameContent'];
+    // 'wordGameTabBtn' ID'sini de buton listesine ekledik.
+    const tabButtonIds = ['gameTabBtn', 'storeTabBtn', 'announcementsTabBtn', 'chanceWheelTabBtn', 'clickCatchTabBtn', 'cardCollectionTabBtn', 'monsterBattleTabBtn', 'craftingTabBtn', 'wordGameTabBtn'];
+    // --- DEĞİŞEN KISIM SONU ---
 
     contentIds.forEach(id => document.getElementById(id)?.classList.add('hidden'));
     tabButtonIds.forEach(btnId => {
@@ -5670,7 +5819,6 @@ function showSection(sectionId) {
         activeBtn.classList.remove('bg-gray-700', 'hover:bg-gray-600');
     }
     
-    // İlgili bölüme göre admin butonlarını ve özel fonksiyonları yönet
     if (isAdmin) {
         if (sectionId === 'game') document.getElementById('boxSettingsButton').classList.remove('hidden');
         if (sectionId === 'store') {
@@ -5683,9 +5831,10 @@ function showSection(sectionId) {
         if (sectionId === 'cardCollection') document.getElementById('collectionAdminBtn').classList.remove('hidden');
         if (sectionId === 'monsterBattle') document.getElementById('monsterBattleAdminToggles')?.classList.remove('hidden');
         if (sectionId === 'crafting') document.getElementById('craftingAdminBtn').classList.remove('hidden');
+        // --- YENİ EKLENEN SATIR ---
+        if (sectionId === 'wordGame') document.getElementById('wordGameAdminBtn').classList.remove('hidden');
     }
 
-    // İlgili bölüm için veri yükleme fonksiyonlarını çağır
     if (sectionId === 'store') {
         loadStoreItems(); 
         if (!isAdmin) {
@@ -5705,7 +5854,13 @@ function showSection(sectionId) {
             loadMarketSettingsForAdmin();
             loadPrizeSettingsForAdmin();
         }
-    } 
+    }
+    // --- YENİ EKLENEN KISIM: Sadece kelime oyunu sekmesi açıldığında dinleyiciyi başlat ---
+    if (sectionId === 'wordGame') {
+        listenForWordGameData(); // Dinleyiciyi başlat
+    }
+    // --- YENİ KISIM SONU ---
+
     if (sectionId === 'monsterBattle') renderMonsterBattleUI();
     if (sectionId === 'crafting') loadCraftingRecipes();
     
@@ -7632,6 +7787,10 @@ function resetSurpriseCardsToDefault() {
 
 // openBox FONKSİYONUNUN GÜNCELLENMİŞ HALİ
 async function openBox(index) {
+    if (isAdmin) {
+        displayMessage("Adminler oyun oynayamaz.");
+        return;
+    }
     const lastSurpriseSnap = await db.ref('gameStats/lastSurpriseInfo').once('value');
     const lastSurpriseData = lastSurpriseSnap.val();
     if (lastSurpriseData && lastSurpriseData.resettled === false) {
@@ -7881,6 +8040,10 @@ function getActivityIcon(type, details = {}) {
         case 'craftItem': // YENİ EKLENEN SATIR
             icon = '🛠️';
             bgColor = 'bg-orange-500';
+            break;
+      case 'wordGameGuess':
+            icon = '💬';
+            bgColor = 'bg-sky-500';
             break;
         case 'collectionCompleted':
             icon = '🃏';
@@ -8262,6 +8425,13 @@ function renderActivityFeed(activities) {
                 case 'craftItem':
                     message = `${userHtml}, atölyede <b class="text-green-400">${details.itemName}</b> üretti. <span class="text-gray-400">(Mevcut Puan: ${formatNumber(details.newBalance)})</span>`;
                     break;
+              case 'wordGameGuess':
+                    message = `${userHtml}, kelime oyununda <b class="text-white">'${details.letter}'</b> harfini doğru bilerek <b class="text-green-400">${details.rewardText}</b> kazandı.`;
+                    // Eğer kazanılan ödül puansa, mevcut puan bilgisini ekle
+                    if (details.newBalance !== undefined) {
+                        message += ` <span class="text-gray-400">(Mevcut: ${formatNumber(details.newBalance)} Puan)</span>`;
+                    }
+                    break;
                 
                 case 'buyItem':
                     const isKP = (details.itemCost || '').toString().includes('KP');
@@ -8520,24 +8690,27 @@ function renderActivityFeed(activities) {
     });
 }
 
-      // MEVCUT formatRewardText FONKSİYONUNU SİLİP BUNU YAPIŞTIR
+      // MEVCUT formatRewardText FONKSİYONUNU SİL VE BUNUNLA DEĞİŞTİR
+
 function formatRewardText(type, value, uses = 0) {
     const name = typeToName[type] || type;
+    
+    // ★★★ DEĞİŞEN KISIM BAŞLANGICI ★★★
+    // Artık 'uses' parametresini de kontrol ediyoruz.
+    if (type === 'tempMultiplier') {
+        return `${value}x ${name} (${uses} kullanım)`;
+    }
+    // ★★★ DEĞİŞEN KISIM SONU ★★★
     
     if (type === 'health_regen_potion') {
         return `1 Adet %${value} ${name}`;
     }
 
-    // ★★★ İSTEĞE GÖRE GÜNCELLENEN MESAJ ALANI ★★★
     const percentPotions = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion'];
     if (percentPotions.includes(type)) {
-        const prefix = '%'; // '+' işareti kaldırıldı
+        const prefix = '%';
         const formattedValue = parseFloat(value).toFixed(1);
         return `${prefix}${formattedValue} ${name}`;
-    }
-
-    if (type === 'tempMultiplier') {
-        return `${value}x ${name} (${uses} kullanım)`;
     }
 
     if (type === 'avatar') {
@@ -18707,7 +18880,7 @@ function applyRewardToUser(userData, reward) {
     };
     const statKey = statKeyMap[reward.type];
 
-    // --- LİMİT KONTROL MANTIĞI ---
+    // ★★★ DEĞİŞİKLİK BURADA: Kalıcı stat veren iksirlerin mantığı eklendi ★★★
     if (statKey) {
         const amountToAdd = reward.amount || reward.value || 0;
         const capCheck = checkPotionCap(userData, reward.type, amountToAdd);
@@ -18715,17 +18888,14 @@ function applyRewardToUser(userData, reward) {
         if (capCheck.canAdd && capCheck.amount > 0) {
             if (!userData.globalPotionBuffs) userData.globalPotionBuffs = {};
             userData.globalPotionBuffs[statKey] = (userData.globalPotionBuffs[statKey] || 0) + capCheck.amount;
-            // Orijinal ödül (kısmen veya tamamen) uygulandı.
         } else {
-            // Kullanıcı limitte, ödülü +1 Kutu Hakkı'na dönüştür.
+            // Eğer iksir bonus limiti doluysa, telafi olarak +1 Kutu Hakkı ver.
             userData.kutuHakki = (userData.kutuHakki || 0) + 1;
-            // Çağıran fonksiyona bir dönüşüm olduğunu bildir.
             return { cardPacksToOpen, convertedToBoxRight: true, originalReward: reward };
         }
     } 
-    // --- LİMİT KONTROL MANTIĞI SONU ---
     else {
-        // İksir olmayan diğer ödüller için orijinal mantık devam ediyor.
+        // Mevcut diğer ödül mantıkları
         switch (reward.type) {
             case 'points':
                 userData.balance = (userData.balance || 0) + value;
@@ -18767,10 +18937,9 @@ function applyRewardToUser(userData, reward) {
             case 'health_regen_potion':
                 if (!userData.inventory) userData.inventory = {};
                 if (!userData.inventory.health_regen_potion) userData.inventory.health_regen_potion = {};
-                const percentage = reward.value;
-                const amountToAdd = reward.amount || 1;
-                const currentPotions = userData.inventory.health_regen_potion[percentage] || 0;
-                userData.inventory.health_regen_potion[percentage] = currentPotions + amountToAdd;
+                const percentage = value;
+                const currentCount = userData.inventory.health_regen_potion[percentage] || 0;
+                userData.inventory.health_regen_potion[percentage] = currentCount + 1;
                 break;
         }
     }
@@ -21324,6 +21493,522 @@ async function loadCodexAndStatsCache() {
     }
 }
 
+function showQuestion(questionIndex) {
+    db.ref(`wordGame/questions/${questionIndex}/isRevealed`).set(true);
+}
+
+   // ÖNCEKİ ADIMDA EKLEDİĞİN TÜM KELİME OYUNU FONKSİYONLARINI SİLİP BUNLARIN HEPSİNİ YAPIŞTIR
+
+// =======================================================
+// YENİ GÜNCELLENMİŞ KELİME OYUNU SİSTEMİ (SORU-CEVAP)
+// =======================================================
+
+function listenForWordGameData() {
+    if (activeWordGameListener) {
+        activeWordGameListener.ref.off('value', activeWordGameListener.callback);
+    }
+
+    const ref = db.ref('wordGame');
+    const callback = (snap) => {
+        const gameData = snap.val();
+        if (gameData && gameData.questions) {
+            renderQuestions(gameData.questions);
+            renderWordGameLeaderboard(gameData.leaderboard);
+        } else {
+            document.getElementById('questionsContainer').innerHTML = '<p class="text-center text-gray-400 p-4">Adminin yeni bir bulmaca başlatması bekleniyor.</p>';
+            document.getElementById('wordGameLeaderboard').innerHTML = '';
+        }
+    };
+    activeWordGameListener = { ref, callback };
+    ref.on('value', callback);
+    
+    if (!isAdmin) {
+        const userCooldownRef = db.ref(`users/${currentUser}/wordGameCooldown`);
+        userCooldownRef.on('value', snap => handleCooldown(snap.val()));
+    }
+}
+
+function renderQuestions(questionsData) {
+    const container = document.getElementById('questionsContainer');
+    container.innerHTML = '';
+    const isCoolingDown = wordGameCooldownEnd > getSyncedTime();
+    let previousQuestionSolved = true;
+
+    questionsData.forEach((question, qIndex) => {
+        // Eğer önceki soru çözülmediyse, bu ve sonraki soruları gösterme
+        if (!previousQuestionSolved) return;
+
+        const isCurrentQuestionSolved = (question.letters || []).every(letter => letter.solved);
+
+        const questionBlock = document.createElement('div');
+        questionBlock.className = 'question-block';
+        
+        // Soru metnini ve cevap kutularını oluştur
+        let contentHtml = `
+            <p class="text-lg text-gray-300 mb-4">${qIndex + 1}. Soru: <b class="text-white">${question.text}</b></p>
+            <div class="answer-letters-container">
+        `;
+        
+        (question.letters || []).forEach((letter, lIndex) => {
+            if (letter.solved) {
+                // Çözülmüş harf kutusu
+                contentHtml += `
+                    <div class="answer-letter solved" onclick="showSolvedBoxInfo(${qIndex}, ${lIndex})">
+                        ${letter.char}
+                        
+                        <span class="reward-icon" title="${formatRewardText(letter.reward.type, letter.reward.amount || letter.reward.value)}">${getRewardIcon(letter.reward.type)}</span>
+                    </div>`;
+            } else {
+                // Çözülmemiş harf kutusu (bekleme süresindeyse tıklanamaz)
+                const onClickAction = isCoolingDown ? '' : `onclick="openLetterInputModal(${qIndex}, ${lIndex})"`;
+                contentHtml += `<div class="answer-letter unsolved" ${onClickAction}></div>`;
+            }
+        });
+
+        contentHtml += `</div>`;
+        questionBlock.innerHTML = contentHtml;
+        container.appendChild(questionBlock);
+
+        // Bir sonraki döngü için bu sorunun çözülüp çözülmediğini kaydet
+        previousQuestionSolved = isCurrentQuestionSolved;
+    });
+}
+
+
+function renderWordGameLeaderboard(leaderboardData) {
+    const leaderboardEl = document.getElementById('wordGameLeaderboard');
+    if (!leaderboardData) {
+        leaderboardEl.innerHTML = '<p class="text-center text-gray-500">Henüz kimse harf çözmedi.</p>';
+        return;
+    }
+
+    const sorted = Object.entries(leaderboardData).sort((a, b) => b[1].score - a[1].score);
+    
+    let html = '';
+    sorted.forEach(([username, data], index) => {
+        const avatarUrl = data.avatarUrl || defaultAvatarUrl;
+        html += `
+            <div class="flex items-center p-2 bg-gray-800 rounded-md">
+                <span class="font-bold text-lg text-gray-400 w-8 text-center">${index + 1}.</span>
+                <img src="${avatarUrl}" class="w-10 h-10 rounded-full object-cover ml-2 mr-4 cursor-pointer" onclick="openPublicUserDetailModal('${username}')">
+                <div class="flex-grow">
+                    <p class="font-bold text-white cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${username}')">${username}</p>
+                    <p class="text-sm text-yellow-300">${data.score} Harf</p>
+                </div>
+            </div>
+        `;
+    });
+    leaderboardEl.innerHTML = html;
+}
+
+function openLetterInputModal(qIndex, lIndex) {
+    if (wordGameCooldownEnd > getSyncedTime()) return;
+    const modal = document.getElementById('letterInputModal');
+    const input = document.getElementById('letterInput');
+    modal.dataset.qIndex = qIndex;
+    modal.dataset.lIndex = lIndex;
+    input.value = '';
+    modal.style.display = 'flex';
+    input.focus();
+}
+
+function closeLetterInputModal() {
+    document.getElementById('letterInputModal').style.display = 'none';
+}
+
+// MEVCUT submitLetter FONKSİYONUNU SİL VE BUNUNLA DEĞİŞTİR
+
+async function submitLetter() {
+    if (isAdmin) {
+        displayMessage("Adminler oyun oynayamaz.");
+        closeLetterInputModal();
+        return;
+    }
+
+    const modal = document.getElementById('letterInputModal');
+    const input = document.getElementById('letterInput');
+    const letter = input.value.trim().toUpperCase();
+    const qIndex = parseInt(modal.dataset.qIndex);
+    const lIndex = parseInt(modal.dataset.lIndex);
+
+    if (letter.length !== 1 || !/^[A-ZÇĞİÖŞÜ]$/.test(letter)) {
+        displayMessage("Lütfen geçerli tek bir harf girin.");
+        return;
+    }
+
+    closeLetterInputModal();
+
+    const cellRef = db.ref(`wordGame/questions/${qIndex}/letters/${lIndex}`);
+    const userRef = db.ref(`users/${currentUser}`);
+
+    try {
+        const { committed, snapshot } = await cellRef.transaction(letterData => {
+            if (letterData && !letterData.solved) {
+                if (letterData.char === letter) {
+                    letterData.solved = true;
+                    letterData.solver = currentUser;
+                    letterData.solvedAt = firebase.database.ServerValue.TIMESTAMP;
+                }
+                return letterData;
+            }
+            return; 
+        });
+
+        if (committed) {
+            const finalLetterData = snapshot.val();
+            if (finalLetterData.solved && finalLetterData.solver === currentUser) {
+                // DOĞRU CEVAP
+                const reward = finalLetterData.reward;
+                const rewardText = formatRewardText(reward.type, reward.amount || reward.value, reward.uses);
+                displayMessage(`Harf doğru! Kazandığın ödül: <b class="text-green-400">${rewardText}</b>`);
+                
+                let cardPacksToOpen = [];
+                let newBalance; // Yeni bakiye bilgisini tutmak için değişken
+
+                await userRef.transaction(userData => {
+                    if (userData) {
+                        const result = applyRewardToUser(userData, reward);
+                        cardPacksToOpen.push(...result.cardPacksToOpen);
+                        newBalance = userData.balance; // Güncellenmiş bakiyeyi al
+                    }
+                    return userData;
+                });
+                
+                const leaderboardRef = db.ref(`wordGame/leaderboard/${currentUser}`);
+                const userAvatar = (await userRef.child('selectedAvatar/url').once('value')).val() || defaultAvatarUrl;
+                await leaderboardRef.transaction(currentData => ({
+                    score: (currentData?.score || 0) + 1,
+                    avatarUrl: userAvatar
+                }));
+
+                // ★★★ YENİ EKLENEN LOGLAMA KODU ★★★
+                const logDetails = {
+                    letter: letter,
+                    rewardText: rewardText
+                };
+                if (reward.type === 'points') {
+                    logDetails.newBalance = newBalance; // Eğer ödül puansa, yeni bakiyeyi log'a ekle
+                }
+                logActivity('wordGameGuess', currentUser, logDetails);
+                // ★★★ YENİ KOD SONU ★★★
+                
+                for (const pack of cardPacksToOpen) {
+                    await startCardPackOpening(pack.value || 1, 'Kelime Oyunu', 1, pack.type);
+                }
+
+            } else {
+                // YANLIŞ CEVAP
+                const cooldownSeconds = (await db.ref('wordGame/settings/cooldown').once('value')).val() || 60;
+                await userRef.update({
+                    wordGameCooldown: getSyncedTime() + (cooldownSeconds * 1000)
+                });
+                displayMessage(`Harf yanlış! ${cooldownSeconds} saniye sonra tekrar deneyebilirsin.`);
+            }
+        } else {
+            // BAŞKASI ÇÖZDÜ
+            const competitorData = (await cellRef.once('value')).val();
+            if (competitorData && competitorData.solver) {
+                displayMessage(`Bu kutuyu senden hemen önce <b class="text-yellow-300">${competitorData.solver}</b> çözdü!`);
+            }
+        }
+    } catch (error) {
+        console.error("Harf gönderme hatası:", error);
+        displayMessage("Bir hata oluştu.");
+    }
+}
+
+function handleCooldown(cooldownEndTimestamp) {
+    if (wordGameCooldownInterval) clearInterval(wordGameCooldownInterval);
+    const infoEl = document.getElementById('wordGameCooldownInfo');
+    const timerEl = document.getElementById('wordGameCooldownTimer');
+    
+    wordGameCooldownEnd = cooldownEndTimestamp || 0;
+
+    const updateTimer = () => {
+        const now = getSyncedTime();
+        if (now >= wordGameCooldownEnd) {
+            infoEl.classList.add('hidden');
+            clearInterval(wordGameCooldownInterval);
+            listenForWordGameData(); 
+        } else {
+            const remainingSeconds = Math.ceil((wordGameCooldownEnd - now) / 1000);
+            timerEl.textContent = `${remainingSeconds} saniye`;
+            infoEl.classList.remove('hidden');
+        }
+    };
+    
+    if (wordGameCooldownEnd > getSyncedTime()) {
+        updateTimer();
+        wordGameCooldownInterval = setInterval(updateTimer, 1000);
+    } else {
+        infoEl.classList.add('hidden');
+    }
+}
+
+// MEVCUT showSolvedBoxInfo FONKSİYONUNU SİL VE BUNUNLA DEĞİŞTİR
+
+async function showSolvedBoxInfo(qIndex, lIndex) {
+    const letterSnap = await db.ref(`wordGame/questions/${qIndex}/letters/${lIndex}`).once('value');
+    const letterData = letterSnap.val();
+    if (!letterData) return;
+
+    const contentEl = document.getElementById('solvedBoxInfoContent');
+    
+    // ★★★ DEĞİŞEN SATIR BAŞLANGICI ★★★
+    // Artık formatRewardText fonksiyonuna 3. parametre olarak "letterData.reward.uses" değerini de gönderiyoruz.
+    const rewardText = formatRewardText(letterData.reward.type, letterData.reward.amount || letterData.reward.value, letterData.reward.uses);
+    // ★★★ DEĞİŞEN SATIR SONU ★★★
+
+    contentEl.innerHTML = `
+        <p>Çözen: <b class="text-white cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${letterData.solver}')">${letterData.solver}</b></p>
+        <p>Harf: <b class="text-white">${letterData.char}</b></p>
+        <p>Kazanılan Ödül: <b class="text-green-400">${rewardText}</b></p>
+        <p class="text-xs text-gray-400 mt-2">${new Date(letterData.solvedAt).toLocaleString('tr-TR')}</p>
+    `;
+    document.getElementById('solvedBoxInfoModal').style.display = 'flex';
+}
+
+function closeSolvedBoxInfoModal() {
+    document.getElementById('solvedBoxInfoModal').style.display = 'none';
+}
+
+function closeWordGameAdminModal() {
+    document.getElementById('wordGameAdminModal').style.display = 'none';
+}
+
+function addQuestionBlock() {
+    const container = document.getElementById('questionBlocksContainer');
+    const block = document.createElement('div');
+    block.className = 'p-3 bg-gray-900/50 rounded-lg border border-gray-700';
+    block.innerHTML = `
+        <div class="flex justify-between items-center mb-2">
+            <label class="text-gray-300">Soru & Cevap</label>
+            <button onclick="this.parentElement.parentElement.remove()" class="py-1 px-2 bg-red-600 hover:bg-red-500 rounded-md text-xs">Bu Soruyu Sil</button>
+        </div>
+        <textarea class="box-setting-input question-text mb-2" rows="2" placeholder="Soru metnini buraya yazın..."></textarea>
+        <input type="text" class="box-setting-input answer-text uppercase" placeholder="CEVAP" oninput="generateRewardFields(this)">
+        <div class="letter-rewards-container mt-2 space-y-2"></div>
+    `;
+    container.appendChild(block);
+}
+
+   // YENİ VE GÜNCELLENMİŞ FONKSİYONLAR
+
+async function openWordGameAdminModal() {
+    if (!isAdmin) return;
+    const container = document.getElementById('questionBlocksContainer');
+    container.innerHTML = '<p class="text-center text-gray-400">Mevcut oyun ayarları yükleniyor...</p>';
+    document.getElementById('wordGameAdminModal').style.display = 'flex';
+
+    const gameSnap = await db.ref('wordGame').once('value');
+    const gameData = gameSnap.val();
+
+    container.innerHTML = ''; // Paneli temizle
+
+    if (gameData && gameData.settings) {
+        document.getElementById('cooldownInput').value = gameData.settings.cooldown || 60;
+    } else {
+        document.getElementById('cooldownInput').value = 60; // Varsayılan
+    }
+
+    if (gameData && gameData.questions && gameData.questions.length > 0) {
+        // Kayıtlı sorular varsa, onları panele yükle
+        gameData.questions.forEach(questionData => {
+            addQuestionBlock(questionData);
+        });
+    } else {
+        // Kayıtlı soru yoksa, başlangıç için boş bir tane ekle
+        addQuestionBlock();
+    }
+}
+
+function addQuestionBlock(questionData = null) {
+    const container = document.getElementById('questionBlocksContainer');
+    const block = document.createElement('div');
+    block.className = 'p-3 bg-gray-900/50 rounded-lg border border-gray-700';
+    
+    // Veri varsa input'ları doldur, yoksa boş bırak
+    const questionText = questionData ? questionData.text : '';
+    const answerText = questionData ? questionData.answer : '';
+
+    block.innerHTML = `
+        <div class="flex justify-between items-center mb-2">
+            <label class="text-gray-300">Soru & Cevap</label>
+            <button onclick="this.parentElement.parentElement.remove()" class="py-1 px-2 bg-red-600 hover:bg-red-500 rounded-md text-xs">Bu Soruyu Sil</button>
+        </div>
+        <textarea class="box-setting-input question-text mb-2" rows="2" placeholder="Soru metnini buraya yazın...">${questionText}</textarea>
+        <input type="text" class="box-setting-input answer-text uppercase" placeholder="CEVAP" value="${answerText}" oninput="generateRewardFields(this)">
+        <div class="letter-rewards-container mt-2 space-y-2"></div>
+    `;
+    container.appendChild(block);
+
+    // Eğer veri varsa, ödül alanlarını da bu veriye göre oluştur
+    if (questionData) {
+        generateRewardFields(block.querySelector('.answer-text'), questionData.letters);
+    }
+}
+
+function generateRewardFields(answerInput, lettersData = null) {
+    const answer = answerInput.value.trim().toUpperCase().replace(/[^A-ZÇĞİÖŞÜ]/g, '');
+    answerInput.value = answer; 
+    const container = answerInput.parentElement.querySelector('.letter-rewards-container');
+    container.innerHTML = '';
+
+    for (let i = 0; i < answer.length; i++) {
+        const letter = answer[i];
+        const rewardData = lettersData ? lettersData[i]?.reward : {};
+        
+        // Önce her satır için bir ana taşıyıcı element oluşturuyoruz
+        const wrapperDiv = document.createElement('div');
+        wrapperDiv.className = 'flex items-center gap-2';
+
+        // Satırın içeriğini HTML olarak bu elemente ekliyoruz
+        wrapperDiv.innerHTML = `
+            <span class="font-bold text-yellow-300 w-8 text-center text-lg">${letter}</span>
+            ${getRewardItemHTML(`reward_${i}`, rewardData)}
+        `;
+        
+        // Tamamlanmış satırı ana konteynere ekliyoruz
+        container.appendChild(wrapperDiv);
+
+        // Şimdi, YALNIZCA YENİ EKLEDİĞİMİZ SATIRIN içindeki elementleri bularak
+        // doğru input'ların görünmesini sağlayan fonksiyonu çağırıyoruz.
+        const newRow = wrapperDiv.querySelector('.reward-entry');
+        if (newRow) {
+            handleAdminRewardTypeChange(newRow.querySelector('.reward-type'), rewardData);
+        }
+    }
+}
+
+async function saveWordGameSettings(shouldResetProgress = false) {
+    if (!isAdmin) return;
+    
+    // 1. ADIM: Butona göre doğru onay mesajını göster.
+    let confirmationMessage = '';
+    if (shouldResetProgress) {
+        confirmationMessage = "Bu işlem mevcut bulmacayı tamamen silip yenisini oluşturacak ve liderlik tablosunu sıfırlayacaktır. Emin misiniz?";
+    } else {
+        confirmationMessage = "Mevcut kelime oyunu ayarlarını bu şekilde güncellemek istediğinize emin misiniz? <br><br><small class='text-yellow-300'>Bu işlem oyuncuların mevcut serilerini SIFIRLAMAZ, sadece ödülleri günceller.</small>";
+    }
+    
+    const confirmed = await customConfirm(confirmationMessage);
+    if (!confirmed) return;
+
+    try {
+        // 2. ADIM: İlerlemeyi korumak için mevcut oyun verisini çek.
+        const oldGameSnap = await db.ref('wordGame').once('value');
+        const oldGameData = oldGameSnap.val();
+
+        const questions = [];
+        const questionBlocks = document.querySelectorAll('#questionBlocksContainer > div');
+        let hasError = false;
+
+        for (const [qIndex, block] of questionBlocks.entries()) {
+            if (hasError) continue;
+            const questionText = block.querySelector('.question-text').value.trim();
+            const answer = block.querySelector('.answer-text').value.trim().toUpperCase();
+            
+            if (!questionText || !answer) continue;
+
+            const letters = [];
+            const rewardRows = block.querySelectorAll('.letter-rewards-container .reward-entry');
+            if (rewardRows.length !== answer.length) {
+                hasError = true;
+                throw new Error(`'${questionText}' sorusunun cevabındaki harf sayısı ile ödül sayısı eşleşmiyor!`);
+            }
+
+            for (let i = 0; i < answer.length; i++) {
+                const char = answer[i];
+                const reward = parseRewardDataFromRow(rewardRows[i]);
+                if (!reward) {
+                    hasError = true;
+                    throw new Error(`'${questionText}' sorusundaki '${char}' harfinin ödülü geçersiz.`);
+                }
+                
+                let letterState = {
+                    char: char,
+                    reward: reward,
+                    solved: false,
+                    solver: null,
+                    solvedAt: null
+                };
+
+                // 3. ADIM: İlerlemeyi koruma mantığı
+                if (!shouldResetProgress && oldGameData && oldGameData.questions && oldGameData.questions[qIndex]) {
+                    const oldQuestion = oldGameData.questions[qIndex];
+                    // Sadece cevap metni hala aynıysa ilerlemeyi koru
+                    if (oldQuestion.answer === answer && oldQuestion.letters[i] && oldQuestion.letters[i].solved) {
+                        letterState.solved = true;
+                        letterState.solver = oldQuestion.letters[i].solver;
+                        letterState.solvedAt = oldQuestion.letters[i].solvedAt;
+                    }
+                }
+                letters.push(letterState);
+            }
+            questions.push({ text: questionText, answer: answer, letters: letters });
+        }
+        
+        if (hasError) return;
+
+        const updates = {};
+        updates['/wordGame/settings'] = {
+            cooldown: parseInt(document.getElementById('cooldownInput').value) || 60,
+        };
+        updates['/wordGame/questions'] = questions;
+
+        // 4. ADIM: Sadece sıfırlama istenirse liderlik tablosunu temizle.
+        if (shouldResetProgress) {
+            updates['/wordGame/leaderboard'] = null; 
+            displayMessage("Kelime Oyunu başarıyla sıfırlandı ve yeni ayarlarla başlatıldı!");
+        } else {
+            displayMessage("Kelime Oyunu ayarları başarıyla güncellendi. Oyuncuların ilerlemesi korundu.");
+        }
+
+        await db.ref().update(updates);
+        closeWordGameAdminModal();
+
+    } catch (error) {
+        displayMessage(`Hata: ${error.message}`);
+    }
+}
+
+async function resetWordGame() {
+    if (!isAdmin) return;
+    const confirmed = await customConfirm("Tüm bulmacayı ve liderlik tablosunu sıfırlamak istediğinize emin misiniz?");
+    if (confirmed) {
+        await db.ref('wordGame').remove();
+        displayMessage("Kelime oyunu başarıyla sıfırlandı.");
+        closeWordGameAdminModal();
+    }
+}
+
+function getRewardIcon(type) {
+    // ★★★ DEĞİŞİKLİK BURADA: Eksik olan tüm ikonlar eklendi ★★★
+    const iconMap = {
+        points: '💰',
+        boxRights: '📦',
+        wheelTicket: '🎫',
+        clickCatchTicket: '🎟️',
+        iflasShield: '🛡️',
+        tempMultiplier: '✖️',
+        wildcard: '🃏',
+        card_pack: '🎴',
+        card_pack_normal: '🥉',
+        card_pack_gumus: '🥈',
+        card_pack_altin: '🥇',
+        card_pack_efsanevi: '🏆',
+        revival_stone: '💎',
+        health_potion: '🧪',
+        damage_potion: '⚔️',
+        defense_potion: '🛡️',
+        crit_potion: '💥',
+        crit_damage_potion: '🎯',
+        dodge_potion: '💨',
+        pierce_potion: '📌',
+        health_regen_potion: '🧪'
+    };
+    return iconMap[type] || '🎁'; // Eşleşme bulunamazsa varsayılan olarak hediye paketi göster
+}
 </script>
 </body>
 </html>
