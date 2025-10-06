@@ -15556,63 +15556,18 @@ function openTradeMenu(cardId, cardName) {
     openCreateOfferModal(cardId);
 }
 
-// YENİ VE TÜM MANTIĞI İÇEREN FONKSİYON
-async function handleDuplicateCardClick(cardId) {
-    if (isTradeInProgress) return; // Başka bir işlem devam ediyorsa bekle
-    isTradeInProgress = true;
-
-    try {
-        // Gerekli tüm verileri tek seferde çekelim
-        const [userSnap, cardInfoSnap] = await Promise.all([
-            db.ref(`users/${currentUser}`).once('value'),
-            db.ref(`gameConfig/cardCollection/${cardId}`).once('value')
-        ]);
-
-        const userData = userSnap.val();
-        const cardInfo = cardInfoSnap.val();
-
-        // Sunucu tarafı gibi davranıp tüm kontrolleri yapalım
-        if (!userData || !cardInfo || userData.completedCollection !== true || !userData.cardCollection?.[cardId] || userData.cardCollection[cardId].count <= 1) {
-            throw new Error("Bu kart dönüştürülemez. Sayfayı yenileyip tekrar deneyin.");
-        }
-
-        // İsteğine göre oranları belirleyelim
-        const rates = { normal: 1, gumus: 2, altin: 3, efsanevi: 5 };
-        const boxRightsToGain = rates[cardInfo.rarity] || 1; // Bilinmeyen bir nadirlik varsa 1 ver
-        
-        const rarityNames = { normal: 'Bronz', gumus: 'Gümüş', altin: 'Altın', efsanevi: 'Efsanevi' };
-        const displayRarity = rarityNames[cardInfo.rarity] || cardInfo.rarity;
-
-        // Kullanıcıya onay soralım
-        const confirmed = await customConfirm(`Fazla olan 1 adet <b class="text-white">'${cardInfo.cardName}'</b> (${displayRarity}) kartını <b class="text-yellow-300">+${boxRightsToGain} Kutu Hakkı</b>'na dönüştürmek istediğine emin misin?`);
-        if (!confirmed) {
-            isTradeInProgress = false;
-            return;
-        }
-
-        // Veritabanı işlemini Transaction ile güvenli bir şekilde yapalım
-        const userRef = db.ref(`users/${currentUser}`);
-        const { committed } = await userRef.transaction(currentData => {
-            if (currentData && currentData.completedCollection === true && currentData.cardCollection?.[cardId]?.count > 1) {
-                currentData.cardCollection[cardId].count--;
-                currentData.kutuHakki = (currentData.kutuHakki || 0) + boxRightsToGain;
-                return currentData;
-            }
-            return; // Koşul sağlanmazsa işlemi iptal et
-        });
-
-        if (committed) {
-            displayMessage(`Başarılı! Kartın +${boxRightsToGain} Kutu Hakkı'na dönüştürüldü.`);
-            loadCollectionAlbum(); // Arayüzü anında yenile
-        } else {
-            throw new Error("Dönüştürme işlemi başarısız oldu. Kart durumu değişmiş olabilir.");
-        }
-
-    } catch (error) {
-        displayMessage(error.message);
-    } finally {
-        isTradeInProgress = false; // İşlem bitince kilidi kaldır
-    }
+/**
+ * YENİ VE GÜNCELLENMİŞ FONKSİYON
+ * Albümü tamamlamış bir kullanıcı fazla kartına tıkladığında, 
+ * bu kartların Üretim Atölyesi'nde kullanılabileceğini belirten bir bilgilendirme penceresi açar.
+ */
+function handleDuplicateCardClick(cardId) {
+    // "displayMessageWithRedirect" fonksiyonunu kullanarak hem bilgilendirme yapıyor hem de butona yönlendirme ekliyoruz.
+    displayMessageWithRedirect(
+        "Albümü tamamladığın için fazla kartların artık Kutu Hakkı'na dönüşmez. Bu kartları <b>Üretim Atölyesi</b>'nde değerli eşyalar üretmek için kullanabilirsin!", // Gösterilecek mesaj
+        "Üretim Atölyesine Git",     // Butonun üzerindeki yazı
+        () => { showSection('crafting'); } // Butona tıklandığında çalışacak fonksiyon (Üretim sekmesini açar)
+    );
 }
 
 // useWildcard FONKSİYONUNUN GÜNCELLENMİŞ HALİ
