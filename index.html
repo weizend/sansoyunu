@@ -5447,7 +5447,6 @@ async function craftItem(recipeId) {
         const recipe = craftingRecipesCache.find(r => r.id === recipeId);
         if (!recipe) throw new Error("Üretim tarifi bulunamadı.");
 
-        // ADIM 1: DOM'dan seçilen kartları işlemden ÖNCE topla
         const selectedCardIdsByMaterial = {};
         let selectionError = null;
 
@@ -5480,6 +5479,26 @@ async function craftItem(recipeId) {
         const userRef = db.ref(`users/${currentUser}`);
         const userSnap = await userRef.once('value');
         const userData = userSnap.val();
+
+        // --- YENİ LİMİT KONTROL MANTIĞI ---
+        let finalOutputAmount = recipe.output.value;
+        const isPotionOutput = recipe.output.type && (recipe.output.type.endsWith('_potion') || recipe.output.type === 'health_regen_potion');
+
+        if(isPotionOutput) {
+            const capCheck = checkPotionCap(userData, recipe.output.type, recipe.output.value);
+            if (!capCheck.canAdd) {
+                throw new Error(`Bu iksir için bonus limitine zaten ulaştın. Üretim yapamazsın.`);
+            }
+            if (capCheck.isCapped) {
+                 const isPercent = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion'].includes(recipe.output.type);
+                 const prefix = isPercent ? '%' : '+';
+                 const displayAmount = isPercent ? capCheck.amount.toFixed(1) : formatNumber(capCheck.amount);
+                 const confirmed = await customConfirm(`Bonus limitine yaklaştığın için, bu üretimden envanterine sadece <b>${prefix}${displayAmount} ${typeToName[recipe.output.type]}</b> eklenecek. Üretime devam etmek istiyor musun?`);
+                 if (!confirmed) throw new Error("Kullanıcı işlemi iptal etti.");
+                 finalOutputAmount = capCheck.amount;
+            }
+        }
+        // --- YENİ LİMİT KONTROL MANTIĞI SONU ---
 
         if (recipe.output.type === 'tempMultiplier' && (userData.multiplierSource !== 'none')) {
             const confirmed = await customConfirm(
@@ -5550,7 +5569,12 @@ async function craftItem(recipeId) {
                 currentData.multiplierRemainingUses = 0;
             }
 
-            const result = applyRewardToUser(currentData, recipe.output);
+            const finalOutputReward = { ...recipe.output };
+            if (isPotionOutput) {
+                finalOutputReward.value = finalOutputAmount;
+            }
+            
+            const result = applyRewardToUser(currentData, finalOutputReward);
             cardPacksToOpen = result.cardPacksToOpen;
             return currentData;
         });
@@ -5569,7 +5593,6 @@ async function craftItem(recipeId) {
                 await startCardPackOpening(pack.value || 1, 'Üretim Atölyesi', 1, pack.type);
             }
             closeCraftingDetailModal();
-            // loadCraftingRecipes() fonksiyonunu çağırmaya gerek yok, çünkü ana dinleyici değişikliği yakalayıp arayüzü güncelleyecek.
         } else {
             throw new Error("Üretim başarısız! Malzemelerin yetersiz veya başka bir işlem yapılıyor olabilir. (Seçtiğiniz kartlar/iksirler takasta olabilir mi?)");
         }
@@ -5581,7 +5604,6 @@ async function craftItem(recipeId) {
         isCraftingInProgress = false;
         if (craftButton) {
             craftButton.disabled = false;
-            // Butonun durumunu tekrar kontrol et, çünkü başka bir işlem malzemeleri etkilemiş olabilir
             openCraftingDetailModal(recipeId); 
         }
     }
@@ -8057,10 +8079,30 @@ async function buyItem(itemId) {
         displayMessage("Maalesef bu üründe yeterli stok bulunmuyor.");
         return;
     }
+    
+    // --- YENİ LİMİT KONTROL MANTIĞI ---
+    let finalAmountToAdd = (item.value || 1) * quantity;
+    let capCheck = { canAdd: true, isCapped: false, amount: finalAmountToAdd };
+    let confirmationMessage = `<b>${item.name}</b> ürününden <b>${quantity} adet</b> satın almak için <b>${totalCost} ${isSpecial ? 'Kasa Puanı' : 'Puan'}</b> harcanacak. Onaylıyor musunuz?`;
 
-    const confirmed = await customConfirm(
-        `<b>${item.name}</b> ürününden <b>${quantity} adet</b> satın almak için <b>${totalCost} ${isSpecial ? 'Kasa Puanı' : 'Puan'}</b> harcanacak. Onaylıyor musunuz?`
-    );
+    if(isPotion && !isSpecial) {
+        capCheck = checkPotionCap(userData, item.type, finalAmountToAdd);
+
+        if (!capCheck.canAdd) {
+            displayMessage(`Bu iksir için bonus limitine zaten ulaştın. Daha fazla satın alamazsın.`);
+            return;
+        }
+        if (capCheck.isCapped) {
+            const isPercent = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion'].includes(item.type);
+            const prefix = isPercent ? '%' : '+';
+            const displayAmount = isPercent ? capCheck.amount.toFixed(1) : formatNumber(capCheck.amount);
+            confirmationMessage = `Bonus limitine yaklaştığın için, bu alımdan envanterine sadece <b>${prefix}${displayAmount} ${typeToName[item.type]}</b> eklenecek. <b>${totalCost} Puan</b> harcamayı onaylıyor musun?`;
+            finalAmountToAdd = capCheck.amount;
+        }
+    }
+    // --- YENİ LİMİT KONTROL MANTIĞI SONU ---
+
+    const confirmed = await customConfirm(confirmationMessage);
     if (!confirmed) return;
 
     if (item.type === 'tempMultiplier') {
@@ -8099,26 +8141,21 @@ async function buyItem(itemId) {
             currentData.totalSpentPoints = (currentData.totalSpentPoints || 0) + totalCost;
         }
         
-        // ★★★ SORUNU ÇÖZEN DEĞİŞİKLİK BURADA BAŞLIYOR ★★★
-        // Ödül verisini, ürün tipine göre doğru şekilde hazırlıyoruz.
-        let rewardPayload = { ...item, amount: quantity };
+        let rewardPayload = { ...item };
 
-        if (item.type === 'tempMultiplier') {
-            // Çarpanlar için 'value' (örn: 5x) çarpılmaz, 'uses' (kullanım hakkı) çarpılır.
+        if (isPotion && !isSpecial) {
+            rewardPayload.value = finalAmountToAdd; // Limite göre ayarlanmış miktarı kullan
+        } else if (item.type === 'tempMultiplier') {
             rewardPayload.value = item.value;
             rewardPayload.uses = (item.duration || 1) * quantity;
         } else if (item.type === 'health_regen_potion') {
-            // Can Yenileme İksiri için 'value' (yüzde) çarpılmaz. 'amount' kaç adet alındığını belirtir.
             rewardPayload.value = item.value;
             rewardPayload.amount = quantity;
-        } else {
-            // Puan, Kutu Hakkı, kalıcı stat iksirleri gibi diğer tüm ürünler için 'value' miktar ile çarpılır.
+        } else if (item.type !== 'avatar' && item.type !== 'special') {
             rewardPayload.value = (item.value || 1) * quantity;
         }
         
         const result = applyRewardToUser(currentData, rewardPayload);
-        // ★★★ DEĞİŞİKLİK SONU ★★★
-
         cardPacksToOpen = result.cardPacksToOpen;
 
         if (isPotion && !isSpecial) {
@@ -8175,7 +8212,7 @@ async function buyItem(itemId) {
         };
 
         if (isPotion) {
-            logDetails.itemEffectValue = item.value;
+            logDetails.itemEffectValue = finalAmountToAdd;
         } else if(item.value) {
             logDetails.itemValue = item.value * quantity;
         }
@@ -10769,7 +10806,6 @@ imageOnClick = `onclick="showAvatarDetails('${sanitizedId}', false)"`;
     }
 }
       
-// MEVCUT claimDailyReward FONKSİYONUNU SİLİP BUNU YAPIŞTIR
 async function claimDailyReward(rewardId) {
     if (isAdmin) {
         displayMessage("Adminler ödül alamaz.");
@@ -10828,7 +10864,7 @@ async function claimDailyReward(rewardId) {
         }
         
         let cardPacksToOpen = [];
-        let activityLogDetails = {};
+        let wasConverted = false;
 
         const { committed, snapshot } = await userRef.transaction(userData => {
             if (userData) {
@@ -10843,7 +10879,7 @@ async function claimDailyReward(rewardId) {
                 userData.dailyRewardsClaimed[rewardId] = getSyncedTime();
 
                 if (reward.type === 'tempMultiplier') {
-                    const hasActiveMultiplier = (userData.multiplierSource === 'box') || (userData.multiplierSource === 'store' && (userData.multiplierRemainingUses || 0) > 0);
+                     const hasActiveMultiplier = (userData.multiplierSource === 'box') || (userData.multiplierSource === 'store' && (userData.multiplierRemainingUses || 0) > 0);
                     if (hasActiveMultiplier) {
                         const rewardValue = parseInt(reward.value);
                         const userMultiplierValue = parseInt(userData.activeMultiplier);
@@ -10866,28 +10902,33 @@ async function claimDailyReward(rewardId) {
                         userData.multiplierRemainingUses = reward.uses;
                         userData.multiplierSource = 'store';
                     }
-                    activityLogDetails = { rewardUses: reward.uses };
                 } else {
                     const result = applyRewardToUser(userData, reward);
-                    cardPacksToOpen = result.cardPacksToOpen;
+                    wasConverted = result.convertedToBoxRight;
+                    cardPacksToOpen.push(...result.cardPacksToOpen);
                 }
             }
             return userData;
         });
 
         if (committed) {
-            // --- DEĞİŞİKLİK BURADA: Artık avatar ise `reward.avatarName` kullanılıyor ---
-            const valueForMessage = reward.type === 'avatar' ? reward.avatarName : reward.value;
-            const rewardNameForMessage = formatRewardText(reward.type, valueForMessage, reward.uses);
-            displayMessage(`Tebrikler! '${reward.name}' ödülünü başarıyla aldın: ${rewardNameForMessage}`);
+            let message = '';
+            if (wasConverted) {
+                message = `Tebrikler! '${reward.name}' ödülünü aldın. İksir bonus limitin dolu olduğu için ödülün <b>+1 Kutu Hakkı</b>'na dönüştürüldü!`;
+            } else {
+                 const valueForMessage = reward.type === 'avatar' ? reward.avatarName : reward.value;
+                 const rewardNameForMessage = formatRewardText(reward.type, valueForMessage, reward.uses);
+                 message = `Tebrikler! '${reward.name}' ödülünü başarıyla aldın: ${rewardNameForMessage}`;
+            }
+            displayMessage(message);
             
             logActivity('dailyReward', currentUser, { 
-                ...activityLogDetails, 
                 rewardName: reward.name, 
                 rewardType: reward.type, 
                 rewardValue: reward.type === 'avatar' ? reward.avatarName : reward.value,
                 rewardUses: reward.uses || 0,
-                newBalance: snapshot.val().balance
+                newBalance: snapshot.val().balance,
+                wasConverted: wasConverted
             });
             
             const hasPotion = reward.type.includes('_potion');
@@ -18026,8 +18067,6 @@ function startStreakResetCountdown(element, resetTime) {
     activeStreakTimers['resetTimer'] = timerId;
 }
       
-// MEVCUT claimLoginStreakReward FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
-
 async function claimLoginStreakReward(day) {
     if (isAdmin) {
         displayMessage("Adminler ödül alamaz.");
@@ -18076,7 +18115,8 @@ async function claimLoginStreakReward(day) {
             }
         }
         
-        const cardPacksToOpen = [];
+        let cardPacksToOpen = [];
+        const convertedRewards = []; 
 
         const { committed, snapshot } = await userRef.transaction(userData => {
             if (userData) {
@@ -18086,117 +18126,39 @@ async function claimLoginStreakReward(day) {
                 const cooldownMs = 20 * 60 * 60 * 1000;
                 if (getSyncedTime() < (userStreak.lastClaimTimestamp + cooldownMs)) return;
 
-                dayData.rewards.forEach(reward => {
-                    switch (reward.type) {
-                        case 'points':
-                            userData.balance = (userData.balance || 0) + reward.value;
-                            userData.kariyerPuani = (userData.kariyerPuani || 0) + reward.value;
-                            break;
-                        case 'boxRights': userData.kutuHakki = (userData.kutuHakki || 0) + reward.value; break;
-                        case 'wheelTicket': userData.carkBileti = (userData.carkBileti || 0) + reward.value; break;
-                        case 'clickCatchTicket': userData.clickCatchTickets = (userData.clickCatchTickets || 0) + reward.value; break;
-                        case 'iflasShield': userData.iflasShieldUses = (userData.iflasShieldUses || 0) + reward.value; break;
-                        case 'wildcard': userData.wildcards = (userData.wildcards || 0) + reward.value; break;
-                        case 'tempMultiplier':
-                            const hasActiveMultiplier = (userData.multiplierSource === 'box') || (userData.multiplierSource === 'store' && (userData.multiplierRemainingUses || 0) > 0);
-                            if (hasActiveMultiplier) {
-                                const rewardValue = parseInt(reward.value);
-                                const userMultiplierValue = parseInt(userData.activeMultiplier);
-                                if (rewardValue === userMultiplierValue) {
-                                    userData.multiplierRemainingUses = (userData.multiplierRemainingUses || 0) + reward.uses;
-                                    logActivity('dailyRewardMultiplierStacked', currentUser, { source: `${day}. Gün Ödülü'nden`, usesAdded: reward.uses, newTotalUses: userData.multiplierRemainingUses, multiplierValue: rewardValue });
-                                } else if (rewardValue > userMultiplierValue) {
-                                    const refundedBoxRights = userData.multiplierRemainingUses || 0;
-                                    logActivity('multiplierUpgraded', currentUser, { 
-                                        source: `${day}. Gün Ödülü`, 
-                                        oldValue: userMultiplierValue, 
-                                        oldUses: refundedBoxRights, 
-                                        newValue: rewardValue, 
-                                        newUses: reward.uses, 
-                                        boxRights: refundedBoxRights 
-                                    });
-                                    userData.kutuHakki = (userData.kutuHakki || 0) + refundedBoxRights;
-                                    userData.activeMultiplier = reward.value;
-                                    userData.multiplierRemainingUses = reward.uses;
-                                    userData.multiplierSource = 'store';
-                                } else {
-                                    userData.kutuHakki = (userData.kutuHakki || 0) + (reward.uses || 0);
-                                    logActivity('dailyRewardMultiplierConverted', currentUser, { keptMultiplierValue: userMultiplierValue, boxRights: reward.uses, rewardValue: rewardValue, source: `${day}. Gün Ödülü'nden` });
-                                }
-                            } else {
-                                userData.activeMultiplier = reward.value;
-                                userData.multiplierRemainingUses = reward.uses;
-                                userData.multiplierSource = 'store';
-                            }
-                            break;
-                        case 'avatar':
-                             const newAvatarId = firebase.database().ref().push().key;
-                             if (!userData.avatars) userData.avatars = {};
-                             userData.avatars[newAvatarId] = { id: newAvatarId, name: reward.avatarName, imageUrl: reward.avatarImageUrl };
-                             break;
-                        case 'card_pack':
-                        case 'card_pack_normal':
-                        case 'card_pack_gumus':
-                        case 'card_pack_altin':
-                        case 'card_pack_efsanevi':
-                            cardPacksToOpen.push(reward);
-                            break;
-                        case 'health_regen_potion': // ★★★ BURADAKİ HATALI MANTIK DÜZELTİLDİ ★★★
-                            if (!userData.inventory) userData.inventory = {};
-                            if (!userData.inventory.health_regen_potion) userData.inventory.health_regen_potion = {};
-                            const currentPotions = userData.inventory.health_regen_potion[reward.value] || 0;
-                            userData.inventory.health_regen_potion[reward.value] = currentPotions + 1;
-                            break;
-                        case 'revival_stone':
-                            if (!userData.inventory) userData.inventory = {};
-                            userData.inventory.revival_stone = (userData.inventory.revival_stone || 0) + reward.value;
-                            break;
-                        case 'health_potion':
-                        case 'damage_potion':
-                        case 'defense_potion':
-                        case 'crit_potion':
-                        case 'crit_damage_potion':
-                        case 'dodge_potion':
-                        case 'pierce_potion':
-                            const statKeyMap = { 
-                                'health_potion': 'hp', 'damage_potion': 'damage', 'defense_potion': 'defense', 
-                                'crit_potion': 'critChance', 'crit_damage_potion': 'critDamage', 
-                                'dodge_potion': 'dodgeChance', 'pierce_potion': 'pierceChance' 
-                            };
-                            const statKey = statKeyMap[reward.type];
-                            if (statKey) {
-                                if (!userData.globalPotionBuffs) userData.globalPotionBuffs = {};
-                                userData.globalPotionBuffs[statKey] = (userData.globalPotionBuffs[statKey] || 0) + reward.value;
-                            }
-                            break;
-                    }
-                });
-
                 userData.loginStreak = {
                     currentDay: userStreak.currentDay + 1,
                     lastClaimTimestamp: getSyncedTime()
                 };
+
+                dayData.rewards.forEach(reward => {
+                    const result = applyRewardToUser(userData, reward);
+                    if (result.convertedToBoxRight) {
+                        convertedRewards.push(result.originalReward);
+                    }
+                    cardPacksToOpen.push(...result.cardPacksToOpen);
+                });
             }
             return userData;
         });
 
         if (committed) {
-            const rewardNames = dayData.rewards.map(r => {
-                const percentPotions = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion', 'health_regen_potion'];
-                
-                if (r.type === 'avatar') {
-                    return `'${r.avatarName}' Avatarı`;
-                } else if (r.type === 'tempMultiplier') {
-                    return `+${r.uses} Kullanım Hakkı ${r.value}x Çarpan`;
-                } else {
-                    const isPercent = percentPotions.includes(r.type);
-                    const prefix = isPercent ? '%' : '+';
-                    const valueDisplay = isPercent ? r.value.toFixed(1) : r.value;
-                    return `${prefix}${valueDisplay} ${typeToName[r.type] || 'Ödül'}`;
-                }
-            }).join(', ');
+            const rewardNames = dayData.rewards
+                .filter(r => !convertedRewards.some(cr => cr.type === r.type && cr.value === r.value))
+                .map(r => formatRewardText(r.type, r.type === 'avatar' ? r.avatarName : r.value, r.uses))
+                .join(', ');
+            
+            let message = '';
+            if (rewardNames) {
+                message += `Tebrikler! ${day}. gün ödüllerin (${rewardNames}) envanterine eklendi!`;
+            }
+            
+            if (convertedRewards.length > 0) {
+                const convertedCount = convertedRewards.length;
+                message += `${message ? '<br>' : ''} İksir bonus limitin dolu olduğu için <b>+${convertedCount} Kutu Hakkı</b> kazandın.`;
+            }
 
-            displayMessage(`Tebrikler! ${day}. gün ödüllerin (${rewardNames}) envanterine eklendi!`);
+            displayMessage(message);
             
             logActivity('loginStreakClaim', currentUser, {
                 day: day,
@@ -18732,66 +18694,81 @@ function applyRewardToUser(userData, reward) {
     const value = reward.value || 0;
     const uses = reward.uses || 0;
 
-    switch (reward.type) {
-        case 'points':
-            userData.balance = (userData.balance || 0) + value;
-            userData.kariyerPuani = (userData.kariyerPuani || 0) + value;
-            break;
-        case 'boxRights': userData.kutuHakki = (userData.kutuHakki || 0) + value; break;
-        case 'wheelTicket': userData.carkBileti = (userData.carkBileti || 0) + value; break;
-        case 'clickCatchTicket': userData.clickCatchTickets = (userData.clickCatchTickets || 0) + value; break;
-        case 'iflasShield': userData.iflasShieldUses = (userData.iflasShieldUses || 0) + value; break;
-        case 'wildcard': userData.wildcards = (userData.wildcards || 0) + value; break;
-        case 'revival_stone':
-            if (!userData.inventory) userData.inventory = {};
-            userData.inventory.revival_stone = (userData.inventory.revival_stone || 0) + value;
-            break;
-        case 'avatar':
-            const newAvatarId = firebase.database().ref().push().key;
-            if (!userData.avatars) userData.avatars = {};
-            userData.avatars[newAvatarId] = { id: newAvatarId, name: reward.avatarName, imageUrl: reward.avatarImageUrl };
-            break;
-        case 'tempMultiplier':
-            userData.activeMultiplier = reward.value || 1;
-            userData.multiplierRemainingUses = reward.uses || 0;
-            userData.multiplierSource = 'store';
-            break;
-        case 'card':
-            if (!userData.cardCollection) userData.cardCollection = {};
-            if (!userData.cardCollection[reward.cardId]) {
-                userData.cardCollection[reward.cardId] = { count: 0 };
-            }
-            userData.cardCollection[reward.cardId].count += (reward.amount || 1);
-            break;
-        case 'card_pack':
-        case 'card_pack_normal':
-        case 'card_pack_gumus':
-        case 'card_pack_altin':
-        case 'card_pack_efsanevi':
-            cardPacksToOpen.push({ type: reward.type, value: value });
-            break;
-        
-        // ★★★ SORUNU ÇÖZEN DEĞİŞİKLİK BURADA ★★★
-        case 'health_regen_potion':
-            if (!userData.inventory) userData.inventory = {};
-            if (!userData.inventory.health_regen_potion) userData.inventory.health_regen_potion = {};
-            const percentage = reward.value; // Bu artık doğru yüzde değeri (örn: 30)
-            const amountToAdd = reward.amount || 1; // Bu artık doğru adet (örn: 3)
-            const currentPotions = userData.inventory.health_regen_potion[percentage] || 0;
-            userData.inventory.health_regen_potion[percentage] = currentPotions + amountToAdd;
-            break;
-        // ★★★ DEĞİŞİKLİK SONU ★★★
+    const statKeyMap = { 
+        'health_potion': 'hp', 'damage_potion': 'damage', 'defense_potion': 'defense', 
+        'crit_potion': 'critChance', 'crit_damage_potion': 'critDamage', 
+        'dodge_potion': 'dodgeChance', 'pierce_potion': 'pierceChance' 
+    };
+    const statKey = statKeyMap[reward.type];
 
-        default:
-             const statKeyMap = { 'health_potion': 'hp', 'damage_potion': 'damage', 'defense_potion': 'defense', 'crit_potion': 'critChance', 'crit_damage_potion': 'critDamage', 'dodge_potion': 'dodgeChance', 'pierce_potion': 'pierceChance' };
-             const statKey = statKeyMap[reward.type];
-             if (statKey) {
-                if (!userData.globalPotionBuffs) userData.globalPotionBuffs = {};
-                userData.globalPotionBuffs[statKey] = (userData.globalPotionBuffs[statKey] || 0) + value;
-             }
-             break;
+    // --- LİMİT KONTROL MANTIĞI ---
+    if (statKey) {
+        const amountToAdd = reward.amount || reward.value || 0;
+        const capCheck = checkPotionCap(userData, reward.type, amountToAdd);
+        
+        if (capCheck.canAdd && capCheck.amount > 0) {
+            if (!userData.globalPotionBuffs) userData.globalPotionBuffs = {};
+            userData.globalPotionBuffs[statKey] = (userData.globalPotionBuffs[statKey] || 0) + capCheck.amount;
+            // Orijinal ödül (kısmen veya tamamen) uygulandı.
+        } else {
+            // Kullanıcı limitte, ödülü +1 Kutu Hakkı'na dönüştür.
+            userData.kutuHakki = (userData.kutuHakki || 0) + 1;
+            // Çağıran fonksiyona bir dönüşüm olduğunu bildir.
+            return { cardPacksToOpen, convertedToBoxRight: true, originalReward: reward };
+        }
+    } 
+    // --- LİMİT KONTROL MANTIĞI SONU ---
+    else {
+        // İksir olmayan diğer ödüller için orijinal mantık devam ediyor.
+        switch (reward.type) {
+            case 'points':
+                userData.balance = (userData.balance || 0) + value;
+                userData.kariyerPuani = (userData.kariyerPuani || 0) + value;
+                break;
+            case 'boxRights': userData.kutuHakki = (userData.kutuHakki || 0) + value; break;
+            case 'wheelTicket': userData.carkBileti = (userData.carkBileti || 0) + value; break;
+            case 'clickCatchTicket': userData.clickCatchTickets = (userData.clickCatchTickets || 0) + value; break;
+            case 'iflasShield': userData.iflasShieldUses = (userData.iflasShieldUses || 0) + value; break;
+            case 'wildcard': userData.wildcards = (userData.wildcards || 0) + value; break;
+            case 'revival_stone':
+                if (!userData.inventory) userData.inventory = {};
+                userData.inventory.revival_stone = (userData.inventory.revival_stone || 0) + value;
+                break;
+            case 'avatar':
+                const newAvatarId = firebase.database().ref().push().key;
+                if (!userData.avatars) userData.avatars = {};
+                userData.avatars[newAvatarId] = { id: newAvatarId, name: reward.avatarName, imageUrl: reward.avatarImageUrl };
+                break;
+            case 'tempMultiplier':
+                userData.activeMultiplier = reward.value || 1;
+                userData.multiplierRemainingUses = reward.uses || 0;
+                userData.multiplierSource = 'store';
+                break;
+            case 'card':
+                if (!userData.cardCollection) userData.cardCollection = {};
+                if (!userData.cardCollection[reward.cardId]) {
+                    userData.cardCollection[reward.cardId] = { count: 0 };
+                }
+                userData.cardCollection[reward.cardId].count += (reward.amount || 1);
+                break;
+            case 'card_pack':
+            case 'card_pack_normal':
+            case 'card_pack_gumus':
+            case 'card_pack_altin':
+            case 'card_pack_efsanevi':
+                cardPacksToOpen.push({ type: reward.type, value: value });
+                break;
+            case 'health_regen_potion':
+                if (!userData.inventory) userData.inventory = {};
+                if (!userData.inventory.health_regen_potion) userData.inventory.health_regen_potion = {};
+                const percentage = reward.value;
+                const amountToAdd = reward.amount || 1;
+                const currentPotions = userData.inventory.health_regen_potion[percentage] || 0;
+                userData.inventory.health_regen_potion[percentage] = currentPotions + amountToAdd;
+                break;
+        }
     }
-    return { cardPacksToOpen };
+    return { cardPacksToOpen, convertedToBoxRight: false };
 }
 
 async function loadCraftingRecipes() {
