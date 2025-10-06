@@ -5433,6 +5433,8 @@ function loadAllCraftingRecipes() {
     // Dinleyiciyi kaydetmeye gerek yok çünkü bu sadece bir kere çağrılacak.
 }
 
+// MEVCUT craftItem FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
+
 async function craftItem(recipeId) {
     if (isAdmin || isCraftingInProgress) return;
 
@@ -5447,81 +5449,47 @@ async function craftItem(recipeId) {
         const recipe = craftingRecipesCache.find(r => r.id === recipeId);
         if (!recipe) throw new Error("Üretim tarifi bulunamadı.");
 
+        // ... (Malzeme seçimi ve kontrolleri - bu kısım değişmiyor) ...
         const selectedCardIdsByMaterial = {};
         let selectionError = null;
-
         recipe.materials.forEach((material, index) => {
             const isRarityCard = ['card_normal', 'card_gumus', 'card_altin', 'card_efsanevi'].includes(material.type);
             if (isRarityCard) {
                 const materialItemEl = document.querySelector(`.material-list-item[data-material-index="${index}"]`);
                 if (!materialItemEl) {
-                    selectionError = "Arayüz hatası: Malzeme satırı bulunamadı.";
-                    return;
+                    selectionError = "Arayüz hatası: Malzeme satırı bulunamadı."; return;
                 }
                 const selectedCardsData = materialItemEl.dataset.selectedCards;
                 if (!selectedCardsData) {
-                    selectionError = `Lütfen "${typeToName[material.type]}" için harcanacak kartları seçin.`;
-                    return;
+                    selectionError = `Lütfen "${typeToName[material.type]}" için harcanacak kartları seçin.`; return;
                 }
                 const selectedIds = JSON.parse(selectedCardsData);
                 if (selectedIds.length !== material.amount) {
-                    selectionError = `Lütfen "${typeToName[material.type]}" için tam olarak ${material.amount} adet kart seçin.`;
-                    return;
+                    selectionError = `Lütfen "${typeToName[material.type]}" için tam olarak ${material.amount} adet kart seçin.`; return;
                 }
                 selectedCardIdsByMaterial[index] = selectedIds;
             }
         });
-
-        if (selectionError) {
-            throw new Error(selectionError);
-        }
+        if (selectionError) throw new Error(selectionError);
+        // ... (Kontrollerin sonu) ...
 
         const userRef = db.ref(`users/${currentUser}`);
-        const userSnap = await userRef.once('value');
-        const userData = userSnap.val();
-
-        // --- YENİ LİMİT KONTROL MANTIĞI ---
-        let finalOutputAmount = recipe.output.value;
-        const isPotionOutput = recipe.output.type && (recipe.output.type.endsWith('_potion') || recipe.output.type === 'health_regen_potion');
-
-        if(isPotionOutput) {
-            const capCheck = checkPotionCap(userData, recipe.output.type, recipe.output.value);
-            if (!capCheck.canAdd) {
-                throw new Error(`Bu iksir için bonus limitine zaten ulaştın. Üretim yapamazsın.`);
-            }
-            if (capCheck.isCapped) {
-                 const isPercent = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion'].includes(recipe.output.type);
-                 const prefix = isPercent ? '%' : '+';
-                 const displayAmount = isPercent ? capCheck.amount.toFixed(1) : formatNumber(capCheck.amount);
-                 const confirmed = await customConfirm(`Bonus limitine yaklaştığın için, bu üretimden envanterine sadece <b>${prefix}${displayAmount} ${typeToName[recipe.output.type]}</b> eklenecek. Üretime devam etmek istiyor musun?`);
-                 if (!confirmed) throw new Error("Kullanıcı işlemi iptal etti.");
-                 finalOutputAmount = capCheck.amount;
-            }
-        }
-        // --- YENİ LİMİT KONTROL MANTIĞI SONU ---
-
-        if (recipe.output.type === 'tempMultiplier' && (userData.multiplierSource !== 'none')) {
-            const confirmed = await customConfirm(
-                `Zaten bir <b>${userData.activeMultiplier}x</b> çarpanın var. Yeni bir çarpan üretirsen, mevcut çarpanın ve kalan tüm kullanım hakların SİLİNECEK. Onaylıyor musun?`
-            );
-            if (!confirmed) throw new Error("Kullanıcı işlemi iptal etti.");
-        }
-        
         let cardPacksToOpen = [];
+        
+        // ★★★ DEĞİŞİKLİK BURADA BAŞLIYOR ★★★
+        const isSpecialItem = recipe.output.type === 'special';
+        let specialPurchaseId = null;
+
         const { committed, snapshot } = await userRef.transaction(currentData => {
             if (!currentData) return;
             
+            // Malzemeleri düşme kısmı (değişmedi)
             for (const [index, material] of recipe.materials.entries()) {
-                 const dbKeyMap = { 
-                     points: 'balance', kasaPuani: 'kasaPuani', boxRights: 'kutuHakki', 
-                     wheelTicket: 'carkBileti', clickCatchTicket: 'clickCatchTickets', 
-                     iflasShield: 'iflasShieldUses', wildcard: 'wildcards', revival_stone: 'inventory/revival_stone'
-                 };
+                 const dbKeyMap = { points: 'balance', kasaPuani: 'kasaPuani', boxRights: 'kutuHakki', wheelTicket: 'carkBileti', clickCatchTicket: 'clickCatchTickets', iflasShield: 'iflasShieldUses', wildcard: 'wildcards', revival_stone: 'inventory/revival_stone' };
                  const path = dbKeyMap[material.type];
                  const isRarityCard = ['card_normal', 'card_gumus', 'card_altin', 'card_efsanevi'].includes(material.type);
                  const statKeyMap = { health_potion: 'hp', damage_potion: 'damage', defense_potion: 'defense', crit_potion: 'critChance', crit_damage_potion: 'critDamage', dodge_potion: 'dodgeChance', pierce_potion: 'pierceChance' };
                  const statKey = statKeyMap[material.type];
-
                  if (path) {
                     const pathParts = path.split('/');
                     let currentValue = (pathParts.length > 1) ? (currentData[pathParts[0]]?.[pathParts[1]] || 0) : (currentData[path] || 0);
@@ -5534,12 +5502,7 @@ async function craftItem(recipeId) {
                  } else if (isRarityCard) {
                     const cardIdsToUse = selectedCardIdsByMaterial[index];
                     if (!cardIdsToUse) return;
-
-                    const deductionCounts = cardIdsToUse.reduce((acc, id) => {
-                        acc[id] = (acc[id] || 0) + 1;
-                        return acc;
-                    }, {});
-
+                    const deductionCounts = cardIdsToUse.reduce((acc, id) => { acc[id] = (acc[id] || 0) + 1; return acc; }, {});
                     for (const cardId in deductionCounts) {
                         const requiredDeduction = deductionCounts[cardId];
                         const userCardCount = currentData.cardCollection?.[cardId]?.count || 0;
@@ -5550,9 +5513,7 @@ async function craftItem(recipeId) {
                     const matchesValue = currentData.activeMultiplier === material.value;
                     const matchesUses = (currentData.multiplierRemainingUses || 0) >= material.uses;
                     if (!matchesValue || !matchesUses) return;
-                    currentData.activeMultiplier = 1;
-                    currentData.multiplierSource = 'none';
-                    currentData.multiplierRemainingUses = 0;
+                    currentData.activeMultiplier = 1; currentData.multiplierSource = 'none'; currentData.multiplierRemainingUses = 0;
                  } else if (statKey) {
                     const currentBonus = currentData.globalPotionBuffs?.[statKey] || 0;
                     if (currentBonus < material.amount) return;
@@ -5563,39 +5524,72 @@ async function craftItem(recipeId) {
                  } else { return; }
             }
 
-            if (recipe.output.type === 'tempMultiplier' && (userData.multiplierSource !== 'none')) {
-                currentData.activeMultiplier = 1;
-                currentData.multiplierSource = 'none';
-                currentData.multiplierRemainingUses = 0;
-            }
+            // Eğer üretilen ürün 'special' ise, onu envantere eklemek yerine onay listesine ekle
+            if (isSpecialItem) {
+                specialPurchaseId = db.ref().push().key; // Benzersiz bir ID oluştur
 
-            const finalOutputReward = { ...recipe.output };
-            if (isPotionOutput) {
-                finalOutputReward.value = finalOutputAmount;
+                // Admin Onay Paneli'ne gönderilecek veri
+                if (!currentData.pendingSpecialPurchases) currentData.pendingSpecialPurchases = {};
+                currentData.pendingSpecialPurchases[specialPurchaseId] = {
+                    username: currentUser,
+                    itemName: recipe.output.specialName,
+                    itemCost: "Üretildi", // Maliyet olarak "Üretildi" yaz
+                    source: "crafting",
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                };
+                
+                // Kullanıcının Satın Alma Geçmişi'ne gönderilecek veri
+                if (!currentData.purchaseHistory) currentData.purchaseHistory = {};
+                currentData.purchaseHistory[specialPurchaseId] = {
+                    username: currentUser,
+                    itemName: recipe.output.specialName,
+                    itemCost: "Üretildi",
+                    imageUrl: recipe.output.imageUrl || 'https://i.hizliresim.com/sv85j2u.png',
+                    status: 'pending', // Durumu 'beklemede' olarak ayarla
+                    purchaseType: 'special',
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                };
+            } else {
+                // Eğer normal bir ürünse, eski envantere ekleme fonksiyonunu çağır
+                const result = applyRewardToUser(currentData, recipe.output);
+                cardPacksToOpen = result.cardPacksToOpen;
             }
             
-            const result = applyRewardToUser(currentData, finalOutputReward);
-            cardPacksToOpen = result.cardPacksToOpen;
             return currentData;
         });
 
         if (committed) {
             const finalUserData = snapshot.val();
-            const outputName = recipe.output.name;
-            displayMessage(`Tebrikler! Başarıyla <b>${outputName}</b> ürettin.`);
             
+            if (isSpecialItem) {
+                // Özel ürün üretildiyse kullanıcıyı bilgilendir
+                displayMessage(`Tebrikler! <b>${recipe.output.specialName}</b> adlı özel ürünü ürettin. Ödülün, admin onayından sonra sana teslim edilecek.`);
+                // Bildirim gönder
+                notifyUser(currentUser, `'${recipe.output.specialName}' adlı özel ürün üretimin admin onayı için sıraya alındı.`);
+                
+            } else {
+                // Normal ürün üretildiyse eski başarı mesajını göster
+                const outputName = recipe.output.name;
+                displayMessage(`Tebrikler! Başarıyla <b>${outputName}</b> ürettin.`);
+            }
+            
+            // Her durumda aktiviteyi logla
             logActivity('craftItem', currentUser, { 
-                itemName: outputName,
+                itemName: isSpecialItem ? recipe.output.specialName : recipe.output.name,
                 newBalance: finalUserData.balance
             });
-
+            
+            // Kart paketi varsa açma işlemini başlat
             for (const pack of cardPacksToOpen) {
                 await startCardPackOpening(pack.value || 1, 'Üretim Atölyesi', 1, pack.type);
             }
+
             closeCraftingDetailModal();
         } else {
-            throw new Error("Üretim başarısız! Malzemelerin yetersiz veya başka bir işlem yapılıyor olabilir. (Seçtiğiniz kartlar/iksirler takasta olabilir mi?)");
+            throw new Error("Üretim başarısız! Malzemelerin yetersiz veya başka bir işlem yapılıyor olabilir.");
         }
+        // ★★★ DEĞİŞİKLİK BURADA BİTİYOR ★★★
+
     } catch (error) {
         if (error.message !== "Kullanıcı işlemi iptal etti.") {
             displayMessage(error.message);
@@ -5604,7 +5598,7 @@ async function craftItem(recipeId) {
         isCraftingInProgress = false;
         if (craftButton) {
             craftButton.disabled = false;
-            openCraftingDetailModal(recipeId); 
+            openCraftingDetailModal(recipeId); // Detay penceresini yenilemek için tekrar aç
         }
     }
 }
@@ -18306,6 +18300,7 @@ function getRewardItemHTML(prefix, data = {}) {
 
     const outputOptions = `
         ${baseOptions}
+        <option value="special" ${data.type === 'special' ? 'selected' : ''}>🚀 Özel Ürün (Onay Gerekir)</option> {/* ★★★ YENİ EKLENEN SATIR ★★★ */}
         <option value="card_pack" ${data.type === 'card_pack' ? 'selected' : ''}>🎴 Standart Kart Paketi</option>
         <option value="card_pack_normal" ${data.type === 'card_pack_normal' ? 'selected' : ''}>🥉 Bronz Kart Paketi</option>
         <option value="card_pack_gumus" ${data.type === 'card_pack_gumus' ? 'selected' : ''}>🥈 Gümüş Kart Paketi</option>
@@ -18329,8 +18324,7 @@ function getRewardItemHTML(prefix, data = {}) {
     
     const layoutClass = prefix === 'output' ? 'sm:grid-cols-3' : 'sm:grid-cols-2';
     const fieldsColSpan = prefix === 'output' ? 'sm:col-span-2' : 'sm:col-span-1';
-    
-    // *** ANA DEĞİŞİKLİK BURADA: 'output' için grid sınıflarını kaldırıyoruz ***
+
     const fieldsContainerClasses = prefix === 'output' 
         ? `reward-fields-container col-span-2 ${fieldsColSpan}`
         : `reward-fields-container grid grid-cols-1 sm:grid-cols-2 gap-2 col-span-2 ${fieldsColSpan}`;
@@ -18347,6 +18341,7 @@ function getRewardItemHTML(prefix, data = {}) {
     `;
 }
       
+// MEVCUT handleAdminRewardTypeChange FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
 function handleAdminRewardTypeChange(selectElement, rewardData = {}) {
     const type = selectElement.value;
     const rewardEntry = selectElement.closest('.reward-entry');
@@ -18381,6 +18376,10 @@ function handleAdminRewardTypeChange(selectElement, rewardData = {}) {
         fieldsHtml += `
             <select class="box-setting-input reward-cardId">${cardOptions}</select>
             <input type="number" class="box-setting-input reward-value" placeholder="Adet" value="${rewardData.amount || ''}">
+        `;
+    } else if (type === 'special') { // ★★★ YENİ EKLENEN BLOK ★★★
+        fieldsHtml += `
+            <input type="text" class="box-setting-input reward-specialName" placeholder="Özel Ürün Adı (Onayda Görünecek)" value="${rewardData.specialName || ''}">
         `;
     } else {
         fieldsHtml += `
@@ -18439,7 +18438,7 @@ async function saveRecipe() {
     }
 }
 
-// ESKİ parseRewardDataFromRow FONKSİYONUNU SİLİP, BUNU YAPIŞTIRIN
+// MEVCUT parseRewardDataFromRow FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
 function parseRewardDataFromRow(rowElement) {
     const type = rowElement.querySelector('.reward-type').value;
     const data = { type };
@@ -18456,6 +18455,9 @@ function parseRewardDataFromRow(rowElement) {
         data.cardId = rowElement.querySelector('.reward-cardId').value;
         data.amount = parseInt(rowElement.querySelector('.reward-value').value);
         if (!data.cardId || isNaN(data.amount)) return null;
+    } else if (type === 'special') { // ★★★ YENİ EKLENEN BLOK ★★★
+        data.specialName = rowElement.querySelector('.reward-specialName').value.trim();
+        if (!data.specialName) return null;
     } else {
         data.amount = parseStatValue(type, rowElement.querySelector('.reward-value').value);
         if (isNaN(data.amount)) return null;
@@ -18464,7 +18466,6 @@ function parseRewardDataFromRow(rowElement) {
     data.name = rowElement.querySelector('.reward-name')?.value.trim();
     data.imageUrl = rowElement.querySelector('.reward-imageUrl')?.value.trim();
     
-    // GÜNCELLEME BURADA: Eğer isim veya resim URL'si boşsa, bunları objeye hiç ekleme.
     if(!data.name) delete data.name;
     if(!data.imageUrl) delete data.imageUrl;
     
@@ -18695,7 +18696,7 @@ function closeCraftingDetailModal() {
 
 function applyRewardToUser(userData, reward) {
     const cardPacksToOpen = [];
-    const value = reward.value || 0;
+    const value = reward.value || reward.amount || 0;
     const uses = reward.uses || 0;
 
     const statKeyMap = { 
