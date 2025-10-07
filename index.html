@@ -21622,8 +21622,6 @@ function closeLetterInputModal() {
     document.getElementById('letterInputModal').style.display = 'none';
 }
 
-// MEVCUT submitLetter FONKSİYONUNU SİL VE BUNUNLA DEĞİŞTİR
-
 async function submitLetter() {
     if (isAdmin) {
         displayMessage("Adminler oyun oynayamaz.");
@@ -21669,13 +21667,13 @@ async function submitLetter() {
                 displayMessage(`Harf doğru! Kazandığın ödül: <b class="text-green-400">${rewardText}</b>`);
                 
                 let cardPacksToOpen = [];
-                let newBalance; // Yeni bakiye bilgisini tutmak için değişken
+                let newBalance; 
 
                 await userRef.transaction(userData => {
                     if (userData) {
                         const result = applyRewardToUser(userData, reward);
                         cardPacksToOpen.push(...result.cardPacksToOpen);
-                        newBalance = userData.balance; // Güncellenmiş bakiyeyi al
+                        newBalance = userData.balance; 
                     }
                     return userData;
                 });
@@ -21687,16 +21685,14 @@ async function submitLetter() {
                     avatarUrl: userAvatar
                 }));
 
-                // ★★★ YENİ EKLENEN LOGLAMA KODU ★★★
                 const logDetails = {
                     letter: letter,
                     rewardText: rewardText
                 };
                 if (reward.type === 'points') {
-                    logDetails.newBalance = newBalance; // Eğer ödül puansa, yeni bakiyeyi log'a ekle
+                    logDetails.newBalance = newBalance; 
                 }
                 logActivity('wordGameGuess', currentUser, logDetails);
-                // ★★★ YENİ KOD SONU ★★★
                 
                 for (const pack of cardPacksToOpen) {
                     await startCardPackOpening(pack.value || 1, 'Kelime Oyunu', 1, pack.type);
@@ -21708,7 +21704,10 @@ async function submitLetter() {
                 await userRef.update({
                     wordGameCooldown: getSyncedTime() + (cooldownSeconds * 1000)
                 });
-                displayMessage(`Harf yanlış! ${cooldownSeconds} saniye sonra tekrar deneyebilirsin.`);
+                // ▼▼▼ DEĞİŞEN SATIRLAR BAŞLANGICI ▼▼▼
+                const durationText = formatDurationFromSeconds(cooldownSeconds);
+                displayMessage(`Harf yanlış! ${durationText} sonra tekrar deneyebilirsin.`);
+                // ▲▲▲ DEĞİŞEN SATIRLAR SONU ▲▲▲
             }
         } else {
             // BAŞKASI ÇÖZDÜ
@@ -21738,7 +21737,9 @@ function handleCooldown(cooldownEndTimestamp) {
             listenForWordGameData(); 
         } else {
             const remainingSeconds = Math.ceil((wordGameCooldownEnd - now) / 1000);
-            timerEl.textContent = `${remainingSeconds} saniye`;
+            // ▼▼▼ DEĞİŞEN SATIR ▼▼▼
+            timerEl.textContent = formatDurationFromSeconds(remainingSeconds);
+            // ▲▲▲ DEĞİŞEN SATIR SONU ▲▲▲
             infoEl.classList.remove('hidden');
         }
     };
@@ -22025,6 +22026,34 @@ function getRewardIcon(type) {
         health_regen_potion: '🧪'
     };
     return iconMap[type] || '🎁'; // Eşleşme bulunamazsa varsayılan olarak hediye paketi göster
+}
+
+/**
+ * Saniyeyi "X gün Y saat Z dakika W saniye" formatına çevirir.
+ * Sıfır olan birimleri atlar (örn: 0 gün demez).
+ * @param {number} totalSeconds - Çevrilecek toplam saniye.
+ * @returns {string} Biçimlendirilmiş zaman metni.
+ */
+function formatDurationFromSeconds(totalSeconds) {
+    if (totalSeconds <= 0) {
+        return "0 saniye";
+    }
+
+    const days = Math.floor(totalSeconds / 86400);
+    totalSeconds %= 86400;
+    const hours = Math.floor(totalSeconds / 3600);
+    totalSeconds %= 3600;
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = Math.floor(totalSeconds % 60); // Math.floor ekledik
+
+    const parts = [];
+    if (days > 0) parts.push(`${days} gün`);
+    if (hours > 0) parts.push(`${hours} saat`);
+    if (minutes > 0) parts.push(`${minutes} dakika`);
+    if (seconds > 0) parts.push(`${seconds} saniye`);
+
+    // Eğer hiçbir parça yoksa (çok küçük bir saniye değeri için), 0 saniye döndür
+    return parts.length > 0 ? parts.join(' ') : "0 saniye";
 }
 </script>
 </body>
