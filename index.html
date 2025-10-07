@@ -21728,8 +21728,9 @@ function renderQuestions(questionsData) {
                         <span class="reward-icon" title="${formatRewardText(letter.reward.type, letter.reward.amount || letter.reward.value)}">${getRewardIcon(letter.reward.type)}</span>
                     </div>`;
             } else {
-                // Çözülmemiş harf kutusu (bekleme süresindeyse tıklanamaz)
-                const onClickAction = isCoolingDown ? '' : `onclick="openLetterInputModal(${qIndex}, ${lIndex})"`;
+                // ★★★ DEĞİŞİKLİK BURADA ★★★
+                // Çözülmemiş harf kutusu (bekleme süresindeyse kalan süreyi gösterir, değilse harf girme penceresini açar)
+                const onClickAction = isCoolingDown ? `onclick="showCooldownMessage()"` : `onclick="openLetterInputModal(${qIndex}, ${lIndex})"`;
                 contentHtml += `<div class="answer-letter unsolved" ${onClickAction}></div>`;
             }
         });
@@ -21743,7 +21744,17 @@ function renderQuestions(questionsData) {
     });
 }
 
-
+/**
+ * YENİ: Kelime oyunu bekleme süresindeyken kapalı bir kutuya tıklandığında bilgilendirme mesajı gösterir.
+ */
+function showCooldownMessage() {
+    if (wordGameCooldownEnd > getSyncedTime()) {
+        const remainingSeconds = Math.ceil((wordGameCooldownEnd - getSyncedTime()) / 1000);
+        const durationText = formatDurationFromSeconds(remainingSeconds);
+        displayMessage(`Tekrar harf girebilmek için beklemen gerekiyor. Kalan süre: <b class="text-yellow-300">${durationText}</b>`);
+    }
+}
+   
 function renderWordGameLeaderboard(leaderboardData) {
     const leaderboardEl = document.getElementById('wordGameLeaderboard');
     if (!leaderboardData) {
@@ -21771,7 +21782,13 @@ function renderWordGameLeaderboard(leaderboardData) {
 }
 
 function openLetterInputModal(qIndex, lIndex) {
-    if (wordGameCooldownEnd > getSyncedTime()) return;
+    // ★★★ DEĞİŞİKLİK BURADA ★★★
+    // Bekleme süresi bitmeden bu pencerenin açılmasını engelleyen ek kontrol.
+    if (wordGameCooldownEnd > getSyncedTime()) {
+        showCooldownMessage(); // Kalan süreyi göster
+        return;
+    }
+
     const modal = document.getElementById('letterInputModal');
     const input = document.getElementById('letterInput');
     modal.dataset.qIndex = qIndex;
