@@ -4484,11 +4484,17 @@ body.modal-open .modal-content {
     <div class="flex-grow overflow-y-auto scrollable-list pr-4 space-y-4">
         <div class="bg-gray-800 p-4 rounded-lg">
             <h4 class="text-lg font-bold text-yellow-300 mb-2">Genel Ayarlar</h4>
+            
             <div>
-                <label class="block text-sm text-gray-400">Yanlış Cevap Bekleme Süresi (saniye)</label>
-                <input type="number" id="cooldownInput" class="box-setting-input mt-1 w-full md:w-1/3" value="60">
+                <label class="block text-sm text-gray-400">Yanlış Cevap Bekleme Süresi</label>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1">
+                    <input type="number" id="cooldownDays" class="box-setting-input" placeholder="Gün">
+                    <input type="number" id="cooldownHours" class="box-setting-input" placeholder="Saat">
+                    <input type="number" id="cooldownMinutes" class="box-setting-input" placeholder="Dakika">
+                    <input type="number" id="cooldownSeconds" class="box-setting-input" placeholder="Saniye">
+                </div>
             </div>
-        </div>
+            </div>
 
         <div class="bg-gray-800 p-4 rounded-lg">
             <h4 class="text-lg font-bold text-yellow-300 mb-2">Sorular ve Cevaplar</h4>
@@ -21792,9 +21798,7 @@ function addQuestionBlock() {
     container.appendChild(block);
 }
 
-   // YENİ VE GÜNCELLENMİŞ FONKSİYONLAR
-
-async function openWordGameAdminModal() {
+   async function openWordGameAdminModal() {
     if (!isAdmin) return;
     const container = document.getElementById('questionBlocksContainer');
     container.innerHTML = '<p class="text-center text-gray-400">Mevcut oyun ayarları yükleniyor...</p>';
@@ -21805,19 +21809,29 @@ async function openWordGameAdminModal() {
 
     container.innerHTML = ''; // Paneli temizle
 
-    if (gameData && gameData.settings) {
-        document.getElementById('cooldownInput').value = gameData.settings.cooldown || 60;
-    } else {
-        document.getElementById('cooldownInput').value = 60; // Varsayılan
-    }
+    // ▼▼▼ DEĞİŞEN KISIM BAŞLANGICI ▼▼▼
+    const cooldownSecondsTotal = (gameData && gameData.settings) ? gameData.settings.cooldown || 60 : 60;
+    
+    // Toplam saniyeyi gün, saat, dakika, saniyeye çevir
+    const days = Math.floor(cooldownSecondsTotal / 86400);
+    let remainder = cooldownSecondsTotal % 86400;
+    const hours = Math.floor(remainder / 3600);
+    remainder %= 3600;
+    const minutes = Math.floor(remainder / 60);
+    const seconds = remainder % 60;
+
+    // Inputları doldur
+    document.getElementById('cooldownDays').value = days > 0 ? days : '';
+    document.getElementById('cooldownHours').value = hours > 0 ? hours : '';
+    document.getElementById('cooldownMinutes').value = minutes > 0 ? minutes : '';
+    document.getElementById('cooldownSeconds').value = seconds > 0 ? seconds : '';
+    // ▲▲▲ DEĞİŞEN KISIM SONU ▲▲▲
 
     if (gameData && gameData.questions && gameData.questions.length > 0) {
-        // Kayıtlı sorular varsa, onları panele yükle
         gameData.questions.forEach(questionData => {
             addQuestionBlock(questionData);
         });
     } else {
-        // Kayıtlı soru yoksa, başlangıç için boş bir tane ekle
         addQuestionBlock();
     }
 }
@@ -21883,7 +21897,6 @@ function generateRewardFields(answerInput, lettersData = null) {
 async function saveWordGameSettings(shouldResetProgress = false) {
     if (!isAdmin) return;
     
-    // 1. ADIM: Butona göre doğru onay mesajını göster.
     let confirmationMessage = '';
     if (shouldResetProgress) {
         confirmationMessage = "Bu işlem mevcut bulmacayı tamamen silip yenisini oluşturacak ve liderlik tablosunu sıfırlayacaktır. Emin misiniz?";
@@ -21895,7 +21908,6 @@ async function saveWordGameSettings(shouldResetProgress = false) {
     if (!confirmed) return;
 
     try {
-        // 2. ADIM: İlerlemeyi korumak için mevcut oyun verisini çek.
         const oldGameSnap = await db.ref('wordGame').once('value');
         const oldGameData = oldGameSnap.val();
 
@@ -21933,10 +21945,8 @@ async function saveWordGameSettings(shouldResetProgress = false) {
                     solvedAt: null
                 };
 
-                // 3. ADIM: İlerlemeyi koruma mantığı
                 if (!shouldResetProgress && oldGameData && oldGameData.questions && oldGameData.questions[qIndex]) {
                     const oldQuestion = oldGameData.questions[qIndex];
-                    // Sadece cevap metni hala aynıysa ilerlemeyi koru
                     if (oldQuestion.answer === answer && oldQuestion.letters[i] && oldQuestion.letters[i].solved) {
                         letterState.solved = true;
                         letterState.solver = oldQuestion.letters[i].solver;
@@ -21950,13 +21960,20 @@ async function saveWordGameSettings(shouldResetProgress = false) {
         
         if (hasError) return;
 
+        // ▼▼▼ DEĞİŞEN KISIM BAŞLANGICI ▼▼▼
+        const days = parseInt(document.getElementById('cooldownDays').value) || 0;
+        const hours = parseInt(document.getElementById('cooldownHours').value) || 0;
+        const minutes = parseInt(document.getElementById('cooldownMinutes').value) || 0;
+        const seconds = parseInt(document.getElementById('cooldownSeconds').value) || 0;
+        const totalCooldownSeconds = (days * 86400) + (hours * 3600) + (minutes * 60) + seconds;
+        // ▲▲▲ DEĞİŞEN KISIM SONU ▲▲▲
+
         const updates = {};
         updates['/wordGame/settings'] = {
-            cooldown: parseInt(document.getElementById('cooldownInput').value) || 60,
+            cooldown: totalCooldownSeconds, // Artık toplam saniyeyi kaydediyoruz
         };
         updates['/wordGame/questions'] = questions;
 
-        // 4. ADIM: Sadece sıfırlama istenirse liderlik tablosunu temizle.
         if (shouldResetProgress) {
             updates['/wordGame/leaderboard'] = null; 
             displayMessage("Kelime Oyunu başarıyla sıfırlandı ve yeni ayarlarla başlatıldı!");
