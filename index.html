@@ -2240,7 +2240,10 @@ body.modal-open .modal-content {
     <div id="craftingContent" class="w-full hidden">
     <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700">
         <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-            <h3 class="text-yellow-400 text-3xl font-bold text-center md:text-left">Üretim Atölyesi</h3>
+            <div class="flex items-center gap-4">
+    <h3 class="text-yellow-400 text-3xl font-bold text-center md:text-left">Üretim Atölyesi</h3>
+    <button onclick="openCraftingInfoModal()" class="info-button" title="Oyun Hakkında Bilgi">?</button>
+</div>
             <div class="w-full md:w-auto flex flex-col sm:flex-row gap-3">
                 <input type="text" id="craftingSearchInput" oninput="loadCraftingRecipes()" placeholder="Üretilecek eşya ara..." class="w-full sm:w-64 p-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500">
                 <button id="craftingAdminBtn" onclick="openRecipeCreatorModal()" class="hidden py-2 px-4 bg-green-600 hover:bg-green-500 rounded-lg font-bold text-sm">
@@ -2257,7 +2260,10 @@ body.modal-open .modal-content {
         <div id="wordGameContent" class="w-full hidden">
     <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-red-700">
         <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-            <h3 class="text-yellow-400 text-3xl font-bold text-center md:text-left">Ortak Akıl: Kelime Oyunu</h3>
+            <div class="flex items-center gap-4">
+    <h3 class="text-yellow-400 text-3xl font-bold text-center md:text-left">Ortak Akıl: Kelime Oyunu</h3>
+    <button onclick="openWordGameInfoModal()" class="info-button" title="Oyun Hakkında Bilgi">?</button>
+</div>
             <button id="wordGameAdminBtn" onclick="openWordGameAdminModal()" class="hidden py-2 px-4 bg-purple-600 hover:bg-purple-500 rounded-lg font-bold text-sm">
                 Yönetim Paneli
             </button>
@@ -2275,6 +2281,26 @@ body.modal-open .modal-content {
 
             <div class="lg:col-span-1 bg-gray-900/50 p-4 rounded-lg">
                 <h4 class="text-xl font-bold text-yellow-300 mb-3 border-b border-gray-600 pb-2">En Çok Çözenler 🧠</h4>
+             <div id="wordGameStatsContainer" class="hidden w-full max-w-2xl mx-auto my-6 bg-gray-900/50 p-4 rounded-xl shadow-lg border-2 border-cyan-500 text-center space-y-3">
+    <div class="grid grid-cols-3 gap-2 text-center">
+        <div>
+            <p class="text-sm text-gray-400">Toplam Soru</p>
+            <p id="totalQuestionsStat" class="text-xl font-bold text-white">0</p>
+        </div>
+        <div>
+            <p class="text-sm text-gray-400">Çözülen Soru</p>
+            <p id="solvedQuestionsStat" class="text-xl font-bold text-green-400">0</p>
+        </div>
+        <div>
+            <p class="text-sm text-gray-400">Kalan Soru</p>
+            <p id="remainingQuestionsStat" class="text-xl font-bold text-red-400">0</p>
+        </div>
+    </div>
+    <div class="border-t border-gray-700 pt-3">
+        <p class="text-base text-cyan-300">🏆 Şampiyon Ödülü:</p>
+        <p id="wordGameChampionPrize" class="text-lg font-bold text-white">Henüz belirlenmedi</p>
+    </div>
+</div>
                 <div id="wordGameLeaderboard" class="space-y-2 max-h-96 overflow-y-auto scrollable-list pr-2">
                     </div>
             </div>
@@ -3333,6 +3359,11 @@ body.modal-open .modal-content {
                 <h5 class="text-xl font-semibold text-purple-400 mb-2">🃏 Kart Koleksiyonu & Takas Pazarı</h5>
                 <p class="mb-2">Koleksiyonu tamamlamak için oyun içinden kazandığın <b class="text-white">Kart Paketlerini</b> açarak kart elde edersin. Fazla kartlarını <b class="text-green-400">Takas Pazarı</b>'nda diğer oyuncularla takas ederek eksiklerini tamamlayabilirsin.</p>
             </div>
+            
+            <div>
+                <h5 class="text-xl font-semibold text-indigo-400 mb-2">🛠️ Üretim Atölyesi</h5>
+                <p class="mb-2">Elindeki fazla veya gereksiz malzemeleri (puan, kartlar, iksirler vb.) kullanarak yepyeni ve daha değerli eşyalar üretebileceğin yerdir. Bir tarife tıklayarak gereken malzemeleri ve elinde ne kadar olduğunu görebilirsin.</p>
+            </div>
 
             <div>
                 <h5 class="text-xl font-semibold text-teal-400 mb-2">🎡 Şans Çarkı</h5>
@@ -3343,6 +3374,12 @@ body.modal-open .modal-content {
                 <h5 class="text-xl font-semibold text-orange-400 mb-2">🎯 Tıkla-Yakala</h5>
                 <p class="mb-2">İki modu vardır: <b class="text-white">Tekli Oyun</b> modunda haftalık liderlik için yarışırsın. <b class="text-white">Lobi Oyunu</b> modunda ise admin tarafından kurulan anlık bir yarışa katılarak büyük ödülü kazanmaya çalışırsın.</p>
             </div>
+
+             <div>
+                <h5 class="text-xl font-semibold text-cyan-400 mb-2">🧠 Ortak Akıl: Kelime Oyunu</h5>
+                <p class="mb-2">Tüm sunucunun birlikte çalıştığı bir bulmaca oyunudur. Soruları oku, cevabı tahmin et ve boş kutucuklara doğru harfleri yerleştir. Her doğru harf tahmini, sahibine anında bir ödül kazandırır. Tüm harfler bittiğinde en çok harfi bulan oyuncu şampiyon olur!</p>
+            </div>
+
         </div>
     </div>
     
@@ -4526,6 +4563,71 @@ body.modal-open .modal-content {
         <button onclick="saveWordGameSettings(false)" class="py-3 px-6 bg-blue-700 hover:bg-blue-600 text-white font-bold rounded-lg">Ayarları Kaydet (İlerlemeyi Koru)</button>
         <button onclick="saveWordGameSettings(true)" class="py-3 px-6 bg-green-700 hover:bg-green-600 text-white font-bold rounded-lg">Yeni Oyun Başlat (Her Şeyi Sıfırla)</button>
         <button onclick="resetWordGame()" class="py-3 px-6 bg-red-800 hover:bg-red-700 text-white font-bold rounded-lg">Mevcut Oyunu Tamamen Sil</button>
+    </div>
+  </div>
+</div>
+ <div id="craftingInfoModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[10001] hidden">
+  <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-blue-500 w-11/12 max-w-2xl text-left relative max-h-[90vh] flex flex-col">
+    <button class="modal-close-button" onclick="closeCraftingInfoModal()">&times;</button>
+    <h3 class="text-blue-300 text-3xl font-bold mb-6 text-center">Üretim Atölyesi Rehberi</h3>
+
+    <div class="space-y-4 text-gray-300 overflow-y-auto scrollable-list pr-4">
+        <div>
+            <h4 class="font-bold text-lg text-yellow-300">🛠️ Amaç Nedir?</h4>
+            <p>Üretim Atölyesi, elindeki daha basit veya fazla malzemeleri birleştirerek daha değerli ve özel eşyalar üretmeni sağlayan bir sistemdir. Puanlar, kartlar, iksirler ve hatta özel avatarlar gibi birçok farklı şeyi üretebilirsin!</p>
+        </div>
+
+        <div>
+            <h4 class="font-bold text-lg text-yellow-300">📜 Nasıl Çalışır?</h4>
+            <p>Her üretim tarifinin bir "Sonuç Ürünü" ve o ürünü yapmak için gereken bir "Malzeme Listesi" vardır.</p>
+            <ul class="list-disc list-inside ml-4 mt-2">
+                <li><b class="text-green-400">Üretilebilir Tarifler:</b> Arka planı parlak olan tarifler, tüm malzemelerine sahip olduğun anlamına gelir. Bu tariflere tıklayarak üretim yapabilirsin.</li>
+                <li><b class="text-gray-500">Üretilemeyen Tarifler:</b> Arka planı soluk ve koyu olan tarifler, en az bir malzemesinin eksik olduğu anlamına gelir. Bu tariflere tıklayarak hangi malzemelerin eksik olduğunu görebilirsin.</li>
+            </ul>
+        </div>
+
+        <div>
+            <h4 class="font-bold text-lg text-yellow-300">🃏 Kart Malzemeleri Hakkında</h4>
+            <p>Bazı tarifler, malzeme olarak belirli koleksiyon kartlarını veya belirli bir nadirlikteki herhangi bir kartı isteyebilir.</p>
+             <ul class="list-disc list-inside ml-4 mt-2">
+                <li><b>Belirli Kart:</b> Tarif, "Efsanevi Mikrofon" gibi belirli bir kartı istiyorsa, envanterinde o karttan yeterli sayıda olmalıdır.</li>
+                <li><b>Nadirlik Kartı:</b> Tarif, "Herhangi bir Bronz Kart" gibi bir nadirlik istiyorsa, takasa koymadığın ve en az 1 fazlası olan (yani 2 veya daha fazla kopyası olan) herhangi bir Bronz kartını kullanabilirsin.</li>
+             </ul>
+        </div>
+    </div>
+  </div>
+</div>
+
+<div id="wordGameInfoModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[10001] hidden">
+  <div class="modal-content bg-gray-800 p-8 rounded-xl shadow-2xl border border-blue-500 w-11/12 max-w-2xl text-left relative max-h-[90vh] flex flex-col">
+    <button class="modal-close-button" onclick="closeWordGameInfoModal()">&times;</button>
+    <h3 class="text-blue-300 text-3xl font-bold mb-6 text-center">Ortak Akıl: Kelime Oyunu Rehberi</h3>
+
+    <div class="space-y-4 text-gray-300 overflow-y-auto scrollable-list pr-4">
+        <div>
+            <h4 class="font-bold text-lg text-yellow-300">🧠 Amaç Nedir?</h4>
+            <p>Bu oyun, tüm sunucunun birlikte çalışarak soruları cevapladığı ve gizli kelimeleri/cümleleri ortaya çıkardığı bir etkinliktir. Her doğru harf tahmini, tahmini yapan oyuncuya anında bir ödül kazandırır!</p>
+        </div>
+
+        <div>
+            <h4 class="font-bold text-lg text-yellow-300">📝 Nasıl Oynanır?</h4>
+            <ul class="list-disc list-inside ml-4 mt-2">
+                <li>Sırayla verilen soruları oku.</li>
+                <li>Sorunun cevabını temsil eden boş kutucuklardan birine tıkla.</li>
+                <li>Açılan pencereye tahmin ettiğin harfi yaz ve onayla.</li>
+                <li>Eğer harf doğruysa, anında bir ödül kazanırsın ve bir sonraki tahmin için bekleme süren başlar.</li>
+                <li>Eğer harf yanlışsa, daha uzun bir bekleme süresi cezası alırsın.</li>
+            </ul>
+        </div>
+
+        <div>
+            <h4 class="font-bold text-lg text-yellow-300">🏆 Şampiyonluk ve Büyük Ödül</h4>
+            <p>Bir bulmacadaki TÜM harfler çözüldüğünde, o bulmacada en çok doğru harfi tahmin eden oyuncu "Kelime Avcısı Şampiyonu" olur ve admin tarafından belirlenen büyük ödülü kazanır!</p>
+        </div>
+         <div>
+            <h4 class="font-bold text-lg text-yellow-300">⏰ Bekleme Süreleri</h4>
+            <p>Rekabeti adil tutmak için her tahminden sonra bir bekleme süresi vardır. Yanlış tahminlerin bekleme süresi, doğru tahminlerden daha uzundur. Bu süreler admin tarafından ayarlanabilir.</p>
+        </div>
     </div>
   </div>
 </div>
@@ -18688,36 +18790,72 @@ function parseRewardDataFromRow(rowElement) {
 }
 
 // ESKİ checkIfUserCanCraft FONKSİYONUNU SİLİP, BUNU YAPIŞTIRIN
-function checkIfUserCanCraft(recipe, userData) {
+async function checkIfUserCanCraft(recipe, userData) {
     if (!recipe.materials || recipe.materials.length === 0) return false;
 
+    // --- YENİ EKLENEN KOD BAŞLANGICI: Kullanıcının takastaki kartlarını al ---
+    const tradesSnap = await db.ref('trades').orderByChild('offerer').equalTo(currentUser).once('value');
+    const activeTrades = tradesSnap.val() || {};
+    const cardsInTrade = new Set();
+    Object.values(activeTrades).forEach(trade => {
+        cardsInTrade.add(trade.offeredCardId);
+    });
+    // --- YENİ EKLENEN KOD SONU ---
+
     for (const material of recipe.materials) {
-        let userHas = 0;
-        switch(material.type) {
-            case 'points': userHas = userData.balance || 0; break;
-            case 'kasaPuani': userHas = userData.kasaPuani || 0; break;
-            case 'boxRights': userHas = userData.kutuHakki || 0; break;
-            case 'wheelTicket': userHas = userData.carkBileti || 0; break;
-            case 'clickCatchTicket': userHas = userData.clickCatchTickets || 0; break;
-            case 'iflasShield': userHas = userData.iflasShieldUses || 0; break;
-            case 'wildcard': userHas = userData.wildcards || 0; break;
-            case 'revival_stone': userHas = userData.inventory?.revival_stone || 0; break;
-            case 'card': userHas = userData.cardCollection?.[material.cardId]?.count || 0; break;
+        let userHasAmount = 0;
+        const isRarityCard = ['card_normal', 'card_gumus', 'card_altin', 'card_efsanevi'].includes(material.type);
+
+        // --- YENİ EKLENEN KOD: Nadirlik kartı kontrolü ---
+        if (isRarityCard) {
+            const targetRarity = material.type.split('_')[1];
+            let availableDuplicates = 0;
+            const userCards = userData.cardCollection || {};
             
-            // --- YENİ EKLENEN ÇARPAN MANTIĞI BAŞLANGICI ---
-            case 'tempMultiplier':
-                // Gereken miktar her zaman 1'dir.
-                material.amount = 1; 
-                // ÖNCE: Çarpanın değeri (örn: 3x) eşleşiyor mu?
-                const matchesValue = userData.activeMultiplier === material.value;
-                // SONRA: Eğer değer eşleşiyorsa, kullanım hakkı yeterli mi?
-                const matchesUses = (userData.multiplierRemainingUses || 0) >= material.uses;
-                // Sadece iki koşul da doğruysa, kullanıcıda 1 adet var sayılır.
-                userHas = (matchesValue && matchesUses) ? 1 : 0;
-                break;
-            // --- YENİ EKLENEN ÇARPAN MANTIĞI SONU ---
+            for (const cardId in userCards) {
+                // Kartın kendisi takasta değilse VE en az 1 fazlası varsa
+                if (userCards[cardId].count > 1 && !cardsInTrade.has(cardId)) {
+                    const cardInfo = allCardsCache.find(c => c.id === cardId);
+                    if (cardInfo && cardInfo.rarity === targetRarity) {
+                        // Sadece takasta olmayan fazlalıkları say
+                        availableDuplicates += (userCards[cardId].count - 1);
+                    }
+                }
+            }
+            userHasAmount = availableDuplicates;
+        } 
+        // --- YENİ EKLENEN KOD SONU ---
+        else {
+            const statKeyMap = { health_potion: 'hp', damage_potion: 'damage', defense_potion: 'defense', crit_potion: 'critChance', crit_damage_potion: 'critDamage', dodge_potion: 'dodgeChance', pierce_potion: 'pierceChance' };
+            const statKey = statKeyMap[material.type];
+            switch (material.type) {
+                case 'points': userHasAmount = userData.balance || 0; break;
+                case 'kasaPuani': userHasAmount = userData.kasaPuani || 0; break;
+                case 'boxRights': userHasAmount = userData.kutuHakki || 0; break;
+                case 'wheelTicket': userHasAmount = userData.carkBileti || 0; break;
+                case 'clickCatchTicket': userHasAmount = userData.clickCatchTickets || 0; break;
+                case 'iflasShield': userHasAmount = userData.iflasShieldUses || 0; break;
+                case 'wildcard': userHasAmount = userData.wildcards || 0; break;
+                case 'revival_stone': userHasAmount = userData.inventory?.revival_stone || 0; break;
+                case 'card': userHasAmount = userData.cardCollection?.[material.cardId]?.count || 0; break;
+                case 'tempMultiplier':
+                    material.amount = 1;
+                    const matchesValue = userData.activeMultiplier === material.value;
+                    const matchesUses = (userData.multiplierRemainingUses || 0) >= material.uses;
+                    userHasAmount = (matchesValue && matchesUses) ? 1 : 0;
+                    break;
+                case 'avatar':
+                    userHasAmount = userData.avatars && Object.values(userData.avatars).some(a => a.name === material.avatarName) ? 1 : 0;
+                    material.amount = 1;
+                    break;
+                default:
+                    if (statKey) {
+                        userHasAmount = userData.globalPotionBuffs?.[statKey] || 0;
+                    }
+                    break;
+            }
         }
-        if (userHas < material.amount) return false;
+        if (userHasAmount < material.amount) return false;
     }
     return true;
 }
@@ -18987,42 +19125,35 @@ function applyRewardToUser(userData, reward) {
     return { cardPacksToOpen, convertedToBoxRight: false };
 }
 
+// MEVCUT loadCraftingRecipes FONKSİYONUNU SİLİP, BUNU YAPIŞTIRIN
 async function loadCraftingRecipes() {
     const container = document.getElementById('craftingRecipesContainer');
     const searchTerm = document.getElementById('craftingSearchInput').value.toLowerCase();
 
-    // Filtreleme mantığını arama çubuğuna göre basitleştiriyoruz
     const filteredRecipes = craftingRecipesCache.filter(recipe => 
         recipe.output.name.toLowerCase().includes(searchTerm)
     );
 
     if (filteredRecipes.length === 0) {
-        if (searchTerm) {
-            container.innerHTML = '<p class="text-center col-span-full text-gray-400">Aramanızla eşleşen tarif bulunamadı.</p>';
-        } else {
-            container.innerHTML = '<p class="text-center col-span-full text-gray-400">Henüz bir üretim tarifi oluşturulmadı.</p>';
-        }
+        container.innerHTML = searchTerm 
+            ? '<p class="text-center col-span-full text-gray-400">Aramanızla eşleşen tarif bulunamadı.</p>' 
+            : '<p class="text-center col-span-full text-gray-400">Henüz bir üretim tarifi oluşturulmadı.</p>';
         return;
     }
 
-    container.innerHTML = '';
+    container.innerHTML = ''; // Önce temizle
 
     const userData = allUsersCache.find(u => u.username === currentUser) || {};
 
-    // Filtrelenmiş her tarif için kart oluştur
-    filteredRecipes.forEach((recipe, index) => {
-        // Kullanıcının bu tarifi üretip üretemeyeceğini KONTROL EDİYORUZ ama GİZLEMİYORUZ
-        const canCraft = checkIfUserCanCraft(recipe, userData);
+    // Her tarif için asenkron olarak "üretebilirlik" kontrolü yap
+    for (const [index, recipe] of filteredRecipes.entries()) {
+        const canCraft = await checkIfUserCanCraft(recipe, userData); // await ile kontrolün bitmesini bekle
         const output = recipe.output;
         const card = document.createElement('div');
 
-        // Admin veya üretebilen kullanıcılar için kart tıklanabilir olacak
         const isClickable = isAdmin || canCraft;
         
-        // DEĞİŞİKLİK BURADA: Artık her koşulda kart tıklanabilir, sadece görünüşü değişecek
         card.className = `p-4 rounded-lg flex flex-col items-center cursor-pointer crafting-recipe-card ${!canCraft && !isAdmin ? 'cannot-craft' : ''}`;
-        
-        // Herkesin tarif detayını görebilmesi için onclick olayını her zaman ekliyoruz
         card.onclick = () => openCraftingDetailModal(recipe.id);
 
         let adminControlsHtml = '';
@@ -19050,10 +19181,10 @@ async function loadCraftingRecipes() {
             ${adminControlsHtml}
             <img src="${output.imageUrl || 'https://i.hizliresim.com/pntfb6j.png'}" alt="${output.name}" class="w-20 h-20 mb-3 object-contain">
             <h4 class="font-bold text-yellow-300 text-center">${output.name}</h4>
-            <p class="text-sm text-gray-400 mt-2">${canCraft ? 'Detaylar için tıkla' : 'Yetersiz Malzeme'}</p>
+            <p class="text-sm text-gray-400 mt-2">${isClickable ? 'Detaylar için tıkla' : 'Yetersiz Malzeme'}</p>
         `;
         container.appendChild(card);
-    });
+    }
 }
 
 function openCardSelectionForCrafting(buttonElement, eligibleCards, requiredAmount, materialName) {
@@ -21538,12 +21669,7 @@ function showQuestion(questionIndex) {
     db.ref(`wordGame/questions/${questionIndex}/isRevealed`).set(true);
 }
 
-   // ÖNCEKİ ADIMDA EKLEDİĞİN TÜM KELİME OYUNU FONKSİYONLARINI SİLİP BUNLARIN HEPSİNİ YAPIŞTIR
-
-// =======================================================
-// YENİ GÜNCELLENMİŞ KELİME OYUNU SİSTEMİ (SORU-CEVAP)
-// =======================================================
-
+ // MEVCUT listenForWordGameData FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
 function listenForWordGameData() {
     if (activeWordGameListener) {
         activeWordGameListener.ref.off('value', activeWordGameListener.callback);
@@ -21555,9 +21681,11 @@ function listenForWordGameData() {
         if (gameData && gameData.questions) {
             renderQuestions(gameData.questions);
             renderWordGameLeaderboard(gameData.leaderboard);
+            renderWordGameStatsAndPrize(gameData); // YENİ EKLENEN SATIR
         } else {
             document.getElementById('questionsContainer').innerHTML = '<p class="text-center text-gray-400 p-4">Adminin yeni bir bulmaca başlatması bekleniyor.</p>';
             document.getElementById('wordGameLeaderboard').innerHTML = '';
+            document.getElementById('wordGameStatsContainer').classList.add('hidden'); // YENİ EKLENEN SATIR
         }
     };
     activeWordGameListener = { ref, callback };
@@ -22286,6 +22414,50 @@ async function checkForGameCompletionAndAwardChampion() {
         logActivity('wordGameChampion', winnerUsername, { score: winnerData.score, prize: prizeText });
     }
 }
+
+   // --- YENİ EKLENECEK BİLGİ PENCERESİ FONKSİYONLARI ---
+
+function openCraftingInfoModal() {
+    document.getElementById('craftingInfoModal').style.display = 'flex';
+}
+function closeCraftingInfoModal() {
+    document.getElementById('craftingInfoModal').style.display = 'none';
+}
+function openWordGameInfoModal() {
+    document.getElementById('wordGameInfoModal').style.display = 'flex';
+}
+function closeWordGameInfoModal() {
+    document.getElementById('wordGameInfoModal').style.display = 'none';
+}
+
+   // YENİ EKLENECEK FONKSİYON: Kelime oyunu istatistiklerini ve ödülünü ekrana yazar.
+function renderWordGameStatsAndPrize(gameData) {
+    const container = document.getElementById('wordGameStatsContainer');
+    if (!gameData || !gameData.questions || gameData.questions.length === 0) {
+        container.classList.add('hidden');
+        return;
+    }
+
+    const questions = gameData.questions;
+    const totalQuestions = questions.length;
+    const solvedQuestions = questions.filter(q => (q.letters || []).every(l => l.solved)).length;
+    const remainingQuestions = totalQuestions - solvedQuestions;
+
+    document.getElementById('totalQuestionsStat').textContent = totalQuestions;
+    document.getElementById('solvedQuestionsStat').textContent = solvedQuestions;
+    document.getElementById('remainingQuestionsStat').textContent = remainingQuestions;
+
+    const prize = gameData.settings?.championPrize;
+    const prizeEl = document.getElementById('wordGameChampionPrize');
+    if (prize) {
+        prizeEl.textContent = formatRewardText(prize.type, prize.amount || prize.value, prize.uses);
+    } else {
+        prizeEl.textContent = 'Henüz belirlenmedi';
+    }
+
+    container.classList.remove('hidden');
+}
+   
 // YENİ EKLENECEK FONKSİYONLAR SONU
 </script>
 </body>
