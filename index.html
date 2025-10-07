@@ -2263,9 +2263,11 @@ body.modal-open .modal-content {
             </button>
         </div>
 
-        <div id="wordGameCooldownInfo" class="hidden text-center bg-red-900/50 border border-red-500 text-red-300 p-3 rounded-lg mb-4">
-            Yanlış harf girdin! Tekrar denemek için beklemen gereken süre: <b id="wordGameCooldownTimer" class="text-white"></b>
-        </div>
+        <div id="wordGameChampionPanel" class="hidden w-full max-w-2xl mx-auto my-6 bg-gray-800 p-4 rounded-xl shadow-lg border-2 border-green-500 text-center relative">
+            </div>
+       <div id="wordGameCooldownInfo" class="hidden text-center bg-red-900/50 border border-red-500 text-red-300 p-3 rounded-lg mb-4">
+    Yanlış harf girdin! Tekrar denemek için beklemen gereken süre: <b id="wordGameCooldownTimer" class="text-white"></b>
+</div>
         
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div id="questionsContainer" class="lg:col-span-2 space-y-6">
@@ -4494,8 +4496,24 @@ body.modal-open .modal-content {
                     <input type="number" id="cooldownSeconds" class="box-setting-input" placeholder="Saniye">
                 </div>
             </div>
+
+            <div class="mt-2">
+                <label class="block text-sm text-gray-400">Doğru Cevap Bekleme Süresi</label>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-1">
+                    <input type="number" id="correctCooldownDays" class="box-setting-input" placeholder="Gün">
+                    <input type="number" id="correctCooldownHours" class="box-setting-input" placeholder="Saat">
+                    <input type="number" id="correctCooldownMinutes" class="box-setting-input" placeholder="Dakika">
+                    <input type="number" id="correctCooldownSeconds" class="box-setting-input" placeholder="Saniye">
+                </div>
+            </div>
             </div>
 
+        <div class="bg-gray-800 p-4 rounded-lg mt-4">
+            <h4 class="text-lg font-bold text-green-300 mb-3">🏆 Oyun Sonu Şampiyon Ödülü</h4>
+            <p class="text-xs text-gray-400 mb-2">Tüm harfler çözüldüğünde en çok harf bilen oyuncuya verilecek ödülü buradan ayarlayın.</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-2" id="wordGameChampionPrizeContainer">
+                </div>
+        </div>
         <div class="bg-gray-800 p-4 rounded-lg">
             <h4 class="text-lg font-bold text-yellow-300 mb-2">Sorular ve Cevaplar</h4>
             <div id="questionBlocksContainer" class="space-y-4">
@@ -4505,10 +4523,10 @@ body.modal-open .modal-content {
     </div>
     
     <div class="flex-shrink-0 mt-4 pt-4 border-t border-gray-700 flex flex-wrap gap-4 justify-center">
-    <button onclick="saveWordGameSettings(false)" class="py-3 px-6 bg-blue-700 hover:bg-blue-600 text-white font-bold rounded-lg">Ayarları Kaydet (İlerlemeyi Koru)</button>
-    <button onclick="saveWordGameSettings(true)" class="py-3 px-6 bg-green-700 hover:bg-green-600 text-white font-bold rounded-lg">Yeni Oyun Başlat (Her Şeyi Sıfırla)</button>
-    <button onclick="resetWordGame()" class="py-3 px-6 bg-red-800 hover:bg-red-700 text-white font-bold rounded-lg">Mevcut Oyunu Tamamen Sil</button>
-</div>
+        <button onclick="saveWordGameSettings(false)" class="py-3 px-6 bg-blue-700 hover:bg-blue-600 text-white font-bold rounded-lg">Ayarları Kaydet (İlerlemeyi Koru)</button>
+        <button onclick="saveWordGameSettings(true)" class="py-3 px-6 bg-green-700 hover:bg-green-600 text-white font-bold rounded-lg">Yeni Oyun Başlat (Her Şeyi Sıfırla)</button>
+        <button onclick="resetWordGame()" class="py-3 px-6 bg-red-800 hover:bg-red-700 text-white font-bold rounded-lg">Mevcut Oyunu Tamamen Sil</button>
+    </div>
   </div>
 </div>
   <script>
@@ -5525,6 +5543,7 @@ async function afterLogin() {
     listenForMonsterBattleData();
     listenForAvatarBaseStats();
     listenForPersistentNotifications();
+    listenForWordGameChampion();
     db.ref('gameConfig/potionCaps').on('value', snap => { potionCapsCache = snap.val() || {}; });
     
     // Bu yeni fonksiyonu çağırarak üretim tariflerini de başlangıçta yüklüyoruz.
@@ -8059,6 +8078,10 @@ function getActivityIcon(type, details = {}) {
             icon = '💬';
             bgColor = 'bg-sky-500';
             break;
+            case 'wordGameWrongGuess':
+            icon = '💬';
+            bgColor = 'bg-red-500';
+            break;
         case 'collectionCompleted':
             icon = '🃏';
             bgColor = 'bg-purple-600';
@@ -8438,6 +8461,10 @@ function renderActivityFeed(activities) {
             switch (activity.type) {
                 case 'craftItem':
                     message = `${userHtml}, atölyede <b class="text-green-400">${details.itemName}</b> üretti. <span class="text-gray-400">(Mevcut Puan: ${formatNumber(details.newBalance)})</span>`;
+                    break;
+                    case 'wordGameWrongGuess':
+                    const cooldownFormatted = formatDurationFromSeconds(details.cooldown);
+                    message = `${userHtml}, kelime oyununda <b class="text-white">'${details.letter}'</b> harfini yanlış bilerek <b class="text-orange-400">${cooldownFormatted} bekleme cezası</b> yedi.`;
                     break;
               case 'wordGameGuess':
                     message = `${userHtml}, kelime oyununda <b class="text-white">'${details.letter}'</b> harfini doğru bilerek <b class="text-green-400">${details.rewardText}</b> kazandı.`;
@@ -21652,6 +21679,10 @@ async function submitLetter() {
 
     const cellRef = db.ref(`wordGame/questions/${qIndex}/letters/${lIndex}`);
     const userRef = db.ref(`users/${currentUser}`);
+    
+    // Bekleme süresi panelini ve içeriğini en baştan alalım
+    const cooldownInfoEl = document.getElementById('wordGameCooldownInfo');
+    const cooldownTextEl = cooldownInfoEl.childNodes[0]; // "Yanlış harf girdin..." metni
 
     try {
         const { committed, snapshot } = await cellRef.transaction(letterData => {
@@ -21669,10 +21700,21 @@ async function submitLetter() {
         if (committed) {
             const finalLetterData = snapshot.val();
             if (finalLetterData.solved && finalLetterData.solver === currentUser) {
-                // DOĞRU CEVAP
+                // --- DOĞRU CEVAP VERİLDİ ---
+                
+                // 1. Panelin rengini ve yazısını DEĞİŞTİR
+                cooldownTextEl.textContent = 'Tekrar harf yazmak için beklemen gereken süre: ';
+                cooldownInfoEl.className = 'text-center bg-blue-900/50 border border-blue-500 text-blue-300 p-3 rounded-lg mb-4';
+
                 const reward = finalLetterData.reward;
                 const rewardText = formatRewardText(reward.type, reward.amount || reward.value, reward.uses);
-                displayMessage(`Harf doğru! Kazandığın ödül: <b class="text-green-400">${rewardText}</b>`);
+                
+                const correctCooldownSeconds = (await db.ref('wordGame/settings/correctGuessCooldown').once('value')).val() || 60;
+                await userRef.update({
+                    wordGameCooldown: getSyncedTime() + (correctCooldownSeconds * 1000)
+                });
+                const durationText = formatDurationFromSeconds(correctCooldownSeconds);
+                displayMessage(`Harf doğru! Kazandığın ödül: <b class="text-green-400">${rewardText}</b><br><small class="text-yellow-300">${durationText} bekleme süren başladı.</small>`);
                 
                 let cardPacksToOpen = [];
                 let newBalance; 
@@ -21693,32 +21735,38 @@ async function submitLetter() {
                     avatarUrl: userAvatar
                 }));
 
-                const logDetails = {
-                    letter: letter,
-                    rewardText: rewardText
-                };
-                if (reward.type === 'points') {
-                    logDetails.newBalance = newBalance; 
-                }
+                const logDetails = { letter: letter, rewardText: rewardText };
+                if (reward.type === 'points') logDetails.newBalance = newBalance; 
                 logActivity('wordGameGuess', currentUser, logDetails);
                 
                 for (const pack of cardPacksToOpen) {
                     await startCardPackOpening(pack.value || 1, 'Kelime Oyunu', 1, pack.type);
                 }
+                
+                if (!isAdmin) {
+                    checkForGameCompletionAndAwardChampion();
+                }
 
             } else {
-                // YANLIŞ CEVAP
+                // --- YANLIŞ CEVAP VERİLDİ ---
+                
+                // 1. Panelin rengini ve yazısını ORİJİNAL HALİNE GETİR
+                cooldownTextEl.textContent = 'Yanlış harf girdin! Tekrar denemek için beklemen gereken süre: ';
+                cooldownInfoEl.className = 'text-center bg-red-900/50 border border-red-500 text-red-300 p-3 rounded-lg mb-4';
+                
                 const cooldownSeconds = (await db.ref('wordGame/settings/cooldown').once('value')).val() || 60;
                 await userRef.update({
                     wordGameCooldown: getSyncedTime() + (cooldownSeconds * 1000)
                 });
-                // ▼▼▼ DEĞİŞEN SATIRLAR BAŞLANGICI ▼▼▼
                 const durationText = formatDurationFromSeconds(cooldownSeconds);
                 displayMessage(`Harf yanlış! ${durationText} sonra tekrar deneyebilirsin.`);
-                // ▲▲▲ DEĞİŞEN SATIRLAR SONU ▲▲▲
+
+                logActivity('wordGameWrongGuess', currentUser, {
+                    letter: letter,
+                    cooldown: cooldownSeconds
+                });
             }
         } else {
-            // BAŞKASI ÇÖZDÜ
             const competitorData = (await cellRef.once('value')).val();
             if (competitorData && competitorData.solver) {
                 displayMessage(`Bu kutuyu senden hemen önce <b class="text-yellow-300">${competitorData.solver}</b> çözdü!`);
@@ -21814,7 +21862,8 @@ function addQuestionBlock() {
     container.appendChild(block);
 }
 
-   async function openWordGameAdminModal() {
+   // MEVCUT openWordGameAdminModal FONKSİYONUNU SİLİP BUNU YAPIŞTIR
+async function openWordGameAdminModal() {
     if (!isAdmin) return;
     const container = document.getElementById('questionBlocksContainer');
     container.innerHTML = '<p class="text-center text-gray-400">Mevcut oyun ayarları yükleniyor...</p>';
@@ -21825,23 +21874,32 @@ function addQuestionBlock() {
 
     container.innerHTML = ''; // Paneli temizle
 
-    // ▼▼▼ DEĞİŞEN KISIM BAŞLANGICI ▼▼▼
+    // Yanlış cevap bekleme süresini yükle
     const cooldownSecondsTotal = (gameData && gameData.settings) ? gameData.settings.cooldown || 60 : 60;
-    
-    // Toplam saniyeyi gün, saat, dakika, saniyeye çevir
     const days = Math.floor(cooldownSecondsTotal / 86400);
     let remainder = cooldownSecondsTotal % 86400;
     const hours = Math.floor(remainder / 3600);
     remainder %= 3600;
     const minutes = Math.floor(remainder / 60);
     const seconds = remainder % 60;
-
-    // Inputları doldur
     document.getElementById('cooldownDays').value = days > 0 ? days : '';
     document.getElementById('cooldownHours').value = hours > 0 ? hours : '';
     document.getElementById('cooldownMinutes').value = minutes > 0 ? minutes : '';
     document.getElementById('cooldownSeconds').value = seconds > 0 ? seconds : '';
-    // ▲▲▲ DEĞİŞEN KISIM SONU ▲▲▲
+
+    // YENİ EKLENEN KISIM: Doğru cevap bekleme süresini yükle
+    const correctCooldownSecondsTotal = (gameData && gameData.settings) ? gameData.settings.correctGuessCooldown || 60 : 60;
+    const cDays = Math.floor(correctCooldownSecondsTotal / 86400);
+    let cRemainder = correctCooldownSecondsTotal % 86400;
+    const cHours = Math.floor(cRemainder / 3600);
+    cRemainder %= 3600;
+    const cMinutes = Math.floor(cRemainder / 60);
+    const cSeconds = cRemainder % 60;
+    document.getElementById('correctCooldownDays').value = cDays > 0 ? cDays : '';
+    document.getElementById('correctCooldownHours').value = cHours > 0 ? cHours : '';
+    document.getElementById('correctCooldownMinutes').value = cMinutes > 0 ? cMinutes : '';
+    document.getElementById('correctCooldownSeconds').value = cSeconds > 0 ? cSeconds : '';
+    // YENİ KISIM SONU
 
     if (gameData && gameData.questions && gameData.questions.length > 0) {
         gameData.questions.forEach(questionData => {
@@ -21850,6 +21908,8 @@ function addQuestionBlock() {
     } else {
         addQuestionBlock();
     }
+    
+    loadWordGameChampionPrize();
 }
 
 function addQuestionBlock(questionData = null) {
@@ -21910,6 +21970,7 @@ function generateRewardFields(answerInput, lettersData = null) {
     }
 }
 
+// MEVCUT saveWordGameSettings FONKSİYONUNU SİLİP BUNU YAPIŞTIR
 async function saveWordGameSettings(shouldResetProgress = false) {
     if (!isAdmin) return;
     
@@ -21976,32 +22037,40 @@ async function saveWordGameSettings(shouldResetProgress = false) {
         
         if (hasError) return;
 
+        // Yanlış cevap bekleme süresini al
         const days = parseInt(document.getElementById('cooldownDays').value) || 0;
         const hours = parseInt(document.getElementById('cooldownHours').value) || 0;
         const minutes = parseInt(document.getElementById('cooldownMinutes').value) || 0;
         const seconds = parseInt(document.getElementById('cooldownSeconds').value) || 0;
         const totalCooldownSeconds = (days * 86400) + (hours * 3600) + (minutes * 60) + seconds;
 
+        // YENİ EKLENEN KISIM: Doğru cevap bekleme süresini al
+        const cDays = parseInt(document.getElementById('correctCooldownDays').value) || 0;
+        const cHours = parseInt(document.getElementById('correctCooldownHours').value) || 0;
+        const cMinutes = parseInt(document.getElementById('correctCooldownMinutes').value) || 0;
+        const cSeconds = parseInt(document.getElementById('correctCooldownSeconds').value) || 0;
+        const totalCorrectCooldownSeconds = (cDays * 86400) + (cHours * 3600) + (cMinutes * 60) + cSeconds;
+        // YENİ KISIM SONU
+
         const updates = {};
         updates['/wordGame/settings'] = {
             cooldown: totalCooldownSeconds,
+            correctGuessCooldown: totalCorrectCooldownSeconds // Yeni ayarı kaydet
         };
         updates['/wordGame/questions'] = questions;
 
         if (shouldResetProgress) {
             updates['/wordGame/leaderboard'] = null; 
+            updates['/gameStats/wordGameChampion'] = null; // Şampiyonu da sıfırla
             
-            // ▼▼▼ YENİ EKLENEN KISIM BAŞLANGICI ▼▼▼
-            // Tüm kullanıcıların bekleme sürelerini sıfırla
             const usersSnap = await db.ref('users').once('value');
             if (usersSnap.exists()) {
                 usersSnap.forEach(user => {
-                    if (user.val().wordGameCooldown) { // Sadece süresi olanları sıfırla
+                    if (user.val().wordGameCooldown) {
                         updates[`/users/${user.key}/wordGameCooldown`] = null;
                     }
                 });
             }
-            // ▲▲▲ YENİ EKLENEN KISIM SONU ▲▲▲
 
             displayMessage("Kelime Oyunu başarıyla sıfırlandı ve yeni ayarlarla başlatıldı!");
         } else {
@@ -22081,6 +22150,143 @@ function formatDurationFromSeconds(totalSeconds) {
     // Eğer hiçbir parça yoksa (çok küçük bir saniye değeri için), 0 saniye döndür
     return parts.length > 0 ? parts.join(' ') : "0 saniye";
 }
+
+// YENİ EKLENECEK FONKSİYONLAR BAŞLANGICI
+
+/**
+ * Kelime Oyunu şampiyonunu ve ödülünü Firebase'den dinler ve paneli günceller.
+ */
+function listenForWordGameChampion() {
+    const ref = db.ref('gameStats/wordGameChampion');
+    const panel = document.getElementById('wordGameChampionPanel');
+
+    const callback = snap => {
+        const data = snap.val();
+        if (!data || !data.username) {
+            panel.classList.add('hidden');
+            return;
+        }
+
+        const adminDeleteButton = isAdmin ? `
+            <button onclick="db.ref('gameStats/wordGameChampion').remove()" class="absolute -top-3 -right-3 bg-red-600 hover:bg-red-500 text-white rounded-full h-8 w-8 flex items-center justify-center text-lg font-bold" title="Şampiyon Panelini Gizle">&times;</button>
+        ` : '';
+
+        const championHtml = `
+            ${adminDeleteButton}
+            <h4 class="text-green-300 text-xl font-bold mb-3">🎯 Kelime Avcısı Şampiyonu 🎯</h4>
+            <div class="flex items-center justify-center gap-4">
+                <img src="${data.avatarUrl}" class="w-16 h-16 rounded-full border-2 border-yellow-300 object-cover cursor-pointer" onclick="openAvatarStatsModal('${data.username}')">
+                <div>
+                    <p class="text-xl font-bold text-white cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${data.username}')">${data.username}</p>
+                    <p class="text-gray-300">Toplam Çözülen: <b class="text-yellow-400">${data.score} Harf</b></p>
+                    <p class="text-gray-300">Ödül: <b class="text-green-400">${data.prizeAwarded}</b></p>
+                </div>
+            </div>
+        `;
+
+        panel.innerHTML = championHtml;
+        panel.classList.remove('hidden');
+    };
+    
+    if (activeListeners.wordGameChampion) {
+        activeListeners.wordGameChampion.ref.off('value', activeListeners.wordGameChampion.callback);
+    }
+    activeListeners.wordGameChampion = { ref, event: 'value', callback };
+    ref.on('value', callback);
+}
+
+/**
+ * Admin: Kelime oyunu şampiyonu için ödül ayarlarını kaydeder.
+ */
+async function saveWordGameChampionPrize() {
+    if (!isAdmin) return;
+    const container = document.getElementById('wordGameChampionPrizeContainer');
+    const reward = parseRewardDataFromRow(container.querySelector('.reward-entry'));
+    if (reward) {
+        await db.ref('wordGame/settings/championPrize').set(reward);
+        displayMessage("Kelime Oyunu şampiyon ödülü başarıyla kaydedildi.");
+    } else {
+        displayMessage("Hata: Geçersiz ödül bilgileri girildi.");
+    }
+}
+
+/**
+ * Admin: Kayıtlı şampiyon ödülünü yükler ve paneli oluşturur.
+ */
+async function loadWordGameChampionPrize() {
+    const container = document.getElementById('wordGameChampionPrizeContainer');
+    const prizeSnap = await db.ref('wordGame/settings/championPrize').once('value');
+    const prizeData = prizeSnap.val() || {};
+    
+    container.innerHTML = getRewardItemHTML('champion_prize', prizeData);
+    const selectElement = container.querySelector('.reward-type');
+    if (selectElement) {
+        handleAdminRewardTypeChange(selectElement, prizeData);
+    }
+    // Kaydet butonu
+    container.innerHTML += `<button onclick="saveWordGameChampionPrize()" class="w-full mt-2 py-2 bg-blue-700 hover:bg-blue-600 text-white font-bold rounded-lg md:col-span-3">Şampiyon Ödülünü Kaydet</button>`;
+}
+
+/**
+ * Tüm harfler çözüldüğünde şampiyonu belirler ve ödülünü verir.
+ */
+async function checkForGameCompletionAndAwardChampion() {
+    // Önce şampiyonun zaten belirlenip belirlenmediğini kontrol et
+    const existingChampionSnap = await db.ref('gameStats/wordGameChampion').once('value');
+    if (existingChampionSnap.exists()) {
+        console.log("Oyun şampiyonu zaten belirlenmiş, işlem atlandı.");
+        return;
+    }
+    
+    const gameSnap = await db.ref('wordGame').once('value');
+    const gameData = gameSnap.val();
+    
+    if (!gameData || !gameData.questions) return;
+
+    const allSolved = gameData.questions.every(q => q.letters.every(l => l.solved));
+
+    if (allSolved) {
+        console.log("Tüm harfler çözüldü! Şampiyon belirleniyor...");
+        const leaderboard = gameData.leaderboard;
+        if (!leaderboard) return;
+
+        const sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score);
+        if (sorted.length === 0) return;
+
+        const winnerUsername = sorted[0][0];
+        const winnerData = sorted[0][1];
+        
+        const prizeData = gameData.settings?.championPrize;
+        if (!prizeData) {
+            console.log("Şampiyon ödülü ayarlanmamış, ödül verilemedi.");
+            return;
+        }
+
+        const prizeText = formatRewardText(prizeData.type, prizeData.amount || prizeData.value, prizeData.uses);
+
+        // Şampiyon bilgilerini kaydet
+        await db.ref('gameStats/wordGameChampion').set({
+            username: winnerUsername,
+            score: winnerData.score,
+            prizeAwarded: prizeText,
+            avatarUrl: winnerData.avatarUrl,
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        // Ödülü kullanıcıya ver
+        const userRef = db.ref(`users/${winnerUsername}`);
+        await userRef.transaction(userData => {
+            if (userData) {
+                applyRewardToUser(userData, prizeData);
+            }
+            return userData;
+        });
+
+        // Aktivite kaydı
+        logActivity('wordGameChampion', winnerUsername, { score: winnerData.score, prize: prizeText });
+    }
+}
+// YENİ EKLENECEK FONKSİYONLAR SONU
 </script>
 </body>
 </html>
