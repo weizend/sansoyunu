@@ -5878,7 +5878,7 @@ function showSection(sectionId) {
  * Tüm admin kontrol butonlarını gizleyen yardımcı fonksiyon.
  */
 function hideAllAdminControls() {
-    const allAdminButtons = document.querySelectorAll('#boxSettingsButton, #adminStoreManagementButtonContainer, #adminAnnouncementControls, #clickCatchAdminButtonsContainer, #kasaSettingsBtn, #collectionAdminBtn, #monsterBattleAdminToggles, #wheelSettingsButton, #craftingAdminBtn');
+    const allAdminButtons = document.querySelectorAll('#boxSettingsButton, #adminStoreManagementButtonContainer, #adminAnnouncementControls, #clickCatchAdminButtonsContainer, #kasaSettingsBtn, #collectionAdminBtn, #monsterBattleAdminToggles, #wheelSettingsButton, #craftingAdminBtn, #wordGameAdminBtn');
     allAdminButtons.forEach(btn => {
         if(btn) btn.classList.add('hidden');
     });
@@ -5939,7 +5939,6 @@ function resetGlobalState() {
     document.getElementById('storeCurrentUserKasaBalance').textContent = '0';
 }
 
-// MEVCUT logout FONKSİYONUNU SİL VE BUNUNLA DEĞİŞTİR
 async function logout() {
     const confirmed = await customConfirm("Çıkış yapmak istediğinize emin misiniz?");
     if (!confirmed) return;
@@ -5949,7 +5948,18 @@ async function logout() {
     detachAllListeners();
     resetGlobalState();
     
-    // --- GÜNCELLEME BURADA ---
+    // ▼▼▼ YENİ EKLENEN KISIM BAŞLANGICI ▼▼▼
+    // Kelime oyunu zamanlayıcısını ve değişkenlerini sıfırla
+    if (wordGameCooldownInterval) {
+        clearInterval(wordGameCooldownInterval);
+    }
+    wordGameCooldownEnd = 0;
+    const cooldownInfoEl = document.getElementById('wordGameCooldownInfo');
+    if (cooldownInfoEl) {
+        cooldownInfoEl.classList.add('hidden');
+    }
+    // ▲▲▲ YENİ EKLENEN KISIM SONU ▲▲▲
+    
     document.getElementById('chatToggleBtn').style.display = 'none';
     document.getElementById('chatPanel').classList.remove('open');
     
@@ -5973,8 +5983,6 @@ async function logout() {
         displayMessage("Çıkış yapılırken bir hata oluştu.");
     });
 }
-
-// --- YENİ EKLENECEK KOD: KULLANICI ETİKETLEME ÖNERİ SİSTEMİ ---
 
 /**
  * Sohbet giriş alanındaki @ karakterini ve sonraki yazıyı dinler.
@@ -21727,6 +21735,15 @@ function handleCooldown(cooldownEndTimestamp) {
     const infoEl = document.getElementById('wordGameCooldownInfo');
     const timerEl = document.getElementById('wordGameCooldownTimer');
     
+    // ▼▼▼ YENİ EKLENEN KISIM BAŞLANGICI ▼▼▼
+    // Eğer kullanıcı admin ise, zamanlayıcıyı kesinlikle gösterme ve durdur.
+    if (isAdmin) {
+        infoEl.classList.add('hidden');
+        wordGameCooldownEnd = 0;
+        return;
+    }
+    // ▲▲▲ YENİ EKLENEN KISIM SONU ▲▲▲
+    
     wordGameCooldownEnd = cooldownEndTimestamp || 0;
 
     const updateTimer = () => {
@@ -21737,9 +21754,7 @@ function handleCooldown(cooldownEndTimestamp) {
             listenForWordGameData(); 
         } else {
             const remainingSeconds = Math.ceil((wordGameCooldownEnd - now) / 1000);
-            // ▼▼▼ DEĞİŞEN SATIR ▼▼▼
             timerEl.textContent = formatDurationFromSeconds(remainingSeconds);
-            // ▲▲▲ DEĞİŞEN SATIR SONU ▲▲▲
             infoEl.classList.remove('hidden');
         }
     };
@@ -21961,22 +21976,33 @@ async function saveWordGameSettings(shouldResetProgress = false) {
         
         if (hasError) return;
 
-        // ▼▼▼ DEĞİŞEN KISIM BAŞLANGICI ▼▼▼
         const days = parseInt(document.getElementById('cooldownDays').value) || 0;
         const hours = parseInt(document.getElementById('cooldownHours').value) || 0;
         const minutes = parseInt(document.getElementById('cooldownMinutes').value) || 0;
         const seconds = parseInt(document.getElementById('cooldownSeconds').value) || 0;
         const totalCooldownSeconds = (days * 86400) + (hours * 3600) + (minutes * 60) + seconds;
-        // ▲▲▲ DEĞİŞEN KISIM SONU ▲▲▲
 
         const updates = {};
         updates['/wordGame/settings'] = {
-            cooldown: totalCooldownSeconds, // Artık toplam saniyeyi kaydediyoruz
+            cooldown: totalCooldownSeconds,
         };
         updates['/wordGame/questions'] = questions;
 
         if (shouldResetProgress) {
             updates['/wordGame/leaderboard'] = null; 
+            
+            // ▼▼▼ YENİ EKLENEN KISIM BAŞLANGICI ▼▼▼
+            // Tüm kullanıcıların bekleme sürelerini sıfırla
+            const usersSnap = await db.ref('users').once('value');
+            if (usersSnap.exists()) {
+                usersSnap.forEach(user => {
+                    if (user.val().wordGameCooldown) { // Sadece süresi olanları sıfırla
+                        updates[`/users/${user.key}/wordGameCooldown`] = null;
+                    }
+                });
+            }
+            // ▲▲▲ YENİ EKLENEN KISIM SONU ▲▲▲
+
             displayMessage("Kelime Oyunu başarıyla sıfırlandı ve yeni ayarlarla başlatıldı!");
         } else {
             displayMessage("Kelime Oyunu ayarları başarıyla güncellendi. Oyuncuların ilerlemesi korundu.");
