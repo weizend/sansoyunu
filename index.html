@@ -22016,7 +22016,7 @@ async function submitLetter() {
 
     const modal = document.getElementById('letterInputModal');
     const input = document.getElementById('letterInput');
-    const letter = input.value.trim().toUpperCase();
+    const letter = input.value.trim().toLocaleUpperCase('tr-TR');
     const qIndex = parseInt(modal.dataset.qIndex);
     const lIndex = parseInt(modal.dataset.lIndex);
 
@@ -22289,7 +22289,7 @@ function addQuestionBlock(questionData = null) {
 }
 
 function generateRewardFields(answerInput, lettersData = null) {
-    const answer = answerInput.value.trim().toUpperCase().replace(/[^A-ZÇĞİÖŞÜ]/g, '');
+    const answer = answerInput.value.trim().toLocaleUpperCase('tr-TR').replace(/[^A-ZÇĞİÖŞÜ]/g, '');
     answerInput.value = answer; 
     const container = answerInput.parentElement.querySelector('.letter-rewards-container');
     container.innerHTML = '';
@@ -22345,7 +22345,7 @@ async function saveWordGameSettings(shouldResetProgress = false) {
         for (const [qIndex, block] of questionBlocks.entries()) {
             if (hasError) continue;
             const questionText = block.querySelector('.question-text').value.trim();
-            const answer = block.querySelector('.answer-text').value.trim().toUpperCase();
+            const answer = block.querySelector('.answer-text').value.trim().toLocaleUpperCase('tr-TR');
             
             if (!questionText || !answer) continue;
 
