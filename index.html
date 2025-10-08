@@ -273,11 +273,10 @@
         justify-content: center;    /* Butonları ortala */
     }
 }
-/* --- KOD SONU --- */
 @media (max-width: 768px) { /* md breakpoint ve altı için */
     #cardSelectionModal .modal-content {
         /* Pencerenin dikeyde en fazla ekranın %85'ini kaplamasını sağlıyoruz */
-        max-height: 110vh;
+        max-height: 85vh;
         /* İçerik (kartlar) sığmazsa dikeyde kaydırma çubuğu ekliyoruz */
         overflow-y: auto;
     }
@@ -8269,7 +8268,19 @@ function getActivityIcon(type, details = {}) {
     let bgColor = 'bg-gray-500';
 
     switch (type) {
-        case 'craftItem': // YENİ EKLENEN SATIR
+        case 'newMonsterSpawned':
+            icon = '👹';
+            bgColor = 'bg-red-800';
+            break;
+        case 'newWordGameStarted':
+            icon = '🧠';
+            bgColor = 'bg-cyan-600';
+            break;
+        case 'newClickCatchLobby':
+            icon = '🎯';
+            bgColor = 'bg-blue-600';
+            break;
+        case 'craftItem': 
             icon = '🛠️';
             bgColor = 'bg-orange-500';
             break;
@@ -8284,6 +8295,10 @@ function getActivityIcon(type, details = {}) {
         case 'collectionCompleted':
             icon = '🃏';
             bgColor = 'bg-purple-600';
+            break;
+        case 'revivalStoneUsed':
+            icon = '💎';
+            bgColor = 'bg-sky-500';
             break;
         case 'useRegenPotion':
             icon = '🧪';
@@ -8301,7 +8316,7 @@ function getActivityIcon(type, details = {}) {
             icon = '👑';
             bgColor = 'bg-amber-500';
             break;
-            case 'wordGameChampion': // YENİ EKLENECEK KOD
+            case 'wordGameChampion':
             icon = '👑';
             bgColor = 'bg-amber-500';
             break;
@@ -8309,9 +8324,9 @@ function getActivityIcon(type, details = {}) {
             icon = '🃏';
             bgColor = 'bg-purple-600';
             break;
-            case 'wildcardConvertedToBoxRights': // Örn. Joker Kartı'nın Kutu Hakkı'na dönüştürülmesi
+            case 'wildcardConvertedToBoxRights': 
             icon = '🃏'; 
-            bgColor = 'bg-purple-600'; // Ya da farklı bir renk kodu
+            bgColor = 'bg-purple-600';
             break;
         case 'loginStreakClaim':
             icon = '⏰';
@@ -8660,12 +8675,25 @@ function renderActivityFeed(activities) {
             const deleteButtonHtml = isAdmin ? `<button onclick="deleteActivity('${activity.id}')" class="ml-2 p-1 rounded-full text-gray-500 hover:text-red-500 hover:bg-white/10 transition-colors" title="Bu Eylemi Sil"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1-1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>` : '';
             
             const userHtml = `<b class="text-yellow-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${activity.username}')">${activity.username}</b>`;
+            const adminHtml = `<b class="text-red-400">Yönetici</b>`;
 
             switch (activity.type) {
+                case 'newMonsterSpawned':
+                    message = `${adminHtml}, <b class="text-red-300">${details.monsterName}</b> adlı yeni bir canavarı arenaya çağırdı! Savaş başlasın!`;
+                    break;
+                case 'newWordGameStarted':
+                    message = `${adminHtml} yeni bir <b class="text-cyan-300">Ortak Akıl: Kelime Oyunu</b> başlattı! Herkese bol şans!`;
+                    break;
+                case 'newClickCatchLobby':
+                    message = `${adminHtml}, <b class="text-green-400">${details.prize} Puan</b> ödüllü ve <b class="text-white">${details.target}</b> skor hedeflı yeni bir <b class="text-blue-300">Tıkla-Yakala Lobisi</b> kurdu! Katılmak için acele et!`;
+                    break;
                 case 'craftItem':
                     message = `${userHtml}, atölyede <b class="text-green-400">${details.itemName}</b> üretti. <span class="text-gray-400">(Mevcut Puan: ${formatNumber(details.newBalance)})</span>`;
                     break;
-                    case 'wordGameChampion': // YENİ EKLENECEK KOD
+                case 'revivalStoneUsed':
+                    message = `${userHtml}, <b class="text-cyan-400">dirilme taşı kullandı</b> ve canavar savaşına geri döndü.`;
+                    break;
+                    case 'wordGameChampion': 
                     message = `${userHtml}, kelime oyununu <b class="text-white">${details.score} harf</b> ile tamamlayarak şampiyon oldu ve <b class="text-green-400">${details.prize}</b> kazandı!`;
                     break;
                     case 'wordGameWrongGuess':
@@ -8674,7 +8702,6 @@ function renderActivityFeed(activities) {
                     break;
               case 'wordGameGuess':
                     message = `${userHtml}, kelime oyununda <b class="text-white">'${details.letter}'</b> harfini doğru bilerek <b class="text-green-400">${details.rewardText}</b> kazandı.`;
-                    // Eğer kazanılan ödül puansa, mevcut puan bilgisini ekle
                     if (details.newBalance !== undefined) {
                         message += ` <span class="text-gray-400">(Mevcut: ${formatNumber(details.newBalance)} Puan)</span>`;
                     }
@@ -12989,6 +13016,9 @@ async function listenForGlobalNotifications() {
         players: {} // Yeni lobi her zaman boş oyuncu listesiyle başlar
     };
     await db.ref('clickCatchLobby').set(lobbyData);
+
+    logActivity('newClickCatchLobby', 'WeizendTv', { prize: lobbyData.prize, target: lobbyData.target });
+
     displayMessage("Lobi kuruldu. Oyuncular katıldıktan sonra 'Oyunu Başlat' butonuna bas.");
 }
 
@@ -20024,6 +20054,9 @@ const avatarHtml = `
             damageTiers: damageTiers,
             damageLeaderboard: null 
         });
+
+        logActivity('newMonsterSpawned', 'WeizendTv', { monsterName: monsterDetails.name });
+
         displayMessage("Canavar başarıyla çağrıldı ve savaş başladı!");
         toggleMonsterAdminPanel();
     }
@@ -20506,6 +20539,8 @@ async function useRevivalStone() {
         await battleRef.child(`damageLeaderboard/${currentUser}/currentHP`).set(playerMaxHP);
 
         displayMessage("Dirilme Taşı kullanıldı ve canın tamamen yenilendi. Tekrar savaşa hazırsın!");
+
+        logActivity('revivalStoneUsed', currentUser, {});
 
     } catch (error) {
         displayMessage(error.message);
@@ -22446,6 +22481,7 @@ async function saveWordGameSettings(shouldResetProgress = false) {
         updates['/wordGame/questions'] = questions;
 
         if (shouldResetProgress) {
+            logActivity('newWordGameStarted', 'WeizendTv', {});
             updates['/wordGame/leaderboard'] = null; 
             updates['/gameStats/wordGameChampion'] = null; // Şampiyonu da sıfırla
             
