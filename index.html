@@ -17273,16 +17273,53 @@ async function checkAndGrantPrize(username) {
         });
 
         const updates = {};
-        updates.balance = (userData.balance || 0) + (prizeData.points || 0);
-        updates.kutuHakki = (userData.kutuHakki || 0) + (prizeData.boxRights || 0);
-        updates.iflasShieldUses = (userData.iflasShieldUses || 0) + (prizeData.iflasShields || 0);
-        updates.carkBileti = (userData.carkBileti || 0) + (prizeData.wheelTickets || 0);
-        updates.clickCatchTickets = (userData.clickCatchTickets || 0) + (prizeData.clickCatchTickets || 0);
-        updates.completedCollection = true;
+        
+        // --- YENİ EKLENEN KOD BAŞLANGICI: Pazarda ki kartları iade etme ---
+        const tradesRef = db.ref('trades');
+        const userTradesSnap = await tradesRef.orderByChild('offerer').equalTo(username).once('value');
+
+        if (userTradesSnap.exists()) {
+            const userTrades = userTradesSnap.val();
+            let returnedCardsCount = 0;
+            const cardReturns = new Map();
+
+            for (const tradeId in userTrades) {
+                const trade = userTrades[tradeId];
+                const offeredCardId = trade.offeredCardId;
+                cardReturns.set(offeredCardId, (cardReturns.get(offeredCardId) || 0) + 1);
+                updates[`/trades/${tradeId}`] = null;
+                if (trade.activityId) {
+                    updates[`/activityFeed/${trade.activityId}/details/status`] = 'cancelled';
+                }
+                returnedCardsCount++;
+            }
+
+            for (const [cardId, returnCount] of cardReturns.entries()) {
+                const currentCardCount = userData.cardCollection?.[cardId]?.count || 0;
+                updates[`/users/${username}/cardCollection/${cardId}/count`] = currentCardCount + returnCount;
+            }
+
+            if (returnedCardsCount > 0) {
+                const notifKey = db.ref().push().key;
+                updates[`/users/${username}/persistentNotifications/${notifKey}`] = {
+                    type: 'tradesCancelled',
+                    message: `Koleksiyonu tamamladığın için pazardaki ${returnedCardsCount} adet aktif takas teklifin otomatik olarak iptal edildi ve kartların envanterine iade edildi.`,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                };
+            }
+        }
+        // --- YENİ EKLENEN KOD SONU ---
+
+        updates[`/users/${username}/completedCollection`] = true;
+        updates[`/users/${username}/balance`] = (userData.balance || 0) + (prizeData.points || 0);
+        updates[`/users/${username}/kutuHakki`] = (userData.kutuHakki || 0) + (prizeData.boxRights || 0);
+        updates[`/users/${username}/iflasShieldUses`] = (userData.iflasShieldUses || 0) + (prizeData.iflasShields || 0);
+        updates[`/users/${username}/carkBileti`] = (userData.carkBileti || 0) + (prizeData.wheelTickets || 0);
+        updates[`/users/${username}/clickCatchTickets`] = (userData.clickCatchTickets || 0) + (prizeData.clickCatchTickets || 0);
 
         if (prizeData.avatarName && prizeData.avatarImageUrl) {
             const newAvatarId = db.ref().push().key;
-            updates[`avatars/${newAvatarId}`] = {
+            updates[`/users/${username}/avatars/${newAvatarId}`] = {
                 id: newAvatarId,
                 name: prizeData.avatarName,
                 imageUrl: prizeData.avatarImageUrl
@@ -17290,10 +17327,11 @@ async function checkAndGrantPrize(username) {
         }
         
         if (isFirstWinner) {
-            await userRef.child('collectionChampionshipsWon').transaction(currentCount => (currentCount || 0) + 1);
+            const currentChampionships = userData.collectionChampionshipsWon || 0;
+            updates[`/users/${username}/collectionChampionshipsWon`] = currentChampionships + 1;
         }
         
-        await userRef.update(updates);
+        await db.ref().update(updates);
 
         let prizeMessage = ``;
         if (isFirstWinner) {
@@ -17309,16 +17347,14 @@ async function checkAndGrantPrize(username) {
         if (prizeData.wheelTickets > 0) prizeParts.push(` ${formatNumber(prizeData.wheelTickets)} Çark Bileti`);
         if (prizeData.clickCatchTickets > 0) prizeParts.push(` ${formatNumber(prizeData.clickCatchTickets)} T-Y Bileti`);
         if (prizeData.avatarName) prizeParts.push(` '${prizeData.avatarName}' Avatarı`);
+        if (prizeData.description) prizeParts.push(` ${prizeData.description}`);
 
         prizeMessage += prizeParts.join(',');
         prizeMessage += `!`;
 
-        // === ANA DEĞİŞİKLİK BURADA ===
         if (username === currentUser) {
-            // Eğer ödülü kazanan kişi SENSEN, direkt mesajı göster
             displayMessage(prizeMessage);
         } else {
-            // Eğer ödülü kazanan BAŞKASIYSA (yani takas yaptığın kişi), ona özel bildirim gönder
             const notificationData = {
                 type: 'collectionCompleted',
                 title: isFirstWinner ? '🏆 İLK ŞAMPİYON SENSİN! 🏆' : '🎉 KOLEKSİYON TAMAMLANDI! 🎉',
@@ -20999,16 +21035,16 @@ function listenForPersistentNotifications() {
         const notification = snap.val();
         
         if (notification && notification.type) {
-            // YENİ EKLENEN KISIM: 'collectionCompleted' tipini yakala
             switch(notification.type) {
                 case 'collectionCompleted':
                     showCollectionCompleteModal(notification);
                     break;
+                // --- YENİ EKLENEN KISIM BAŞLANGICI ---
                 case 'tradesCancelled':
                     displayMessage(notification.message);
                     break;
+                // --- YENİ EKLENEN KISIM SONU ---
             }
-            // Bildirimi gösterdikten sonra veritabanından sil
             snap.ref.remove();
         }
     };
