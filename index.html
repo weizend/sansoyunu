@@ -8289,7 +8289,6 @@ async function buyItem(itemId) {
         return;
     }
     
-    // --- YENİ LİMİT KONTROL MANTIĞI ---
     let finalAmountToAdd = (item.value || 1) * quantity;
     let capCheck = { canAdd: true, isCapped: false, amount: finalAmountToAdd };
     let confirmationMessage = `<b>${item.name}</b> ürününden <b>${quantity} adet</b> satın almak için <b>${totalCost} ${isSpecial ? 'Kasa Puanı' : 'Puan'}</b> harcanacak. Onaylıyor musunuz?`;
@@ -8309,7 +8308,6 @@ async function buyItem(itemId) {
             finalAmountToAdd = capCheck.amount;
         }
     }
-    // --- YENİ LİMİT KONTROL MANTIĞI SONU ---
 
     const confirmed = await customConfirm(confirmationMessage);
     if (!confirmed) return;
@@ -8353,7 +8351,7 @@ async function buyItem(itemId) {
         let rewardPayload = { ...item };
 
         if (isPotion && !isSpecial) {
-            rewardPayload.value = finalAmountToAdd; // Limite göre ayarlanmış miktarı kullan
+            rewardPayload.value = finalAmountToAdd;
         } else if (item.type === 'tempMultiplier') {
             rewardPayload.value = item.value;
             rewardPayload.uses = (item.duration || 1) * quantity;
@@ -8405,31 +8403,38 @@ async function buyItem(itemId) {
             });
             displayMessage(`'${item.name}' alım talebiniz başarıyla oluşturuldu. Admin onayı bekleniyor.`);
         } else {
-            // ★★★ DEĞİŞİKLİK BURADA BAŞLIYOR ★★★
-            // Mağaza adını belirleme
             const monsterStoreItemTypes = [
                 'revival_stone', 'health_potion', 'damage_potion', 'defense_potion',
                 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion',
                 'health_regen_potion'
             ];
-            let storeName = 'Oyun Mağazası';
+            let storeName = 'Mağaza';
             if (item.type === 'avatar') {
                 storeName = 'Avatar Mağazası';
             } else if (monsterStoreItemTypes.includes(item.type)) {
                 storeName = 'Canavar Mağazası';
             }
 
-            // Gerekli bilgileri hazırla
             const costUnit = 'Puan';
             const formattedCost = formatNumber(totalCost);
-            const itemNameWithQuantity = `${quantity > 1 ? quantity + 'x ' : ''}${item.name}`;
             const remainingBalance = finalUserData.balance;
             const formattedRemainingBalance = formatNumber(remainingBalance || 0);
 
-            // Yeni ve detaylı mesajı oluştur
-            const successMessage = `${currentUser}, ${formattedCost} ${costUnit} harcayarak ${storeName}'ndan ${itemNameWithQuantity} satın aldı. (Kalan: ${formattedRemainingBalance} ${costUnit})`;
+            let purchasedItemText = '';
+            if (item.type === 'health_regen_potion') {
+                purchasedItemText = `${quantity > 1 ? `${quantity} adet ` : ''}%${item.value} ${item.name}`;
+            } else if (quantity > 1) {
+                if (/\d/.test(item.name)) {
+                    purchasedItemText = `${quantity} adet ${item.name} paketi`;
+                } else {
+                    purchasedItemText = `${quantity} adet ${item.name}`;
+                }
+            } else {
+                purchasedItemText = item.name;
+            }
+
+            const successMessage = `${currentUser}, ${storeName}'ndan -${formattedCost} ${costUnit} harcayarak ${purchasedItemText} satın aldı. (Kalan: ${formattedRemainingBalance} ${costUnit})`;
             displayMessage(successMessage);
-            // ★★★ DEĞİŞİKLİK BURADA BİTİYOR ★★★
         }
         
         for (const pack of cardPacksToOpen) {
@@ -8437,11 +8442,13 @@ async function buyItem(itemId) {
         }
         
         const logDetails = {
-            itemName: `${quantity > 1 ? quantity + 'x ' : ''}${item.name}`,
+            itemName: item.name,
+            quantity: quantity,
             itemCost: isSpecial ? `${totalCost} KP` : totalCost,
             newBalance: finalUserData.balance,
             newKasaBalance: finalUserData.kasaPuani,
-            itemType: item.type
+            itemType: item.type,
+            itemValue: (item.type === 'health_regen_potion' ? item.value : null)
         };
 
         if (isPotion) {
@@ -14035,17 +14042,27 @@ function getActivityIcon(type, details = {}) {
         case 'newItemFound':
         case 'cardPackOpened':
             const itemType = details.itemType || details.packType;
-            if (itemType === 'card_pack_efsanevi') { icon = '🏆'; bgColor = 'bg-purple-600'; } 
-            else if (itemType === 'card_pack_altin') { icon = '🥇'; bgColor = 'bg-yellow-500'; } 
-            else if (itemType === 'card_pack_gumus') { icon = '🥈'; bgColor = 'bg-gray-500'; } 
-            else if (itemType === 'card_pack_normal') { icon = '🥉'; bgColor = 'bg-amber-600'; } 
-            else if (itemType === 'card_pack') { icon = '🎴'; bgColor = 'bg-indigo-500'; } 
-            else if (itemType === 'wildcard') { icon = '🃏'; bgColor = 'bg-purple-500'; } 
-            else if (itemType === 'revival_stone') { icon = '💎'; bgColor = 'bg-sky-500'; } 
-            else if (itemType === 'iflasShield') { icon = '🛡️'; bgColor = 'bg-cyan-500'; } 
-            else if (itemType === 'wheelTicket') { icon = '🎫'; bgColor = 'bg-cyan-500'; } 
-            else if (itemType === 'clickCatchTicket') { icon = '🎟️'; bgColor = 'bg-cyan-500'; } 
-            else { icon = '📦'; bgColor = 'bg-cyan-500'; }
+            const cardRarity = details.cardRarity;
+
+            if (type === 'cardPackOpened' && cardRarity) {
+                if (cardRarity === 'efsanevi') { icon = '🏆'; bgColor = 'bg-purple-600'; } 
+                else if (cardRarity === 'altin') { icon = '🥇'; bgColor = 'bg-yellow-500'; } 
+                else if (cardRarity === 'gumus') { icon = '🥈'; bgColor = 'bg-gray-500'; } 
+                else if (cardRarity === 'normal') { icon = '🥉'; bgColor = 'bg-amber-600'; } 
+                else { icon = '🎴'; bgColor = 'bg-indigo-500'; }
+            } else {
+                if (itemType === 'card_pack_efsanevi') { icon = '🏆'; bgColor = 'bg-purple-600'; } 
+                else if (itemType === 'card_pack_altin') { icon = '🥇'; bgColor = 'bg-yellow-500'; } 
+                else if (itemType === 'card_pack_gumus') { icon = '🥈'; bgColor = 'bg-gray-500'; } 
+                else if (itemType === 'card_pack_normal') { icon = '🥉'; bgColor = 'bg-amber-600'; } 
+                else if (itemType === 'card_pack') { icon = '🎴'; bgColor = 'bg-indigo-500'; } 
+                else if (itemType === 'wildcard') { icon = '🃏'; bgColor = 'bg-purple-500'; } 
+                else if (itemType === 'revival_stone') { icon = '💎'; bgColor = 'bg-sky-500'; } 
+                else if (itemType === 'iflasShield') { icon = '🛡️'; bgColor = 'bg-cyan-500'; } 
+                else if (itemType === 'wheelTicket') { icon = '🎫'; bgColor = 'bg-cyan-500'; } 
+                else if (itemType === 'clickCatchTicket') { icon = '🎟️'; bgColor = 'bg-cyan-500'; } 
+                else { icon = '📦'; bgColor = 'bg-cyan-500'; }
+            }
             break;
         case 'spinWheel':
             icon = '🎡';
@@ -14082,7 +14099,32 @@ function getActivityHtml(activity) {
     const userHtml = `<b class="text-yellow-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${activity.username}')">${activity.username}</b>`;
 
    switch (activity.type) {
-        // KUTU OYUNU
+        case 'buyItem':
+            const { itemName, quantity, itemCost, newBalance, newKasaBalance, itemType, itemValue } = details;
+            const isKP_buy = (itemCost || '').toString().includes('KP');
+            const costText_buy = isKP_buy ? itemCost : `${formatNumber(itemCost)} Puan`;
+            const balance_buy = isKP_buy ? newKasaBalance : newBalance;
+            const balanceUnit_buy = isKP_buy ? 'KP' : 'Puanı';
+
+            let purchasedItemText = '';
+
+            if (itemType === 'health_regen_potion' && itemValue) {
+                purchasedItemText = `${quantity > 1 ? `${quantity} adet ` : ''}%${itemValue} ${itemName}`;
+            } else if (quantity > 1) {
+                if (/\d/.test(itemName)) {
+                    purchasedItemText = `${quantity} adet ${itemName} paketi`;
+                } else {
+                    purchasedItemText = `${quantity} adet ${itemName}`;
+                }
+            } else {
+                if (itemType === 'health_regen_potion' && itemValue) {
+                     purchasedItemText = `%${itemValue} ${itemName}`;
+                } else {
+                     purchasedItemText = itemName;
+                }
+            }
+            message = `${userHtml}, Mağaza'ndan <b class="text-red-500">-${costText_buy}</b> harcayarak <b class="text-green-400">${purchasedItemText}</b> satın aldı. (Kalan ${balanceUnit_buy}: ${formatNumber(balance_buy)})`;
+            break;
         case 'openBox':
             const openBoxMultiplier = details.multiplier > 1 ? ` <span class="text-xs text-purple-400">(${details.multiplier}x çarpan kullandı)</span>` : '';
             message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-green-300 font-bold">+${formatNumber(details.points)} Puan</span> kazandı.${openBoxMultiplier} <span class="text-gray-400">(Mevcut Puan: ${formatNumber(details.newBalance)})</span>`;
@@ -14103,8 +14145,8 @@ function getActivityHtml(activity) {
             break;
         case 'newItemFound':
             const newItemMultiplier = details.multiplier > 1 ? ` <span class="text-xs text-purple-400">(${details.multiplier}x çarpan)</span>` : '';
-            const itemName = typeToName[details.itemType] || 'Eşya';
-            message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-cyan-300 font-bold">${details.itemName.split(' ')[0]} ${itemName}</span> buldu.${newItemMultiplier}`;
+            const itemName_newItem = typeToName[details.itemType] || 'Eşya';
+            message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-cyan-300 font-bold">${details.itemName.split(' ')[0]} ${itemName_newItem}</span> buldu.${newItemMultiplier}`;
             break;
         case 'multiplierStacked':
             message = `${userHtml}, mevcut <b>${details.value}x</b> çarpanıyla aynı değerde bir çarpan daha buldu. Kullanım hakkı <b class="text-teal-300 font-bold">+1</b> artırıldı.`;
@@ -14118,8 +14160,6 @@ function getActivityHtml(activity) {
         case 'multiplierUpgraded':
             message = `${userHtml}, çarpanını <b>${details.newValue}x</b>'e yükseltti ve eski çarpanı için <b class="text-green-300 font-bold">+${details.boxRights} Kutu Hakkı</b> iade aldı.`;
             break;
-
-        // CANAVAR SAVAŞI & DİĞER ETKİNLİK ŞAMPİYONLARI
         case 'monsterDefeated':
             message = `<b class="text-red-400">${details.monsterName}</b> yok edildi! Şampiyon ${userHtml} (<b class="text-white">${formatNumber(details.totalDamage)} Hasar</b>) <b class="text-green-400">${details.prize}</b> ödülünü kazandı.`;
             break;
@@ -14129,34 +14169,21 @@ function getActivityHtml(activity) {
         case 'weeklyChampion':
             message = `Haftanın Tıkla-Yakala şampiyonu ${userHtml} oldu ve <b class="text-green-400">${details.prize}</b> kazandı!`;
             break;
-            
-        // KELİME OYUNU
         case 'wordGameGuess':
             message = `${userHtml}, kelime oyununda bir harf bilerek <b class="text-green-400">${details.rewardText}</b> kazandı.`;
             break;
-        case 'wordGameChampion':
-            message = `${userHtml}, kelime oyununu <b class="text-white">${details.score} harf</b> ile tamamlayarak şampiyon oldu ve <b class="text-green-400">${details.prize}</b> kazandı!`;
-            break;
-
-        // ŞANS ÇARKI
         case 'spinWheel':
             message = `${userHtml}, çarkı çevirerek <span class="text-pink-300 font-bold">${details.result}</span> kazandı.`;
             break;
-
-        // TIKLA-YAKALA
         case 'clickCatchSolo':
             message = `${userHtml}, Tıkla-Yakala'da <span class="text-green-300 font-bold">${formatNumber(details.finalScore)} Skor</span> topladı.`;
             break;
         case 'weeklyChampion':
             message = `Haftanın Tıkla-Yakala şampiyonu ${userHtml} oldu ve <b class="text-green-400">${details.prize}</b> kazandı!`;
             break;
-            
-        // ÜRETİM ATÖLYESİ
         case 'craftItem':
              message = `${userHtml}, atölyede <b class="text-green-400">${details.itemName}</b> üretti.`;
             break;
-
-        // KART SİSTEMİ
         case 'cardPackOpened':
             message = `${userHtml}, açtığı paketten <b class="text-purple-300">'${details.cardName}'</b> kartını kazandı.`;
             break;
@@ -14169,21 +14196,9 @@ function getActivityHtml(activity) {
         case 'tradeOfferAccepted':
              message = `${userHtml}, <b>${details.offerer}</b>'in <b class="text-cyan-300">'${details.offeredCardName}'</b> kartı teklifini kabul etti.`;
             break;
-            
-        // MAĞAZA
-        case 'buyItem':
-            const storeName = details.itemCost.toString().includes('KP') ? 'Özel Ürün Mağazası' : 'Mağaza';
-            const costText = `${formatNumber(details.itemCost)} ${details.itemCost.toString().includes('KP') ? 'KP' : 'Puan'}`;
-            const balanceText = details.itemCost.toString().includes('KP') 
-                ? `(Kalan KP: ${formatNumber(details.newKasaBalance)})` 
-                : `(Kalan Puan: ${formatNumber(details.newBalance)})`;
-            message = `${userHtml}, ${storeName}'ndan <b class="text-red-500">-${costText}</b> harcayarak <b class="text-green-400">${details.itemName}</b> satın aldı. ${balanceText}`;
-            break;
-            
-        // GÜNLÜK ÖDÜL & GİRİŞ SERİSİ
         case 'dailyReward':
-            const rewardText = formatRewardText(details.rewardType, details.rewardValue, details.rewardUses);
-            message = `${userHtml}, günlük ödül olarak <span class="text-teal-300 font-bold">${rewardText}</span> aldı.`;
+            const rewardText_daily = formatRewardText(details.rewardType, details.rewardValue, details.rewardUses);
+            message = `${userHtml}, günlük ödül olarak <span class="text-teal-300 font-bold">${rewardText_daily}</span> aldı.`;
             break;
         case 'loginStreakClaim':
             message = `${userHtml}, giriş serisinde <b class="text-teal-300 font-bold">${details.day}. gün</b> <b class="text-white">'${details.packageName}'</b> ödülünü aldı.`;
@@ -17440,8 +17455,6 @@ async function startCardPackOpening(packCount, source = 'Bilinmeyen Kaynak', mul
     modal.style.display = 'flex';
 }
 
-// MEVCUT revealCard FONKSİYONUNU BUL VE BUNUNLA DEĞİŞTİR
-
 async function revealCard(cardElement) {
     if (cardElement.classList.contains('flipped')) return; 
 
@@ -17477,11 +17490,11 @@ async function revealCard(cardElement) {
         return userData;
     });
     
-    // ★★★ DEĞİŞİKLİK BURADA ★★★
     logActivity('cardPackOpened', currentUser, { 
         packName: document.getElementById('cardPackOpeningTitle').textContent, 
         cardName: wonCard.cardName,
-        packType: currentOpeningPackType // Paket türü bilgisini log'a ekliyoruz
+        cardRarity: wonCard.rarity,
+        packType: currentOpeningPackType
     }, 'kart');
 
     newlyAcquiredCards.add(wonCard.id);
