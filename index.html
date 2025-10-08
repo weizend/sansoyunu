@@ -14087,14 +14087,16 @@ function getActivityHtml(activity) {
         </div>`;
 }
 
-// Bu fonksiyon etkinlikler sekmesinin içeriğini oluşturur ve dinler
 function listenForEventsTab() {
+    // Referanslara şampiyon verilerini de ekliyoruz.
     const eventRefs = [
-        db.ref('gameConfig/monsterBattle'),
-        db.ref('clickCatchLobby'),
-        db.ref('gameConfig/weeklyClickCatchReset'),
-        db.ref('wordGame'),
-        db.ref('gameConfig/cardCollectionStatus')
+        db.ref('gameConfig/monsterBattle'),        // 0
+        db.ref('clickCatchLobby'),                 // 1
+        db.ref('gameConfig/weeklyClickCatchReset'),// 2
+        db.ref('wordGame'),                        // 3
+        db.ref('gameConfig/cardCollectionStatus'), // 4
+        db.ref('gameStats/wordGameChampion'),      // 5
+        db.ref('gameStats/weeklyClickCatchWinner'),// 6
     ];
 
     const renderEvents = async () => {
@@ -14110,28 +14112,40 @@ function listenForEventsTab() {
         const weeklyData = snapshots[2].val();
         const wordGameData = snapshots[3].val();
         const collectionStatus = snapshots[4].val();
+        const wordGameChampionData = snapshots[5].val();
+        const weeklyWinnerData = snapshots[6].val();
 
         // 1. Canavar Savaşı
-        if (monsterData && monsterData.monsterDetails && monsterData.monsterDetails.currentHP > 0) {
-            const sortedLeaderboard = Object.entries(monsterData.damageLeaderboard || {}).sort((a,b) => b[1].totalDamage - a[1].totalDamage);
-            const leader = sortedLeaderboard.length > 0 ? sortedLeaderboard[0] : null;
-            const leaderText = leader ? `1. sırada <b class="text-white">${leader[0]}</b> (${formatNumber(leader[1].totalDamage)} Hasar)` : '1. sıra için oyuncu bekleniyor.';
-            const prize = monsterData.rewards?.onKillLeader;
-            const prizeText = prize ? `${formatNumber(prize.value)} ${typeToName[prize.type]}` : 'Belirlenmedi';
+        if (monsterData && monsterData.monsterDetails) {
+            if (monsterData.monsterDetails.currentHP > 0) {
+                // Etkinlik devam ediyor...
+                const sortedLeaderboard = Object.entries(monsterData.damageLeaderboard || {}).sort((a,b) => b[1].totalDamage - a[1].totalDamage);
+                const leader = sortedLeaderboard.length > 0 ? sortedLeaderboard[0] : null;
+                const leaderText = leader ? `1. sırada <b class="text-white">${leader[0]}</b> (${formatNumber(leader[1].totalDamage)} Hasar)` : '1. sıra için oyuncu bekleniyor.';
+                const prize = monsterData.rewards?.onKillLeader;
+                const prizeText = prize ? `${formatNumber(prize.value)} ${typeToName[prize.type]}` : 'Belirlenmedi';
 
-            html += `
-                <div class="event-card ongoing">
-                    <h5 class="font-bold text-white mb-2">Canavar Savaşı Etkinliği Başladı!</h5>
-                    <p class="text-sm text-gray-300"><b class="text-red-400">${monsterData.monsterDetails.name}</b> canavarı arenaya geldi.</p>
-                    <p class="text-sm text-gray-300">Liderlik Ödülü: <b class="text-green-400">${prizeText}</b></p>
-                    <p class="text-sm text-gray-300 mt-2">${leaderText}</p>
-                    <p class="text-xs text-lime-400 font-bold mt-1">Oyun Devam Ediyor</p>
-                </div>`;
+                html += `
+                    <div class="event-card ongoing">
+                        <h5 class="font-bold text-white mb-2">Canavar Savaşı Etkinliği Başladı!</h5>
+                        <p class="text-sm text-gray-300"><b class="text-red-400">${monsterData.monsterDetails.name}</b> canavarı arenaya geldi.</p>
+                        <p class="text-sm text-gray-300">Liderlik Ödülü: <b class="text-green-400">${prizeText}</b></p>
+                        <p class="text-sm text-gray-300 mt-2">${leaderText}</p>
+                        <p class="text-xs text-lime-400 font-bold mt-1">Etkinlik devam ediyor</p>
+                    </div>`;
+            } else {
+                // Etkinlik bitti...
+                html += `
+                    <div class="event-card finished">
+                        <h5 class="font-bold text-white mb-2">Canavar Savaşı Etkinliği Bitti!</h5>
+                        <p class="text-sm text-gray-400">Şampiyon seçildi ve etkinlik bitti. Yöneticinin etkinliği yeniden başlatması bekleniyor.</p>
+                    </div>`;
+            }
         }
-
-        // 2. Tıkla-Yakala Lobi
+        
+        // 2. Tıkla-Yakala Lobi (Sadece aktifken gösterilir)
         if (lobbyData && (lobbyData.state === 'waiting' || lobbyData.state === 'active')) {
-             const stateText = lobbyData.state === 'waiting' ? 'Katılımcı Bekleniyor' : 'Oyun Devam Ediyor';
+             const stateText = lobbyData.state === 'waiting' ? 'Katılımcı Bekleniyor' : 'Etkinlik devam ediyor';
              const katilimText = lobbyData.entryTickets > 0 ? `${lobbyData.entryTickets} Bilet` : `${lobbyData.entryFee} Puan`;
              html += `
                 <div class="event-card ongoing">
@@ -14145,7 +14159,6 @@ function listenForEventsTab() {
         if (weeklyData && weeklyData.endDate) {
             const prize = weeklyData.prize;
             const prizeText = prize.type === 'special' ? prize.name : `${formatNumber(prize.amount)} ${typeToName[prize.type]}`;
-            
             const scoresSnap = await db.ref('clickCatchWeeklyScores').orderByValue().limitToLast(1).once('value');
             let leaderText = '1. sıra için oyuncu bekleniyor.';
             if (scoresSnap.exists()) {
@@ -14156,27 +14169,41 @@ function listenForEventsTab() {
 
             html += `
                 <div class="event-card ongoing">
-                    <h5 class="font-bold text-white mb-2">Tıkla-Yakala Tekli Oyun Etkinliği</h5>
+                    <h5 class="font-bold text-white mb-2">Tıkla-Yakala Haftalık Etkinliği</h5>
                     <p class="text-sm text-gray-300">Haftanın Şampiyonu Ödülü: <b class="text-green-400">${prizeText}</b></p>
                     <p class="text-sm text-gray-300 mt-2">${leaderText}</p>
-                    <p class="text-xs text-lime-400 font-bold mt-1">Oyun Devam Ediyor</p>
+                    <p class="text-xs text-lime-400 font-bold mt-1">Etkinlik devam ediyor</p>
+                </div>`;
+        } else if (weeklyWinnerData) {
+             html += `
+                <div class="event-card finished">
+                    <h5 class="font-bold text-white mb-2">Tıkla-Yakala Haftalık Etkinliği Bitti!</h5>
+                    <p class="text-sm text-gray-400">Şampiyon seçildi ve etkinlik bitti. Yöneticinin etkinliği yeniden başlatması bekleniyor.</p>
                 </div>`;
         }
 
         // 4. Kelime Oyunu
         if (wordGameData && wordGameData.questions) {
-            const sortedLeaderboard = Object.entries(wordGameData.leaderboard || {}).sort((a,b) => b[1].score - a[1].score);
-            const leader = sortedLeaderboard.length > 0 ? sortedLeaderboard[0] : null;
-            const leaderText = leader ? `1. sırada <b class="text-white">${leader[0]}</b> (${leader[1].score} Harf)` : '1. sıra için oyuncu bekleniyor.';
-            const prize = wordGameData.settings?.championPrize;
-            const prizeText = prize ? formatRewardText(prize.type, prize.amount || prize.value, prize.uses) : 'Belirlenmedi';
-             html += `
-                <div class="event-card ongoing">
-                    <h5 class="font-bold text-white mb-2">Kelime Oyunu Etkinliği Başladı!</h5>
-                    <p class="text-sm text-gray-300">Şampiyon Ödülü: <b class="text-green-400">${prizeText}</b></p>
-                    <p class="text-sm text-gray-300 mt-2">${leaderText}</p>
-                    <p class="text-xs text-lime-400 font-bold mt-1">Oyun Devam Ediyor</p>
+            if (wordGameChampionData) {
+                 html += `
+                <div class="event-card finished">
+                    <h5 class="font-bold text-white mb-2">Kelime Oyunu Etkinliği Bitti!</h5>
+                    <p class="text-sm text-gray-400">Şampiyon seçildi ve etkinlik bitti. Yöneticinin etkinliği yeniden başlatması bekleniyor.</p>
                 </div>`;
+            } else {
+                const sortedLeaderboard = Object.entries(wordGameData.leaderboard || {}).sort((a,b) => b[1].score - a[1].score);
+                const leader = sortedLeaderboard.length > 0 ? sortedLeaderboard[0] : null;
+                const leaderText = leader ? `1. sırada <b class="text-white">${leader[0]}</b> (${leader[1].score} Harf)` : '1. sıra için oyuncu bekleniyor.';
+                const prize = wordGameData.settings?.championPrize;
+                const prizeText = prize ? formatRewardText(prize.type, prize.amount || prize.value, prize.uses) : 'Belirlenmedi';
+                 html += `
+                    <div class="event-card ongoing">
+                        <h5 class="font-bold text-white mb-2">Kelime Oyunu Etkinliği Başladı!</h5>
+                        <p class="text-sm text-gray-300">Şampiyon Ödülü: <b class="text-green-400">${prizeText}</b></p>
+                        <p class="text-sm text-gray-300 mt-2">${leaderText}</p>
+                        <p class="text-xs text-lime-400 font-bold mt-1">Etkinlik devam ediyor</p>
+                    </div>`;
+            }
         }
 
         // 5. Kart Koleksiyonu
@@ -14195,7 +14222,7 @@ function listenForEventsTab() {
              html += `
                 <div class="event-card ongoing">
                     <h5 class="font-bold text-white mb-2">Kart Koleksiyonu Etkinliği Başladı!</h5>
-                    <p class="text-sm text-gray-300">Albümü İlk Tamamlayan Ödülü: <b class="text-green-400">${prizeText}</b></p>
+                    <p class="text-sm text-gray-300">Büyük Ödül: <b class="text-green-400">${prizeText}</b></p>
                     <p class="text-sm text-gray-300 mt-2">${leaderText}</p>
                     <p class="text-xs text-lime-400 font-bold mt-1">Sezon Devam Ediyor</p>
                 </div>`;
@@ -14203,8 +14230,8 @@ function listenForEventsTab() {
 
         container.innerHTML = html || '<p class="text-center text-gray-400 p-4">Şu anda aktif bir etkinlik bulunmuyor.</p>';
     };
-
-    // Herhangi bir etkinlik verisi değiştiğinde sekme içeriğini yeniden oluştur
+    
+    // Herhangi bir etkinlik verisi değiştiğinde sekme içeriğini yeniden oluşturulsun diye dinleyicileri ata
     eventRefs.forEach(ref => ref.on('value', renderEvents));
 }
 
