@@ -4847,6 +4847,7 @@ function getSyncedTime() {
   let chatCooldown = false;
   let lastMessageTime = 0;
   let ticketsUsedThisRound = 1;
+  let currentOpeningPackType = 'card_pack'; 
   let chatMuteTarget = {};
   // YENİ: Sohbet yavaş mod ayarlarını tutar
   let chatSettings = { slowModeSeconds: 3 }
@@ -13810,33 +13811,6 @@ function listenForEventsTab() {
     eventRefs.forEach(ref => ref.on('value', renderEvents));
 }
 
-// MEVCUT toggleActivityFeed, openActivityFeed ve closeActivityFeed FONKSİYONLARINI SİLİP BUNLARI YAPIŞTIRIN
-
-function openActivityFeed() {
-    const activityFeedPanel = document.getElementById('activityFeedPanel');
-    const activityCounter = document.getElementById('activityCounter');
-    activityFeedPanel.classList.remove('hidden'); // Önce görünür yap
-    setTimeout(() => {
-        activityFeedPanel.classList.remove('translate-x-full'); // Sonra kaydırma animasyonunu başlat
-    }, 10); // Çok küçük bir gecikme, tarayıcının 'hidden' sınıfının kaldırıldığını fark etmesini sağlar.
-    activityCounter.classList.add('hidden');
-}
-
-function closeActivityFeed() {
-    const activityFeedPanel = document.getElementById('activityFeedPanel');
-    activityFeedPanel.classList.add('translate-x-full'); // Sadece kaydır
-}
-
-function toggleActivityFeed() {
-    const activityFeedPanel = document.getElementById('activityFeedPanel');
-    // Eğer panel tamamen ekran dışındaysa (yani transform uygulanmışsa) aç, değilse kapat.
-    if (activityFeedPanel.classList.contains('translate-x-full')) {
-        openActivityFeed();
-    } else {
-        closeActivityFeed();
-    }
-}
-
 // MEVCUT getCategoryForActivity FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
 
 /**
@@ -13886,36 +13860,71 @@ function getCategoryForActivity(type) {
 }
 
 
-// MEVCUT switchActivityTab FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
+// MEVCUT toggleActivityFeed, openActivityFeed, closeActivityFeed, switchActivityTab FONKSİYONLARINI SİLİP BU 4 YENİ FONKSİYONU YAPIŞTIRIN
+
+function openActivityFeed() {
+    const activityFeedPanel = document.getElementById('activityFeedPanel');
+    const activityCounter = document.getElementById('activityCounter');
+    activityFeedPanel.style.display = 'flex'; // Önce görünür yap (display: flex)
+    setTimeout(() => {
+        activityFeedPanel.classList.remove('translate-x-full');
+    }, 10);
+    activityCounter.classList.add('hidden');
+}
+
+function closeActivityFeed() {
+    const activityFeedPanel = document.getElementById('activityFeedPanel');
+    activityFeedPanel.classList.add('translate-x-full');
+    // Animasyon bittikten sonra gizle
+    setTimeout(() => {
+        // Eğer hala açıksa (kullanıcı hızlıca tekrar açmadıysa) gizle
+        if(activityFeedPanel.classList.contains('translate-x-full')){
+            activityFeedPanel.style.display = 'none';
+        }
+    }, 300); // Transition süresiyle aynı olmalı
+}
+
+function toggleActivityFeed() {
+    const activityFeedPanel = document.getElementById('activityFeedPanel');
+    // style.display kontrolü daha güvenilir
+    if (activityFeedPanel.style.display === 'flex') {
+        closeActivityFeed();
+    } else {
+        openActivityFeed();
+    }
+}
 
 function switchActivityTab(category) {
-    // Sadece tıklanan sekmenin 'active' sınıfını yönet
+    // Tüm sekme butonlarından 'active' sınıfını kaldır
     document.querySelectorAll('.activity-tab-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.getAttribute('onclick') === `switchActivityTab('${category}')`);
+        btn.classList.remove('active');
     });
 
-    // Sadece tıklanan sekmenin bildirim noktasını gizle
-    const clickedBtn = document.querySelector(`.activity-tab-btn[onclick="switchActivityTab('${category}')"]`);
-    if (clickedBtn) {
-        const dot = clickedBtn.querySelector('.notification-dot');
+    // Tıklanan butonu bul ve 'active' yap
+    const activeBtn = document.querySelector(`.activity-tab-btn[onclick="switchActivityTab('${category}')"]`);
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+        // Kırmızı noktayı gizle
+        const dot = activeBtn.querySelector('.notification-dot');
         if (dot) dot.style.display = 'none';
     }
 
-    // Tüm içerikleri gizle, sonra sadece aktif olanı göster
+    // Tüm sekme içeriklerini gizle
     document.querySelectorAll('.activity-tab-content').forEach(content => {
         content.classList.add('hidden');
     });
+
+    // Aktif içeriği göster
     const activeContent = document.getElementById(`activityFeedTab-${category}`);
     if (activeContent) activeContent.classList.remove('hidden');
 
     // Bu sekmeye ait yeni eylemleri 'görüldü' olarak işaretle
     db.ref(`users/${currentUser}/lastCheckedFeedTimestamp/${category}`).set(getSyncedTime());
     
-    // Ana sayacı yeniden hesapla
+    // Ana sayacı yeniden hesapla (sadece görünür olan noktaları sayarak)
     let totalUnreadCount = 0;
-    document.querySelectorAll('.activity-tab-btn').forEach(btn => {
-        const dot = btn.querySelector('.notification-dot');
-        if (dot && dot.style.display !== 'none') {
+    document.querySelectorAll('.activity-tab-btn .notification-dot').forEach(dot => {
+        if (dot.style.display !== 'none') {
             totalUnreadCount++;
         }
     });
@@ -13928,9 +13937,6 @@ function switchActivityTab(category) {
         mainCounter.classList.add('hidden');
     }
 }
-
-
-// MEVCUT getActivityIcon FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
 
 function getActivityIcon(type, details = {}) {
     let icon = '🔔';
@@ -14027,8 +14033,8 @@ function getActivityIcon(type, details = {}) {
             bgColor = 'bg-sky-500';
             break;
         case 'newItemFound':
-        case 'cardPackOpened': // cardPackOpened için de aynı mantığı kullan
-            const itemType = details.itemType || details.packType; // Hem newItemFound hem cardPackOpened için
+        case 'cardPackOpened':
+            const itemType = details.itemType || details.packType;
             if (itemType === 'card_pack_efsanevi') { icon = '🏆'; bgColor = 'bg-purple-600'; } 
             else if (itemType === 'card_pack_altin') { icon = '🥇'; bgColor = 'bg-yellow-500'; } 
             else if (itemType === 'card_pack_gumus') { icon = '🥈'; bgColor = 'bg-gray-500'; } 
@@ -14069,16 +14075,13 @@ function getActivityIcon(type, details = {}) {
     `;
 }
 
-
-// MEVCUT getActivityHtml FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
-
 function getActivityHtml(activity) {
     const details = activity.details || {};
     let message = `Bilinmeyen Eylem: ${activity.type}`;
     const timeAgo = formatTimeAgo(activity.timestamp);
     const userHtml = `<b class="text-yellow-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${activity.username}')">${activity.username}</b>`;
 
-    switch (activity.type) {
+   switch (activity.type) {
         // KUTU OYUNU
         case 'openBox':
             const openBoxMultiplier = details.multiplier > 1 ? ` <span class="text-xs text-purple-400">(${details.multiplier}x çarpan kullandı)</span>` : '';
@@ -14116,15 +14119,15 @@ function getActivityHtml(activity) {
             message = `${userHtml}, çarpanını <b>${details.newValue}x</b>'e yükseltti ve eski çarpanı için <b class="text-green-300 font-bold">+${details.boxRights} Kutu Hakkı</b> iade aldı.`;
             break;
 
-        // CANAVAR SAVAŞI
-        case 'monsterAttack':
-             message = `${userHtml}, <b class="text-red-400">${details.monsterName}</b>'a saldırdı ve <b class="text-white">${formatNumber(details.damageDealt)} hasar</b> verdi.`;
-            break;
+        // CANAVAR SAVAŞI & DİĞER ETKİNLİK ŞAMPİYONLARI
         case 'monsterDefeated':
             message = `<b class="text-red-400">${details.monsterName}</b> yok edildi! Şampiyon ${userHtml} (<b class="text-white">${formatNumber(details.totalDamage)} Hasar</b>) <b class="text-green-400">${details.prize}</b> ödülünü kazandı.`;
             break;
-        case 'useRegenPotion':
-            message = `${userHtml}, <b class="text-cyan-300">%${details.percentage} Can Yenileme İksiri</b> kullanarak <b class="text-green-300">${details.healed} can</b> yeniledi.`;
+        case 'wordGameChampion':
+            message = `${userHtml}, kelime oyununu <b class="text-white">${details.score} harf</b> ile tamamlayarak şampiyon oldu ve <b class="text-green-400">${details.prize}</b> kazandı!`;
+            break;
+        case 'weeklyChampion':
+            message = `Haftanın Tıkla-Yakala şampiyonu ${userHtml} oldu ve <b class="text-green-400">${details.prize}</b> kazandı!`;
             break;
             
         // KELİME OYUNU
@@ -14206,7 +14209,6 @@ function getActivityHtml(activity) {
             </div>
         </div>`;
 }
-
 
 // MEVCUT logActivity FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
 
@@ -17331,12 +17333,11 @@ async function cancelTradeOffer(tradeId, asAdmin = false) {
 let packsToReveal = [];
 let packsRevealedCount = 0;
 
-// MEVCUT startCardPackOpening FONKSİYONUNU SİLİP BUNU YAPIŞTIR
+// MEVCUT startCardPackOpening FONKSİYONUNU BUL VE BUNUNLA DEĞİŞTİR
 
 async function startCardPackOpening(packCount, source = 'Bilinmeyen Kaynak', multiplier = 1, packType = 'card_pack') {
+    currentOpeningPackType = packType; // ★★★ DEĞİŞİKLİK BURADA ★★★
     if (packCount <= 0) return;
-    
-    // Koleksiyonu tamamlayan kullanıcıların da paket açabilmesi için kontrol kaldırıldı.
     
     const masterCardsSnap = await db.ref('gameConfig/cardCollection').once('value');
     const masterCards = masterCardsSnap.val();
@@ -17439,7 +17440,8 @@ async function startCardPackOpening(packCount, source = 'Bilinmeyen Kaynak', mul
     modal.style.display = 'flex';
 }
 
-// revealCard fonksiyonunu bul ve bu yeni haliyle tamamen değiştir
+// MEVCUT revealCard FONKSİYONUNU BUL VE BUNUNLA DEĞİŞTİR
+
 async function revealCard(cardElement) {
     if (cardElement.classList.contains('flipped')) return; 
 
@@ -17475,10 +17477,11 @@ async function revealCard(cardElement) {
         return userData;
     });
     
-    // YENİ EKLENEN LOGLAMA SATIRI
+    // ★★★ DEĞİŞİKLİK BURADA ★★★
     logActivity('cardPackOpened', currentUser, { 
         packName: document.getElementById('cardPackOpeningTitle').textContent, 
-        cardName: wonCard.cardName 
+        cardName: wonCard.cardName,
+        packType: currentOpeningPackType // Paket türü bilgisini log'a ekliyoruz
     }, 'kart');
 
     newlyAcquiredCards.add(wonCard.id);
