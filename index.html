@@ -11,6 +11,49 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
 <style>
+/* --- YENİ EKLENECEK KOD: GELİŞMİŞ SON EYLEMLER PANELİ STİLLERİ --- */
+.activity-tab-btn {
+    transition: all 0.2s ease-in-out;
+    color: #9ca3af; /* text-gray-400 */
+    border-color: transparent;
+}
+.activity-tab-btn.active, .activity-tab-btn:hover {
+    color: white;
+    border-color: #fde047; /* border-yellow-300 */
+}
+.activity-tab-btn .notification-dot {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 8px;
+    height: 8px;
+    background-color: #ef4444; /* bg-red-500 */
+    border-radius: 50%;
+    border: 1px solid #1f2937;
+}
+.activity-tab-content {
+    -webkit-overflow-scrolling: touch;
+}
+.event-card {
+    background: linear-gradient(145deg, #2c3e50, #1a2530);
+    border: 1px solid #4a5568;
+    border-left-width: 4px;
+    padding: 1rem;
+    border-radius: 0.5rem;
+}
+.event-card.ongoing {
+    border-left-color: #22c55e; /* green-500 */
+    animation: pulse-event 2.5s infinite;
+}
+.event-card.finished {
+    border-left-color: #6b7280; /* gray-500 */
+    opacity: 0.8;
+}
+@keyframes pulse-event {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+}
+/* --- KOD SONU --- */
  /* ESKİ KELİME OYUNU STİLLERİNİ SİLİP BUNLARI YAPIŞTIR */
 
 .question-block {
@@ -1799,19 +1842,48 @@ body.modal-open .modal-content {
 </div>
 </header>
 
-<div id="activityFeedPanel" class="fixed top-0 right-0 h-full w-full max-w-md bg-gray-800 border-l-2 border-red-700 shadow-2xl z-[10000] transform translate-x-full transition-transform duration-300 ease-in-out hidden">
-      <div class="flex flex-col h-full">
-          <div class="flex justify-between items-center p-4 border-b border-gray-700">
-              <h4 class="text-yellow-400 text-2xl font-bold">Son Eylemler</h4>
-              <button onclick="closeActivityFeed()" class="p-2 rounded-full hover:bg-gray-700 transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-              </button>
-          </div>
-          <div id="activityFeedList" class="flex-grow overflow-y-auto p-4 scrollable-list">
-              </div>
-      </div>
+<div id="activityFeedPanel" class="fixed top-0 right-0 h-full w-full max-w-md bg-gray-800 border-l-2 border-red-700 shadow-2xl z-[10000] transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col">
+    <div class="flex justify-between items-center p-4 border-b border-gray-700 flex-shrink-0">
+        <h4 class="text-yellow-400 text-2xl font-bold">Son Eylemler</h4>
+        <div class="flex items-center gap-2">
+            <button onclick="clearAllActivities()" id="clearAllActivitiesBtn" class="hidden py-1 px-3 bg-red-800/50 hover:bg-red-700 text-white font-bold rounded-lg text-xs border border-red-600">
+                Tümünü Temizle
+            </button>
+            <button onclick="closeActivityFeed()" class="p-2 rounded-full hover:bg-gray-700 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <div class="flex-shrink-0 overflow-x-auto">
+        <div class="flex border-b border-gray-700">
+    <button onclick="switchActivityTab('etkinlikler')" class="activity-tab-btn relative flex-shrink-0 py-3 px-4 text-sm font-bold border-b-2">Etkinlikler</button>
+    <button onclick="switchActivityTab('odul')" class="activity-tab-btn relative flex-shrink-0 py-3 px-4 text-sm font-bold border-b-2">Günlük Ödüller</button>
+    <button onclick="switchActivityTab('kutu')" class="activity-tab-btn relative flex-shrink-0 py-3 px-4 text-sm font-bold border-b-2">Kutu Oyunu</button>
+    <button onclick="switchActivityTab('cark')" class="activity-tab-btn relative flex-shrink-0 py-3 px-4 text-sm font-bold border-b-2">Şans Çarkı</button>
+    <button onclick="switchActivityTab('yakala')" class="activity-tab-btn relative flex-shrink-0 py-3 px-4 text-sm font-bold border-b-2">Tıkla-Yakala</button>
+    <button onclick="switchActivityTab('canavar')" class="activity-tab-btn relative flex-shrink-0 py-3 px-4 text-sm font-bold border-b-2">Canavar Savaşı</button>
+    <button onclick="switchActivityTab('kelime')" class="activity-tab-btn relative flex-shrink-0 py-3 px-4 text-sm font-bold border-b-2">Kelime Oyunu</button>
+    <button onclick="switchActivityTab('kart')" class="activity-tab-btn relative flex-shrink-0 py-3 px-4 text-sm font-bold border-b-2">Kart Koleksiyonu</button>
+    <button onclick="switchActivityTab('atolye')" class="activity-tab-btn relative flex-shrink-0 py-3 px-4 text-sm font-bold border-b-2">Üretim Atölyesi</button>
+    <button onclick="switchActivityTab('magaza')" class="activity-tab-btn relative flex-shrink-0 py-3 px-4 text-sm font-bold border-b-2">Puan Alışverişi</button>
+</div>
+    </div>
+
+    <div class="flex-grow overflow-y-auto relative">
+    <div id="activityFeedTab-etkinlikler" class="activity-tab-content p-4 space-y-4"></div>
+    <div id="activityFeedTab-odul" class="activity-tab-content p-4 space-y-3 hidden"></div>
+    <div id="activityFeedTab-kutu" class="activity-tab-content p-4 space-y-3 hidden"></div>
+    <div id="activityFeedTab-canavar" class="activity-tab-content p-4 space-y-3 hidden"></div>
+    <div id="activityFeedTab-kelime" class="activity-tab-content p-4 space-y-3 hidden"></div>
+    <div id="activityFeedTab-cark" class="activity-tab-content p-4 space-y-3 hidden"></div>
+    <div id="activityFeedTab-yakala" class="activity-tab-content p-4 space-y-3 hidden"></div>
+    <div id="activityFeedTab-kart" class="activity-tab-content p-4 space-y-3 hidden"></div>
+    <div id="activityFeedTab-atolye" class="activity-tab-content p-4 space-y-3 hidden"></div>
+    <div id="activityFeedTab-magaza" class="activity-tab-content p-4 space-y-3 hidden"></div>
+</div>
 </div>
 
 <div id="loginContainer" class="bg-gray-800 p-8 rounded-xl shadow-lg border border-red-700 w-full max-w-md">
@@ -6279,14 +6351,18 @@ function selectChatSuggestion(username) {
     input.focus(); // Input'a geri odaklan
 }
 
-// BU GÜNCEL FONKSİYONU ESKİSİNİN YERİNE YAPIŞTIRIN
+// loadBalanceAndBoxRights FONKSİYONUNU BUL VE BUNUNLA DEĞİŞTİR
 function loadBalanceAndBoxRights() {
     if (isAdmin) {
         document.getElementById("balance").textContent = "Admin Paneli Aktif";
         document.getElementById("currentUser").innerHTML = `${currentUser}`;
+        // Admin giriş yaptığında sıralamaları bir kez yükle
+        loadUserRankingsAndBoxCounts();
+        loadLeaderboardRanking();
         return;
     }
-    const ref = db.ref('users/' + currentUser);
+
+    const userRef = db.ref('users/' + currentUser);
     const allUsersRef = db.ref('users');
 
     const callback = async snap => {
@@ -6299,7 +6375,7 @@ function loadBalanceAndBoxRights() {
             db.ref('users/' + currentUser).update({ blocked: false, blockedUntil: null });
         }
 
-        let statusText = `💰 Mevcut Puanı: ${userData.balance || 0} | 📦 Kutu Hakkı: ${userData.kutuHakki || 0}`;
+        let statusText = `💰 Mevcut Puanı: ${formatNumber(userData.balance || 0)} | 📦 Kutu Hakkı: ${formatNumber(userData.kutuHakki || 0)}`;
         if ((userData.carkBileti || 0) > 0) statusText += ` | ️🎫 Çark Bileti: ${userData.carkBileti}`;
         if ((userData.clickCatchTickets || 0) > 0) statusText += ` | 🎟 T-Y Bileti: ${userData.clickCatchTickets}`;
         if (userData.iflasShieldUses > 0) statusText += ` | 🛡️ Kalkan: ${userData.iflasShieldUses}`;
@@ -6307,43 +6383,52 @@ function loadBalanceAndBoxRights() {
         else if (userData.multiplierSource === 'box') statusText += ` | ✖️ Çarpan: ${userData.activeMultiplier}x (Otomatik)`;
 
         document.getElementById("balance").textContent = statusText;
-        document.getElementById('storeCurrentUserBalance').textContent = userData.balance || 0;
-        document.getElementById('storeCurrentUserSpent').textContent = userData.totalSpentPoints || 0;
-        document.getElementById('storeCurrentUserKasaBalance').textContent = userData.kasaPuani || 0;
-        document.getElementById('wheelTicketBalance').textContent = userData.carkBileti || 0;
+        document.getElementById('storeCurrentUserBalance').textContent = formatNumber(userData.balance || 0);
+        document.getElementById('storeCurrentUserSpent').textContent = formatNumber(userData.totalSpentPoints || 0);
+        document.getElementById('storeCurrentUserKasaBalance').textContent = formatNumber(userData.kasaPuani || 0);
+        document.getElementById('wheelTicketBalance').textContent = formatNumber(userData.carkBileti || 0);
 
-        if (currentActiveSection === 'cardCollection') {
-            loadCollectionAlbum();
-        }
-        if (currentActiveSection === 'monsterBattle') {
-            renderMonsterBattleUI();
-        }
+        // Herhangi bir sekmedeyken veriler değiştiğinde ilgili UI'ı güncelle
+        if (currentActiveSection === 'cardCollection') loadCollectionAlbum();
+        if (currentActiveSection === 'monsterBattle') renderMonsterBattleUI();
+        if (currentActiveSection === 'store') loadStoreItems();
 
+        // En önemli kısım: Tüm kullanıcı verilerini çek ve liderleri yeniden hesapla
         const allUsersSnap = await allUsersRef.once('value');
-        const leaders = await calculateAllLeaders(allUsersSnap.val());
-        const userLeaderStatus = {
-            isCurrentLeader: currentUser === leaders.currentBalanceUser,
-            isHighLeader: currentUser === leaders.highEverBalanceUser,
-            isSurpriseLeader: currentUser === leaders.surpriseBoxUser,
-            isBombLeader: currentUser === leaders.bombUser,
-            isStoreLeader: currentUser === leaders.spentPointsUser,
-            isMultiplierLeader: currentUser === leaders.multiplierUser,
-            isBoxLeader: currentUser === leaders.boxUser,
-            isShieldLeader: currentUser === leaders.shieldUser,
-            isClickCatchLeader: currentUser === leaders.clickCatchLeaderUser,
-            isWheelSpinLeader: currentUser === leaders.wheelSpinUser,
-            // ★★★ SORUNU ÇÖZEN DEĞİŞİKLİK BURADA ★★★
-            // Eksik olan Canavar Lideri kontrolünü ekliyoruz.
-            isMonsterLeader: currentUser === leaders.monsterDamageUser
-        };
-        const badgesHtml = getInlineBadgesHtmlFromStatus(userLeaderStatus);
-        document.getElementById("currentUserBadges").innerHTML = badgesHtml;
-        document.getElementById("currentUser").innerHTML = `${currentUser}`;
+        const allUsersData = allUsersSnap.val();
+        
+        if (allUsersData) {
+            const leaders = await calculateAllLeaders(allUsersData);
+            const userLeaderStatus = {
+                isCurrentLeader: currentUser === leaders.currentBalanceUser,
+                isHighLeader: currentUser === leaders.highEverBalanceUser,
+                isSurpriseLeader: currentUser === leaders.surpriseBoxUser,
+                isBombLeader: currentUser === leaders.bombUser,
+                isStoreLeader: currentUser === leaders.spentPointsUser,
+                isMultiplierLeader: currentUser === leaders.multiplierUser,
+                isBoxLeader: currentUser === leaders.boxUser,
+                isShieldLeader: currentUser === leaders.shieldUser,
+                isClickCatchLeader: currentUser === leaders.clickCatchLeaderUser,
+                isWheelSpinLeader: currentUser === leaders.wheelSpinUser,
+                isMonsterLeader: currentUser === leaders.monsterDamageUser
+            };
+            const badgesHtml = getInlineBadgesHtmlFromStatus(userLeaderStatus);
+            document.getElementById("currentUserBadges").innerHTML = badgesHtml;
+            document.getElementById("currentUser").innerHTML = `${currentUser}`;
+            
+            // Liderler değişmiş olabileceğinden, ana sıralama tablolarını da yeniden oluştur
+            allUsersCache = Object.entries(allUsersData)
+                .filter(([username, userData]) => username.toLowerCase() !== 'weizendtv' && userData.approved)
+                .map(([username, userData]) => ({ username, ...userData }));
+            
+            renderUserRankings();
+            loadLeaderboardRanking();
+        }
     };
     
     if(activeListeners.balance) activeListeners.balance.ref.off('value', activeListeners.balance.callback);
-    activeListeners.balance = { ref, event: 'value', callback };
-    ref.on('value', callback);
+    activeListeners.balance = { ref: userRef, event: 'value', callback };
+    userRef.on('value', callback);
 }
       
 // --- YENİ EKLENECEK SİHİRLİ ROZET FONKSİYONU ---
@@ -8598,7 +8683,31 @@ async function buyItem(itemId) {
             });
             displayMessage(`'${item.name}' alım talebiniz başarıyla oluşturuldu. Admin onayı bekleniyor.`);
         } else {
-            displayMessage(`'${item.name}' başarıyla satın alındı!`);
+            // ★★★ DEĞİŞİKLİK BURADA BAŞLIYOR ★★★
+            // Mağaza adını belirleme
+            const monsterStoreItemTypes = [
+                'revival_stone', 'health_potion', 'damage_potion', 'defense_potion',
+                'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion',
+                'health_regen_potion'
+            ];
+            let storeName = 'Oyun Mağazası';
+            if (item.type === 'avatar') {
+                storeName = 'Avatar Mağazası';
+            } else if (monsterStoreItemTypes.includes(item.type)) {
+                storeName = 'Canavar Mağazası';
+            }
+
+            // Gerekli bilgileri hazırla
+            const costUnit = 'Puan';
+            const formattedCost = formatNumber(totalCost);
+            const itemNameWithQuantity = `${quantity > 1 ? quantity + 'x ' : ''}${item.name}`;
+            const remainingBalance = finalUserData.balance;
+            const formattedRemainingBalance = formatNumber(remainingBalance || 0);
+
+            // Yeni ve detaylı mesajı oluştur
+            const successMessage = `${currentUser}, ${formattedCost} ${costUnit} harcayarak ${storeName}'ndan ${itemNameWithQuantity} satın aldı. (Kalan: ${formattedRemainingBalance} ${costUnit})`;
+            displayMessage(successMessage);
+            // ★★★ DEĞİŞİKLİK BURADA BİTİYOR ★★★
         }
         
         for (const pack of cardPacksToOpen) {
@@ -12990,6 +13099,8 @@ async function listenForGlobalNotifications() {
     };
     await db.ref('clickCatchLobby').set(lobbyData);
     displayMessage("Lobi kuruldu. Oyuncular katıldıktan sonra 'Oyunu Başlat' butonuna bas.");
+    // startLobbyGame fonksiyonunun sonuna bu satırı ekle
+logActivity('event', 'WeizendTv', { eventType: 'lobby', status: 'started' }, 'etkinlikler');
 }
 
   async function endLobbyGame(isCancel = false) {
@@ -13243,6 +13354,8 @@ async function triggerLobbyGameStart() {
             prize: finalLobbyData.prize, 
             newBalance: finalUserData.balance 
         });
+        // setWinner fonksiyonundaki logActivity('clickCatchLobby'...) satırının altına ekle
+logActivity('event', 'WeizendTv', { eventType: 'lobby', status: 'finished', winner: winnerUsername }, 'etkinlikler');
 
         // 5 saniye sonra lobi verisini tamamen temizle ki yeni lobi kurulabilsin.
         setTimeout(() => {
@@ -13746,68 +13859,365 @@ async function clearWeeklyWinnerDisplay() {
     }
 }
 
-// --- YENİ FONKSİYONLAR BİTİŞ ---
-
 function initActivityFeed() {
     const activityBellContainer = document.getElementById('activityBellContainer');
-    const activityCounter = document.getElementById('activityCounter');
-    const activityFeedPanel = document.getElementById('activityFeedPanel');
-    const activityFeedList = document.getElementById('activityFeedList');
-
     activityBellContainer.classList.remove('hidden');
 
-    const userFeedStatusRef = db.ref(`users/${currentUser}/lastCheckedFeedTimestamp`);
-    // initActivityFeed fonksiyonu içinde bu satırla değiştir:
-const ref = db.ref('activityFeed').orderByChild('timestamp').limitToLast(20);
+    // Admin ise "Tümünü Temizle" butonunu görünür yap
+    if (isAdmin) {
+        document.getElementById('clearAllActivitiesBtn').classList.remove('hidden');
+    }
+
+    const activityRef = db.ref('activityFeed').orderByChild('timestamp').limitToLast(100);
 
     const callback = async (snapshot) => {
-        const feedData = snapshot.val();
+        const feedData = snapshot.val() || {};
         
-        if (!feedData) {
-            renderActivityFeed([]); 
-            activityCounter.classList.add('hidden'); 
-            return;
-        }
+        const sortedActivities = Object.keys(feedData).map(key => ({
+            id: key, ...feedData[key]
+        })).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
-        const userStatusSnap = await userFeedStatusRef.once('value');
-        const lastChecked = userStatusSnap.val() || 0;
-        
-        let unreadCount = 0;
-        
-        const sortedActivities = Object.keys(feedData).map(key => {
-            return { id: key, ...feedData[key] };
-        }).sort((a, b) => b.timestamp - a.timestamp);
-
-        sortedActivities.forEach(activity => {
-            if (activity.timestamp > lastChecked) {
-                unreadCount++;
-            }
-        });
-
-        if (unreadCount > 0) {
-            activityCounter.textContent = unreadCount > 9 ? '9+' : unreadCount;
-            activityCounter.classList.remove('hidden');
-        } else {
-            activityCounter.classList.add('hidden');
-        }
-        
-        renderActivityFeed(sortedActivities);
+        await renderAllActivityTabs(sortedActivities);
     };
 
-    activeListeners.activityFeed = { ref, event: 'value', callback };
-    ref.on('value', callback);
+    if (activeListeners.activityFeed) {
+        activeListeners.activityFeed.ref.off('value', activeListeners.activityFeed.callback);
+    }
+    activeListeners.activityFeed = { ref: activityRef, event: 'value', callback };
+    activityRef.on('value', callback);
+    
+    // Etkinlikler sekmesini ayrı olarak dinle ve güncelle
+    listenForEventsTab();
 }
 
-// MEVCUT logActivity FONKSİYONUNU SİLİP BUNU YAPIŞTIR
-function logActivity(type, username, details = {}, activityId = null) {
-    // WeizendTv'nin kendi eylemlerini loglama (örneğin lobi iptali)
-    if (username.toLowerCase() === 'weizendtv') {
+async function renderAllActivityTabs(activities) {
+    const categories = ['odul', 'kutu', 'canavar', 'kelime', 'cark', 'yakala', 'kart', 'atolye', 'magaza'];
+    const userStatusSnap = await db.ref(`users/${currentUser}/lastCheckedFeedTimestamp`).once('value');
+    const lastCheckedTimestamps = userStatusSnap.val() || {};
+    let totalUnreadCount = 0;
+
+    for (const category of categories) {
+        const container = document.getElementById(`activityFeedTab-${category}`);
+        const tabBtn = document.querySelector(`.activity-tab-btn[onclick="switchActivityTab('${category}')"]`);
+        
+        // Bu kategoriye ait eylemleri filtrele
+        const categoryActivities = activities.filter(act => act.category === category);
+        
+        // Eylemleri HTML'e çevir ve container'a yerleştir
+        container.innerHTML = categoryActivities.length > 0 
+            ? categoryActivities.map(act => getActivityHtml(act)).join('')
+            : '<p class="text-center text-gray-400 p-4">Bu kategoride henüz bir eylem yok.</p>';
+
+        // Bu kategorideki en son eylemi bul (zaten sıralı olduğu için ilk eleman)
+        const latestActivityInCategory = categoryActivities[0];
+        
+        // Bu kategori için en son ne zaman bakılmış?
+        const lastChecked = lastCheckedTimestamps[category] || 0;
+
+        // Eğer en son eylem, kullanıcının son bakışından daha yeniyse, okunmamış demektir.
+        const unreadInCategory = latestActivityInCategory && latestActivityInCategory.timestamp > lastChecked;
+
+        if (unreadInCategory) {
+            totalUnreadCount++;
+            if (tabBtn) {
+                let dot = tabBtn.querySelector('.notification-dot');
+                if (!dot) {
+                    dot = document.createElement('span');
+                    dot.className = 'notification-dot';
+                    tabBtn.appendChild(dot);
+                }
+                dot.style.display = 'block'; // Noktayı göster
+            }
+        }
+    }
+
+    // Ana bildirim sayacını güncelle
+    const mainCounter = document.getElementById('activityCounter');
+    if (totalUnreadCount > 0) {
+        mainCounter.textContent = totalUnreadCount > 9 ? '9+' : totalUnreadCount;
+        mainCounter.classList.remove('hidden');
+    } else {
+        mainCounter.classList.add('hidden');
+    }
+}
+
+function getActivityHtml(activity) {
+    const details = activity.details || {};
+    let message = `Bilinmeyen Eylem: ${activity.type}`;
+    const timeAgo = formatTimeAgo(activity.timestamp);
+    const userHtml = `<b class="text-yellow-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${activity.username}')">${activity.username}</b>`;
+
+    switch (activity.type) {
+        // KUTU OYUNU
+        case 'openBox':
+            message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-green-300 font-bold">+${formatNumber(details.points)} Puan</span> kazandı.`;
+            break;
+        case 'surpriseBox':
+            const sourceText = details.boxId === 'Çark' ? 'Şans Çarkı\'ndan' : `<b>${details.boxId}</b> numaralı kutudan`;
+            message = `${userHtml}, ${sourceText} Sürpriz Kutu buldu ve <span class="text-green-300 font-bold">+${formatNumber(details.points)} Puan</span> kazandı.`;
+            break;
+        case 'iflas':
+            message = details.shieldUsed 
+                ? `${userHtml}, <b>${details.boxId}</b> numaralı kutudan bomba buldu ama kalkanı onu korudu.` 
+                : `${userHtml}, <b>${details.boxId}</b> numaralı kutudan bomba buldu ve <span class="text-red-400 font-bold">-${formatNumber(details.lostPoints)} Puan</span> kaybetti.`;
+            break;
+        case 'multiplierFound':
+            message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-purple-300 font-bold">${details.value}x Çarpan</span> buldu.`;
+            break;
+        case 'newItemFound':
+            const itemName = typeToName[details.itemType] || 'Eşya';
+            message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-cyan-300 font-bold">${details.itemName.split(' ')[0]} ${itemName}</span> buldu.`;
+            break;
+
+        // CANAVAR SAVAŞI
+        case 'monsterAttack':
+             message = `${userHtml}, <b class="text-red-400">${details.monsterName}</b>'a saldırdı ve <b class="text-white">${formatNumber(details.damageDealt)} hasar</b> verdi.`;
+            break;
+        case 'monsterDefeated':
+            message = `<b class="text-red-400">${details.monsterName}</b> yok edildi! En çok hasarı veren ${userHtml} (<b class="text-white">${formatNumber(details.totalDamage)} Hasar</b>) <b class="text-green-400">${details.prize}</b> ödülünü kazandı.`;
+            break;
+        case 'useRegenPotion':
+            message = `${userHtml}, <b class="text-cyan-300">%${details.percentage} Can Yenileme İksiri</b> kullanarak <b class="text-green-300">${details.healed} can</b> yeniledi.`;
+            break;
+            
+        // KELİME OYUNU
+        case 'wordGameGuess':
+            message = `${userHtml}, kelime oyununda bir harf bilerek <b class="text-green-400">${details.rewardText}</b> kazandı.`;
+            break;
+        case 'wordGameChampion':
+            message = `${userHtml}, kelime oyununu <b class="text-white">${details.score} harf</b> ile tamamlayarak şampiyon oldu ve <b class="text-green-400">${details.prize}</b> kazandı!`;
+            break;
+        case 'wordGameWrongGuess':
+            message = `${userHtml}, kelime oyununda yanlış harf girdi ve <b class="text-orange-400">${formatDurationFromSeconds(details.cooldown)}</b> beklemeye başladı.`;
+            break;
+
+        // ŞANS ÇARKI
+        case 'spinWheel':
+            message = `${userHtml}, çarkı çevirerek <span class="text-pink-300 font-bold">${details.result}</span> kazandı.`;
+            break;
+
+        // TIKLA-YAKALA
+        case 'clickCatchSolo':
+            message = `${userHtml}, Tıkla-Yakala'da <span class="text-green-300 font-bold">${formatNumber(details.finalScore)} Skor</span> topladı.`;
+            break;
+        case 'weeklyChampion':
+            message = `Haftanın Tıkla-Yakala şampiyonu ${userHtml} oldu ve <b class="text-green-400">${details.prize}</b> kazandı!`;
+            break;
+        case 'clickCatchLobby':
+             message = `${userHtml}, lobi oyununu kazanarak <span class="text-yellow-300 font-bold">+${formatNumber(details.prize)} Puan</span> ödül aldı!`;
+            break;
+        case 'lobbyJoined':
+            message = `${userHtml}, Tıkla-Yakala lobisine <span class="text-red-400">-${formatNumber(details.cost)} Puan</span> ile katıldı.`;
+            break;
+            
+        // ÜRETİM ATÖLYESİ
+        case 'craftItem':
+             message = `${userHtml}, atölyede <b class="text-green-400">${details.itemName}</b> üretti.`;
+            break;
+
+        // KART SİSTEMİ
+        case 'cardPackOpened':
+            message = `${userHtml}, açtığı paketten <b class="text-purple-300">'${details.cardName}'</b> kartını kazandı.`;
+            break;
+        case 'wildcardConvertedToBoxRights':
+            message = `${userHtml}, 1 Joker Kart'ı <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b>'na dönüştürdü.`;
+            break;
+        case 'tradeOfferCreated':
+             message = `${userHtml}, pazara yeni bir takas teklifi koydu: <b class="text-cyan-300">${details.offeredCardName}</b> ↔ <b class="text-pink-300">${details.requestedCardName}</b>.`;
+            break;
+        case 'tradeOfferAccepted':
+             message = `${userHtml}, <b>${details.offerer}</b>'in <b class="text-cyan-300">'${details.offeredCardName}'</b> kartı teklifini kabul etti.`;
+            break;
+        case 'collectionCompleted':
+            message = `${userHtml}, koleksiyonu tamamlayan <b class="text-amber-400">${details.rank}. KİŞİ</b> oldu. Tebrikler!`;
+            break;
+            
+        // MAĞAZA
+        case 'buyItem':
+            // ★★★ İSTEDİĞİN GÜNCELLEME BURADA ★★★
+            const monsterStoreItemTypes = [
+                'revival_stone', 'health_potion', 'damage_potion', 'defense_potion',
+                'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion',
+                'health_regen_potion'
+            ];
+            let storeName = 'Oyun Mağazası';
+            if (details.itemType === 'avatar') {
+                storeName = 'Avatar Mağazası';
+            } else if (monsterStoreItemTypes.includes(details.itemType)) {
+                storeName = 'Canavar Mağazası';
+            } else if (details.itemCost.toString().includes('KP')) {
+                storeName = 'Özel Ürün Mağazası';
+            }
+
+            const costText = `${formatNumber(details.itemCost)} ${details.itemCost.toString().includes('KP') ? 'KP' : 'Puan'}`;
+            message = `${userHtml}, ${storeName}'ndan <b class="text-red-500">-${costText}</b> harcayarak <b class="text-green-400">${details.itemName}</b> satın aldı.`;
+            break;
+        case 'kasaTransfer':
+            message = `${userHtml}, kasasına <b class="text-purple-300">${formatNumber(details.amount)} Puan</b> aktardı.`;
+            break;
+            
+        // GÜNLÜK ÖDÜL & GİRİŞ SERİSİ
+        case 'dailyReward':
+            const rewardText = formatRewardText(details.rewardType, details.rewardValue, details.rewardUses);
+            message = `${userHtml}, günlük ödül olarak <span class="text-teal-300 font-bold">${rewardText}</span> aldı.`;
+            break;
+        case 'loginStreakClaim':
+            message = `${userHtml}, giriş serisinde <b class="text-teal-300 font-bold">${details.day}. gün</b> <b class="text-white">'${details.packageName}'</b> ödülünü aldı.`;
+            break;
+    }
+
+    // Admin için silme butonu
+    const deleteButtonHtml = isAdmin ? `
+        <button onclick="deleteActivity('${activity.id}')" class="p-1 rounded-full text-gray-500 hover:text-red-500 hover:bg-white/10 transition-colors" title="Bu Eylemi Sil">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1-1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+        </button>` : '';
+
+    return `
+        <div class="bg-gray-800/70 p-3 rounded-xl flex items-center gap-4 border border-transparent hover:border-gray-700">
+            ${getActivityIcon(activity.type, details)}
+            <div class="flex-1 min-w-0">
+                <p class="text-gray-200 text-sm leading-relaxed">${message}</p>
+                <div class="flex justify-between items-center mt-1">
+                    <span class="text-xs text-gray-500">${timeAgo}</span>
+                    <div class="flex items-center">
+                        ${deleteButtonHtml}
+                    </div>
+                </div>
+            </div>
+        </div>`;
+}
+
+// Bu fonksiyon etkinlikler sekmesinin içeriğini oluşturur ve dinler
+function listenForEventsTab() {
+    const eventRefs = [
+        db.ref('gameConfig/monsterBattle'),
+        db.ref('clickCatchLobby'),
+        db.ref('gameConfig/weeklyClickCatchReset'),
+        db.ref('wordGame'),
+        db.ref('gameConfig/cardCollectionStatus')
+    ];
+
+    const renderEvents = async () => {
+        const container = document.getElementById('activityFeedTab-etkinlikler');
+        container.innerHTML = '<p class="text-center text-gray-400">Etkinlik durumu kontrol ediliyor...</p>';
+
+        const snapshots = await Promise.all(eventRefs.map(ref => ref.once('value')));
+        
+        let html = '';
+        
+        const monsterData = snapshots[0].val();
+        const lobbyData = snapshots[1].val();
+        const weeklyData = snapshots[2].val();
+        const wordGameData = snapshots[3].val();
+        const collectionStatus = snapshots[4].val();
+
+        // 1. Canavar Savaşı
+        if (monsterData && monsterData.monsterDetails && monsterData.monsterDetails.currentHP > 0) {
+            const sortedLeaderboard = Object.entries(monsterData.damageLeaderboard || {}).sort((a,b) => b[1].totalDamage - a[1].totalDamage);
+            const leader = sortedLeaderboard.length > 0 ? sortedLeaderboard[0] : null;
+            const leaderText = leader ? `1. sırada <b class="text-white">${leader[0]}</b> (${formatNumber(leader[1].totalDamage)} Hasar)` : '1. sıra için oyuncu bekleniyor.';
+            const prize = monsterData.rewards?.onKillLeader;
+            const prizeText = prize ? `${formatNumber(prize.value)} ${typeToName[prize.type]}` : 'Belirlenmedi';
+
+            html += `
+                <div class="event-card ongoing">
+                    <h5 class="font-bold text-white mb-2">Canavar Savaşı Etkinliği Başladı!</h5>
+                    <p class="text-sm text-gray-300"><b class="text-red-400">${monsterData.monsterDetails.name}</b> canavarı arenaya geldi.</p>
+                    <p class="text-sm text-gray-300">Liderlik Ödülü: <b class="text-green-400">${prizeText}</b></p>
+                    <p class="text-sm text-gray-300 mt-2">${leaderText}</p>
+                    <p class="text-xs text-lime-400 font-bold mt-1">Oyun Devam Ediyor</p>
+                </div>`;
+        }
+
+        // 2. Tıkla-Yakala Lobi
+        if (lobbyData && (lobbyData.state === 'waiting' || lobbyData.state === 'active')) {
+             const stateText = lobbyData.state === 'waiting' ? 'Katılımcı Bekleniyor' : 'Oyun Devam Ediyor';
+             const katilimText = lobbyData.entryTickets > 0 ? `${lobbyData.entryTickets} Bilet` : `${lobbyData.entryFee} Puan`;
+             html += `
+                <div class="event-card ongoing">
+                    <h5 class="font-bold text-white mb-2">Tıkla-Yakala Lobi Etkinliği Başladı!</h5>
+                    <p class="text-sm text-gray-300">Katılım: <b class="text-yellow-400">${katilimText}</b> | Ödül: <b class="text-green-400">${formatNumber(lobbyData.prize)} Puan</b></p>
+                    <p class="text-xs text-lime-400 font-bold mt-1">${stateText}</p>
+                </div>`;
+        }
+        
+        // 3. Tıkla-Yakala Haftalık
+        if (weeklyData && weeklyData.endDate) {
+            const prize = weeklyData.prize;
+            const prizeText = prize.type === 'special' ? prize.name : `${formatNumber(prize.amount)} ${typeToName[prize.type]}`;
+            
+            const scoresSnap = await db.ref('clickCatchWeeklyScores').orderByValue().limitToLast(1).once('value');
+            let leaderText = '1. sıra için oyuncu bekleniyor.';
+            if (scoresSnap.exists()) {
+                const leaderUsername = Object.keys(scoresSnap.val())[0];
+                const leaderScore = scoresSnap.val()[leaderUsername];
+                leaderText = `1. sırada <b class="text-white">${leaderUsername}</b> (${formatNumber(leaderScore)} Skor)`;
+            }
+
+            html += `
+                <div class="event-card ongoing">
+                    <h5 class="font-bold text-white mb-2">Tıkla-Yakala Tekli Oyun Etkinliği</h5>
+                    <p class="text-sm text-gray-300">Haftanın Şampiyonu Ödülü: <b class="text-green-400">${prizeText}</b></p>
+                    <p class="text-sm text-gray-300 mt-2">${leaderText}</p>
+                    <p class="text-xs text-lime-400 font-bold mt-1">Oyun Devam Ediyor</p>
+                </div>`;
+        }
+
+        // 4. Kelime Oyunu
+        if (wordGameData && wordGameData.questions) {
+            const sortedLeaderboard = Object.entries(wordGameData.leaderboard || {}).sort((a,b) => b[1].score - a[1].score);
+            const leader = sortedLeaderboard.length > 0 ? sortedLeaderboard[0] : null;
+            const leaderText = leader ? `1. sırada <b class="text-white">${leader[0]}</b> (${leader[1].score} Harf)` : '1. sıra için oyuncu bekleniyor.';
+            const prize = wordGameData.settings?.championPrize;
+            const prizeText = prize ? formatRewardText(prize.type, prize.amount || prize.value, prize.uses) : 'Belirlenmedi';
+             html += `
+                <div class="event-card ongoing">
+                    <h5 class="font-bold text-white mb-2">Kelime Oyunu Etkinliği Başladı!</h5>
+                    <p class="text-sm text-gray-300">Şampiyon Ödülü: <b class="text-green-400">${prizeText}</b></p>
+                    <p class="text-sm text-gray-300 mt-2">${leaderText}</p>
+                    <p class="text-xs text-lime-400 font-bold mt-1">Oyun Devam Ediyor</p>
+                </div>`;
+        }
+
+        // 5. Kart Koleksiyonu
+        if (collectionStatus === 'active') {
+             const prizeSnap = await db.ref('gameConfig/collectionGrandPrize').once('value');
+             const prize = prizeSnap.val();
+             const prizeText = prize && prize.description ? prize.description : "Büyük Ödül";
+             
+             const finishersSnap = await db.ref('gameStats/collectionFinishers').once('value');
+             let leaderText = 'Henüz kimse albümü tamamlamadı.';
+             if (finishersSnap.exists()) {
+                 const firstFinisher = Object.values(finishersSnap.val()).sort((a,b) => a.timestamp - b.timestamp)[0];
+                 leaderText = `1. sırada <b class="text-white">${firstFinisher.username}</b> (Tamamladı)`;
+             }
+
+             html += `
+                <div class="event-card ongoing">
+                    <h5 class="font-bold text-white mb-2">Kart Koleksiyonu Etkinliği Başladı!</h5>
+                    <p class="text-sm text-gray-300">Albümü İlk Tamamlayan Ödülü: <b class="text-green-400">${prizeText}</b></p>
+                    <p class="text-sm text-gray-300 mt-2">${leaderText}</p>
+                    <p class="text-xs text-lime-400 font-bold mt-1">Sezon Devam Ediyor</p>
+                </div>`;
+        }
+
+        container.innerHTML = html || '<p class="text-center text-gray-400 p-4">Şu anda aktif bir etkinlik bulunmuyor.</p>';
+    };
+
+    // Herhangi bir etkinlik verisi değiştiğinde sekme içeriğini yeniden oluştur
+    eventRefs.forEach(ref => ref.on('value', renderEvents));
+}
+
+// logActivity FONKSİYONUNU BUL VE BUNUNLA DEĞİŞTİR
+function logActivity(type, username, details = {}, category = null, activityId = null) {
+    if (username.toLowerCase() === 'weizendtv' && type !== 'event') {
         return;
     }
     const activityData = {
         type,
         username,
         details,
+        category: category || getCategoryForActivity(type), // Otomatik kategori belirle
         timestamp: firebase.database.ServerValue.TIMESTAMP
     };
 
@@ -13820,7 +14230,7 @@ function logActivity(type, username, details = {}, activityId = null) {
     const feedRef = db.ref('activityFeed');
     feedRef.orderByChild('timestamp').once('value', (snapshot) => {
         const totalCount = snapshot.numChildren();
-        const limit = 20;
+        const limit = 100; // Daha fazla kayıt tutmak için limiti artırdık
 
         if (totalCount > limit) {
             let itemsToDeleteCount = totalCount - limit;
@@ -13835,63 +14245,82 @@ function logActivity(type, username, details = {}, activityId = null) {
     });
 }
 
-function initActivityFeed() {
-    const activityBellContainer = document.getElementById('activityBellContainer');
-    const activityCounter = document.getElementById('activityCounter');
-    
-    activityBellContainer.classList.remove('hidden');
-
-    const userFeedStatusRef = db.ref(`users/${currentUser}/lastCheckedFeedTimestamp`);
-    const ref = db.ref('activityFeed').orderByChild('timestamp').limitToLast(20);
-
-    const callback = async (snapshot) => {
-        const feedData = snapshot.val();
+// BU İKİ YENİ FONKSİYONU EKLE
+/**
+ * Bir aktivite türüne göre hangi sekmeye ait olduğunu belirler.
+ * @param {string} type - Aktivitenin türü (örn: 'openBox', 'spinWheel').
+ * @returns {string} Sekme kategorisi ('kutu', 'cark', vb.).
+ */
+function getCategoryForActivity(type) {
+    const categories = {
+        // Günlük Ödül ve Giriş Serisi
+        'dailyReward': 'odul',
+        'loginStreakClaim': 'odul',
         
-        if (!feedData) {
-            renderActivityFeed([]); 
-            activityCounter.classList.add('hidden'); 
-            return;
-        }
+        // Kutu Oyunu
+        'openBox': 'kutu', 'iflas': 'kutu', 'multiplierFound': 'kutu',
+        'surpriseBox': 'kutu', 'multiplierUpgraded': 'kutu', 'multiplierStacked': 'kutu',
+        'multiplierConvertedToBoxRights': 'kutu', 'multiplierCombined': 'kutu',
+        'newItemFound': 'kutu',
 
-        const userStatusSnap = await userFeedStatusRef.once('value');
-        const lastChecked = userStatusSnap.val() || 0;
-        
-        let unreadCount = 0;
-        
-        const sortedActivities = Object.keys(feedData).map(key => {
-            return { id: key, ...feedData[key] };
-        }).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+        // Canavar Savaşı
+        'monsterAttack': 'canavar', 'monsterDefeated': 'canavar', 'useRegenPotion': 'canavar',
 
-        sortedActivities.forEach(activity => {
-            if (activity.timestamp > lastChecked) {
-                unreadCount++;
-            }
-        });
+        // Kelime Oyunu
+        'wordGameGuess': 'kelime', 'wordGameWrongGuess': 'kelime', 'wordGameChampion': 'kelime',
 
-        if (unreadCount > 0) {
-            activityCounter.textContent = unreadCount > 9 ? '9+' : unreadCount;
-            activityCounter.classList.remove('hidden');
-        } else {
-            activityCounter.classList.add('hidden');
-        }
-        
-        renderActivityFeed(sortedActivities);
+        // Şans Çarkı
+        'spinWheel': 'cark',
+
+        // Tıkla-Yakala
+        'clickCatchSolo': 'yakala', 'clickCatchLobby': 'yakala', 'lobbyJoined': 'yakala',
+        'weeklyChampion': 'yakala',
+
+        // Üretim Atölyesi
+        'craftItem': 'atolye',
+
+        // Kart Sistemi
+        'cardPackOpened': 'kart', 'wildcardConvertedToBoxRights': 'kart',
+        'tradeOfferCreated': 'kart', 'tradeOfferAccepted': 'kart', 'collectionCompleted': 'kart',
+
+        // Mağaza
+        'buyItem': 'magaza', 'kasaTransfer': 'magaza'
     };
-
-    activeListeners.activityFeed = { ref, event: 'value', callback };
-    ref.on('value', callback);
+    return categories[type] || 'kutu'; // Eşleşme bulunamazsa varsayılan olarak 'kutu'ya gönder
 }
 
-// ...VE YERİNE BU YENİ VERSİYONU YAPIŞTIR
+function switchActivityTab(category) {
+    // Tüm sekme butonlarından 'active' sınıfını kaldır
+    document.querySelectorAll('.activity-tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+        // Kırmızı noktayı gizle
+        const dot = btn.querySelector('.notification-dot');
+        if (dot) dot.style.display = 'none';
+    });
+
+    // Tüm sekme içeriklerini gizle
+    document.querySelectorAll('.activity-tab-content').forEach(content => {
+        content.classList.add('hidden');
+    });
+
+    // Tıklanan sekmeyi ve içeriğini aktif et
+    const activeBtn = document.querySelector(`.activity-tab-btn[onclick="switchActivityTab('${category}')"]`);
+    const activeContent = document.getElementById(`activityFeedTab-${category}`);
+    if (activeBtn) activeBtn.classList.add('active');
+    if (activeContent) activeContent.classList.remove('hidden');
+
+    // Bu sekmeye ait yeni eylemleri 'görüldü' olarak işaretle
+    db.ref(`users/${currentUser}/lastCheckedFeedTimestamp/${category}`).set(getSyncedTime());
+}
+
 function openActivityFeed() {
-    const activityFeedPanel = document.getElementById('activityFeedPanel'); // EKLENEN SATIR
-    const activityCounter = document.getElementById('activityCounter');   // EKLENEN SATIR
+    const activityFeedPanel = document.getElementById('activityFeedPanel');
+    const activityCounter = document.getElementById('activityCounter');
     activityFeedPanel.classList.remove('hidden');
     setTimeout(() => {
         activityFeedPanel.classList.remove('translate-x-full');
     }, 10);
     activityCounter.classList.add('hidden');
-    db.ref(`users/${currentUser}/lastCheckedFeedTimestamp`).set(Date.now());
 }
 
 function closeActivityFeed() {
@@ -17124,7 +17553,7 @@ async function startCardPackOpening(packCount, source = 'Bilinmeyen Kaynak', mul
     modal.style.display = 'flex';
 }
 
-// revealCard fonksiyonunu bununla değiştir
+// revealCard fonksiyonunu bul ve bu yeni haliyle tamamen değiştir
 async function revealCard(cardElement) {
     if (cardElement.classList.contains('flipped')) return; 
 
@@ -17160,6 +17589,12 @@ async function revealCard(cardElement) {
         return userData;
     });
     
+    // YENİ EKLENEN LOGLAMA SATIRI
+    logActivity('cardPackOpened', currentUser, { 
+        packName: document.getElementById('cardPackOpeningTitle').textContent, 
+        cardName: wonCard.cardName 
+    }, 'kart');
+
     newlyAcquiredCards.add(wonCard.id);
 
     packsRevealedCount++;
@@ -17168,8 +17603,6 @@ async function revealCard(cardElement) {
         checkAndGrantPrize(currentUser); 
         setTimeout(() => {
             document.getElementById('cardPackOpeningModal').style.display = 'none';
-            // ★★★ KRİTİK DEĞİŞİKLİK BURADA ★★★
-            // Paketler bittiğinde, "Yeni" rozetinin görünmesi için albümü yeniden yüklüyoruz.
             if (currentActiveSection === 'cardCollection') {
                 loadCollectionAlbum();
             }
@@ -19990,7 +20423,9 @@ const avatarHtml = `
         });
         displayMessage("Canavar başarıyla çağrıldı ve savaş başladı!");
         toggleMonsterAdminPanel();
-    }
+        // saveAndSpawnMonster fonksiyonunun sonuna bu satırı ekle
+logActivity('event', 'WeizendTv', { eventType: 'monster', status: 'started' }, 'etkinlikler');
+}
 
 function updateHealthBar(currentHP, maxHP) {
   const healthBarEl = document.getElementById('monsterHealthBar');
@@ -20338,6 +20773,8 @@ async function attackMonster() {
                     prize: prizeText,
                     totalDamage: winnerData.totalDamage
                 });
+                // attackMonster fonksiyonundaki logActivity('monsterDefeated'...) satırının altına ekle
+logActivity('event', 'WeizendTv', { eventType: 'monster', status: 'finished', winner: winner }, 'etkinlikler');
                 
                 const winnerRef = db.ref(`users/${winner}`);
                 await winnerRef.transaction(winnerDataFromDB => {
@@ -21084,9 +21521,9 @@ function toggleChat() {
     }
 }
 
+// sendMessage FONKSİYONUNU BUL VE BUNUNLA DEĞİŞTİR
 async function sendMessage() {
     const now = getSyncedTime();
-    // YENİ: Yavaş mod kontrolü
     if (chatSettings.slowModeSeconds > 0 && now < lastMessageTimestamp + (chatSettings.slowModeSeconds * 1000)) {
         const remaining = Math.ceil(((lastMessageTimestamp + (chatSettings.slowModeSeconds * 1000)) - now) / 1000);
         displayMessage(`Yavaş mod aktif. Mesaj göndermek için ${remaining} saniye beklemelisin.`);
@@ -21097,40 +21534,27 @@ async function sendMessage() {
     const text = input.value.trim();
     if (text === '') return;
 
-    let avatarUrl;
+    const userRef = db.ref(`users/${currentUser}`);
+    const userSnap = await userRef.once('value');
+    const userData = userSnap.val();
 
-    if (isAdmin) {
-        // Admin ise avatar URL'sini direkt olarak ata
-        avatarUrl = 'https://i.hizliresim.com/mtwdr1x.png'; 
-    } else {
-        // Normal bir kullanıcı ise veritabanından bilgilerini çek
-        const userSnap = await db.ref(`users/${currentUser}`).once('value');
-        const userData = userSnap.val();
+    if (!userData && !isAdmin) return;
 
-        // Kullanıcı verisi yoksa veya mute'lu ise işlemi durdur
-        if (!userData) return;
-        if (userData.chatMutedUntil && userData.chatMutedUntil > now) {
-            const remainingMinutes = Math.ceil((userData.chatMutedUntil - now) / 60000);
-            displayMessage(`Sohbetten uzaklaştırıldın. Kalan süre: ${remainingMinutes} dakika.`);
-            return;
-        }
-
-        // Kullanıcının seçili avatarını veya varsayılan avatarı kullan
-        avatarUrl = userData.selectedAvatar ? userData.selectedAvatar.url : defaultAvatarUrl;
+    if (!isAdmin && userData.chatMutedUntil && userData.chatMutedUntil > now) {
+        const remainingMinutes = Math.ceil((userData.chatMutedUntil - now) / 60000);
+        displayMessage(`Sohbetten uzaklaştırıldın. Kalan süre: ${remainingMinutes} dakika.`);
+        return;
     }
 
     const messageData = {
         username: currentUser,
         text: text,
-        avatarUrl: avatarUrl,
         timestamp: firebase.database.ServerValue.TIMESTAMP,
         isDeleted: false
     };
 
     db.ref('chat/messages').push(messageData);
     input.value = '';
-
-    // YENİ: Son mesaj zamanını güncelle
     lastMessageTimestamp = now;
 }
 
@@ -21145,24 +21569,37 @@ async function deleteChatMessage(messageId) {
     }
 }
 
+// listenForChatMessages FONKSİYONUNU BUL VE BUNUNLA DEĞİŞTİR
 function listenForChatMessages() {
     const messagesContainer = document.getElementById('chatMessages');
     const chatRef = db.ref('chat/messages').limitToLast(50);
 
-    // Dinleyiciyi tekrar tekrar eklememek için kontrol
-    if(activeListeners.chat) {
+    if (activeListeners.chat) {
         activeListeners.chat.ref.off('value', activeListeners.chat.callback);
     }
 
-    const callback = (snap) => {
-        messagesContainer.innerHTML = ''; // Her değişiklikte sohbeti temizle
+    const callback = async (snap) => {
+        messagesContainer.innerHTML = '';
         const messages = [];
         
         snap.forEach(childSnap => {
             messages.push({ id: childSnap.key, ...childSnap.val() });
         });
 
-        // Mesajları en yeniden en eskiye doğru işle
+        // Verimlilik için tüm kullanıcıların avatar bilgilerini tek seferde çekelim
+        const usernamesInChat = [...new Set(messages.map(m => m.username))];
+        const avatarPromises = usernamesInChat.map(username => 
+            db.ref(`users/${username}/selectedAvatar/url`).once('value')
+        );
+        const avatarSnapshots = await Promise.all(avatarPromises);
+        const avatarCache = {};
+        avatarSnapshots.forEach((avatarSnap, index) => {
+            const username = usernamesInChat[index];
+            avatarCache[username] = avatarSnap.val() || defaultAvatarUrl;
+        });
+        // Admin avatarını da ekle
+        avatarCache['WeizendTv'] = 'https://i.hizliresim.com/mtwdr1x.png';
+
         messages.reverse().forEach(message => {
             const messageEl = document.createElement('div');
             messageEl.className = 'chat-message';
@@ -21179,7 +21616,6 @@ function listenForChatMessages() {
             let messageBodyClass = 'message-body';
 
             if (message.isDeleted) {
-                // YENİ: Uzaklaştırma bilgisini kontrol et
                 if (message.deletedInfo && message.deletedInfo.reason === 'muted') {
                     messageBodyHtml = `[Mesaj silindi - Kullanıcı ${message.deletedInfo.duration} dakika uzaklaştırıldı]`;
                 } else {
@@ -21193,8 +21629,11 @@ function listenForChatMessages() {
                 });
             }
 
+            // Avatarı önbellekten al
+            const finalAvatarUrl = avatarCache[message.username];
+
             messageEl.innerHTML = `
-                <img src="${message.avatarUrl}" class="avatar" onclick="openAvatarStatsModal('${message.username}')">
+                <img src="${finalAvatarUrl}" class="avatar" onclick="openAvatarStatsModal('${message.username}')">
                 <div class="message-content">
                     <div class="message-header">
                         <span class="username" onclick="openPublicUserDetailModal('${message.username}')">${message.username}</span>
@@ -21204,7 +21643,6 @@ function listenForChatMessages() {
                     <div class="${messageBodyClass}">${messageBodyHtml}</div>
                 </div>
             `;
-
             messagesContainer.appendChild(messageEl);
         });
 
@@ -21215,7 +21653,6 @@ function listenForChatMessages() {
         }
     };
     
-    // ANLIK GÜNCELLEME İÇİN 'value' DİNLEYİCİSİ KULLANILIYOR
     activeListeners.chat = { ref: chatRef, event: 'value', callback };
     chatRef.on('value', callback);
 
@@ -22330,6 +22767,8 @@ async function saveWordGameSettings(shouldResetProgress = false) {
     } else {
         confirmationMessage = "Mevcut kelime oyunu ayarlarını bu şekilde güncellemek istediğinize emin misiniz? <br><br><small class='text-yellow-300'>Bu işlem oyuncuların mevcut serilerini SIFIRLAMAZ, sadece ödülleri günceller.</small>";
     }
+    // saveWordGameSettings fonksiyonundaki if (shouldResetProgress) bloğunun içine ekle
+logActivity('event', 'WeizendTv', { eventType: 'wordgame', status: 'started' }, 'etkinlikler');
     
     const confirmed = await customConfirm(confirmationMessage);
     if (!confirmed) return;
@@ -22634,6 +23073,9 @@ async function checkForGameCompletionAndAwardChampion() {
 
         // Aktivite kaydı
         logActivity('wordGameChampion', winnerUsername, { score: winnerData.score, prize: prizeText });
+        // checkForGameCompletionAndAwardChampion fonksiyonundaki logActivity('wordGameChampion'...) satırının altına ekle
+logActivity('event', 'WeizendTv', { eventType: 'wordgame', status: 'finished', winner: winnerUsername }, 'etkinlikler');
+
     }
 }
 
