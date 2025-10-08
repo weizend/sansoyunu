@@ -5538,7 +5538,62 @@ function listenForWeeklyWinner() {
     ref.on('value', callback);
 }
 
-// MEVCUT executeWeeklyReset FONKSİYONUNU SİL VE BUNU YAPIŞTIR
+async function checkForGameCompletionAndAwardChampion() {
+    const existingChampionSnap = await db.ref('gameStats/wordGameChampion').once('value');
+    if (existingChampionSnap.exists()) {
+        console.log("Oyun şampiyonu zaten belirlenmiş, işlem atlandı.");
+        return;
+    }
+    
+    const gameSnap = await db.ref('wordGame').once('value');
+    const gameData = gameSnap.val();
+    
+    if (!gameData || !gameData.questions) return;
+
+    const allSolved = gameData.questions.every(q => q.letters.every(l => l.solved));
+
+    if (allSolved) {
+        console.log("Tüm harfler çözüldü! Şampiyon belirleniyor...");
+        const leaderboard = gameData.leaderboard;
+        if (!leaderboard) return;
+
+        const sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score);
+        if (sorted.length === 0) return;
+
+        const winnerUsername = sorted[0][0];
+        const winnerData = sorted[0][1];
+        
+        const prizeData = gameData.settings?.championPrize;
+        if (!prizeData) {
+            console.log("Şampiyon ödülü ayarlanmamış, ödül verilemedi.");
+            return;
+        }
+
+        const prizeText = formatRewardText(prizeData.type, prizeData.amount || prizeData.value, prizeData.uses);
+
+        await db.ref('gameStats/wordGameChampion').set({
+            username: winnerUsername,
+            score: winnerData.score,
+            prizeAwarded: prizeText,
+            avatarUrl: winnerData.avatarUrl,
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        const userRef = db.ref(`users/${winnerUsername}`);
+        await userRef.transaction(userData => {
+            if (userData) {
+                applyRewardToUser(userData, prizeData);
+            }
+            return userData;
+        });
+
+        // ★★★ DEĞİŞİKLİK BURADA: Artık kategori 'kelime' olarak belirtiliyor ★★★
+        logActivity('wordGameChampion', winnerUsername, { score: winnerData.score, prize: prizeText }, 'kelime');
+    }
+}
+
+
+// MEVCUT executeWeeklyReset FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
 
 async function executeWeeklyReset() {
     console.log("Haftalık sıfırlama işlemi tetiklendi...");
@@ -5585,12 +5640,12 @@ async function executeWeeklyReset() {
         prizeAwardedText = `${prize.amount} ${prizeName}`;
     }
 
-    logActivity('weeklyChampion', 'WeizendTv', {
-        winner: winner.username,
+    // ★★★ DEĞİŞİKLİK BURADA: Artık kategori 'yakala' olarak belirtiliyor ★★★
+    logActivity('weeklyChampion', winner.username, {
         score: winner.score,
         prize: prizeAwardedText,
         ticketsUsed: ticketsUsedByWinner
-    });
+    }, 'yakala');
 
     await db.ref('gameStats/weeklyClickCatchWinner').set({
         winnerName: winner.username,
@@ -5671,7 +5726,7 @@ async function executeWeeklyReset() {
     }
     updates['/clickCatchWeeklyScores'] = null;
     updates['/clickCatchWeeklyTickets'] = null;
-    updates['/clickCatchWeeklyStats'] = null; // YENİ EKLENEN VE SORUNU ÇÖZEN SATIR
+    updates['/clickCatchWeeklyStats'] = null;
     updates['/gameConfig/weeklyClickCatchReset'] = null;
     await db.ref().update(updates);
     const notificationMessage = `Tıkla-Yakala haftasının şampiyonu ${winner.username} oldu! Yeni hafta başladı ve tüm katılımcılara +1 bilet hediye edildi!`;
@@ -5864,177 +5919,6 @@ function loadAllCraftingRecipes() {
 
     recipesRef.on('value', callback);
     // Dinleyiciyi kaydetmeye gerek yok çünkü bu sadece bir kere çağrılacak.
-}
-
-// MEVCUT craftItem FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
-
-async function craftItem(recipeId) {
-    if (isAdmin || isCraftingInProgress) return;
-
-    const craftButton = document.getElementById('craftItemBtn');
-    if (craftButton) {
-        craftButton.disabled = true;
-        craftButton.textContent = 'Üretiliyor...';
-    }
-    isCraftingInProgress = true;
-
-    try {
-        const recipe = craftingRecipesCache.find(r => r.id === recipeId);
-        if (!recipe) throw new Error("Üretim tarifi bulunamadı.");
-
-        // ... (Malzeme seçimi ve kontrolleri - bu kısım değişmiyor) ...
-        const selectedCardIdsByMaterial = {};
-        let selectionError = null;
-        recipe.materials.forEach((material, index) => {
-            const isRarityCard = ['card_normal', 'card_gumus', 'card_altin', 'card_efsanevi'].includes(material.type);
-            if (isRarityCard) {
-                const materialItemEl = document.querySelector(`.material-list-item[data-material-index="${index}"]`);
-                if (!materialItemEl) {
-                    selectionError = "Arayüz hatası: Malzeme satırı bulunamadı."; return;
-                }
-                const selectedCardsData = materialItemEl.dataset.selectedCards;
-                if (!selectedCardsData) {
-                    selectionError = `Lütfen "${typeToName[material.type]}" için harcanacak kartları seçin.`; return;
-                }
-                const selectedIds = JSON.parse(selectedCardsData);
-                if (selectedIds.length !== material.amount) {
-                    selectionError = `Lütfen "${typeToName[material.type]}" için tam olarak ${material.amount} adet kart seçin.`; return;
-                }
-                selectedCardIdsByMaterial[index] = selectedIds;
-            }
-        });
-        if (selectionError) throw new Error(selectionError);
-        // ... (Kontrollerin sonu) ...
-
-        const userRef = db.ref(`users/${currentUser}`);
-        let cardPacksToOpen = [];
-        
-        // ★★★ DEĞİŞİKLİK BURADA BAŞLIYOR ★★★
-        const isSpecialItem = recipe.output.type === 'special';
-        let specialPurchaseId = null;
-
-        const { committed, snapshot } = await userRef.transaction(currentData => {
-            if (!currentData) return;
-            
-            // Malzemeleri düşme kısmı (değişmedi)
-            for (const [index, material] of recipe.materials.entries()) {
-                 const dbKeyMap = { points: 'balance', kasaPuani: 'kasaPuani', boxRights: 'kutuHakki', wheelTicket: 'carkBileti', clickCatchTicket: 'clickCatchTickets', iflasShield: 'iflasShieldUses', wildcard: 'wildcards', revival_stone: 'inventory/revival_stone' };
-                 const path = dbKeyMap[material.type];
-                 const isRarityCard = ['card_normal', 'card_gumus', 'card_altin', 'card_efsanevi'].includes(material.type);
-                 const statKeyMap = { health_potion: 'hp', damage_potion: 'damage', defense_potion: 'defense', crit_potion: 'critChance', crit_damage_potion: 'critDamage', dodge_potion: 'dodgeChance', pierce_potion: 'pierceChance' };
-                 const statKey = statKeyMap[material.type];
-                 if (path) {
-                    const pathParts = path.split('/');
-                    let currentValue = (pathParts.length > 1) ? (currentData[pathParts[0]]?.[pathParts[1]] || 0) : (currentData[path] || 0);
-                    if (currentValue < material.amount) return;
-                    if (pathParts.length > 1) { currentData[pathParts[0]][pathParts[1]] -= material.amount; } 
-                    else { currentData[path] -= material.amount; }
-                 } else if (material.type === 'card') {
-                    if (!currentData.cardCollection?.[material.cardId] || currentData.cardCollection[material.cardId].count < material.amount) return;
-                    currentData.cardCollection[material.cardId].count -= material.amount;
-                 } else if (isRarityCard) {
-                    const cardIdsToUse = selectedCardIdsByMaterial[index];
-                    if (!cardIdsToUse) return;
-                    const deductionCounts = cardIdsToUse.reduce((acc, id) => { acc[id] = (acc[id] || 0) + 1; return acc; }, {});
-                    for (const cardId in deductionCounts) {
-                        const requiredDeduction = deductionCounts[cardId];
-                        const userCardCount = currentData.cardCollection?.[cardId]?.count || 0;
-                        if (userCardCount < requiredDeduction) return; 
-                        currentData.cardCollection[cardId].count -= requiredDeduction;
-                    }
-                 } else if (material.type === 'tempMultiplier') {
-                    const matchesValue = currentData.activeMultiplier === material.value;
-                    const matchesUses = (currentData.multiplierRemainingUses || 0) >= material.uses;
-                    if (!matchesValue || !matchesUses) return;
-                    currentData.activeMultiplier = 1; currentData.multiplierSource = 'none'; currentData.multiplierRemainingUses = 0;
-                 } else if (statKey) {
-                    const currentBonus = currentData.globalPotionBuffs?.[statKey] || 0;
-                    if (currentBonus < material.amount) return;
-                    currentData.globalPotionBuffs[statKey] -= material.amount;
-                 } else if (material.type === 'avatar') {
-                    const hasAvatar = currentData.avatars && Object.values(currentData.avatars).some(a => a.name === material.avatarName);
-                    if (!hasAvatar) return;
-                 } else { return; }
-            }
-
-            // Eğer üretilen ürün 'special' ise, onu envantere eklemek yerine onay listesine ekle
-            if (isSpecialItem) {
-                specialPurchaseId = db.ref().push().key; // Benzersiz bir ID oluştur
-
-                // Admin Onay Paneli'ne gönderilecek veri
-                if (!currentData.pendingSpecialPurchases) currentData.pendingSpecialPurchases = {};
-                currentData.pendingSpecialPurchases[specialPurchaseId] = {
-                    username: currentUser,
-                    itemName: recipe.output.specialName,
-                    itemCost: "Üretildi", // Maliyet olarak "Üretildi" yaz
-                    source: "crafting",
-                    timestamp: firebase.database.ServerValue.TIMESTAMP
-                };
-                
-                // Kullanıcının Satın Alma Geçmişi'ne gönderilecek veri
-                if (!currentData.purchaseHistory) currentData.purchaseHistory = {};
-                currentData.purchaseHistory[specialPurchaseId] = {
-                    username: currentUser,
-                    itemName: recipe.output.specialName,
-                    itemCost: "Üretildi",
-                    imageUrl: recipe.output.imageUrl || 'https://i.hizliresim.com/sv85j2u.png',
-                    status: 'pending', // Durumu 'beklemede' olarak ayarla
-                    purchaseType: 'special',
-                    timestamp: firebase.database.ServerValue.TIMESTAMP
-                };
-            } else {
-                // Eğer normal bir ürünse, eski envantere ekleme fonksiyonunu çağır
-                const result = applyRewardToUser(currentData, recipe.output);
-                cardPacksToOpen = result.cardPacksToOpen;
-            }
-            
-            return currentData;
-        });
-
-        if (committed) {
-            const finalUserData = snapshot.val();
-            
-            if (isSpecialItem) {
-                // Özel ürün üretildiyse kullanıcıyı bilgilendir
-                displayMessage(`Tebrikler! <b>${recipe.output.specialName}</b> adlı özel ürünü ürettin. Ödülün, admin onayından sonra sana teslim edilecek.`);
-                // Bildirim gönder
-                notifyUser(currentUser, `'${recipe.output.specialName}' adlı özel ürün üretimin admin onayı için sıraya alındı.`);
-                
-            } else {
-                // Normal ürün üretildiyse eski başarı mesajını göster
-                const outputName = recipe.output.name;
-                displayMessage(`Tebrikler! Başarıyla <b>${outputName}</b> ürettin.`);
-            }
-            
-            // Her durumda aktiviteyi logla
-            logActivity('craftItem', currentUser, { 
-                itemName: isSpecialItem ? recipe.output.specialName : recipe.output.name,
-                newBalance: finalUserData.balance
-            });
-            
-            // Kart paketi varsa açma işlemini başlat
-            for (const pack of cardPacksToOpen) {
-                await startCardPackOpening(pack.value || 1, 'Üretim Atölyesi', 1, pack.type);
-            }
-
-            closeCraftingDetailModal();
-            loadCraftingRecipes();
-        } else {
-            throw new Error("Üretim başarısız! Malzemelerin yetersiz veya başka bir işlem yapılıyor olabilir.");
-        }
-        // ★★★ DEĞİŞİKLİK BURADA BİTİYOR ★★★
-
-    } catch (error) {
-        if (error.message !== "Kullanıcı işlemi iptal etti.") {
-            displayMessage(error.message);
-        }
-    } finally {
-        isCraftingInProgress = false;
-        if (craftButton) {
-            craftButton.disabled = false;
-            openCraftingDetailModal(recipeId); // Detay penceresini yenilemek için tekrar aç
-        }
-    }
 }
 
   function switchStoreTab(tab) {
@@ -8347,169 +8231,6 @@ async function openBox(index) {
 function closeMultiplierChoiceModal() {
     document.getElementById('multiplierChoiceModal').style.display = 'none';
     pendingMultiplierChoice = null; 
-}
-
-function getActivityIcon(type, details = {}) {
-    let icon = '🔔';
-    let bgColor = 'bg-gray-500';
-
-    switch (type) {
-        case 'craftItem': // YENİ EKLENEN SATIR
-            icon = '🛠️';
-            bgColor = 'bg-orange-500';
-            break;
-      case 'wordGameGuess':
-            icon = '💬';
-            bgColor = 'bg-sky-500';
-            break;
-            case 'wordGameWrongGuess':
-            icon = '💬';
-            bgColor = 'bg-red-500';
-            break;
-        case 'collectionCompleted':
-            icon = '🃏';
-            bgColor = 'bg-purple-600';
-            break;
-        case 'useRegenPotion':
-            icon = '🧪';
-            bgColor = 'bg-cyan-600';
-            break;
-        case 'monsterDefeated': 
-            icon = '☠️';
-            bgColor = 'bg-red-900';
-            break;
-        case 'monsterAttack': 
-            icon = details.playerDied ? '☠️' : '⚔️';
-            bgColor = details.playerDied ? 'bg-black' : 'bg-orange-600';
-            break;
-        case 'weeklyChampion': 
-            icon = '👑';
-            bgColor = 'bg-amber-500';
-            break;
-            case 'wordGameChampion': // YENİ EKLENECEK KOD
-            icon = '👑';
-            bgColor = 'bg-amber-500';
-            break;
-        case 'wildcardConvertedToPoints':
-            icon = '🃏';
-            bgColor = 'bg-purple-600';
-            break;
-            case 'wildcardConvertedToBoxRights': // Örn. Joker Kartı'nın Kutu Hakkı'na dönüştürülmesi
-            icon = '🃏'; 
-            bgColor = 'bg-purple-600'; // Ya da farklı bir renk kodu
-            break;
-        case 'loginStreakClaim':
-            icon = '⏰';
-            bgColor = 'bg-teal-600';
-            break;
-        case 'tradeOfferCreated':
-            icon = '📤';
-            bgColor = 'bg-blue-500';
-            break;
-        case 'tradeOfferAccepted':
-            icon = '🤝';
-            bgColor = 'bg-green-600';
-            break;
-        case 'openBox':
-            icon = '💰';
-            bgColor = 'bg-green-500';
-            break;
-        case 'surpriseBox':
-            icon = '🎉';
-            bgColor = 'bg-yellow-500';
-            break;
-        case 'iflas':
-            if (details.shieldUsed) {
-                icon = '🛡️';
-                bgColor = 'bg-blue-500';
-            } else if (details.multiplier && details.multiplier > 1) {
-                icon = '❌'; 
-                bgColor = 'bg-red-800';
-            } else {
-                icon = '💣';
-                bgColor = 'bg-red-600';
-            }
-            break;
-        case 'kasaTransfer':
-            icon = '🏦';
-            bgColor = 'bg-purple-600';
-            break;
-        case 'multiplierUpgraded':
-        case 'multiplierUpgradedFromStore':
-        case 'multiplierStacked':
-        case 'dailyRewardMultiplierStacked':
-            icon = '✨';
-            bgColor = 'bg-teal-500';
-            break;
-        case 'multiplierFound':
-        case 'multiplierRefund':
-            icon = '✖️';
-            bgColor = 'bg-purple-500';
-            break;
-        case 'buyItem':
-            icon = '🛒';
-            bgColor = 'bg-indigo-500';
-            break;
-        case 'multiplierDiscarded':
-        case 'multiplierCombined': 
-            icon = '❎';
-            bgColor = 'bg-teal-500';
-            break;
-        case 'multiplierConvertedToBoxRights':
-        case 'multiplierConvertedOnUsedOpen':
-        case 'multiplierConvertedOnUnusedOpen':
-        case 'dailyRewardMultiplierConverted':
-            icon = '♻️';
-            bgColor = 'bg-lime-600'; 
-            break;
-        case 'multiplierSwappedOnUnusedOpen':
-            icon = '🔄';
-            bgColor = 'bg-sky-500';
-            break;
-        case 'newItemFound':
-            const itemType = details.itemType;
-            if (itemType === 'card_pack_efsanevi') { icon = '🏆'; bgColor = 'bg-purple-600'; } 
-            else if (itemType === 'card_pack_altin') { icon = '🥇'; bgColor = 'bg-yellow-500'; } 
-            else if (itemType === 'card_pack_gumus') { icon = '🥈'; bgColor = 'bg-gray-500'; } 
-            else if (itemType === 'card_pack_normal') { icon = '🥉'; bgColor = 'bg-amber-600'; } 
-            else if (itemType === 'card_pack') { icon = '🎴'; bgColor = 'bg-indigo-500'; } 
-            else if (itemType === 'wildcard') { icon = '🃏'; bgColor = 'bg-purple-500'; } 
-            else if (itemType === 'revival_stone') { icon = '💎'; bgColor = 'bg-sky-500'; } 
-            else if (itemType === 'iflasShield') { icon = '🛡️'; bgColor = 'bg-cyan-500'; } 
-            else if (itemType === 'wheelTicket') { icon = '🎫'; bgColor = 'bg-cyan-500'; } 
-            else if (itemType === 'clickCatchTicket') { icon = '🎟️'; bgColor = 'bg-cyan-500'; } 
-            else { icon = '📦'; bgColor = 'bg-cyan-500'; }
-            break;
-        case 'spinWheel':
-            icon = '🎡';
-            bgColor = 'bg-pink-500';
-            break;
-        case 'lobbyJoined':
-            icon = '🎮';
-            bgColor = 'bg-blue-600';
-            break;
-        case 'clickCatchSolo':
-        case 'clickCatchLobby':
-            icon = '🎯';
-            bgColor = 'bg-orange-500';
-            break;
-        case 'dailyReward':
-            if (details.rewardType === 'avatar') { icon = '👤'; bgColor = 'bg-sky-500'; } 
-            else if (details.rewardType === 'wildcard') { icon = '🃏'; bgColor = 'bg-purple-600'; } 
-            else if (details.rewardType === 'card_pack') { icon = '🎴'; bgColor = 'bg-indigo-600'; } 
-            else { icon = '📅'; bgColor = 'bg-teal-500'; }
-            break;
-        case 'surpriseBoxTimeout':
-            icon = '⏰';
-            bgColor = 'bg-gray-600';
-            break;
-    }
-
-    return `
-        <div class="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${bgColor} shadow-lg">
-            <span class="text-2xl">${icon}</span>
-        </div>
-    `;
 }
 
 async function buyItem(itemId) {
@@ -13941,152 +13662,6 @@ async function renderAllActivityTabs(activities) {
     }
 }
 
-function getActivityHtml(activity) {
-    const details = activity.details || {};
-    let message = `Bilinmeyen Eylem: ${activity.type}`;
-    const timeAgo = formatTimeAgo(activity.timestamp);
-    const userHtml = `<b class="text-yellow-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${activity.username}')">${activity.username}</b>`;
-
-    switch (activity.type) {
-        // KUTU OYUNU
-        case 'openBox':
-            message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-green-300 font-bold">+${formatNumber(details.points)} Puan</span> kazandı.`;
-            break;
-        case 'surpriseBox':
-            const sourceText = details.boxId === 'Çark' ? 'Şans Çarkı\'ndan' : `<b>${details.boxId}</b> numaralı kutudan`;
-            message = `${userHtml}, ${sourceText} Sürpriz Kutu buldu ve <span class="text-green-300 font-bold">+${formatNumber(details.points)} Puan</span> kazandı.`;
-            break;
-        case 'iflas':
-            message = details.shieldUsed 
-                ? `${userHtml}, <b>${details.boxId}</b> numaralı kutudan bomba buldu ama kalkanı onu korudu.` 
-                : `${userHtml}, <b>${details.boxId}</b> numaralı kutudan bomba buldu ve <span class="text-red-400 font-bold">-${formatNumber(details.lostPoints)} Puan</span> kaybetti.`;
-            break;
-        case 'multiplierFound':
-            message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-purple-300 font-bold">${details.value}x Çarpan</span> buldu.`;
-            break;
-        case 'newItemFound':
-            const itemName = typeToName[details.itemType] || 'Eşya';
-            message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-cyan-300 font-bold">${details.itemName.split(' ')[0]} ${itemName}</span> buldu.`;
-            break;
-
-        // CANAVAR SAVAŞI
-        case 'monsterAttack':
-             message = `${userHtml}, <b class="text-red-400">${details.monsterName}</b>'a saldırdı ve <b class="text-white">${formatNumber(details.damageDealt)} hasar</b> verdi.`;
-            break;
-        case 'monsterDefeated':
-            message = `<b class="text-red-400">${details.monsterName}</b> yok edildi! En çok hasarı veren ${userHtml} (<b class="text-white">${formatNumber(details.totalDamage)} Hasar</b>) <b class="text-green-400">${details.prize}</b> ödülünü kazandı.`;
-            break;
-        case 'useRegenPotion':
-            message = `${userHtml}, <b class="text-cyan-300">%${details.percentage} Can Yenileme İksiri</b> kullanarak <b class="text-green-300">${details.healed} can</b> yeniledi.`;
-            break;
-            
-        // KELİME OYUNU
-        case 'wordGameGuess':
-            message = `${userHtml}, kelime oyununda bir harf bilerek <b class="text-green-400">${details.rewardText}</b> kazandı.`;
-            break;
-        case 'wordGameChampion':
-            message = `${userHtml}, kelime oyununu <b class="text-white">${details.score} harf</b> ile tamamlayarak şampiyon oldu ve <b class="text-green-400">${details.prize}</b> kazandı!`;
-            break;
-        case 'wordGameWrongGuess':
-            message = `${userHtml}, kelime oyununda yanlış harf girdi ve <b class="text-orange-400">${formatDurationFromSeconds(details.cooldown)}</b> beklemeye başladı.`;
-            break;
-
-        // ŞANS ÇARKI
-        case 'spinWheel':
-            message = `${userHtml}, çarkı çevirerek <span class="text-pink-300 font-bold">${details.result}</span> kazandı.`;
-            break;
-
-        // TIKLA-YAKALA
-        case 'clickCatchSolo':
-            message = `${userHtml}, Tıkla-Yakala'da <span class="text-green-300 font-bold">${formatNumber(details.finalScore)} Skor</span> topladı.`;
-            break;
-        case 'weeklyChampion':
-            message = `Haftanın Tıkla-Yakala şampiyonu ${userHtml} oldu ve <b class="text-green-400">${details.prize}</b> kazandı!`;
-            break;
-        case 'clickCatchLobby':
-             message = `${userHtml}, lobi oyununu kazanarak <span class="text-yellow-300 font-bold">+${formatNumber(details.prize)} Puan</span> ödül aldı!`;
-            break;
-        case 'lobbyJoined':
-            message = `${userHtml}, Tıkla-Yakala lobisine <span class="text-red-400">-${formatNumber(details.cost)} Puan</span> ile katıldı.`;
-            break;
-            
-        // ÜRETİM ATÖLYESİ
-        case 'craftItem':
-             message = `${userHtml}, atölyede <b class="text-green-400">${details.itemName}</b> üretti.`;
-            break;
-
-        // KART SİSTEMİ
-        case 'cardPackOpened':
-            message = `${userHtml}, açtığı paketten <b class="text-purple-300">'${details.cardName}'</b> kartını kazandı.`;
-            break;
-        case 'wildcardConvertedToBoxRights':
-            message = `${userHtml}, 1 Joker Kart'ı <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b>'na dönüştürdü.`;
-            break;
-        case 'tradeOfferCreated':
-             message = `${userHtml}, pazara yeni bir takas teklifi koydu: <b class="text-cyan-300">${details.offeredCardName}</b> ↔ <b class="text-pink-300">${details.requestedCardName}</b>.`;
-            break;
-        case 'tradeOfferAccepted':
-             message = `${userHtml}, <b>${details.offerer}</b>'in <b class="text-cyan-300">'${details.offeredCardName}'</b> kartı teklifini kabul etti.`;
-            break;
-        case 'collectionCompleted':
-            message = `${userHtml}, koleksiyonu tamamlayan <b class="text-amber-400">${details.rank}. KİŞİ</b> oldu. Tebrikler!`;
-            break;
-            
-        // MAĞAZA
-        case 'buyItem':
-            // ★★★ İSTEDİĞİN GÜNCELLEME BURADA ★★★
-            const monsterStoreItemTypes = [
-                'revival_stone', 'health_potion', 'damage_potion', 'defense_potion',
-                'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion',
-                'health_regen_potion'
-            ];
-            let storeName = 'Oyun Mağazası';
-            if (details.itemType === 'avatar') {
-                storeName = 'Avatar Mağazası';
-            } else if (monsterStoreItemTypes.includes(details.itemType)) {
-                storeName = 'Canavar Mağazası';
-            } else if (details.itemCost.toString().includes('KP')) {
-                storeName = 'Özel Ürün Mağazası';
-            }
-
-            const costText = `${formatNumber(details.itemCost)} ${details.itemCost.toString().includes('KP') ? 'KP' : 'Puan'}`;
-            message = `${userHtml}, ${storeName}'ndan <b class="text-red-500">-${costText}</b> harcayarak <b class="text-green-400">${details.itemName}</b> satın aldı.`;
-            break;
-        case 'kasaTransfer':
-            message = `${userHtml}, kasasına <b class="text-purple-300">${formatNumber(details.amount)} Puan</b> aktardı.`;
-            break;
-            
-        // GÜNLÜK ÖDÜL & GİRİŞ SERİSİ
-        case 'dailyReward':
-            const rewardText = formatRewardText(details.rewardType, details.rewardValue, details.rewardUses);
-            message = `${userHtml}, günlük ödül olarak <span class="text-teal-300 font-bold">${rewardText}</span> aldı.`;
-            break;
-        case 'loginStreakClaim':
-            message = `${userHtml}, giriş serisinde <b class="text-teal-300 font-bold">${details.day}. gün</b> <b class="text-white">'${details.packageName}'</b> ödülünü aldı.`;
-            break;
-    }
-
-    // Admin için silme butonu
-    const deleteButtonHtml = isAdmin ? `
-        <button onclick="deleteActivity('${activity.id}')" class="p-1 rounded-full text-gray-500 hover:text-red-500 hover:bg-white/10 transition-colors" title="Bu Eylemi Sil">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1-1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
-        </button>` : '';
-
-    return `
-        <div class="bg-gray-800/70 p-3 rounded-xl flex items-center gap-4 border border-transparent hover:border-gray-700">
-            ${getActivityIcon(activity.type, details)}
-            <div class="flex-1 min-w-0">
-                <p class="text-gray-200 text-sm leading-relaxed">${message}</p>
-                <div class="flex justify-between items-center mt-1">
-                    <span class="text-xs text-gray-500">${timeAgo}</span>
-                    <div class="flex items-center">
-                        ${deleteButtonHtml}
-                    </div>
-                </div>
-            </div>
-        </div>`;
-}
-
 function listenForEventsTab() {
     // Referanslara şampiyon verilerini de ekliyoruz.
     const eventRefs = [
@@ -14235,44 +13810,35 @@ function listenForEventsTab() {
     eventRefs.forEach(ref => ref.on('value', renderEvents));
 }
 
-// logActivity FONKSİYONUNU BUL VE BUNUNLA DEĞİŞTİR
-function logActivity(type, username, details = {}, category = null, activityId = null) {
-    if (username.toLowerCase() === 'weizendtv' && type !== 'event') {
-        return;
-    }
-    const activityData = {
-        type,
-        username,
-        details,
-        category: category || getCategoryForActivity(type), // Otomatik kategori belirle
-        timestamp: firebase.database.ServerValue.TIMESTAMP
-    };
+// MEVCUT toggleActivityFeed, openActivityFeed ve closeActivityFeed FONKSİYONLARINI SİLİP BUNLARI YAPIŞTIRIN
 
-    const activityRef = activityId
-        ? db.ref(`activityFeed/${activityId}`)
-        : db.ref('activityFeed').push();
-    
-    activityRef.set(activityData);
-
-    const feedRef = db.ref('activityFeed');
-    feedRef.orderByChild('timestamp').once('value', (snapshot) => {
-        const totalCount = snapshot.numChildren();
-        const limit = 100; // Daha fazla kayıt tutmak için limiti artırdık
-
-        if (totalCount > limit) {
-            let itemsToDeleteCount = totalCount - limit;
-            snapshot.forEach((childSnapshot) => {
-                if (itemsToDeleteCount <= 0) {
-                    return true; 
-                }
-                childSnapshot.ref.remove();
-                itemsToDeleteCount--;
-            });
-        }
-    });
+function openActivityFeed() {
+    const activityFeedPanel = document.getElementById('activityFeedPanel');
+    const activityCounter = document.getElementById('activityCounter');
+    activityFeedPanel.classList.remove('hidden'); // Önce görünür yap
+    setTimeout(() => {
+        activityFeedPanel.classList.remove('translate-x-full'); // Sonra kaydırma animasyonunu başlat
+    }, 10); // Çok küçük bir gecikme, tarayıcının 'hidden' sınıfının kaldırıldığını fark etmesini sağlar.
+    activityCounter.classList.add('hidden');
 }
 
-// BU İKİ YENİ FONKSİYONU EKLE
+function closeActivityFeed() {
+    const activityFeedPanel = document.getElementById('activityFeedPanel');
+    activityFeedPanel.classList.add('translate-x-full'); // Sadece kaydır
+}
+
+function toggleActivityFeed() {
+    const activityFeedPanel = document.getElementById('activityFeedPanel');
+    // Eğer panel tamamen ekran dışındaysa (yani transform uygulanmışsa) aç, değilse kapat.
+    if (activityFeedPanel.classList.contains('translate-x-full')) {
+        openActivityFeed();
+    } else {
+        closeActivityFeed();
+    }
+}
+
+// MEVCUT getCategoryForActivity FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
+
 /**
  * Bir aktivite türüne göre hangi sekmeye ait olduğunu belirler.
  * @param {string} type - Aktivitenin türü (örn: 'openBox', 'spinWheel').
@@ -14288,7 +13854,10 @@ function getCategoryForActivity(type) {
         'openBox': 'kutu', 'iflas': 'kutu', 'multiplierFound': 'kutu',
         'surpriseBox': 'kutu', 'multiplierUpgraded': 'kutu', 'multiplierStacked': 'kutu',
         'multiplierConvertedToBoxRights': 'kutu', 'multiplierCombined': 'kutu',
-        'newItemFound': 'kutu',
+        'newItemFound': 'kutu', 'multiplierUpgradedFromStore': 'kutu', 
+        'multiplierStackedFromStore': 'kutu', 'dailyRewardMultiplierStacked': 'kutu',
+        'dailyRewardMultiplierConverted': 'kutu', 'multiplierSwappedOnUnusedOpen': 'kutu',
+        'multiplierConvertedOnUsedOpen': 'kutu', 'multiplierConvertedOnUnusedOpen': 'kutu',
 
         // Canavar Savaşı
         'monsterAttack': 'canavar', 'monsterDefeated': 'canavar', 'useRegenPotion': 'canavar',
@@ -14302,7 +13871,7 @@ function getCategoryForActivity(type) {
         // Tıkla-Yakala
         'clickCatchSolo': 'yakala', 'clickCatchLobby': 'yakala', 'lobbyJoined': 'yakala',
         'weeklyChampion': 'yakala',
-
+        
         // Üretim Atölyesi
         'craftItem': 'atolye',
 
@@ -14316,55 +13885,345 @@ function getCategoryForActivity(type) {
     return categories[type] || 'kutu'; // Eşleşme bulunamazsa varsayılan olarak 'kutu'ya gönder
 }
 
+
+// MEVCUT switchActivityTab FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
+
 function switchActivityTab(category) {
-    // Tüm sekme butonlarından 'active' sınıfını kaldır
+    // Sadece tıklanan sekmenin 'active' sınıfını yönet
     document.querySelectorAll('.activity-tab-btn').forEach(btn => {
-        btn.classList.remove('active');
-        // Kırmızı noktayı gizle
-        const dot = btn.querySelector('.notification-dot');
-        if (dot) dot.style.display = 'none';
+        btn.classList.toggle('active', btn.getAttribute('onclick') === `switchActivityTab('${category}')`);
     });
 
-    // Tüm sekme içeriklerini gizle
+    // Sadece tıklanan sekmenin bildirim noktasını gizle
+    const clickedBtn = document.querySelector(`.activity-tab-btn[onclick="switchActivityTab('${category}')"]`);
+    if (clickedBtn) {
+        const dot = clickedBtn.querySelector('.notification-dot');
+        if (dot) dot.style.display = 'none';
+    }
+
+    // Tüm içerikleri gizle, sonra sadece aktif olanı göster
     document.querySelectorAll('.activity-tab-content').forEach(content => {
         content.classList.add('hidden');
     });
-
-    // Tıklanan sekmeyi ve içeriğini aktif et
-    const activeBtn = document.querySelector(`.activity-tab-btn[onclick="switchActivityTab('${category}')"]`);
     const activeContent = document.getElementById(`activityFeedTab-${category}`);
-    if (activeBtn) activeBtn.classList.add('active');
     if (activeContent) activeContent.classList.remove('hidden');
 
     // Bu sekmeye ait yeni eylemleri 'görüldü' olarak işaretle
     db.ref(`users/${currentUser}/lastCheckedFeedTimestamp/${category}`).set(getSyncedTime());
-}
-
-function openActivityFeed() {
-    const activityFeedPanel = document.getElementById('activityFeedPanel');
-    const activityCounter = document.getElementById('activityCounter');
-    activityFeedPanel.classList.remove('hidden');
-    setTimeout(() => {
-        activityFeedPanel.classList.remove('translate-x-full');
-    }, 10);
-    activityCounter.classList.add('hidden');
-}
-
-function closeActivityFeed() {
-    const activityFeedPanel = document.getElementById('activityFeedPanel'); // EKLENEN SATIR
-    activityFeedPanel.classList.add('translate-x-full');
-    setTimeout(() => {
-        activityFeedPanel.classList.add('hidden');
-    }, 300);
-}
-
-function toggleActivityFeed() {
-    const activityFeedPanel = document.getElementById('activityFeedPanel'); // EKLENEN SATIR
-    if (activityFeedPanel.classList.contains('hidden')) {
-        openActivityFeed();
+    
+    // Ana sayacı yeniden hesapla
+    let totalUnreadCount = 0;
+    document.querySelectorAll('.activity-tab-btn').forEach(btn => {
+        const dot = btn.querySelector('.notification-dot');
+        if (dot && dot.style.display !== 'none') {
+            totalUnreadCount++;
+        }
+    });
+    
+    const mainCounter = document.getElementById('activityCounter');
+    if (totalUnreadCount > 0) {
+        mainCounter.textContent = totalUnreadCount > 9 ? '9+' : totalUnreadCount;
+        mainCounter.classList.remove('hidden');
     } else {
-        closeActivityFeed();
+        mainCounter.classList.add('hidden');
     }
+}
+
+
+// MEVCUT getActivityIcon FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
+
+function getActivityIcon(type, details = {}) {
+    let icon = '🔔';
+    let bgColor = 'bg-gray-500';
+
+    switch (type) {
+        case 'craftItem':
+            icon = '🛠️';
+            bgColor = 'bg-orange-500';
+            break;
+        case 'wordGameGuess':
+            icon = '💬';
+            bgColor = 'bg-sky-500';
+            break;
+        case 'wordGameWrongGuess':
+            icon = '💬';
+            bgColor = 'bg-red-500';
+            break;
+        case 'collectionCompleted':
+            icon = '🃏';
+            bgColor = 'bg-purple-600';
+            break;
+        case 'useRegenPotion':
+            icon = '🧪';
+            bgColor = 'bg-cyan-600';
+            break;
+        case 'monsterDefeated': 
+        case 'wordGameChampion':
+        case 'weeklyChampion':
+            icon = '👑';
+            bgColor = 'bg-amber-500';
+            break;
+        case 'monsterAttack': 
+            icon = details.playerDied ? '☠️' : '⚔️';
+            bgColor = details.playerDied ? 'bg-black' : 'bg-orange-600';
+            break;
+        case 'wildcardConvertedToBoxRights':
+            icon = '🃏';
+            bgColor = 'bg-purple-600';
+            break;
+        case 'loginStreakClaim':
+            icon = '⏰';
+            bgColor = 'bg-teal-600';
+            break;
+        case 'tradeOfferCreated':
+            icon = '📤';
+            bgColor = 'bg-blue-500';
+            break;
+        case 'tradeOfferAccepted':
+            icon = '🤝';
+            bgColor = 'bg-green-600';
+            break;
+        case 'openBox':
+            icon = '💰';
+            bgColor = 'bg-green-500';
+            break;
+        case 'surpriseBox':
+            icon = '🎉';
+            bgColor = 'bg-yellow-500';
+            break;
+        case 'iflas':
+            icon = details.shieldUsed ? '🛡️' : '💣';
+            bgColor = details.shieldUsed ? 'bg-blue-500' : 'bg-red-600';
+            break;
+        case 'kasaTransfer':
+            icon = '🏦';
+            bgColor = 'bg-purple-600';
+            break;
+        case 'multiplierUpgraded':
+        case 'multiplierUpgradedFromStore':
+        case 'multiplierStacked':
+        case 'dailyRewardMultiplierStacked':
+        case 'multiplierCombined':
+            icon = '✨';
+            bgColor = 'bg-teal-500';
+            break;
+        case 'multiplierFound':
+            icon = '✖️';
+            bgColor = 'bg-purple-500';
+            break;
+        case 'buyItem':
+            icon = '🛒';
+            bgColor = 'bg-indigo-500';
+            break;
+        case 'multiplierConvertedToBoxRights':
+        case 'multiplierConvertedOnUsedOpen':
+        case 'multiplierConvertedOnUnusedOpen':
+        case 'dailyRewardMultiplierConverted':
+            icon = '♻️';
+            bgColor = 'bg-lime-600'; 
+            break;
+        case 'multiplierSwappedOnUnusedOpen':
+            icon = '🔄';
+            bgColor = 'bg-sky-500';
+            break;
+        case 'newItemFound':
+        case 'cardPackOpened': // cardPackOpened için de aynı mantığı kullan
+            const itemType = details.itemType || details.packType; // Hem newItemFound hem cardPackOpened için
+            if (itemType === 'card_pack_efsanevi') { icon = '🏆'; bgColor = 'bg-purple-600'; } 
+            else if (itemType === 'card_pack_altin') { icon = '🥇'; bgColor = 'bg-yellow-500'; } 
+            else if (itemType === 'card_pack_gumus') { icon = '🥈'; bgColor = 'bg-gray-500'; } 
+            else if (itemType === 'card_pack_normal') { icon = '🥉'; bgColor = 'bg-amber-600'; } 
+            else if (itemType === 'card_pack') { icon = '🎴'; bgColor = 'bg-indigo-500'; } 
+            else if (itemType === 'wildcard') { icon = '🃏'; bgColor = 'bg-purple-500'; } 
+            else if (itemType === 'revival_stone') { icon = '💎'; bgColor = 'bg-sky-500'; } 
+            else if (itemType === 'iflasShield') { icon = '🛡️'; bgColor = 'bg-cyan-500'; } 
+            else if (itemType === 'wheelTicket') { icon = '🎫'; bgColor = 'bg-cyan-500'; } 
+            else if (itemType === 'clickCatchTicket') { icon = '🎟️'; bgColor = 'bg-cyan-500'; } 
+            else { icon = '📦'; bgColor = 'bg-cyan-500'; }
+            break;
+        case 'spinWheel':
+            icon = '🎡';
+            bgColor = 'bg-pink-500';
+            break;
+        case 'lobbyJoined':
+            icon = '🎮';
+            bgColor = 'bg-blue-600';
+            break;
+        case 'clickCatchSolo':
+        case 'clickCatchLobby':
+            icon = '🎯';
+            bgColor = 'bg-orange-500';
+            break;
+        case 'dailyReward':
+            if (details.rewardType === 'avatar') { icon = '👤'; bgColor = 'bg-sky-500'; } 
+            else if (details.rewardType === 'wildcard') { icon = '🃏'; bgColor = 'bg-purple-600'; } 
+            else if (details.rewardType === 'card_pack') { icon = '🎴'; bgColor = 'bg-indigo-600'; } 
+            else { icon = '📅'; bgColor = 'bg-teal-500'; }
+            break;
+    }
+
+    return `
+        <div class="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center ${bgColor} shadow-lg">
+            <span class="text-2xl">${icon}</span>
+        </div>
+    `;
+}
+
+
+// MEVCUT getActivityHtml FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
+
+function getActivityHtml(activity) {
+    const details = activity.details || {};
+    let message = `Bilinmeyen Eylem: ${activity.type}`;
+    const timeAgo = formatTimeAgo(activity.timestamp);
+    const userHtml = `<b class="text-yellow-300 cursor-pointer hover:underline" onclick="openPublicUserDetailModal('${activity.username}')">${activity.username}</b>`;
+
+    switch (activity.type) {
+        // KUTU OYUNU
+        case 'openBox':
+            const openBoxMultiplier = details.multiplier > 1 ? ` <span class="text-xs text-purple-400">(${details.multiplier}x çarpan kullandı)</span>` : '';
+            message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-green-300 font-bold">+${formatNumber(details.points)} Puan</span> kazandı.${openBoxMultiplier} <span class="text-gray-400">(Mevcut Puan: ${formatNumber(details.newBalance)})</span>`;
+            break;
+        case 'surpriseBox':
+            const surpriseMultiplier = details.multiplier > 1 ? ` <span class="text-xs text-purple-400">(${details.multiplier}x çarpan)</span>` : '';
+            const sourceText = details.boxId === 'Çark' ? 'Şans Çarkı\'ndan' : `<b>${details.boxId}</b> numaralı kutudan`;
+            message = `${userHtml}, ${sourceText} Sürpriz Kutu buldu ve <span class="text-green-300 font-bold">+${formatNumber(details.points)} Puan</span> kazandı!${surpriseMultiplier} <span class="text-gray-400">(Mevcut: ${formatNumber(details.newBalance)})</span>`;
+            break;
+        case 'iflas':
+            const iflasMultiplier = details.multiplier > 1 ? ` <span class="text-xs text-purple-400">(${details.multiplier}x çarpan)</span>` : '';
+            message = details.shieldUsed 
+                ? `${userHtml}, <b>${details.boxId}</b> numaralı kutudan bomba buldu ama kalkanı onu korudu.${iflasMultiplier}` 
+                : `${userHtml}, <b>${details.boxId}</b> numaralı kutudan bomba buldu ve <span class="text-red-400 font-bold">-${formatNumber(details.lostPoints)} Puan</span> kaybetti.${iflasMultiplier} <span class="text-gray-400">(Kalan: ${formatNumber(details.newBalance)})</span>`;
+            break;
+        case 'multiplierFound':
+             message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-purple-300 font-bold">${details.value}x Çarpan</span> buldu.`;
+            break;
+        case 'newItemFound':
+            const newItemMultiplier = details.multiplier > 1 ? ` <span class="text-xs text-purple-400">(${details.multiplier}x çarpan)</span>` : '';
+            const itemName = typeToName[details.itemType] || 'Eşya';
+            message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-cyan-300 font-bold">${details.itemName.split(' ')[0]} ${itemName}</span> buldu.${newItemMultiplier}`;
+            break;
+        case 'multiplierStacked':
+            message = `${userHtml}, mevcut <b>${details.value}x</b> çarpanıyla aynı değerde bir çarpan daha buldu. Kullanım hakkı <b class="text-teal-300 font-bold">+1</b> artırıldı.`;
+            break;
+        case 'multiplierCombined':
+            message = `${userHtml}, mevcut çarpanını kutudan çıkanla birleştirerek tek kullanımlık <b class="text-teal-300 font-bold">${details.combinedValue}x</b> gücüne ulaştı.`;
+            break;
+        case 'multiplierConvertedToBoxRights':
+            message = `${userHtml}, kazandığı <b>${details.rewardValue}x</b> çarpanı, <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b>'na dönüştürüldü.`;
+            break;
+        case 'multiplierUpgraded':
+            message = `${userHtml}, çarpanını <b>${details.newValue}x</b>'e yükseltti ve eski çarpanı için <b class="text-green-300 font-bold">+${details.boxRights} Kutu Hakkı</b> iade aldı.`;
+            break;
+
+        // CANAVAR SAVAŞI
+        case 'monsterAttack':
+             message = `${userHtml}, <b class="text-red-400">${details.monsterName}</b>'a saldırdı ve <b class="text-white">${formatNumber(details.damageDealt)} hasar</b> verdi.`;
+            break;
+        case 'monsterDefeated':
+            message = `<b class="text-red-400">${details.monsterName}</b> yok edildi! Şampiyon ${userHtml} (<b class="text-white">${formatNumber(details.totalDamage)} Hasar</b>) <b class="text-green-400">${details.prize}</b> ödülünü kazandı.`;
+            break;
+        case 'useRegenPotion':
+            message = `${userHtml}, <b class="text-cyan-300">%${details.percentage} Can Yenileme İksiri</b> kullanarak <b class="text-green-300">${details.healed} can</b> yeniledi.`;
+            break;
+            
+        // KELİME OYUNU
+        case 'wordGameGuess':
+            message = `${userHtml}, kelime oyununda bir harf bilerek <b class="text-green-400">${details.rewardText}</b> kazandı.`;
+            break;
+        case 'wordGameChampion':
+            message = `${userHtml}, kelime oyununu <b class="text-white">${details.score} harf</b> ile tamamlayarak şampiyon oldu ve <b class="text-green-400">${details.prize}</b> kazandı!`;
+            break;
+
+        // ŞANS ÇARKI
+        case 'spinWheel':
+            message = `${userHtml}, çarkı çevirerek <span class="text-pink-300 font-bold">${details.result}</span> kazandı.`;
+            break;
+
+        // TIKLA-YAKALA
+        case 'clickCatchSolo':
+            message = `${userHtml}, Tıkla-Yakala'da <span class="text-green-300 font-bold">${formatNumber(details.finalScore)} Skor</span> topladı.`;
+            break;
+        case 'weeklyChampion':
+            message = `Haftanın Tıkla-Yakala şampiyonu ${userHtml} oldu ve <b class="text-green-400">${details.prize}</b> kazandı!`;
+            break;
+            
+        // ÜRETİM ATÖLYESİ
+        case 'craftItem':
+             message = `${userHtml}, atölyede <b class="text-green-400">${details.itemName}</b> üretti.`;
+            break;
+
+        // KART SİSTEMİ
+        case 'cardPackOpened':
+            message = `${userHtml}, açtığı paketten <b class="text-purple-300">'${details.cardName}'</b> kartını kazandı.`;
+            break;
+        case 'wildcardConvertedToBoxRights':
+            message = `${userHtml}, 1 Joker Kart'ı <b class="text-cyan-300 font-bold">+${details.boxRights} Kutu Hakkı</b>'na dönüştürdü.`;
+            break;
+        case 'tradeOfferCreated':
+             message = `${userHtml}, pazara yeni bir teklif koydu: <b class="text-cyan-300">${details.offeredCardName}</b> ↔ <b class="text-pink-300">${details.requestedCardName}</b>.`;
+            break;
+        case 'tradeOfferAccepted':
+             message = `${userHtml}, <b>${details.offerer}</b>'in <b class="text-cyan-300">'${details.offeredCardName}'</b> kartı teklifini kabul etti.`;
+            break;
+            
+        // MAĞAZA
+        case 'buyItem':
+            const storeName = details.itemCost.toString().includes('KP') ? 'Özel Ürün Mağazası' : 'Mağaza';
+            const costText = `${formatNumber(details.itemCost)} ${details.itemCost.toString().includes('KP') ? 'KP' : 'Puan'}`;
+            const balanceText = details.itemCost.toString().includes('KP') 
+                ? `(Kalan KP: ${formatNumber(details.newKasaBalance)})` 
+                : `(Kalan Puan: ${formatNumber(details.newBalance)})`;
+            message = `${userHtml}, ${storeName}'ndan <b class="text-red-500">-${costText}</b> harcayarak <b class="text-green-400">${details.itemName}</b> satın aldı. ${balanceText}`;
+            break;
+            
+        // GÜNLÜK ÖDÜL & GİRİŞ SERİSİ
+        case 'dailyReward':
+            const rewardText = formatRewardText(details.rewardType, details.rewardValue, details.rewardUses);
+            message = `${userHtml}, günlük ödül olarak <span class="text-teal-300 font-bold">${rewardText}</span> aldı.`;
+            break;
+        case 'loginStreakClaim':
+            message = `${userHtml}, giriş serisinde <b class="text-teal-300 font-bold">${details.day}. gün</b> <b class="text-white">'${details.packageName}'</b> ödülünü aldı.`;
+            break;
+    }
+
+    const deleteButtonHtml = isAdmin ? `
+        <button onclick="deleteActivity('${activity.id}')" class="p-1 rounded-full text-gray-500 hover:text-red-500 hover:bg-white/10 transition-colors" title="Bu Eylemi Sil">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1-1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+        </button>` : '';
+
+    return `
+        <div class="bg-gray-800/70 p-3 rounded-xl flex items-center gap-4 border border-transparent hover:border-gray-700">
+            ${getActivityIcon(activity.type, details)}
+            <div class="flex-1 min-w-0">
+                <p class="text-gray-200 text-sm leading-relaxed">${message}</p>
+                <div class="flex justify-between items-center mt-1">
+                    <span class="text-xs text-gray-500">${timeAgo}</span>
+                    <div class="flex items-center">
+                        ${deleteButtonHtml}
+                    </div>
+                </div>
+            </div>
+        </div>`;
+}
+
+
+// MEVCUT logActivity FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
+
+function logActivity(type, username, details = {}, categoryOverride = null) {
+    if (username.toLowerCase() === 'weizendtv' && type !== 'event') {
+        return;
+    }
+    const activityData = {
+        type,
+        username,
+        details,
+        category: categoryOverride || getCategoryForActivity(type),
+        timestamp: firebase.database.ServerValue.TIMESTAMP
+    };
+
+    const activityRef = db.ref('activityFeed').push();
+    activityRef.set(activityData);
 }
 
 async function deleteActivity(activityId) {
@@ -20709,7 +20568,6 @@ async function attackMonster() {
             const { type, value } = randomReward;
             const prizeName = typeToName[type] || 'Ödül';
             const isPercent = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion', 'health_regen_potion'].includes(type);
-            // ★★★ İSTEĞE GÖRE GÜNCELLENEN MESAJ ALANI ★★★
             const valuePrefix = isPercent ? `%` : `+`;
             
             rewardMessage = `<hr class="border-gray-600 my-2">🎉 <b>Ödül:</b> <b class="text-green-400">${valuePrefix}${value} ${prizeName}</b> kazandın!`;
@@ -20794,14 +20652,14 @@ async function attackMonster() {
                 const prizeName = typeToName[prize.type] || prize.type;
                 const prizeText = `${prize.value} ${prizeName}`;
                 
-                logActivity('monsterDefeated', 'WeizendTv', { 
+                // ★★★ DEĞİŞİKLİK BURADA: Artık kategori 'canavar' olarak belirtiliyor ★★★
+                logActivity('monsterDefeated', winner, { 
                     monsterName: finalBattleData.monsterDetails.name, 
                     winner: winner, 
                     prize: prizeText,
                     totalDamage: winnerData.totalDamage
-                });
-                // attackMonster fonksiyonundaki logActivity('monsterDefeated'...) satırının altına ekle
-logActivity('event', 'WeizendTv', { eventType: 'monster', status: 'finished', winner: winner }, 'etkinlikler');
+                }, 'canavar');
+                logActivity('event', 'WeizendTv', { eventType: 'monster', status: 'finished', winner: winner }, 'etkinlikler');
                 
                 const winnerRef = db.ref(`users/${winner}`);
                 await winnerRef.transaction(winnerDataFromDB => {
@@ -22471,6 +22329,176 @@ function closeLetterInputModal() {
     document.getElementById('letterInputModal').style.display = 'none';
 }
 
+// MEVCUT craftItem FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
+
+async function craftItem(recipeId) {
+    if (isAdmin || isCraftingInProgress) return;
+
+    const craftButton = document.getElementById('craftItemBtn');
+    if (craftButton) {
+        craftButton.disabled = true;
+        craftButton.textContent = 'Üretiliyor...';
+    }
+    isCraftingInProgress = true;
+
+    try {
+        const recipe = craftingRecipesCache.find(r => r.id === recipeId);
+        if (!recipe) throw new Error("Üretim tarifi bulunamadı.");
+        
+        // ★★★ YENİ KOD BAŞLANGICI: ÇARPAN ONAYI ★★★
+        if (recipe.output.type === 'tempMultiplier') {
+            const userSnap = await db.ref(`users/${currentUser}`).once('value');
+            const userData = userSnap.val();
+            const hasActiveMultiplier = (userData.multiplierSource === 'box') || (userData.multiplierSource === 'store' && (userData.multiplierRemainingUses || 0) > 0);
+            
+            if(hasActiveMultiplier) {
+                const confirmed = await customConfirm(
+                    `Mevcut bir çarpanın varken yenisini üretiyorsun. Bu işlemi onaylarsan, mevcut çarpanın ve kalan tüm kullanım hakların <b class="text-red-400">SİLİNECEK</b> ve yerine bu yeni çarpan eklenecektir. Emin misin?`
+                );
+                if(!confirmed) {
+                    throw new Error("Kullanıcı işlemi iptal etti.");
+                }
+            }
+        }
+        // ★★★ YENİ KOD SONU ★★★
+
+        const selectedCardIdsByMaterial = {};
+        let selectionError = null;
+        recipe.materials.forEach((material, index) => {
+            const isRarityCard = ['card_normal', 'card_gumus', 'card_altin', 'card_efsanevi'].includes(material.type);
+            if (isRarityCard) {
+                const materialItemEl = document.querySelector(`.material-list-item[data-material-index="${index}"]`);
+                if (!materialItemEl) {
+                    selectionError = "Arayüz hatası: Malzeme satırı bulunamadı."; return;
+                }
+                const selectedCardsData = materialItemEl.dataset.selectedCards;
+                if (!selectedCardsData) {
+                    selectionError = `Lütfen "${typeToName[material.type]}" için harcanacak kartları seçin.`; return;
+                }
+                const selectedIds = JSON.parse(selectedCardsData);
+                if (selectedIds.length !== material.amount) {
+                    selectionError = `Lütfen "${typeToName[material.type]}" için tam olarak ${material.amount} adet kart seçin.`; return;
+                }
+                selectedCardIdsByMaterial[index] = selectedIds;
+            }
+        });
+        if (selectionError) throw new Error(selectionError);
+
+        const userRef = db.ref(`users/${currentUser}`);
+        let cardPacksToOpen = [];
+        
+        const isSpecialItem = recipe.output.type === 'special';
+        let specialPurchaseId = null;
+
+        const { committed, snapshot } = await userRef.transaction(currentData => {
+            if (!currentData) return;
+            
+            for (const [index, material] of recipe.materials.entries()) {
+                 const dbKeyMap = { points: 'balance', kasaPuani: 'kasaPuani', boxRights: 'kutuHakki', wheelTicket: 'carkBileti', clickCatchTicket: 'clickCatchTickets', iflasShield: 'iflasShieldUses', wildcard: 'wildcards', revival_stone: 'inventory/revival_stone' };
+                 const path = dbKeyMap[material.type];
+                 const isRarityCard = ['card_normal', 'card_gumus', 'card_altin', 'card_efsanevi'].includes(material.type);
+                 const statKeyMap = { health_potion: 'hp', damage_potion: 'damage', defense_potion: 'defense', crit_potion: 'critChance', crit_damage_potion: 'critDamage', dodge_potion: 'dodgeChance', pierce_potion: 'pierceChance' };
+                 const statKey = statKeyMap[material.type];
+                 if (path) {
+                    const pathParts = path.split('/');
+                    let currentValue = (pathParts.length > 1) ? (currentData[pathParts[0]]?.[pathParts[1]] || 0) : (currentData[path] || 0);
+                    if (currentValue < material.amount) return;
+                    if (pathParts.length > 1) { currentData[pathParts[0]][pathParts[1]] -= material.amount; } 
+                    else { currentData[path] -= material.amount; }
+                 } else if (material.type === 'card') {
+                    if (!currentData.cardCollection?.[material.cardId] || currentData.cardCollection[material.cardId].count < material.amount) return;
+                    currentData.cardCollection[material.cardId].count -= material.amount;
+                 } else if (isRarityCard) {
+                    const cardIdsToUse = selectedCardIdsByMaterial[index];
+                    if (!cardIdsToUse) return;
+                    const deductionCounts = cardIdsToUse.reduce((acc, id) => { acc[id] = (acc[id] || 0) + 1; return acc; }, {});
+                    for (const cardId in deductionCounts) {
+                        const requiredDeduction = deductionCounts[cardId];
+                        const userCardCount = currentData.cardCollection?.[cardId]?.count || 0;
+                        if (userCardCount < requiredDeduction) return; 
+                        currentData.cardCollection[cardId].count -= requiredDeduction;
+                    }
+                 } else if (material.type === 'tempMultiplier') {
+                    const matchesValue = currentData.activeMultiplier === material.value;
+                    const matchesUses = (currentData.multiplierRemainingUses || 0) >= material.uses;
+                    if (!matchesValue || !matchesUses) return;
+                    currentData.activeMultiplier = 1; currentData.multiplierSource = 'none'; currentData.multiplierRemainingUses = 0;
+                 } else if (statKey) {
+                    const currentBonus = currentData.globalPotionBuffs?.[statKey] || 0;
+                    if (currentBonus < material.amount) return;
+                    currentData.globalPotionBuffs[statKey] -= material.amount;
+                 } else if (material.type === 'avatar') {
+                    const hasAvatar = currentData.avatars && Object.values(currentData.avatars).some(a => a.name === material.avatarName);
+                    if (!hasAvatar) return;
+                 } else { return; }
+            }
+            
+            if (isSpecialItem) {
+                specialPurchaseId = db.ref().push().key; 
+                if (!currentData.pendingSpecialPurchases) currentData.pendingSpecialPurchases = {};
+                currentData.pendingSpecialPurchases[specialPurchaseId] = {
+                    username: currentUser, itemName: recipe.output.specialName,
+                    itemCost: "Üretildi", source: "crafting",
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                };
+                
+                if (!currentData.purchaseHistory) currentData.purchaseHistory = {};
+                currentData.purchaseHistory[specialPurchaseId] = {
+                    username: currentUser, itemName: recipe.output.specialName,
+                    itemCost: "Üretildi", imageUrl: recipe.output.imageUrl || 'https://i.hizliresim.com/sv85j2u.png',
+                    status: 'pending', purchaseType: 'special',
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                };
+            } else {
+                const result = applyRewardToUser(currentData, recipe.output);
+                cardPacksToOpen = result.cardPacksToOpen;
+            }
+            
+            return currentData;
+        });
+
+        if (committed) {
+            const finalUserData = snapshot.val();
+            
+            if (isSpecialItem) {
+                displayMessage(`Tebrikler! <b>${recipe.output.specialName}</b> adlı özel ürünü ürettin. Ödülün, admin onayından sonra sana teslim edilecek.`);
+                notifyUser(currentUser, `'${recipe.output.specialName}' adlı özel ürün üretimin admin onayı için sıraya alındı.`);
+            } else {
+                const outputName = recipe.output.name;
+                displayMessage(`Tebrikler! Başarıyla <b>${outputName}</b> ürettin.`);
+            }
+            
+            logActivity('craftItem', currentUser, { 
+                itemName: isSpecialItem ? recipe.output.specialName : recipe.output.name,
+                newBalance: finalUserData.balance
+            });
+            
+            for (const pack of cardPacksToOpen) {
+                await startCardPackOpening(pack.value || 1, 'Üretim Atölyesi', 1, pack.type);
+            }
+
+            closeCraftingDetailModal();
+            loadCraftingRecipes();
+        } else {
+            throw new Error("Üretim başarısız! Malzemelerin yetersiz veya başka bir işlem yapılıyor olabilir.");
+        }
+
+    } catch (error) {
+        if (error.message !== "Kullanıcı işlemi iptal etti.") {
+            displayMessage(error.message);
+        }
+    } finally {
+        isCraftingInProgress = false;
+        if (craftButton) {
+            craftButton.disabled = false;
+            openCraftingDetailModal(recipeId);
+        }
+    }
+}
+
+
+// MEVCUT submitLetter FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
+
 async function submitLetter() {
     if (isAdmin) {
         displayMessage("Adminler oyun oynayamaz.");
@@ -22494,9 +22522,8 @@ async function submitLetter() {
     const cellRef = db.ref(`wordGame/questions/${qIndex}/letters/${lIndex}`);
     const userRef = db.ref(`users/${currentUser}`);
     
-    // Bekleme süresi panelini ve içeriğini en baştan alalım
     const cooldownInfoEl = document.getElementById('wordGameCooldownInfo');
-    const cooldownTextEl = cooldownInfoEl.childNodes[0]; // "Yanlış harf girdin..." metni
+    const cooldownTextEl = cooldownInfoEl.childNodes[0];
 
     try {
         const { committed, snapshot } = await cellRef.transaction(letterData => {
@@ -22514,14 +22541,29 @@ async function submitLetter() {
         if (committed) {
             const finalLetterData = snapshot.val();
             if (finalLetterData.solved && finalLetterData.solver === currentUser) {
-                // --- DOĞRU CEVAP VERİLDİ ---
-                
-                // 1. Panelin rengini ve yazısını DEĞİŞTİR
+                // DOĞRU CEVAP
                 cooldownTextEl.textContent = 'Tekrar harf yazmak için beklemen gereken süre: ';
                 cooldownInfoEl.className = 'text-center bg-blue-900/50 border border-blue-500 text-blue-300 p-3 rounded-lg mb-4';
 
                 const reward = finalLetterData.reward;
                 const rewardText = formatRewardText(reward.type, reward.amount || reward.value, reward.uses);
+
+                // ★★★ YENİ KOD BAŞLANGICI: ÇARPAN ONAYI ★★★
+                if (reward.type === 'tempMultiplier') {
+                    const userSnap = await userRef.once('value');
+                    const userData = userSnap.val();
+                    const hasActiveMultiplier = (userData.multiplierSource === 'box') || (userData.multiplierSource === 'store' && (userData.multiplierRemainingUses || 0) > 0);
+                    
+                    if(hasActiveMultiplier) {
+                        const confirmed = await customConfirm(
+                            `Mevcut bir çarpanın varken yenisini kazandın. Ödülü almayı onaylarsan, mevcut çarpanın ve kalan tüm kullanım hakların <b class="text-red-400">SİLİNECEK</b> ve yerine bu yeni çarpan eklenecektir. Emin misin?`
+                        );
+                        if(!confirmed) {
+                            throw new Error("Kullanıcı ödülü almayı iptal etti.");
+                        }
+                    }
+                }
+                // ★★★ YENİ KOD SONU ★★★
                 
                 const correctCooldownSeconds = (await db.ref('wordGame/settings/correctGuessCooldown').once('value')).val() || 60;
                 await userRef.update({
@@ -22562,9 +22604,7 @@ async function submitLetter() {
                 }
 
             } else {
-                // --- YANLIŞ CEVAP VERİLDİ ---
-                
-                // 1. Panelin rengini ve yazısını ORİJİNAL HALİNE GETİR
+                // YANLIŞ CEVAP
                 cooldownTextEl.textContent = 'Yanlış harf girdin! Tekrar denemek için beklemen gereken süre: ';
                 cooldownInfoEl.className = 'text-center bg-red-900/50 border border-red-500 text-red-300 p-3 rounded-lg mb-4';
                 
@@ -22587,8 +22627,10 @@ async function submitLetter() {
             }
         }
     } catch (error) {
-        console.error("Harf gönderme hatası:", error);
-        displayMessage("Bir hata oluştu.");
+        if(error.message !== "Kullanıcı ödülü almayı iptal etti.") {
+            console.error("Harf gönderme hatası:", error);
+            displayMessage("Bir hata oluştu.");
+        }
     }
 }
 
@@ -23041,69 +23083,6 @@ async function loadWordGameChampionPrize() {
     }
     // Kaydet butonu
     container.innerHTML += `<button onclick="saveWordGameChampionPrize()" class="w-full mt-2 py-2 bg-blue-700 hover:bg-blue-600 text-white font-bold rounded-lg md:col-span-3">Şampiyon Ödülünü Kaydet</button>`;
-}
-
-/**
- * Tüm harfler çözüldüğünde şampiyonu belirler ve ödülünü verir.
- */
-async function checkForGameCompletionAndAwardChampion() {
-    // Önce şampiyonun zaten belirlenip belirlenmediğini kontrol et
-    const existingChampionSnap = await db.ref('gameStats/wordGameChampion').once('value');
-    if (existingChampionSnap.exists()) {
-        console.log("Oyun şampiyonu zaten belirlenmiş, işlem atlandı.");
-        return;
-    }
-    
-    const gameSnap = await db.ref('wordGame').once('value');
-    const gameData = gameSnap.val();
-    
-    if (!gameData || !gameData.questions) return;
-
-    const allSolved = gameData.questions.every(q => q.letters.every(l => l.solved));
-
-    if (allSolved) {
-        console.log("Tüm harfler çözüldü! Şampiyon belirleniyor...");
-        const leaderboard = gameData.leaderboard;
-        if (!leaderboard) return;
-
-        const sorted = Object.entries(leaderboard).sort((a, b) => b[1].score - a[1].score);
-        if (sorted.length === 0) return;
-
-        const winnerUsername = sorted[0][0];
-        const winnerData = sorted[0][1];
-        
-        const prizeData = gameData.settings?.championPrize;
-        if (!prizeData) {
-            console.log("Şampiyon ödülü ayarlanmamış, ödül verilemedi.");
-            return;
-        }
-
-        const prizeText = formatRewardText(prizeData.type, prizeData.amount || prizeData.value, prizeData.uses);
-
-        // Şampiyon bilgilerini kaydet
-        await db.ref('gameStats/wordGameChampion').set({
-            username: winnerUsername,
-            score: winnerData.score,
-            prizeAwarded: prizeText,
-            avatarUrl: winnerData.avatarUrl,
-            timestamp: firebase.database.ServerValue.TIMESTAMP
-        });
-
-        // Ödülü kullanıcıya ver
-        const userRef = db.ref(`users/${winnerUsername}`);
-        await userRef.transaction(userData => {
-            if (userData) {
-                applyRewardToUser(userData, prizeData);
-            }
-            return userData;
-        });
-
-        // Aktivite kaydı
-        logActivity('wordGameChampion', winnerUsername, { score: winnerData.score, prize: prizeText });
-        // checkForGameCompletionAndAwardChampion fonksiyonundaki logActivity('wordGameChampion'...) satırının altına ekle
-logActivity('event', 'WeizendTv', { eventType: 'wordgame', status: 'finished', winner: winnerUsername }, 'etkinlikler');
-
-    }
 }
 
    // --- YENİ EKLENECEK BİLGİ PENCERESİ FONKSİYONLARI ---
