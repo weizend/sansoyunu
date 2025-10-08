@@ -14125,6 +14125,25 @@ function getActivityHtml(activity) {
             }
             message = `${userHtml}, Mağaza'ndan <b class="text-red-500">-${costText_buy}</b> harcayarak <b class="text-green-400">${purchasedItemText}</b> satın aldı. (Kalan ${balanceUnit_buy}: ${formatNumber(balance_buy)})`;
             break;
+        case 'monsterAttack':
+            const monsterNameHtml = `<b class="text-red-300 cursor-pointer hover:underline" onclick="openMonsterInfoModal()">${details.monsterName}</b>`;
+            let attackSummary = `${userHtml}, ${monsterNameHtml}'a saldırdı. `;
+            if (details.didMonsterDodge) { attackSummary += `Canavar <b class="text-cyan-400">sıyrıldı!</b>`; } 
+            else if (details.playerAttackType === 'pierce') { attackSummary += `📌 <b class="text-purple-400">Delici Vuruş</b> ile <b class="text-green-300">${formatNumber(details.damageDealt)} hasar</b> verdi. `; } 
+            else if (details.playerAttackType === 'crit') { attackSummary += `💥 <b class="text-green-300">Kritik Vuruş</b> ile <b class="text-green-300">${formatNumber(details.damageDealt)} hasar</b> verdi. `; } 
+            else { attackSummary += `<b class="text-green-300">${formatNumber(details.damageDealt)} hasar</b> verdi. `; }
+            if (details.didPlayerDodge) { attackSummary += `Canavarın saldırısından <b class="text-cyan-400">sıyrıldı!</b>`; } 
+            else {
+                let monsterAttackText = 'saldırısıyla';
+                if (details.monsterAttackType === 'crit') { monsterAttackText = `💥 <b class="text-red-600">kritik saldırısıyla</b>`; } 
+                else if (details.monsterAttackType === 'pierce') { monsterAttackText = `📌 <b class="text-purple-500">delici saldırısıyla</b>`; }
+                attackSummary += ` Canavarın ${monsterAttackText} <b class="text-red-400">${formatNumber(details.damageTaken)} hasar</b> aldı.`;
+            }
+            attackSummary += `<div class="text-xs mt-1 text-gray-400">Canavar Canı: ${formatNumber(details.monsterRemainingHP)}/${formatNumber(details.monsterMaxHP)} | ${activity.username} Canı: ${formatNumber(details.playerRemainingHP)}/${formatNumber(details.playerMaxHP)} | Toplam Hasar: ${formatNumber(details.playerTotalDamage)}</div>`;
+            if (details.rewardWon) { attackSummary += ` Ek olarak <b class="text-yellow-300">${details.rewardWon}</b> kazandı.`; }
+            if (details.playerDied) { attackSummary += ` <b class="text-black bg-red-500 px-1 rounded">MAĞLUP OLDU!</b>`; }
+            message = attackSummary;
+            break;
         case 'openBox':
             const openBoxMultiplier = details.multiplier > 1 ? ` <span class="text-xs text-purple-400">(${details.multiplier}x çarpan kullandı)</span>` : '';
             message = `${userHtml}, <b>${details.boxId}</b> numaralı kutudan <span class="text-green-300 font-bold">+${formatNumber(details.points)} Puan</span> kazandı.${openBoxMultiplier} <span class="text-gray-400">(Mevcut Puan: ${formatNumber(details.newBalance)})</span>`;
@@ -14177,9 +14196,6 @@ function getActivityHtml(activity) {
             break;
         case 'clickCatchSolo':
             message = `${userHtml}, Tıkla-Yakala'da <span class="text-green-300 font-bold">${formatNumber(details.finalScore)} Skor</span> topladı.`;
-            break;
-        case 'weeklyChampion':
-            message = `Haftanın Tıkla-Yakala şampiyonu ${userHtml} oldu ve <b class="text-green-400">${details.prize}</b> kazandı!`;
             break;
         case 'craftItem':
              message = `${userHtml}, atölyede <b class="text-green-400">${details.itemName}</b> üretti.`;
