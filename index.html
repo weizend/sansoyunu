@@ -8139,7 +8139,7 @@ async function openBox(index) {
     // ★★★ YENİ ÇARPAN MANTIĞI BURADA BAŞLIYOR ★★★
     // =====================================================================
     if (box.content === 'multiplier') {
-        const foundMultiplier = { value: box.value, uses: 1 };
+        const foundMultiplier = { value: box.value, uses: 1 }; // Kutudan çıkan her zaman 1 kullanımlıktır
         const existingMultiplierValue = tempUserState.activeMultiplier || 1;
         const existingMultiplierUses = tempUserState.multiplierRemainingUses || 0;
         const hasActiveMultiplier = existingMultiplierUses > 0;
@@ -8147,34 +8147,34 @@ async function openBox(index) {
         tempUserState.multiplierFoundCount = (tempUserState.multiplierFoundCount || 0) + 1;
 
         if (!hasActiveMultiplier) {
-            // Kural A: Kullanıcının hiç çarpanı yoksa
+            // Kural A: Kullanıcının hiç çarpanı yoksa, envantere +1 kullanımlık ekle.
             tempUserState.activeMultiplier = foundMultiplier.value;
             tempUserState.multiplierRemainingUses = foundMultiplier.uses;
             tempUserState.multiplierSource = 'store'; // Artık envanterde tutulduğu için 'store' tipi kullanılıyor
             message = `Harika! Envanterine <b>1 kullanımlık ${foundMultiplier.value}x Çarpan</b> eklendi.`;
             logActivity('multiplierFound', currentUser, { boxId: box.id, value: foundMultiplier.value });
         } else if (foundMultiplier.value === existingMultiplierValue) {
-            // Kural B: Aynı değerde çarpan bulunduysa
+            // Kural B: Aynı değerde çarpan bulunduysa, kullanım hakkını +1 artır.
             tempUserState.multiplierRemainingUses += 1;
             message = `Süper! Mevcut <b>${existingMultiplierValue}x</b> çarpanının kullanım hakkı <b class="text-teal-300">+1</b> artarak <b>${tempUserState.multiplierRemainingUses}</b> oldu!`;
             logActivity('multiplierStacked', currentUser, { boxId: box.id, value: foundMultiplier.value, newUses: tempUserState.multiplierRemainingUses });
         } else if (foundMultiplier.value < existingMultiplierValue) {
-            // Kural C: Daha düşük değerli çarpan bulunduysa
+            // Kural C: Daha düşük değerli çarpan bulunduysa, kutu hakkına dönüştür.
             const boxRightsFromMultiplier = foundMultiplier.value;
             tempUserState.kutuHakki = (tempUserState.kutuHakki || 0) + boxRightsFromMultiplier;
             message = `Mevcut <b>${existingMultiplierValue}x</b> çarpanın daha güçlü olduğu için korundu. Bulduğun ${foundMultiplier.value}x çarpan ise <b class="text-green-400">+${boxRightsFromMultiplier} Kutu Hakkı</b>'na dönüştürüldü!`;
             logActivity('multiplierConvertedToBoxRights', currentUser, { boxId: box.id, rewardValue: foundMultiplier.value, boxRights: boxRightsFromMultiplier, source: 'Kutudan' });
         } else { // foundMultiplier.value > existingMultiplierValue
-            // Kural D: Daha yüksek değerli çarpan bulunduysa
+            // Kural D: Daha yüksek değerli çarpan bulunduysa, kullanıcıya seçim penceresi aç.
             openMultiplierChoiceModal({
                 existing: { value: existingMultiplierValue, uses: existingMultiplierUses },
-                found: { value: foundMultiplier.value, uses: 1 }, // Kutudan çıkan her zaman 1 kullanımlıktır
+                found: { value: foundMultiplier.value, uses: 1 }, 
                 boxId: box.id
             });
-            message = ''; // Mesajı boş bırak, çünkü seçim penceresi açılacak ve oyun kilitli kalacak
+            message = ''; // Mesajı boş bırak, çünkü seçim penceresi açılacak ve oyun kilitli kalacak.
         }
 
-    } else { // Kutu içeriği çarpan DEĞİLSE
+    } else { // Kutu içeriği çarpan DEĞİLSE (Normal kutu açma mantığı)
         if (useCombinedMultiplier) {
             tempUserState.tempCombinedMultiplier = null;
         } else if (useMultiplier) {
@@ -8255,20 +8255,18 @@ async function openBox(index) {
     }
     
     await db.ref().update(updates);
-    await db.ref('boxes/' + index).update(boxUpdate);
+    
+    // lastOpenedBox'u burada güncelliyoruz ki global listener tetiklensin.
+    await db.ref('lastOpenedBox').set({ ...boxUpdate, timestamp: firebase.database.ServerValue.TIMESTAMP });
 
     if (box.content !== 'surpriz' && message) {
         displayMessage(message);
     }
     
-    // Sadece çarpan seçim penceresi açık değilse kilidi kaldır.
-    if (!document.getElementById('multiplierChoiceModal') || document.getElementById('multiplierChoiceModal').style.display === 'none') {
-        // Not: Bu kilit hemen kalkacak, ancak genel 1 saniyelik bekleme sistemi
-        // listenForGameChanges -> showGlobalOpenedBoxInfo fonksiyonu üzerinden çalışmaya devam edecek.
-        // Bu kod, sadece anlık çifte tıklamaları engellemek için var.
-        await db.ref('gameLock').set(false);
-        isGameLocked = false;
-    }
+    // ★★★ SORUNUN KAYNAĞI OLAN KİLİT AÇMA KODU BURADAN TAMAMEN KALDIRILDI ★★★
+    // Artık kilit açma işini SADECE 'showGlobalOpenedBoxInfo' fonksiyonu yapacak.
+    // Eğer çarpan seçim penceresi açılırsa, kilit bilinçli olarak açık kalacak ve
+    // 'resolveMultiplierChoice' fonksiyonu kilidi açacak.
 }
 
 // --- GÜNCELLENMİŞ FONKSİYON ---
@@ -10685,19 +10683,18 @@ async function toggleGameLock() {
     displayMessage(`Oyun kilidi başarıyla ${!isCurrentlyLocked ? 'aktif edildi' : 'kaldırıldı'}.`);
 }
 
-  function showGlobalOpenedBoxInfo(info) {
+  // MEVCUT showGlobalOpenedBoxInfo FONKSİYONUNU SİL VE BUNU YAPIŞTIR
+function showGlobalOpenedBoxInfo(info) {
     const isPlayingClickCatch = clickCatchGameActive || (lobbyGameSettings && lobbyGameSettings.state === 'active');
     if (isPlayingClickCatch) return;
 
-    // YENİ EKLENEN KISIM: Modal yerine üstte çıkan bildirim bandını kullanacağız.
-    const notificationMessage = `${info.opener}, ${info.boxId} numaralı kutuyu açtı.`;
+    // ★★★ DEĞİŞİKLİK BURADA: 'info.boxId' yerine 'info.id' KULLANILDI ★★★
+    const notificationMessage = `${info.opener}, ${info.id} numaralı kutuyu açtı.`;
     displayGlobalNotification(notificationMessage);
 
-    // DEĞİŞEN SATIR: Zamanlayıcı 3 saniyeye düşürüldü.
-    let countdown = 1; // <--- BU SATIRI 1 OLARAK DEĞİŞTİR
+    let countdown = 1;
 
-    // Geri kalan zamanlayıcı mantığı aynı kalıyor, çünkü oyun kilidini bu yönetiyor.
-    const countdownEl = document.getElementById('globalOpenedBoxCountdown'); // Bu element artık görünmese de sayaç çalışmaya devam eder.
+    const countdownEl = document.getElementById('globalOpenedBoxCountdown');
 
     if(globalCountdownInterval) clearInterval(globalCountdownInterval);
 
@@ -10705,10 +10702,6 @@ async function toggleGameLock() {
         countdown--;
         if (countdown <= 0) {
             clearInterval(globalCountdownInterval);
-            // SİLİNEN SATIR: Modal artık olmadığı için kapatmaya gerek yok.
-            // globalOpenedBoxInfoModal.style.display = 'none';
-
-            // En önemli kısım: Süre dolduğunda oyun kilidini açar.
             db.ref('gameLock').set(false);
         }
     }, 1000);
@@ -17842,11 +17835,15 @@ function openMultiplierChoiceModal(context) {
     modal.style.display = 'flex';
 }
 
+// MEVCUT resolveMultiplierChoice FONKSİYONUNU SİL VE YERİNE BUNU YAPIŞTIR
 async function resolveMultiplierChoice(choice) {
     if (!pendingMultiplierChoice) return;
 
     const { existing, found } = pendingMultiplierChoice;
     const userRef = db.ref('users/' + currentUser);
+    const userSnap = await userRef.once('value');
+    const user = userSnap.val();
+    
     const updates = {};
     let message = '';
 
@@ -17870,6 +17867,9 @@ async function resolveMultiplierChoice(choice) {
     displayMessage(message);
     
     closeMultiplierChoiceModal();
+
+    // ★★★ KİLİT SORUNUNU ÇÖZEN SİHİRLİ SATIRLAR BURADA ★★★
+    // Çarpan seçimi yapıldıktan sonra oyun kilidini AÇIYORUZ.
     await db.ref('gameLock').set(false);
     isGameLocked = false;
 }
