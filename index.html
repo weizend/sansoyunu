@@ -8015,7 +8015,7 @@ function resetSurpriseCardsToDefault() {
     displayMessage("Ayarlar varsayılana döndürüldü. Kalıcı olması için 'Kaydet' butonuna basın.");
 }
 
-// MEVCUT openBox FONKSİYONUNUN TAMAMINI SİL VE YERİNE BUNU YAPIŞTIR
+// MEVCUT openBox FONKSİYONUNU TAMAMEN SİL VE YERİNE BUNU YAPIŞTIR
 async function openBox(index) {
     if (isAdmin) {
         displayMessage("Adminler oyun oynayamaz.");
@@ -8037,10 +8037,6 @@ async function openBox(index) {
         return;
     }
     if (boxes[index].opened) return;
-    if (isAdmin) {
-        displayMessage("Adminler oyun oynamaz, sadece izler.");
-        return;
-    }
 
     const userRef = db.ref('users/' + currentUser);
     let userSnap = await userRef.once('value');
@@ -8065,8 +8061,17 @@ async function openBox(index) {
     }
 
     let useMultiplier = false;
-    if (user.multiplierSource === 'store' && (user.multiplierRemainingUses || 0) > 0) {
-        const confirmed = await customConfirm(`Mevcut <b>${user.activeMultiplier}x</b> çarpanınızı kullanmak ister misiniz?`);
+    let useCombinedMultiplier = false;
+
+    if (user.tempCombinedMultiplier && user.tempCombinedMultiplier > 0) {
+        const confirmed = await customConfirm(`Tek kullanımlık <b class="text-purple-400">${user.tempCombinedMultiplier}x Birleşmiş Çarpanı</b> kullanmak istiyor musun?`);
+        if (confirmed) {
+            useCombinedMultiplier = true;
+        }
+    }
+    
+    if (!useCombinedMultiplier && user.multiplierSource === 'store' && (user.multiplierRemainingUses || 0) > 0) {
+        const confirmed = await customConfirm(`Mevcut <b>${user.activeMultiplier}x</b> çarpanınızı kullanmak ister misiniz? (Kalan Hak: ${user.multiplierRemainingUses})`);
         if (confirmed) {
             useMultiplier = true;
         }
@@ -8114,8 +8119,12 @@ async function openBox(index) {
     
     let tempUserState = JSON.parse(JSON.stringify(user));
 
-    const multiplierWasActive = useMultiplier || tempUserState.multiplierSource === 'box';
-    let finalMultiplier = multiplierWasActive ? (tempUserState.activeMultiplier || 1) : 1;
+    let finalMultiplier = 1;
+    if (useCombinedMultiplier) {
+        finalMultiplier = tempUserState.tempCombinedMultiplier;
+    } else if (useMultiplier) {
+        finalMultiplier = tempUserState.activeMultiplier || 1;
+    }
     
     const updates = {};
     updates[`/users/${currentUser}/boxesOpenedCount`] = (tempUserState.boxesOpenedCount || 0) + 1;
@@ -8126,66 +8135,67 @@ async function openBox(index) {
         content: box.content, value: box.value
     };
 
+    // =====================================================================
+    // ★★★ YENİ ÇARPAN MANTIĞI BURADA BAŞLIYOR ★★★
+    // =====================================================================
     if (box.content === 'multiplier') {
-        tempUserState.multiplierFoundCount = (tempUserState.multiplierFoundCount || 0) + 1;
-        const foundMultiplierValue = box.value;
+        const foundMultiplier = { value: box.value, uses: 1 };
         const existingMultiplierValue = tempUserState.activeMultiplier || 1;
         const existingMultiplierUses = tempUserState.multiplierRemainingUses || 0;
-        const existingMultiplierSource = tempUserState.multiplierSource || 'none';
+        const hasActiveMultiplier = existingMultiplierUses > 0;
 
-        if (existingMultiplierSource === 'none') {
-            tempUserState.activeMultiplier = foundMultiplierValue;
-            tempUserState.multiplierSource = 'box';
-            tempUserState.multiplierRemainingUses = 0;
-            message = `Harika! <b>${foundMultiplierValue}x Çarpan</b> buldun. Bir sonraki kutu açılışında otomatik olarak kullanılacak!`;
-            logActivity('multiplierFound', currentUser, { boxId: box.id, value: foundMultiplierValue, multiplier: finalMultiplier });
-        } else if (foundMultiplierValue === existingMultiplierValue) {
-            tempUserState.multiplierRemainingUses = existingMultiplierUses + 1;
-            message = `Süper! Mevcut <b>${existingMultiplierValue}x</b> çarpanınla aynı değerde bir tane daha buldun. Kullanım hakkın <b class="text-teal-300">+1</b> artarak <b>${tempUserState.multiplierRemainingUses}</b> oldu!`;
-            logActivity('multiplierStacked', currentUser, { boxId: box.id, value: foundMultiplierValue, uses: 1, multiplier: finalMultiplier });
-        } else if (foundMultiplierValue > existingMultiplierValue) {
-            const combinedValue = existingMultiplierValue + foundMultiplierValue;
-            tempUserState.activeMultiplier = combinedValue;
-            tempUserState.multiplierSource = 'box';
-            tempUserState.multiplierRemainingUses = 0;
-            const refundedBoxRights = existingMultiplierUses + (useMultiplier ? 1 : 0);
-            tempUserState.kutuHakki = (tempUserState.kutuHakki || 0) + refundedBoxRights;
-            message = `İNANILMAZ! Mevcut ${existingMultiplierValue}x çarpanın, bulduğun ${foundMultiplierValue}x ile birleşerek tek kullanımlık <b class="text-purple-400">${combinedValue}x</b> gücüne ulaştı! Eski çarpan hakların için <b class="text-green-400">+${refundedBoxRights} Kutu Hakkı</b> iade edildi!`;
-            logActivity('multiplierCombined', currentUser, { boxId: box.id, foundValue: foundMultiplierValue, combinedValue: combinedValue, refundedRights: refundedBoxRights, multiplier: finalMultiplier });
-        } else {
-            const boxRightsFromMultiplier = foundMultiplierValue;
+        tempUserState.multiplierFoundCount = (tempUserState.multiplierFoundCount || 0) + 1;
+
+        if (!hasActiveMultiplier) {
+            // Kural A: Kullanıcının hiç çarpanı yoksa
+            tempUserState.activeMultiplier = foundMultiplier.value;
+            tempUserState.multiplierRemainingUses = foundMultiplier.uses;
+            tempUserState.multiplierSource = 'store'; // Artık envanterde tutulduğu için 'store' tipi kullanılıyor
+            message = `Harika! Envanterine <b>1 kullanımlık ${foundMultiplier.value}x Çarpan</b> eklendi.`;
+            logActivity('multiplierFound', currentUser, { boxId: box.id, value: foundMultiplier.value });
+        } else if (foundMultiplier.value === existingMultiplierValue) {
+            // Kural B: Aynı değerde çarpan bulunduysa
+            tempUserState.multiplierRemainingUses += 1;
+            message = `Süper! Mevcut <b>${existingMultiplierValue}x</b> çarpanının kullanım hakkı <b class="text-teal-300">+1</b> artarak <b>${tempUserState.multiplierRemainingUses}</b> oldu!`;
+            logActivity('multiplierStacked', currentUser, { boxId: box.id, value: foundMultiplier.value, newUses: tempUserState.multiplierRemainingUses });
+        } else if (foundMultiplier.value < existingMultiplierValue) {
+            // Kural C: Daha düşük değerli çarpan bulunduysa
+            const boxRightsFromMultiplier = foundMultiplier.value;
             tempUserState.kutuHakki = (tempUserState.kutuHakki || 0) + boxRightsFromMultiplier;
-            message = `Mevcut <b>${existingMultiplierValue}x</b> çarpanın daha güçlü olduğu için korundu. Bulduğun ${foundMultiplierValue}x çarpan ise <b class="text-green-400">+${boxRightsFromMultiplier} Kutu Hakkı</b>'na dönüştürüldü!`;
-            logActivity('multiplierConvertedToBoxRights', currentUser, { boxId: box.id, rewardValue: foundMultiplierValue, boxRights: boxRightsFromMultiplier, source: 'Kutudan', multiplier: finalMultiplier, existingValue: existingMultiplierValue, existingUses: existingMultiplierUses });
+            message = `Mevcut <b>${existingMultiplierValue}x</b> çarpanın daha güçlü olduğu için korundu. Bulduğun ${foundMultiplier.value}x çarpan ise <b class="text-green-400">+${boxRightsFromMultiplier} Kutu Hakkı</b>'na dönüştürüldü!`;
+            logActivity('multiplierConvertedToBoxRights', currentUser, { boxId: box.id, rewardValue: foundMultiplier.value, boxRights: boxRightsFromMultiplier, source: 'Kutudan' });
+        } else { // foundMultiplier.value > existingMultiplierValue
+            // Kural D: Daha yüksek değerli çarpan bulunduysa
+            openMultiplierChoiceModal({
+                existing: { value: existingMultiplierValue, uses: existingMultiplierUses },
+                found: { value: foundMultiplier.value, uses: 1 }, // Kutudan çıkan her zaman 1 kullanımlıktır
+                boxId: box.id
+            });
+            message = ''; // Mesajı boş bırak, çünkü seçim penceresi açılacak ve oyun kilitli kalacak
         }
 
-    } else {
-        if (multiplierWasActive && box.content !== 'surpriz') {
-            if (tempUserState.multiplierSource === 'box') {
+    } else { // Kutu içeriği çarpan DEĞİLSE
+        if (useCombinedMultiplier) {
+            tempUserState.tempCombinedMultiplier = null;
+        } else if (useMultiplier) {
+            tempUserState.multiplierRemainingUses--;
+            if (tempUserState.multiplierRemainingUses <= 0) {
                 tempUserState.activeMultiplier = 1;
                 tempUserState.multiplierSource = 'none';
-            } else if (tempUserState.multiplierSource === 'store') {
-                tempUserState.multiplierRemainingUses = (tempUserState.multiplierRemainingUses || 0) - 1;
-                if (tempUserState.multiplierRemainingUses <= 0) {
-                    tempUserState.activeMultiplier = 1;
-                    tempUserState.multiplierSource = 'none';
-                    tempUserState.activeStoreMultiplierItemId = null;
-                }
+                tempUserState.activeStoreMultiplierItemId = null;
             }
         }
         
         if (finalMultiplier > 1) {
             boxUpdate.multiplierApplied = finalMultiplier;
         }
-
+        
         if (box.content === 'surpriz') {
             tempUserState.surpriseBoxesOpened = (tempUserState.surpriseBoxesOpened || 0) + 1;
             const openedInTurnSnap = await db.ref(`gameStats/boxesOpenedByUsers/${currentUser}`).once('value');
             const openedBoxesThisRound = openedInTurnSnap.val() || 1;
-            
             const cardValuesSnap = await db.ref('gameConfig/surpriseCardValues').once('value');
             const cardValuesFromDB = cardValuesSnap.exists() ? cardValuesSnap.val() : [1000, 2000, 3000, 4000, 5000];
-
             const sessionRef = db.ref('surprise_box_session');
             await sessionRef.set({ active: true, user: currentUser, boxId: box.id, multiplier: finalMultiplier, cards: shuffleArray([...cardValuesFromDB]), selection: null, result: null, timestamp: firebase.database.ServerValue.TIMESTAMP, boxesOpenedThisRound: openedBoxesThisRound });
             const snap = await sessionRef.once('value');
@@ -8247,12 +8257,18 @@ async function openBox(index) {
     await db.ref().update(updates);
     await db.ref('boxes/' + index).update(boxUpdate);
 
-    if (box.content !== 'surpriz') {
+    if (box.content !== 'surpriz' && message) {
         displayMessage(message);
     }
     
-    await db.ref('gameLock').set(false);
-    isGameLocked = false;
+    // Sadece çarpan seçim penceresi açık değilse kilidi kaldır.
+    if (!document.getElementById('multiplierChoiceModal') || document.getElementById('multiplierChoiceModal').style.display === 'none') {
+        // Not: Bu kilit hemen kalkacak, ancak genel 1 saniyelik bekleme sistemi
+        // listenForGameChanges -> showGlobalOpenedBoxInfo fonksiyonu üzerinden çalışmaya devam edecek.
+        // Bu kod, sadece anlık çifte tıklamaları engellemek için var.
+        await db.ref('gameLock').set(false);
+        isGameLocked = false;
+    }
 }
 
 // --- GÜNCELLENMİŞ FONKSİYON ---
@@ -17799,38 +17815,7 @@ async function saveKasaSettings() {
 
 // --- YENİ ÇARPAN SEÇİM SİSTEMİ FONKSİYONLARI ---
 
-// Hangi seçimin beklendiğini tutan global değişken
 let pendingMultiplierChoice = null;
-
-// Seçim penceresini açar ve içini doldurur
-function openMultiplierChoiceModal(existingMultiplier, foundMultiplier, boxId) {
-    const modal = document.getElementById('multiplierChoiceModal');
-    const infoEl = document.getElementById('multiplierChoiceInfo');
-    const convertBtn = document.getElementById('choiceConvertBtn');
-    const combineBtn = document.getElementById('choiceCombineBtn');
-
-    // Bekleyen seçimi global değişkene kaydet
-    pendingMultiplierChoice = {
-        existing: existingMultiplier,
-        found: foundMultiplier,
-        boxId: boxId
-    };
-
-    // Seçeneklerin metinlerini oluştur
-    const convertText = `Yeni ${foundMultiplier.value}x Çarpanı, <b>+${foundMultiplier.value} Kutu Hakkı</b>'na dönüştür. (Mevcut ${existingMultiplier.value}x çarpanın korunur)`;
-    const combineValue = existingMultiplier.value + foundMultiplier.value;
-    const combineText = `İki çarpanı birleştirip <b>1 kullanımlık ${combineValue}x</b> elde et. (Mevcut tüm ${existingMultiplier.value}x hakların gider)`;
-
-    infoEl.innerHTML = `Kutudan <b class="text-yellow-300">${foundMultiplier.value}x Çarpan</b> buldun! Mevcut <b class="text-purple-300">${existingMultiplier.uses} adet ${existingMultiplier.value}x</b> çarpanın var. Ne yapmak istersin?`;
-    convertBtn.innerHTML = convertText;
-    combineBtn.innerHTML = combineText;
-
-    // Butonların onclick olaylarını ayarla
-    convertBtn.onclick = () => resolveMultiplierChoice('convert');
-    combineBtn.onclick = () => resolveMultiplierChoice('combine');
-
-    modal.style.display = 'flex';
-}
 
 function openMultiplierChoiceModal(context) {
     const modal = document.getElementById('multiplierChoiceModal');
@@ -17839,35 +17824,20 @@ function openMultiplierChoiceModal(context) {
     const combineBtn = document.getElementById('choiceCombineBtn');
 
     pendingMultiplierChoice = context;
+    const { existing, found } = context;
+    
+    const boxRightsFromFound = found.value;
+    const convertText = `Yeni ${found.value}x Çarpanı <b>+${boxRightsFromFound} Kutu Hakkı</b>'na dönüştür. <br><small>(Mevcut ${existing.value}x çarpanın korunur)</small>`;
 
-    const { hasMultiplier, existing, found } = context;
+    const boxRightsFromExisting = existing.uses;
+    const acceptNewText = `Yeni <b>${found.value}x</b> Çarpanı al. <br><small>(Eski ${existing.value}x çarpanının kalan ${existing.uses} hakkı, <b>+${boxRightsFromExisting} Kutu Hakkı</b> olarak iade edilecek)</small>`;
 
-    if (hasMultiplier) {
-        const boxRightsFromFound = found.value;
-        const convertText = `Yeni ${found.value}x Çarpanı, <b>+${boxRightsFromFound} Kutu Hakkı</b>'na dönüştür. <br><small>(Mevcut ${existing.value}x çarpanın korunur)</small>`;
-        
-        const combineValue = existing.value + found.value;
-        const acceptNewText = `İki çarpanı birleştirip <b>1 kullanımlık ${combineValue}x</b> elde et. <br><small>(DİKKAT: Mevcut ${existing.uses} adet ${existing.value}x çarpan hakkın kaybolacak ve <b>+1 Kutu Hakkı</b> iade edilecek!)</small>`;
-
-        infoEl.innerHTML = `Kutudan <b class="text-yellow-300">${found.value}x Çarpan</b> buldun! Mevcut <b class="text-purple-300">${existing.uses} adet ${existing.value}x</b> çarpanın var. Stratejik bir karar ver!`;
-        convertBtn.innerHTML = convertText;
-        combineBtn.innerHTML = acceptNewText;
-        
-        convertBtn.onclick = () => resolveMultiplierChoice('convert_new');
-        combineBtn.onclick = () => resolveMultiplierChoice('combine_and_upgrade');
-
-    } else {
-        const boxRightsFromFound = found.value;
-        const convertText = `Bulduğun ${found.value}x Çarpanı, <b>+${boxRightsFromFound} Kutu Hakkı</b>'na dönüştür.`;
-        const acceptText = `Bulduğun ${found.value}x Çarpanı <b>1 kullanımlık</b> olarak envanterine ekle.`;
-
-        infoEl.innerHTML = `Kutudan <b class="text-yellow-300">${found.value}x Çarpan</b> buldun! Ne yapmak istersin?`;
-        convertBtn.innerHTML = convertText;
-        combineBtn.innerHTML = acceptText;
-
-        convertBtn.onclick = () => resolveMultiplierChoice('convert_found');
-        combineBtn.onclick = () => resolveMultiplierChoice('accept_found');
-    }
+    infoEl.innerHTML = `Mevcut <b class="text-purple-300">${existing.uses} adet ${existing.value}x</b> çarpanın varken, kutudan daha güçlü olan <b class="text-yellow-300">${found.value}x Çarpan</b> buldun! Ne yapmak istersin?`;
+    convertBtn.innerHTML = convertText;
+    combineBtn.innerHTML = acceptNewText;
+    
+    convertBtn.onclick = () => resolveMultiplierChoice('convert_found');
+    combineBtn.onclick = () => resolveMultiplierChoice('upgrade');
 
     modal.style.display = 'flex';
 }
@@ -17875,47 +17845,33 @@ function openMultiplierChoiceModal(context) {
 async function resolveMultiplierChoice(choice) {
     if (!pendingMultiplierChoice) return;
 
-    const { hasMultiplier, existing, found, boxId } = pendingMultiplierChoice;
+    const { existing, found } = pendingMultiplierChoice;
     const userRef = db.ref('users/' + currentUser);
     const updates = {};
     let message = '';
-    
-    const userSnap = await userRef.once('value');
-    const user = userSnap.val();
 
-    if (hasMultiplier) { // Senaryo: Kullanıcının zaten bir çarpanı var
-        if (choice === 'convert_new') {
-            updates.kutuHakki = (user.kutuHakki || 0) + found.value;
-            message = `Mevcut ${existing.value}x çarpanını korudun ve kutudan çıkan ${found.value}x çarpanı <b>+${found.value} Kutu Hakkı</b>'na dönüştürüldü!`;
-            logActivity('multiplierConvertedToBoxRights', currentUser, { rewardValue: found.value, boxRights: found.value, source: `Kutudan` });
-        } else if (choice === 'combine_and_upgrade') {
-            const combinedValue = existing.value + found.value;
-            updates.activeMultiplier = combinedValue;
-            updates.multiplierSource = 'box';
-            updates.multiplierRemainingUses = 0; // Tek kullanımlık olur
-            updates.kutuHakki = (user.kutuHakki || 0) + 1; // 1 Kutu Hakkı iade et
-            message = `Seçim yapıldı! Mevcut çarpan hakların feda edilerek envanterine <b>1 kullanımlık ${combinedValue}x</b> eklendi ve <b>+1 Kutu Hakkı</b> iade edildi!`;
-            logActivity('multiplierCombined', currentUser, { boxId: boxId, foundValue: found.value, combinedValue: combinedValue });
-        }
-    } else { // Senaryo: Kullanıcının hiç çarpanı yok
-        if (choice === 'convert_found') {
-            updates.kutuHakki = (user.kutuHakki || 0) + found.value;
-            message = `Seçimin üzerine, ${found.value}x çarpan <b>+${found.value} Kutu Hakkı</b>'na dönüştürüldü!`;
-            logActivity('multiplierConvertedToBoxRights', currentUser, { rewardValue: found.value, boxRights: found.value, source: `Kutudan` });
-        } else if (choice === 'accept_found') {
-            updates.activeMultiplier = found.value;
-            updates.multiplierSource = 'box';
-            updates.multiplierRemainingUses = 0; // Tek kullanımlık
-            message = `Yeni <b>${found.value}x</b> çarpanın bir sonraki kutu açılışında kullanılmak üzere envanterine eklendi!`;
-            logActivity('multiplierFound', currentUser, { boxId: boxId, value: found.value });
-        }
+    if (choice === 'upgrade') {
+        const refundedBoxRights = existing.uses;
+        updates.kutuHakki = (user.kutuHakki || 0) + refundedBoxRights;
+        updates.activeMultiplier = found.value;
+        updates.multiplierRemainingUses = found.uses;
+        updates.multiplierSource = 'store';
+        message = `Seçimin üzerine, eski çarpan hakların için <b>+${refundedBoxRights} Kutu Hakkı</b> iade edildi ve envanterine <b>${found.uses} kullanımlık ${found.value}x Çarpan</b> eklendi!`;
+        logActivity('multiplierUpgraded', currentUser, { source: "Kutudan", oldValue: existing.value, oldUses: existing.uses, newValue: found.value, newUses: found.uses, boxRights: refundedBoxRights });
+    
+    } else if (choice === 'convert_found') {
+        const boxRightsFromFound = found.value;
+        updates.kutuHakki = (user.kutuHakki || 0) + boxRightsFromFound;
+        message = `Seçimin üzerine, mevcut çarpanın korundu ve yeni bulduğun ${found.value}x çarpan <b>+${boxRightsFromFound} Kutu Hakkı</b>'na dönüştürüldü!`;
+        logActivity('multiplierConvertedToBoxRights', currentUser, { rewardValue: found.value, boxRights: boxRightsFromFound, source: `Kutudan` });
     }
 
     await userRef.update(updates);
-
     displayMessage(message);
+    
     closeMultiplierChoiceModal();
-    db.ref('gameLock').set(false);
+    await db.ref('gameLock').set(false);
+    isGameLocked = false;
 }
 
 // ESKİSİNİ SİLİP BUNU YAPIŞTIR
