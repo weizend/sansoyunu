@@ -22910,12 +22910,9 @@ async function renderActivityFeedEvents() {
     }
 }
 
-/**
- * Canavar Savaşı etkinlik kartını oluşturur.
- */
 function buildMonsterEventCard(battleData) {
     if (!battleData || !battleData.monsterDetails) {
-        return ''; // Etkinlik yoksa boş döner
+        return '';
     }
     
     const monster = battleData.monsterDetails;
@@ -22943,15 +22940,12 @@ function buildMonsterEventCard(battleData) {
             <p class="text-sm">1. sırada: ${leader ? `<b class="text-white">${leader}</b> (${formatNumber(leaderboard[leader].totalDamage)} Hasar)` : 'Oyuncu bekleniyor.'}</p>
             <div class="flex justify-between items-center mt-2">
                 <span class="text-xs text-green-400 animate-pulse">Etkinlik devam ediyor</span>
-                <button onclick="showSection('monsterBattle'); closeActivityFeed();" class="text-xs py-1 px-3 bg-red-600 hover:bg-red-500 rounded-md">Şimdi Git</button>
+                <button onclick="goToSectionAndScroll('monsterBattle', 'attackMonsterBtn')" class="text-xs py-1 px-3 bg-red-600 hover:bg-red-500 rounded-md">Şimdi Git</button>
             </div>
         </div>
     `;
 }
 
-/**
- * Tıkla-Yakala etkinlik kartını oluşturur.
- */
 function buildClickCatchEventCard(weeklyData, scoresData) {
     if (!weeklyData || !weeklyData.prize) {
         return '';
@@ -22974,18 +22968,15 @@ function buildClickCatchEventCard(weeklyData, scoresData) {
             <p class="text-sm">${leaderText}</p>
             <div class="flex justify-between items-center mt-2">
                 <span class="text-xs text-green-400 animate-pulse">Etkinlik devam ediyor</span>
-                <button onclick="showSection('clickCatch'); closeActivityFeed();" class="text-xs py-1 px-3 bg-purple-600 hover:bg-purple-500 rounded-md">Şimdi Git</button>
+                <button onclick="goToSectionAndScroll('clickCatch', 'clickCatchStartScreen')" class="text-xs py-1 px-3 bg-purple-600 hover:bg-purple-500 rounded-md">Şimdi Git</button>
             </div>
         </div>
     `;
 }
 
-/**
- * Kelime Oyunu etkinlik kartını oluşturur.
- */
 function buildWordGameEventCard(wordGameData) {
     if (!wordGameData || !wordGameData.questions) {
-        const lastWinner = wordGameData?.champion; // Eski bir kazanan var mı diye kontrol et
+        const lastWinner = wordGameData?.champion;
         if (lastWinner) {
             return `
                 <div class="p-3 bg-gray-900/50 rounded-lg border-l-4 border-cyan-500">
@@ -23017,20 +23008,14 @@ function buildWordGameEventCard(wordGameData) {
             <p class="text-sm">${leaderText}</p>
             <div class="flex justify-between items-center mt-2">
                 <span class="text-xs text-green-400 animate-pulse">Etkinlik devam ediyor</span>
-                <button onclick="showSection('wordGame'); closeActivityFeed();" class="text-xs py-1 px-3 bg-cyan-600 hover:bg-cyan-500 rounded-md">Şimdi Git</button>
+                <button onclick="goToSectionAndScroll('wordGame', 'questionsContainer')" class="text-xs py-1 px-3 bg-cyan-600 hover:bg-cyan-500 rounded-md">Şimdi Git</button>
             </div>
         </div>
     `;
 }
 
-// MEVCUT buildCardCollectionEventCard FONKSİYONUNU SİLİP, BUNUNLA DEĞİŞTİRİN
-
-/**
- * Kart Koleksiyonu etkinlik kartını oluşturur. (GÜNCELLENDİ)
- */
 function buildCardCollectionEventCard(status, prizeData, finishersData) {
     if (status !== 'active') {
-        // Sezon aktif değilse, bitmiş sezonun kazananını göster
         if (finishersData) {
              const firstFinisher = Object.values(finishersData)[0];
              if (firstFinisher) {
@@ -23043,32 +23028,26 @@ function buildCardCollectionEventCard(status, prizeData, finishersData) {
                 `;
              }
         }
-        return ''; // Aktif değilse ve kazanan yoksa hiçbir şey gösterme
+        return '';
     }
     
-    // Aktif sezon için kartı oluştur
     let prizeHtml = '<p class="text-sm text-gray-400">Henüz ödül belirlenmedi.</p>';
     let firstPrizeHtml = '';
     
     if (prizeData) {
-        // --- 1. DEĞİŞİKLİK: HERKESİN KAZANACAĞI ÖDÜLLER BURADA TOPLANIYOR ---
         let prizeParts = [];
         if (prizeData.points > 0) prizeParts.push(`${formatNumber(prizeData.points)} Puan`);
         if (prizeData.boxRights > 0) prizeParts.push(`${prizeData.boxRights} Kutu Hakkı`);
         if (prizeData.wheelTickets > 0) prizeParts.push(`${prizeData.wheelTickets} Çark Bileti`);
         if (prizeData.iflasShields > 0) prizeParts.push(`${prizeData.iflasShields} İflas Kalkanı`);
-        // Avatar ödülü artık genel ödüle eklendi
         if (prizeData.avatarName) prizeParts.push(`'${prizeData.avatarName}' Avatarı`);
         
         if (prizeParts.length > 0) {
             prizeHtml = `<p class="text-sm"><b class="text-green-400">${prizeParts.join(' | ')}</b></p>`;
         }
 
-        // --- 2. DEĞİŞİKLİK: SADECE İLK TAMAMLAYANIN KAZANACAĞI ÖDÜLLER BURADA ---
         let firstPrizeParts = [];
-        // Tekrarlanan metin kaldırıldı ve sadece admin panelindeki açıklama alanı kullanılıyor
         if (prizeData.description) {
-            // Senin istediğin metni göstermek için bu alanın Admin Panelinden doldurulması gerekiyor.
             firstPrizeParts.push(prizeData.description);
         }
         
@@ -23103,7 +23082,7 @@ function buildCardCollectionEventCard(status, prizeData, finishersData) {
 
             <div class="flex justify-between items-center mt-2">
                 <span class="text-xs text-green-400 animate-pulse">Sezon Devam Ediyor</span>
-                <button onclick="showSection('cardCollection'); closeActivityFeed();" class="text-xs py-1 px-3 bg-yellow-600 hover:bg-yellow-500 rounded-md">Şimdi Git</button>
+                <button onclick="goToSectionAndScroll('cardCollection', 'cardCollectionAlbum')" class="text-xs py-1 px-3 bg-yellow-600 hover:bg-yellow-500 rounded-md">Şimdi Git</button>
             </div>
         </div>
     `;
@@ -23121,6 +23100,23 @@ function toggleEventsSection() {
     } else {
         toggleBtn.textContent = 'Sayfayı Küçült';
     }
+}
+
+// --- YENİ EKLENECEK FONKSİYON: BÖLÜME GİT VE SCROLL YAP ---
+function goToSectionAndScroll(sectionId, elementId) {
+    // Önce ilgili ana sekmeyi aç
+    showSection(sectionId);
+    // Sonra eylemler panelini kapat
+    closeActivityFeed();
+    
+    // Kısa bir gecikme ile (sekmenin açılmasına zaman tanımak için)
+    // istediğimiz elemente doğru sayfayı kaydır.
+    setTimeout(() => {
+        const targetElement = document.getElementById(elementId);
+        if (targetElement) {
+            targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, 200); // 200 milisaniye gecikme
 }
    
 // YENİ EKLENECEK FONKSİYONLAR SONU
