@@ -11,6 +11,23 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
 <style>
+#eventsToggleBtn {
+    background-color: #374151; /* bg-gray-700 */
+    color: #d1d5db; /* text-gray-300 */
+}
+#eventsToggleBtn:hover {
+    background-color: #4b5563; /* hover:bg-gray-600 */
+}
+#eventsToggleBtn.has-active-events {
+    background-color: #15803d; /* bg-green-700 */
+    color: white;
+    animation: pulse-green 2s infinite;
+}
+@keyframes pulse-green {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
  /* ESKİ KELİME OYUNU STİLLERİNİ SİLİP BUNLARI YAPIŞTIR */
 
 .question-block {
@@ -1004,7 +1021,6 @@ transition: transform 0.3s ease; /* Yumuşak dönüş için */
 .box.opened.card_pack_efsanevi {
     background: linear-gradient(145deg, #7e22ce, #6b21a8); /* purple-700 to purple-800 */
     border-color: #d8b4fe; /* purple-300 */
-    animation: glow 2s ease-in-out infinite; /* Efsanevi ışıltısı */
 }
 .box.opened.card_pack_efsanevi .box-content::before {
     content: '🏆';
@@ -1809,7 +1825,13 @@ body.modal-open .modal-content {
               </button>
           </div>
           
-          <div id="activityFeedEvents" class="p-4 border-b border-gray-700 space-y-4"></div>
+          <div class="p-4 border-b border-gray-700">
+              <button id="eventsToggleBtn" onclick="toggleEventsSection()" class="w-full text-left p-3 rounded-lg font-bold text-lg transition-colors duration-300">
+                  <span>Etkinlikleri Gör</span>
+              </button>
+              <div id="activityFeedEvents" class="mt-4 space-y-4 hidden">
+                  </div>
+          </div>
 
           <div id="activityFeedList" class="flex-grow overflow-y-auto p-4 scrollable-list">
               </div>
@@ -1908,19 +1930,19 @@ body.modal-open .modal-content {
             class="relative py-3 px-8 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
       Şans Çarkı
     </button>
-     <button id="clickCatchTabBtn" onclick="showSection('clickCatch')"
+     <button id="clickCatchTabBtn" onclick="showSection('clickCatch'); closeActivityFeed();"
             class="relative py-3 px-8 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
       Tıkla-Yakala
     </button>
-    <button id="monsterBattleTabBtn" onclick="showSection('monsterBattle')"
+    <button id="monsterBattleTabBtn" onclick="showSection('monsterBattle'); closeActivityFeed();"
             class="relative py-3 px-8 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
       Canavar Savaşı
     </button>
-        <button id="wordGameTabBtn" onclick="showSection('wordGame')"
+        <button id="wordGameTabBtn" onclick="showSection('wordGame'); closeActivityFeed();"
         class="relative py-3 px-8 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
   Kelime Oyunu
 </button>
-    <button id="cardCollectionTabBtn" onclick="showSection('cardCollection')"
+    <button id="cardCollectionTabBtn" onclick="showSection('cardCollection'); closeActivityFeed();"
             class="relative py-3 px-8 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transform hover:-translate-y-1 transition duration-300">
       Kart Koleksiyonu
     </button>
@@ -7784,7 +7806,8 @@ async function deleteUserAvatar(username, avatarId) {
                 div.classList.add('bg-green-700', 'border-green-500', 'animate-pulse'); 
             } else if (box.content === 'surpriz') { 
                 openedContentHtml = `<div class="box-content text-yellow-400 text-2xl">🎉</div>`;
-                div.classList.add('bg-yellow-700', 'border-yellow-500', 'animate-pulse'); 
+                // DEĞİŞİKLİK: animate-pulse yerine glowing-border eklendi
+                div.classList.add('bg-yellow-700', 'border-yellow-500', 'glowing-border'); 
             } else if (box.content === 'iflas') { 
                 openedContentHtml = `<div class="box-content text-red-400 text-2xl">💣</div>`;
                 div.classList.add('bg-red-700', 'border-red-500'); 
@@ -22843,28 +22866,18 @@ function renderWordGameStatsAndPrize(gameData) {
     container.classList.remove('hidden');
 }
 
-// =======================================================
-// YENİ: ETKİNLİK DURUM PENCERESİ FONKSİYONLARI
-// =======================================================
-
-/**
- * Tüm ana etkinliklerin durumunu çeker ve "Son Eylemler" paneline yazar.
- */
+// --- GÜNCELLENEN FONKSİYON: ETKİNLİK BÖLÜMÜ ---
 async function renderActivityFeedEvents() {
     const container = document.getElementById('activityFeedEvents');
-    if (!container) return;
+    const toggleBtn = document.getElementById('eventsToggleBtn');
+    if (!container || !toggleBtn) return;
 
     container.innerHTML = `<p class="text-center text-gray-400">Etkinlik durumları yükleniyor...</p>`;
 
     try {
         const [
-            monsterSnap,
-            weeklySnap,
-            scoresSnap,
-            wordGameSnap,
-            cardStatusSnap,
-            cardPrizeSnap,
-            finishersSnap
+            monsterSnap, weeklySnap, scoresSnap, wordGameSnap, 
+            cardStatusSnap, cardPrizeSnap, finishersSnap
         ] = await Promise.all([
             db.ref('gameConfig/monsterBattle').once('value'),
             db.ref('gameConfig/weeklyClickCatchReset').once('value'),
@@ -22880,13 +22893,20 @@ async function renderActivityFeedEvents() {
         const wordGameHtml = buildWordGameEventCard(wordGameSnap.val());
         const cardCollectionHtml = buildCardCollectionEventCard(cardStatusSnap.val(), cardPrizeSnap.val(), finishersSnap.val());
 
-        const allHtml = [monsterHtml, clickCatchHtml, wordGameHtml, cardCollectionHtml].filter(Boolean).join('');
+        const allHtml = [monsterHtml, clickCatchHtml, wordGameHtml, cardCollectionHtml].filter(Boolean);
 
-        container.innerHTML = allHtml || `<p class="text-center text-gray-400">Şu anda aktif bir etkinlik bulunmuyor.</p>`;
+        if (allHtml.length > 0) {
+            container.innerHTML = allHtml.join('');
+            toggleBtn.classList.add('has-active-events'); // Aktif etkinlik varsa yeşil yap
+        } else {
+            container.innerHTML = `<p class="text-center text-gray-400">Şu anda aktif bir etkinlik bulunmuyor.</p>`;
+            toggleBtn.classList.remove('has-active-events'); // Aktif etkinlik yoksa yeşil rengi kaldır
+        }
 
     } catch (error) {
         console.error("Etkinlikler yüklenirken hata oluştu:", error);
         container.innerHTML = `<p class="text-center text-red-500">Etkinlikler yüklenemedi.</p>`;
+        toggleBtn.classList.remove('has-active-events');
     }
 }
 
@@ -23087,6 +23107,20 @@ function buildCardCollectionEventCard(status, prizeData, finishersData) {
             </div>
         </div>
     `;
+}
+
+// --- YENİ EKLENECEK FONKSİYON: ETKİNLİK BÖLÜMÜNÜ AÇIP KAPATIR ---
+function toggleEventsSection() {
+    const eventsContainer = document.getElementById('activityFeedEvents');
+    const toggleBtn = document.getElementById('eventsToggleBtn').querySelector('span');
+    
+    eventsContainer.classList.toggle('hidden');
+    
+    if (eventsContainer.classList.contains('hidden')) {
+        toggleBtn.textContent = 'Etkinlikleri Gör';
+    } else {
+        toggleBtn.textContent = 'Sayfayı Küçült';
+    }
 }
    
 // YENİ EKLENECEK FONKSİYONLAR SONU
