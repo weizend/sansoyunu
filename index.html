@@ -2626,29 +2626,31 @@ body.modal-open .modal-content {
             <input type="number" id="newItemCost" placeholder="Maliyet (Puan)" min="1" class="w-full p-2 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
             <input type="number" id="newItemStock" placeholder="Stok Durumu (Opsiyonel, boş bırakılırsa sınırsız)" min="0" class="w-full p-2 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
             <select id="newItemType" class="w-full p-2 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-500" onchange="handleStoreItemTypeChange()">
-              <option value="">Ürün Tipi Seçin</option>
-              <option value="boxRights">📦 Kutu Hakkı</option>
-              <option value="wheelTicket">️🎫 Çark Bileti</option>
-              <option value="clickCatchTicket">🎟️ Tıkla-Yakala Bileti</option>
-             <option value="tempMultiplier">✖️ Çarpan (Adetli)</option>
-              <option value="iflasShield">🛡️ İflas Kalkanı</option>
-              <option value="wildcard">🃏 Joker Kart</option>
-              <option value="card_pack">🎴 Standart Kart Paketi</option>
-              <option value="card_pack_normal">🥉 Bronz Kart Paketi</option>
-              <option value="card_pack_gumus">🥈 Gümüş Kart Paketi</option>
-              <option value="card_pack_altin">🥇 Altın Kart Paketi</option>
-              <option value="card_pack_efsanevi">🏆 Efsanevi Kart Paketi</option>
-              <option value="health_regen_potion">🧪 Can Yenileme İksiri</option> <option value="revival_stone">💎 Dirilme Taşı</option>
-              <option value="health_potion">🧪 Can İksiri</option>
-              <option value="defense_potion">🛡️ Savunma İksiri</option>
-              <option value="damage_potion">⚔️ Hasar İksiri</option>
-              <option value="crit_damage_potion">🎯 Kritik Hasar İksiri</option>
-              <option value="dodge_potion">💨 Sıyrılma Şansı İksiri</option>
-              <option value="pierce_potion">📌 Delici Şansı İksiri</option>
-              <option value="crit_potion">💥 Kritik Şansı İksiri</option>
-              <option value="avatar">👤 Avatar</option>
-              <option value="special">🚀 Özel Ürün (Onay Gerektirir)</option>
-            </select>
+    <option value="">Ürün Tipi Seçin</option>
+    <option value="points">💰 Puan</option>
+    <option value="boxRights">📦 Kutu Hakkı</option>
+    <option value="wheelTicket">🎫 Çark Bileti</option>
+    <option value="clickCatchTicket">🎟️ Tıkla-Yakala Bileti</option>
+    <option value="tempMultiplier">✖️ Çarpan (Adetli)</option>
+    <option value="iflasShield">🛡️ İflas Kalkanı</option>
+    <option value="wildcard">🃏 Joker Kart</option>
+    <option value="card_pack">🎴 Standart Kart Paketi</option>
+    <option value="card_pack_normal">🥉 Bronz Kart Paketi</option>
+    <option value="card_pack_gumus">🥈 Gümüş Kart Paketi</option>
+    <option value="card_pack_altin">🥇 Altın Kart Paketi</option>
+    <option value="card_pack_efsanevi">🏆 Efsanevi Kart Paketi</option>
+    <option value="health_regen_potion">🧪 Can Yenileme İksiri</option>
+    <option value="revival_stone">💎 Dirilme Taşı</option>
+    <option value="health_potion">🧪 Can İksiri</option>
+    <option value="damage_potion">⚔️ Hasar İksiri</option>
+    <option value="defense_potion">🛡️ Savunma İksiri</option>
+    <option value="crit_potion">💥 Kritik Vuruş İksiri</option>
+    <option value="crit_damage_potion">🎯 Kritik Hasar İksiri</option>
+    <option value="dodge_potion">💨 Sıyrılma Şansı İksiri</option>
+    <option value="pierce_potion">📌 Delici Şansı İksiri</option>
+    <option value="avatar">👤 Avatar</option>
+    <option value="special">🚀 Özel Ürün (Onay Gerektirir)</option>
+</select>
             <input type="text" id="newItemValue" placeholder="Değer (Kutu Hakkı Adedi / Çarpan Değeri / Kalkan Sayısı)" class="w-full p-2 mb-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500 transition duration-300">
             <div id="storeItemAvatarFields" class="hidden space-y-2 mb-2">
     <input type="text" id="newItemAvatarName" placeholder="Avatarın Adı (Envanterde Görünecek)" class="w-full p-2 bg-gray-700 border border-gray-600 rounded-lg text-white">
@@ -2772,29 +2774,30 @@ body.modal-open .modal-content {
         <div>
             <label for="bulkSendItemType" class="block text-sm font-medium text-gray-300 mb-1">Tüm Kullanıcılara Gönderilecek Eşya:</label>
             <select id="bulkSendItemType" class="box-setting-input" onchange="handleBulkSendItemTypeChange(this)">
-                <option value="">-- Tip Seçin --</option>
-                <option value="points">💰 Puan</option>
-                <option value="kasaPuani">🏦 Kasa Puanı</option>
-                <option value="boxRights">📦 Kutu Hakkı</option>
-                <option value="wheelTicket">🎫 Çark Bileti</option>
-                <option value="clickCatchTicket">🎟️ Tıkla-Yakala Bileti</option>
-                <option value="iflasShield">🛡️ İflas Kalkanı</option>
-                <option value="tempMultiplier">✖️ Çarpan (Adetli)</option>
-                <option value="wildcard">🃏 Joker Kart</option>
-                <option value="card_pack">🎴 Standart Kart Paketi</option>
-                <option value="card_pack_normal">🥉 Bronz Kart Paketi</option>
-                <option value="card_pack_gumus">🥈 Gümüş Kart Paketi</option>
-                <option value="card_pack_altin">🥇 Altın Kart Paketi</option>
-                <option value="card_pack_efsanevi">🏆 Efsanevi Kart Paketi</option>
-                <option value="health_regen_potion">🧪 Can Yenileme İksiri</option> <option value="revival_stone">💎 Dirilme Taşı</option>
-                <option value="health_potion">🧪 Can İksiri</option>
-                <option value="damage_potion">⚔️ Hasar İksiri</option>
-                <option value="defense_potion">🛡️ Savunma İksiri</option>
-                <option value="crit_potion">💥 Kritik Vuruş İksiri</option>
-                <option value="crit_damage_potion">🎯 Kritik Hasar İksiri</option>
-                <option value="dodge_potion">💨 Sıyrılma Şansı İksiri</option>
-                <option value="pierce_potion">📌 Delici Şansı İksiri</option>
-            </select>
+    <option value="">-- Tip Seçin --</option>
+    <option value="points">💰 Puan</option>
+    <option value="kasaPuani">🏦 Kasa Puanı</option>
+    <option value="boxRights">📦 Kutu Hakkı</option>
+    <option value="wheelTicket">🎫 Çark Bileti</option>
+    <option value="clickCatchTicket">🎟️ Tıkla-Yakala Bileti</option>
+    <option value="iflasShield">🛡️ İflas Kalkanı</option>
+    <option value="tempMultiplier">✖️ Çarpan (Adetli)</option>
+    <option value="wildcard">🃏 Joker Kart</option>
+    <option value="card_pack">🎴 Standart Kart Paketi</option>
+    <option value="card_pack_normal">🥉 Bronz Kart Paketi</option>
+    <option value="card_pack_gumus">🥈 Gümüş Kart Paketi</option>
+    <option value="card_pack_altin">🥇 Altın Kart Paketi</option>
+    <option value="card_pack_efsanevi">🏆 Efsanevi Kart Paketi</option>
+    <option value="health_regen_potion">🧪 Can Yenileme İksiri</option>
+    <option value="revival_stone">💎 Dirilme Taşı</option>
+    <option value="health_potion">🧪 Can İksiri</option>
+    <option value="damage_potion">⚔️ Hasar İksiri</option>
+    <option value="defense_potion">🛡️ Savunma İksiri</option>
+    <option value="crit_potion">💥 Kritik Vuruş İksiri</option>
+    <option value="crit_damage_potion">🎯 Kritik Hasar İksiri</option>
+    <option value="dodge_potion">💨 Sıyrılma Şansı İksiri</option>
+    <option value="pierce_potion">📌 Delici Şansı İksiri</option>
+</select>
         </div>
         <div id="bulkSendItemFieldsContainer" class="space-y-3">
         </div>
@@ -3070,21 +3073,22 @@ body.modal-open .modal-content {
     <option value="clickCatchTicket">🎟️ Tıkla-Yakala Bileti</option>
     <option value="iflasShield">🛡️ İflas Kalkanı</option>
     <option value="tempMultiplier">✖️ Çarpan (Adetli)</option>
-    <option value="avatar">👤 Avatar</option>
     <option value="wildcard">🃏 Joker Kart</option>
     <option value="card_pack">🎴 Standart Kart Paketi</option>
     <option value="card_pack_normal">🥉 Bronz Kart Paketi</option>
     <option value="card_pack_gumus">🥈 Gümüş Kart Paketi</option>
     <option value="card_pack_altin">🥇 Altın Kart Paketi</option>
     <option value="card_pack_efsanevi">🏆 Efsanevi Kart Paketi</option>
-    <option value="health_regen_potion">🧪 Can Yenileme İksiri</option> <option value="revival_stone">💎 Dirilme Taşı</option>
+    <option value="health_regen_potion">🧪 Can Yenileme İksiri</option>
+    <option value="revival_stone">💎 Dirilme Taşı</option>
     <option value="health_potion">🧪 Can İksiri</option>
     <option value="damage_potion">⚔️ Hasar İksiri</option>
-    <option value="crit_damage_potion">🎯 Kritik Hasar İksiri</option>
     <option value="defense_potion">🛡️ Savunma İksiri</option>
+    <option value="crit_potion">💥 Kritik Vuruş İksiri</option>
+    <option value="crit_damage_potion">🎯 Kritik Hasar İksiri</option>
     <option value="dodge_potion">💨 Sıyrılma Şansı İksiri</option>
     <option value="pierce_potion">📌 Delici Şansı İksiri</option>
-    <option value="crit_potion">💥 Kritik Şansı İksiri</option>
+    <option value="avatar">👤 Avatar</option>
 </select>
       </div>
       
@@ -4804,6 +4808,8 @@ function getSyncedTime() {
   let wordGameCooldownEnd = 0;
   let wordGameCooldownInterval = null;
   let currentSeasonNumber = 3;
+  let activeEventCountdowns = {};
+  let eventCountdownInterval = null;
 
   // YENİ: Kullanıcının son mesaj atma zamanını tutar
   let lastMessageTimestamp = 0;
@@ -7405,44 +7411,7 @@ function closeAdminSendItemModal() {
     if (selectedUserForManagement) openUserManagementModal(event, selectedUserForManagement);
 }
 
-// Tekli Eşya Gönderme formunda tip seçimine göre inputları değiştirir
-function handleSendItemTypeChange(selectElement) {
-    const type = selectElement.value;
-    const container = document.getElementById('sendItemFieldsContainer');
-    container.innerHTML = ''; // Önceki alanları temizle
-
-    if (type === 'tempMultiplier') {
-        container.innerHTML = `
-            <input type="number" id="sendItemValue" class="box-setting-input" placeholder="Çarpan Değeri (örn: 2, 3)">
-            <input type="number" id="sendItemUses" class="box-setting-input" placeholder="Kullanım Hakkı">
-        `;
-    } else if (type === 'avatar') {
-        container.innerHTML = `
-            <input type="text" id="sendItemAvatarName" class="box-setting-input" placeholder="Avatarın Adı">
-            <input type="text" id="sendItemAvatarImageUrl" class="box-setting-input" placeholder="Avatar Resim URL">
-        `;
-    } else if (type) { // Diğer tüm tipler için sadece miktar yeterli
-        container.innerHTML = `<input type="number" id="sendItemValue" class="box-setting-input" placeholder="Miktar / Adet">`;
-    }
-}
-      
-// Toplu Eşya Gönderme formunda tip seçimine göre inputları değiştirir
-function handleBulkSendItemTypeChange(selectElement) {
-    const type = selectElement.value;
-    const container = document.getElementById('bulkSendItemFieldsContainer');
-    container.innerHTML = ''; 
-
-    if (type === 'tempMultiplier') {
-        container.innerHTML = `
-            <input type="number" id="bulkSendItemValue" class="box-setting-input" placeholder="Çarpan Değeri (örn: 2, 3)">
-            <input type="number" id="bulkSendItemUses" class="box-setting-input" placeholder="Kullanım Hakkı">
-        `;
-    } else if (type) {
-        container.innerHTML = `<input type="number" id="bulkSendItemValue" class="box-setting-input" placeholder="Miktar / Adet">`;
-    }
-}
-
-// MEVCUT confirmSendItem FONKSİYONUNU SİL VE YERİNE BUNU YAPIŞTIR
+// ESKİ confirmSendItem FONKSİYONUNU SİL VE YERİNE BUNU YAPIŞTIR
 
 async function confirmSendItem(isAdding = true) {
     if (!isAdmin || !targetUserForSend) return;
@@ -7453,7 +7422,7 @@ async function confirmSendItem(isAdding = true) {
         return;
     }
 
-    let value, uses, avatarName, avatarImageUrl;
+    let value, uses, avatarName, avatarImageUrl, amount;
     const actionText = isAdding ? "gönderilecek" : "silinecek";
     const actionVerb = isAdding ? "ekledi" : "çıkardı";
 
@@ -7466,7 +7435,12 @@ async function confirmSendItem(isAdding = true) {
             avatarName = document.getElementById('sendItemAvatarName').value.trim();
             avatarImageUrl = document.getElementById('sendItemAvatarImageUrl').value.trim();
             if (!avatarName || !avatarImageUrl) throw new Error("Lütfen Avatar Adı ve Resim URL'si girin.");
-        } else if (type) {
+        } else if (type === 'health_regen_potion') {
+            value = parseInt(document.getElementById('sendItemValue').value);
+            amount = parseInt(document.getElementById('sendItemAmount').value);
+            if (isNaN(value) || isNaN(amount) || value <= 0 || amount <= 0) throw new Error("Lütfen geçerli bir Yüzde Değeri ve Adet girin.");
+        }
+        else if (type) {
             value = parseInt(document.getElementById('sendItemValue').value);
             if (isNaN(value) || value <= 0) throw new Error("Lütfen geçerli bir Miktar/Adet girin.");
         }
@@ -7486,11 +7460,10 @@ async function confirmSendItem(isAdding = true) {
         if (type === 'health_regen_potion') {
             if (!isAdding) throw new Error("Can Yenileme İksirleri sadece gönderilebilir, silinemez.");
             const potionRef = userRef.child(`inventory/health_regen_potion/${value}`);
-            await potionRef.transaction(currentValue => (currentValue || 0) + 1);
-            successMessage = `${targetUserForSend} kullanıcısına %${value} Can Yenileme İksiri başarıyla gönderildi.`;
-            notificationMessage = `Yönetici envanterine %${value} Can Yenileme İksiri ekledi.`;
+            await potionRef.transaction(currentValue => (currentValue || 0) + amount);
+            successMessage = `${targetUserForSend} kullanıcısına ${amount} adet %${value} Can Yenileme İksiri başarıyla gönderildi.`;
+            notificationMessage = `Yönetici envanterine ${amount} adet %${value} Can Yenileme İksiri ekledi.`;
         }
-        // --- DEĞİŞİKLİK BURADA BAŞLIYOR: Dirilme taşı için özel ve hatasız bir blok eklendi ---
         else if (type === 'revival_stone') {
             const stoneRef = userRef.child('inventory/revival_stone');
             const op = isAdding ? 1 : -1;
@@ -7498,7 +7471,6 @@ async function confirmSendItem(isAdding = true) {
             successMessage = `${targetUserForSend} kullanıcısının Dirilme Taşı envanteri başarıyla güncellendi.`;
             notificationMessage = `Yönetici envanterin${isAdding ? 'e' : 'den'} ${value} adet ${typeToName[type]} ${actionVerb}.`;
         }
-        // --- DEĞİŞİKLİK SONU ---
         else if (type.endsWith('_potion')) {
             const statKeyMap = { 
                 'health_potion': { key: 'hp', name: 'Can' }, 
@@ -7592,22 +7564,37 @@ async function confirmBulkSendItem(isAdding = true) {
         return;
     }
     
+    // Gerekli tüm input değerlerini en başta alalım
     const value = parseInt(document.getElementById('bulkSendItemValue').value);
     const usesInput = document.getElementById('bulkSendItemUses');
     const uses = usesInput ? parseInt(usesInput.value) : 0;
+    const amountInput = document.getElementById('bulkSendItemAmount');
+    const amount = amountInput ? parseInt(amountInput.value) : 0;
 
-    if (isNaN(value) || value <= 0) {
+    // Doğrulamaları yapalım
+    if (type === 'health_regen_potion') {
+        if (isNaN(value) || value <= 0 || isNaN(amount) || amount <= 0) {
+            displayMessage("Lütfen geçerli bir Yüzde Değeri ve Adet girin.");
+            return;
+        }
+    } else if (type === 'tempMultiplier') {
+        if (isNaN(value) || value <= 1 || isNaN(uses) || uses <= 0) {
+            displayMessage("Lütfen geçerli bir Çarpan Değeri (>1) ve Kullanım Hakkı (>0) girin.");
+            return;
+        }
+    } else if (isNaN(value) || value <= 0) {
         displayMessage("Lütfen geçerli bir Miktar/Adet girin.");
         return;
     }
-    if (type === 'tempMultiplier' && (isNaN(uses) || uses <= 0)) {
-        displayMessage("Lütfen geçerli bir Kullanım Hakkı girin.");
-        return;
-    }
 
-    const itemText = (type === 'tempMultiplier') 
-        ? `${uses} adet ${value}x Çarpan`
-        : `${value} ${typeToName[type]}`;
+    let itemText = '';
+    if (type === 'tempMultiplier') {
+        itemText = `${uses} adet ${value}x Çarpan`;
+    } else if (type === 'health_regen_potion') {
+        itemText = `${amount} adet %${value} Can Yenileme İksiri`;
+    } else {
+        itemText = `${value} ${typeToName[type]}`;
+    }
     
     const actionText = isAdding ? "eklenecek" : "silinecek";
     const targetText = isAdding ? "Tüm aktif kullanıcılara" : "Tüm aktif kullanıcılardan";
@@ -7625,22 +7612,19 @@ async function confirmBulkSendItem(isAdding = true) {
         if (user.approved && !user.blocked && username !== "weizendtv") {
             const userPath = `/users/${username}`;
             
-            // --- YENİ EKLENEN KART PAKETİ MANTIĞI ---
             if (type.startsWith('card_pack')) {
                 if (isAdding) {
-                    const packKey = db.ref().push().key; // Benzersiz bir anahtar oluştur
+                    const packKey = db.ref().push().key; 
                     updates[`${userPath}/pendingActions/cardPacks/${packKey}`] = {
                         type: type,
                         count: value
                     };
                 }
-                // Kart paketleri için silme işlemi desteklenmiyor, bu yüzden else bloğu yok.
             }
-            // --- KART PAKETİ MANTIĞI SONU ---
             else if (type === 'health_regen_potion') {
                  if(isAdding) {
                     const currentPotions = user.inventory?.health_regen_potion?.[value] || 0;
-                    updates[`${userPath}/inventory/health_regen_potion/${value}`] = currentPotions + 1;
+                    updates[`${userPath}/inventory/health_regen_potion/${value}`] = currentPotions + amount;
                  }
             }
             else if (type.endsWith('_potion')) {
@@ -9944,38 +9928,6 @@ async function reorderStoreItem(itemId, newIndex) {
 }
 
 // BU FONKSİYONU BUL VE AŞAĞIDAKİYLE DEĞİŞTİR
-function handleStoreItemTypeChange() {
-    const type = document.getElementById('newItemType').value;
-    const valueInput = document.getElementById('newItemValue');
-    const durationInput = document.getElementById('newItemMultiplierDuration');
-    const priceIncreaseInput = document.getElementById('newItemPriceIncrease');
-    const avatarFields = document.getElementById('storeItemAvatarFields'); // YENİ EKLENDİ
-
-    // Önce tüm özel alanları varsayılan durumuna getirelim
-    valueInput.classList.remove('hidden');
-    durationInput.classList.add('hidden');
-    priceIncreaseInput.classList.add('hidden');
-    avatarFields.classList.add('hidden'); // YENİ EKLENDİ
-    valueInput.placeholder = 'Değer (Kutu Hakkı Adedi / Çarpan Değeri / Kalkan Sayısı)';
-
-    if (type === 'tempMultiplier') {
-        durationInput.classList.remove('hidden');
-    } else if (type.endsWith('_potion')) {
-        priceIncreaseInput.classList.remove('hidden');
-        const isPercent = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion'].includes(type);
-        if (isPercent) {
-            valueInput.placeholder = 'Değer (örn: 2.5)';
-        }
-    } else if (type === 'avatar') {
-        // YENİ EKLENEN AVATAR MANTIĞI
-        valueInput.classList.add('hidden');
-        avatarFields.classList.remove('hidden');
-    } else if (type === 'special') {
-        valueInput.classList.add('hidden');
-    }
-}
-
-// BU FONKSİYONU BUL VE AŞAĞIDAKİYLE DEĞİŞTİR
 function resetStoreItemForm() {
     document.getElementById('newItemName').value = '';
     document.getElementById('newItemDescription').value = '';
@@ -10002,117 +9954,6 @@ function resetStoreItemForm() {
     
     editingItemId = null; 
 }
-
-// BU FONKSİYONU BUL VE AŞAĞIDAKİYLE DEĞİŞTİR
-async function saveStoreItem() {
-    if (!isAdmin) return;
-
-    try {
-        const name = document.getElementById('newItemName').value.trim();
-        const description = document.getElementById('newItemDescription').value.trim();
-        const cost = parseInt(document.getElementById('newItemCost').value);
-        const type = document.getElementById('newItemType').value;
-        const imageUrl = document.getElementById('newItemImageUrl').value.trim();
-        let stockInput = document.getElementById('newItemStock').value;
-
-        const days = parseInt(document.getElementById('storeItemCountdownDays').value) || 0;
-        const hours = parseInt(document.getElementById('storeItemCountdownHours').value) || 0;
-        const minutes = parseInt(document.getElementById('storeItemCountdownMinutes').value) || 0;
-        const seconds = parseInt(document.getElementById('storeItemCountdownSeconds').value) || 0;
-        const totalMinutes = (days * 24 * 60) + (hours * 60) + minutes + Math.round(seconds / 60);
-
-        if (!name || !description || isNaN(cost) || !type) {
-            displayMessage("Lütfen Ad, Açıklama, Maliyet ve Tip alanlarını doldurun.");
-            return;
-        }
-
-        const stock = (stockInput === '' || stockInput === null) ? null : parseInt(stockInput);
-        const itemData = { name, description, cost, stock, type, imageUrl: imageUrl || 'https://via.placeholder.com/150' };
-
-        if (type.endsWith('_potion')) {
-            const priceIncreaseInput = document.getElementById('newItemPriceIncrease').value;
-            const priceIncrease = priceIncreaseInput === '' ? 0 : parseInt(priceIncreaseInput);
-            if (isNaN(priceIncrease) || priceIncrease < 0) {
-                throw new Error("İksirler için geçerli bir 'Fiyat Artışı' (0 veya daha büyük) girmelisiniz.");
-            }
-            itemData.priceIncrease = priceIncrease;
-        }
-
-        if (type === 'tempMultiplier') {
-            const value = parseInt(document.getElementById('newItemValue').value);
-            const multiplierDuration = parseInt(document.getElementById('newItemMultiplierDuration').value);
-            if (isNaN(value) || value <= 0) { throw new Error("Çarpan için geçerli bir 'Değer' (2x, 3x gibi) girmelisiniz."); }
-            if (isNaN(multiplierDuration) || multiplierDuration <= 0) { throw new Error("Çarpan için geçerli bir 'Kullanım Sayısı' girmelisiniz."); }
-            itemData.value = value;
-            itemData.duration = multiplierDuration;
-        } else if (type === 'avatar') {
-            // YENİ EKLENEN AVATAR KAYDETME MANTIĞI
-            itemData.avatarName = document.getElementById('newItemAvatarName').value.trim();
-            itemData.avatarImageUrl = document.getElementById('newItemAvatarImageUrl').value.trim();
-            if (!itemData.avatarName || !itemData.avatarImageUrl) {
-                throw new Error("Avatar tipi için 'Avatar Adı' ve 'Avatar Resim URL'si' alanları zorunludur.");
-            }
-        } else {
-            const typesThatNeedValue = [
-                'boxRights', 'wheelTicket', 'clickCatchTicket', 'iflasShield', 'wildcard', 
-                'card_pack', 'card_pack_normal', 'card_pack_gumus', 'card_pack_altin', 'card_pack_efsanevi',
-                'health_regen_potion', 'revival_stone', 'health_potion', 'damage_potion', 'defense_potion', 
-                'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion'
-            ];
-
-            if (typesThatNeedValue.includes(type)) {
-                const value = parseStatValue(type, document.getElementById('newItemValue').value);
-                if (isNaN(value) || value <= 0) {
-                    const friendlyName = typeToName[type] || type;
-                    throw new Error(`'${friendlyName}' tipi için geçerli bir 'Değer/Adet' girmelisiniz.`);
-                }
-                itemData.value = value;
-            }
-        }
-
-        if (totalMinutes > 0) { itemData.countdownDurationMinutes = totalMinutes; } 
-        else { itemData.countdownDurationMinutes = null; }
-
-        if (editingItemId) {
-            const existingItemSnap = await storeItemsRef.child(editingItemId).once('value');
-            const existingItem = existingItemSnap.val();
-            itemData.createdAt = existingItem.createdAt || firebase.database.ServerValue.TIMESTAMP;
-            itemData.order = existingItem.order;
-            itemData.purchaseCount = existingItem.purchaseCount || 0;
-            await storeItemsRef.child(editingItemId).update(itemData);
-            displayMessage(`'${name}' ürünü başarıyla güncellendi!`);
-        } else {
-            itemData.createdAt = firebase.database.ServerValue.TIMESTAMP;
-            itemData.purchaseCount = 0;
-            const maxOrderSnap = await storeItemsRef.orderByChild('order').limitToLast(1).once('value');
-            let maxOrder = -1;
-            if (maxOrderSnap.exists()) { maxOrder = Object.values(maxOrderSnap.val())[0].order || 0; }
-            itemData.order = maxOrder + 1;
-            await storeItemsRef.push(itemData);
-            displayMessage(`'${name}' ürünü başarıyla eklendi!`);
-        }
-        
-        closeAdminStoreModal();
-        loadStoreItems();
-
-    } catch (error) {
-        console.error("Mağaza ürünü kaydetme hatası:", error);
-        displayMessage("Ürün kaydedilirken bir hata oluştu: " + error.message);
-    }
-}
-
-  async function deleteStoreItem(itemId) {
-      if (!isAdmin) return;
-      if (await customConfirm("Bu ürünü silmek istediğinizden emin misiniz? Bu işlem geri alınamaz!")) {
-          try {
-              await storeItemsRef.child(itemId).remove();
-              displayMessage("Ürün başarıyla silindi.");
-          } catch (error) {
-              console.error("Ürün silme hatası:", error);
-              displayMessage("Ürün silinirken bir hata oluştu.");
-          }
-      }
-  }
 
   function openPurchaseHistoryModal() {
       loadPurchaseHistory();
@@ -11473,52 +11314,197 @@ async function claimDailyReward(rewardId) {
         }
     }
 }
-      
-function handleDailyRewardTypeChange() {
-    const type = document.getElementById('dailyRewardType').value;
-    const valueInput = document.getElementById('dailyRewardValue');
-    const usesInput = document.getElementById('dailyRewardMultiplierUses');
-    const avatarFields = document.getElementById('dailyRewardAvatarFields');
 
-    // Önce tüm özel alanları gizle
-    valueInput.classList.remove('hidden');
-    usesInput.classList.add('hidden');
-    avatarFields.classList.add('hidden');
+// ESKİ handleBulkSendItemTypeChange FONKSİYONUNU SİL VE BUNU YAPIŞTIR
+
+function handleBulkSendItemTypeChange(selectElement) {
+    const type = selectElement.value;
+    const container = document.getElementById('bulkSendItemFieldsContainer');
+    container.innerHTML = ''; 
 
     if (type === 'tempMultiplier') {
-        usesInput.classList.remove('hidden');
-    } else if (type === 'avatar') {
-        valueInput.classList.add('hidden'); // Avatar için "Değer" alanı gereksiz
-        avatarFields.classList.remove('hidden');
+        container.innerHTML = `
+            <input type="number" id="bulkSendItemValue" class="box-setting-input" placeholder="Çarpan Değeri (örn: 2, 3)">
+            <input type="number" id="bulkSendItemUses" class="box-setting-input" placeholder="Kullanım Hakkı">
+        `;
+    } else if (type === 'health_regen_potion') {
+        container.innerHTML = `
+            <input type="number" id="bulkSendItemValue" class="box-setting-input" placeholder="Yüzde Değeri (örn: 10)">
+            <input type="number" id="bulkSendItemAmount" class="box-setting-input" placeholder="Adet">
+        `;
+    } else if (type) {
+        container.innerHTML = `<input type="number" id="bulkSendItemValue" class="box-setting-input" placeholder="Miktar / Adet">`;
     }
 }
-// Bu event listener'ı script'in en altına veya uygun bir yere ekleyin.
-document.getElementById('dailyRewardType').addEventListener('change', handleDailyRewardTypeChange);
 
-    function resetDailyRewardForm() {
-    document.getElementById('dailyRewardName').value = '';
-    document.getElementById('dailyRewardDescription').value = '';
-    document.getElementById('dailyRewardType').value = '';
-    document.getElementById('dailyRewardValue').value = '';
-    document.getElementById('dailyRewardMultiplierUses').value = '';
-    document.getElementById('dailyRewardCooldownDays').value = '';
-    document.getElementById('dailyRewardCooldownHours').value = '';
-    document.getElementById('dailyRewardCooldownMinutes').value = '';
-    document.getElementById('dailyRewardCooldownSeconds').value = '';
-    document.getElementById('dailyRewardImageUrl').value = '';
-    
-    // YENİ EKLENEN SATIRLAR
-    document.getElementById('dailyRewardAvatarName').value = '';
-    document.getElementById('dailyRewardAvatarImageUrl').value = '';
-    
-    document.getElementById('saveDailyRewardBtn').textContent = 'GÜNLÜK ÖDÜL OLUŞTUR';
-    editingDailyRewardId = null;
-    
-    // Formun görsel durumunu da sıfırla
-    handleDailyRewardTypeChange();
+// ESKİ handleSendItemTypeChange FONKSİYONUNU SİL VE BUNU YAPIŞTIR
+
+function handleSendItemTypeChange(selectElement) {
+    const type = selectElement.value;
+    const container = document.getElementById('sendItemFieldsContainer');
+    container.innerHTML = '';
+
+    if (type === 'tempMultiplier') {
+        container.innerHTML = `
+            <input type="number" id="sendItemValue" class="box-setting-input" placeholder="Çarpan Değeri (örn: 2, 3)">
+            <input type="number" id="sendItemUses" class="box-setting-input" placeholder="Kullanım Hakkı">
+        `;
+    } else if (type === 'avatar') {
+        container.innerHTML = `
+            <input type="text" id="sendItemAvatarName" class="box-setting-input" placeholder="Avatarın Adı">
+            <input type="text" id="sendItemAvatarImageUrl" class="box-setting-input" placeholder="Avatar Resim URL">
+        `;
+    } else if (type === 'health_regen_potion') {
+        container.innerHTML = `
+            <input type="number" id="sendItemValue" class="box-setting-input" placeholder="Yüzde Değeri (örn: 10)">
+            <input type="number" id="sendItemAmount" class="box-setting-input" placeholder="Adet">
+        `;
+    } else if (type) {
+        container.innerHTML = `<input type="number" id="sendItemValue" class="box-setting-input" placeholder="Miktar / Adet">`;
+    }
 }
 
-    // MEVCUT saveDailyReward FONKSİYONUNU SİL VE BUNU YAPIŞTIR
+// ESKİ saveStoreItem FONKSİYONUNU SİL VE BUNU YAPIŞTIR
+
+async function saveStoreItem() {
+    if (!isAdmin) return;
+
+    try {
+        const name = document.getElementById('newItemName').value.trim();
+        const description = document.getElementById('newItemDescription').value.trim();
+        const cost = parseInt(document.getElementById('newItemCost').value);
+        const type = document.getElementById('newItemType').value;
+        const imageUrl = document.getElementById('newItemImageUrl').value.trim();
+        let stockInput = document.getElementById('newItemStock').value;
+
+        const days = parseInt(document.getElementById('storeItemCountdownDays').value) || 0;
+        const hours = parseInt(document.getElementById('storeItemCountdownHours').value) || 0;
+        const minutes = parseInt(document.getElementById('storeItemCountdownMinutes').value) || 0;
+        const seconds = parseInt(document.getElementById('storeItemCountdownSeconds').value) || 0;
+        const totalMinutes = (days * 24 * 60) + (hours * 60) + minutes + Math.round(seconds / 60);
+
+        if (!name || !description || isNaN(cost) || !type) {
+            displayMessage("Lütfen Ad, Açıklama, Maliyet ve Tip alanlarını doldurun.");
+            return;
+        }
+
+        const stock = (stockInput === '' || stockInput === null) ? null : parseInt(stockInput);
+        const itemData = { name, description, cost, stock, type, imageUrl: imageUrl || 'https://via.placeholder.com/150' };
+
+        if (type.endsWith('_potion')) {
+            const priceIncreaseInput = document.getElementById('newItemPriceIncrease').value;
+            const priceIncrease = priceIncreaseInput === '' ? 0 : parseInt(priceIncreaseInput);
+            if (isNaN(priceIncrease) || priceIncrease < 0) {
+                throw new Error("İksirler için geçerli bir 'Fiyat Artışı' (0 veya daha büyük) girmelisiniz.");
+            }
+            itemData.priceIncrease = priceIncrease;
+        }
+
+        if (type === 'tempMultiplier') {
+            const value = parseInt(document.getElementById('newItemValue').value);
+            const multiplierDuration = parseInt(document.getElementById('newItemMultiplierDuration').value);
+            if (isNaN(value) || value <= 0) { throw new Error("Çarpan için geçerli bir 'Değer' (2x, 3x gibi) girmelisiniz."); }
+            if (isNaN(multiplierDuration) || multiplierDuration <= 0) { throw new Error("Çarpan için geçerli bir 'Kullanım Sayısı' girmelisiniz."); }
+            itemData.value = value;
+            itemData.duration = multiplierDuration;
+        } else if (type === 'avatar') {
+            itemData.avatarName = document.getElementById('newItemAvatarName').value.trim();
+            itemData.avatarImageUrl = document.getElementById('newItemAvatarImageUrl').value.trim();
+            if (!itemData.avatarName || !itemData.avatarImageUrl) {
+                throw new Error("Avatar tipi için 'Avatar Adı' ve 'Avatar Resim URL'si' alanları zorunludur.");
+            }
+        } else if (type === 'health_regen_potion') {
+            // ★★★ DEĞİŞİKLİK BURADA: Artık amount'u da okuyoruz ★★★
+            const value = parseInt(document.getElementById('newItemValue').value);
+            const amount = parseInt(document.getElementById('newItemMultiplierDuration').value); // Duration input'unu amount için kullanıyoruz
+            if (isNaN(value) || value <= 0 || isNaN(amount) || amount <= 0) {
+                throw new Error("Can Yenileme İksiri için geçerli bir 'Yüzde Değeri' ve 'Adet' girmelisiniz.");
+            }
+            itemData.value = value;
+            itemData.duration = amount; // duration alanına adeti kaydediyoruz
+        } else {
+            const typesThatNeedValue = [ 'boxRights', 'wheelTicket', 'clickCatchTicket', 'iflasShield', 'wildcard', 'card_pack', 'card_pack_normal', 'card_pack_gumus', 'card_pack_altin', 'card_pack_efsanevi', 'revival_stone', 'health_potion', 'damage_potion', 'defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion' ];
+            if (typesThatNeedValue.includes(type)) {
+                const value = parseStatValue(type, document.getElementById('newItemValue').value);
+                if (isNaN(value) || value <= 0) {
+                    const friendlyName = typeToName[type] || type;
+                    throw new Error(`'${friendlyName}' tipi için geçerli bir 'Değer/Adet' girmelisiniz.`);
+                }
+                itemData.value = value;
+            }
+        }
+
+        if (totalMinutes > 0) { itemData.countdownDurationMinutes = totalMinutes; } 
+        else { itemData.countdownDurationMinutes = null; }
+
+        if (editingItemId) {
+            const existingItemSnap = await storeItemsRef.child(editingItemId).once('value');
+            const existingItem = existingItemSnap.val();
+            itemData.createdAt = existingItem.createdAt || firebase.database.ServerValue.TIMESTAMP;
+            itemData.order = existingItem.order;
+            itemData.purchaseCount = existingItem.purchaseCount || 0;
+            await storeItemsRef.child(editingItemId).update(itemData);
+            displayMessage(`'${name}' ürünü başarıyla güncellendi!`);
+        } else {
+            itemData.createdAt = firebase.database.ServerValue.TIMESTAMP;
+            itemData.purchaseCount = 0;
+            const maxOrderSnap = await storeItemsRef.orderByChild('order').limitToLast(1).once('value');
+            let maxOrder = -1;
+            if (maxOrderSnap.exists()) { maxOrder = Object.values(maxOrderSnap.val())[0].order || 0; }
+            itemData.order = maxOrder + 1;
+            await storeItemsRef.push(itemData);
+            displayMessage(`'${name}' ürünü başarıyla eklendi!`);
+        }
+        
+        closeAdminStoreModal();
+        loadStoreItems();
+
+    } catch (error) {
+        console.error("Mağaza ürünü kaydetme hatası:", error);
+        displayMessage("Ürün kaydedilirken bir hata oluştu: " + error.message);
+    }
+}
+
+// ESKİ handleStoreItemTypeChange FONKSİYONUNU SİL VE BUNU YAPIŞTIR
+
+function handleStoreItemTypeChange() {
+    const type = document.getElementById('newItemType').value;
+    const valueInput = document.getElementById('newItemValue');
+    const durationInput = document.getElementById('newItemMultiplierDuration');
+    const priceIncreaseInput = document.getElementById('newItemPriceIncrease');
+    const avatarFields = document.getElementById('storeItemAvatarFields');
+
+    valueInput.classList.remove('hidden');
+    durationInput.classList.add('hidden');
+    priceIncreaseInput.classList.add('hidden');
+    avatarFields.classList.add('hidden');
+    valueInput.placeholder = 'Değer / Adet';
+
+    if (type === 'tempMultiplier') {
+        durationInput.classList.remove('hidden');
+        valueInput.placeholder = 'Çarpan Değeri (örn: 2)';
+    } else if (type.endsWith('_potion')) {
+        priceIncreaseInput.classList.remove('hidden');
+        const isPercent = ['defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion'].includes(type);
+        if (isPercent) {
+            valueInput.placeholder = 'Yüzde Değeri (örn: 2.5)';
+        }
+        // ★★★ DEĞİŞİKLİK BURADA ★★★
+        if (type === 'health_regen_potion') {
+            durationInput.classList.remove('hidden'); // Adet alanı için duration input'unu göster
+            durationInput.placeholder = 'Adet';
+            valueInput.placeholder = 'Yüzde Değeri (%)';
+        }
+    } else if (type === 'avatar') {
+        valueInput.classList.add('hidden');
+        avatarFields.classList.remove('hidden');
+    } else if (type === 'special') {
+        valueInput.classList.add('hidden');
+    }
+}
+
+// ESKİ saveDailyReward FONKSİYONUNU SİL VE BUNU YAPIŞTIR
+
 async function saveDailyReward() {
     if (!isAdmin) return;
     
@@ -11576,16 +11562,23 @@ async function saveDailyReward() {
         }
         rewardData.avatarName = avatarName;
         rewardData.avatarImageUrl = avatarImageUrl;
+    } else if (type === 'health_regen_potion') {
+        // ★★★ DEĞİŞİKLİK BURADA: Artık amount'u da okuyoruz ★★★
+        const value = parseInt(document.getElementById('dailyRewardValue').value);
+        const amount = parseInt(document.getElementById('dailyRewardMultiplierUses').value); // Uses input'unu amount için kullanıyoruz
+        if (isNaN(value) || value <= 0 || isNaN(amount) || amount <= 0) {
+            displayMessage("Can Yenileme İksiri için geçerli bir 'Yüzde Değeri' ve 'Adet' girin.");
+            return;
+        }
+        rewardData.value = value;
+        rewardData.amount = amount; // amount olarak kaydediyoruz
     } else {
-        // ★★★ YÜZDE DEĞERLERİ İÇİN DEĞİŞEN KISIM BAŞLANGICI ★★★
-        // Artık ondalıklı sayıları da doğru işleyen parseStatValue fonksiyonunu kullanıyoruz.
         const value = parseStatValue(type, document.getElementById('dailyRewardValue').value);
         if (isNaN(value) || value <= 0) {
             displayMessage("Bu ödül tipi için geçerli bir 'Değer' girmelisiniz.");
             return;
         }
         rewardData.value = value;
-        // ★★★ DEĞİŞEN KISIM SONU ★★★
     }
     
     if (editingDailyRewardId) {
@@ -11599,6 +11592,60 @@ async function saveDailyReward() {
     resetDailyRewardForm();
     closeAdminDailyRewardModal();
     openDailyRewardModal();
+}
+
+// ESKİ handleDailyRewardTypeChange FONKSİYONUNU SİL VE BUNU YAPIŞTIR
+
+function handleDailyRewardTypeChange() {
+    const type = document.getElementById('dailyRewardType').value;
+    const valueInput = document.getElementById('dailyRewardValue');
+    const usesInput = document.getElementById('dailyRewardMultiplierUses');
+    const avatarFields = document.getElementById('dailyRewardAvatarFields');
+
+    valueInput.classList.remove('hidden');
+    usesInput.classList.add('hidden');
+    avatarFields.classList.add('hidden');
+    valueInput.placeholder = 'Değer / Miktar';
+    usesInput.placeholder = 'Kullanım Hakkı';
+
+    if (type === 'tempMultiplier') {
+        usesInput.classList.remove('hidden');
+        valueInput.placeholder = 'Çarpan Değeri';
+    } else if (type === 'avatar') {
+        valueInput.classList.add('hidden');
+        avatarFields.classList.remove('hidden');
+    } else if (type === 'health_regen_potion') {
+        // ★★★ DEĞİŞİKLİK BURADA ★★★
+        usesInput.classList.remove('hidden'); // Adet alanı için uses input'unu göster
+        usesInput.placeholder = 'Adet';
+        valueInput.placeholder = 'Yüzde Değeri (%)';
+    }
+}
+
+// Bu event listener'ı script'in en altına veya uygun bir yere ekleyin.
+document.getElementById('dailyRewardType').addEventListener('change', handleDailyRewardTypeChange);
+
+    function resetDailyRewardForm() {
+    document.getElementById('dailyRewardName').value = '';
+    document.getElementById('dailyRewardDescription').value = '';
+    document.getElementById('dailyRewardType').value = '';
+    document.getElementById('dailyRewardValue').value = '';
+    document.getElementById('dailyRewardMultiplierUses').value = '';
+    document.getElementById('dailyRewardCooldownDays').value = '';
+    document.getElementById('dailyRewardCooldownHours').value = '';
+    document.getElementById('dailyRewardCooldownMinutes').value = '';
+    document.getElementById('dailyRewardCooldownSeconds').value = '';
+    document.getElementById('dailyRewardImageUrl').value = '';
+    
+    // YENİ EKLENEN SATIRLAR
+    document.getElementById('dailyRewardAvatarName').value = '';
+    document.getElementById('dailyRewardAvatarImageUrl').value = '';
+    
+    document.getElementById('saveDailyRewardBtn').textContent = 'GÜNLÜK ÖDÜL OLUŞTUR';
+    editingDailyRewardId = null;
+    
+    // Formun görsel durumunu da sıfırla
+    handleDailyRewardTypeChange();
 }
     
     // DEĞİŞTİRİLECEK FONKSİYON
@@ -19081,7 +19128,159 @@ async function saveRecipe() {
     }
 }
 
-// MEVCUT parseRewardDataFromRow FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
+// ESKİ saveWordGameSettings FONKSİYONUNU SİL VE BUNU YAPIŞTIR
+
+async function saveWordGameSettings(shouldResetProgress = false) {
+    if (!isAdmin) return;
+    
+    let confirmationMessage = '';
+    if (shouldResetProgress) {
+        confirmationMessage = "Bu işlem mevcut bulmacayı tamamen silip yenisini oluşturacak ve liderlik tablosunu sıfırlayacaktır. Emin misiniz?";
+    } else {
+        confirmationMessage = "Mevcut kelime oyunu ayarlarını bu şekilde güncellemek istediğinize emin misiniz? <br><br><small class='text-yellow-300'>Bu işlem oyuncuların mevcut serilerini SIFIRLAMAZ, sadece ödülleri günceller.</small>";
+    }
+    
+    const confirmed = await customConfirm(confirmationMessage);
+    if (!confirmed) return;
+
+    try {
+        const oldGameSnap = await db.ref('wordGame').once('value');
+        const oldGameData = oldGameSnap.val();
+
+        const questions = [];
+        const questionBlocks = document.querySelectorAll('#questionBlocksContainer > div');
+        let hasError = false;
+
+        for (const [qIndex, block] of questionBlocks.entries()) {
+            if (hasError) continue;
+            const questionText = block.querySelector('.question-text').value.trim();
+            const answer = block.querySelector('.answer-text').value.trim().toLocaleUpperCase('tr-TR');
+            
+            if (!questionText || !answer) continue;
+
+            const letters = [];
+            const rewardRows = block.querySelectorAll('.letter-rewards-container .reward-entry');
+            if (rewardRows.length !== answer.length) {
+                hasError = true;
+                throw new Error(`'${questionText}' sorusunun cevabındaki harf sayısı ile ödül sayısı eşleşmiyor!`);
+            }
+
+            for (let i = 0; i < answer.length; i++) {
+                const char = answer[i];
+                const reward = parseRewardDataFromRow(rewardRows[i]);
+                if (!reward) {
+                    hasError = true;
+                    throw new Error(`'${questionText}' sorusundaki '${char}' harfinin ödülü geçersiz.`);
+                }
+                
+                let letterState = {
+                    char: char,
+                    reward: reward,
+                    solved: false,
+                    solver: null,
+                    solvedAt: null
+                };
+
+                if (!shouldResetProgress && oldGameData && oldGameData.questions && oldGameData.questions[qIndex]) {
+                    const oldQuestion = oldGameData.questions[qIndex];
+                    if (oldQuestion.answer === answer && oldQuestion.letters[i] && oldQuestion.letters[i].solved) {
+                        letterState.solved = true;
+                        letterState.solver = oldQuestion.letters[i].solver;
+                        letterState.solvedAt = oldQuestion.letters[i].solvedAt;
+                    }
+                }
+                letters.push(letterState);
+            }
+            questions.push({ text: questionText, answer: answer, letters: letters });
+        }
+        
+        if (hasError) return;
+
+        const days = parseInt(document.getElementById('cooldownDays').value) || 0;
+        const hours = parseInt(document.getElementById('cooldownHours').value) || 0;
+        const minutes = parseInt(document.getElementById('cooldownMinutes').value) || 0;
+        const seconds = parseInt(document.getElementById('cooldownSeconds').value) || 0;
+        const totalCooldownSeconds = (days * 86400) + (hours * 3600) + (minutes * 60) + seconds;
+
+        const cDays = parseInt(document.getElementById('correctCooldownDays').value) || 0;
+        const cHours = parseInt(document.getElementById('correctCooldownHours').value) || 0;
+        const cMinutes = parseInt(document.getElementById('correctCooldownMinutes').value) || 0;
+        const cSeconds = parseInt(document.getElementById('correctCooldownSeconds').value) || 0;
+        const totalCorrectCooldownSeconds = (cDays * 86400) + (cHours * 3600) + (cMinutes * 60) + cSeconds;
+
+        // ★★★ DEĞİŞİKLİK BURADA: Şampiyon ödülünü de okuyup kaydediyoruz ★★★
+        const championPrizeContainer = document.getElementById('wordGameChampionPrizeContainer');
+        const championPrize = parseRewardDataFromRow(championPrizeContainer.querySelector('.reward-entry'));
+        if (!championPrize) {
+            throw new Error("Şampiyon ödülü bilgileri geçersiz.");
+        }
+        
+        const updates = {};
+        updates['/wordGame/settings'] = {
+            cooldown: totalCooldownSeconds,
+            correctGuessCooldown: totalCorrectCooldownSeconds,
+            championPrize: championPrize // Şampiyon ödülünü de ayarlara ekle
+        };
+        updates['/wordGame/questions'] = questions;
+
+        if (shouldResetProgress) {
+            logActivity('newWordGameStarted', 'WeizendTv', {});
+            updates['/wordGame/leaderboard'] = null; 
+            updates['/gameStats/wordGameChampion'] = null;
+            
+            const usersSnap = await db.ref('users').once('value');
+            if (usersSnap.exists()) {
+                usersSnap.forEach(user => {
+                    if (user.val().wordGameCooldown) {
+                        updates[`/users/${user.key}/wordGameCooldown`] = null;
+                    }
+                });
+            }
+            displayMessage("Kelime Oyunu başarıyla sıfırlandı ve yeni ayarlarla başlatıldı!");
+        } else {
+            displayMessage("Kelime Oyunu ayarları başarıyla güncellendi. Oyuncuların ilerlemesi korundu.");
+        }
+
+        await db.ref().update(updates);
+        closeWordGameAdminModal();
+
+    } catch (error) {
+        displayMessage(`Hata: ${error.message}`);
+    }
+}
+
+// ESKİ generateRewardFields FONKSİYONUNU SİL VE BUNU YAPIŞTIR
+
+function generateRewardFields(answerInput, lettersData = null) {
+    const answer = answerInput.value.trim().toLocaleUpperCase('tr-TR').replace(/[^A-ZÇĞİÖŞÜ]/g, '');
+    answerInput.value = answer; 
+    const container = answerInput.parentElement.querySelector('.letter-rewards-container');
+    container.innerHTML = '';
+
+    for (let i = 0; i < answer.length; i++) {
+        const letter = answer[i];
+        const rewardData = lettersData ? lettersData[i]?.reward : {};
+        
+        const wrapperDiv = document.createElement('div');
+        wrapperDiv.className = 'flex items-center gap-2';
+
+        // ★★★ DEĞİŞİKLİK BURADA: Artık amount yerine value gönderiyoruz ★★★
+        wrapperDiv.innerHTML = `
+            <span class="font-bold text-yellow-300 w-8 text-center text-lg">${letter}</span>
+            ${getRewardItemHTML(`reward_${i}`, rewardData)}
+        `;
+        
+        container.appendChild(wrapperDiv);
+
+        const newRow = wrapperDiv.querySelector('.reward-entry');
+        if (newRow) {
+            handleAdminRewardTypeChange(newRow.querySelector('.reward-type'), rewardData);
+        }
+    }
+}
+
+// ESKİ parseRewardDataFromRow FONKSİYONUNU SİL VE BUNU YAPIŞTIR
+
 function parseRewardDataFromRow(rowElement) {
     const type = rowElement.querySelector('.reward-type').value;
     const data = { type };
@@ -19096,12 +19295,18 @@ function parseRewardDataFromRow(rowElement) {
         if (!data.avatarName || !data.avatarImageUrl) return null;
     } else if (type === 'card') {
         data.cardId = rowElement.querySelector('.reward-cardId').value;
-        data.amount = parseInt(rowElement.querySelector('.reward-value').value);
+        data.amount = parseInt(rowElement.querySelector('.reward-value').value); // amount olarak oku
         if (!data.cardId || isNaN(data.amount)) return null;
-    } else if (type === 'special') { // ★★★ YENİ EKLENEN BLOK ★★★
+    } else if (type === 'special') {
         data.specialName = rowElement.querySelector('.reward-specialName').value.trim();
         if (!data.specialName) return null;
+    } else if (type === 'health_regen_potion') {
+        // ★★★ DEĞİŞİKLİK BURADA: Yüzde ve adet için doğru input'ları okuyoruz ★★★
+        data.value = parseInt(rowElement.querySelector('.reward-value').value);
+        data.amount = parseInt(rowElement.querySelector('.reward-amount').value);
+        if (isNaN(data.value) || isNaN(data.amount)) return null;
     } else {
+        // ★★★ DEĞİŞİKLİK BURADA: Geri kalan her şey için `amount` özelliğini kullanıyoruz ★★★
         data.amount = parseStatValue(type, rowElement.querySelector('.reward-value').value);
         if (isNaN(data.amount)) return null;
     }
@@ -22473,154 +22678,6 @@ function addQuestionBlock(questionData = null) {
     }
 }
 
-function generateRewardFields(answerInput, lettersData = null) {
-    const answer = answerInput.value.trim().toLocaleUpperCase('tr-TR').replace(/[^A-ZÇĞİÖŞÜ]/g, '');
-    answerInput.value = answer; 
-    const container = answerInput.parentElement.querySelector('.letter-rewards-container');
-    container.innerHTML = '';
-
-    for (let i = 0; i < answer.length; i++) {
-        const letter = answer[i];
-        const rewardData = lettersData ? lettersData[i]?.reward : {};
-        
-        // Önce her satır için bir ana taşıyıcı element oluşturuyoruz
-        const wrapperDiv = document.createElement('div');
-        wrapperDiv.className = 'flex items-center gap-2';
-
-        // Satırın içeriğini HTML olarak bu elemente ekliyoruz
-        wrapperDiv.innerHTML = `
-            <span class="font-bold text-yellow-300 w-8 text-center text-lg">${letter}</span>
-            ${getRewardItemHTML(`reward_${i}`, rewardData)}
-        `;
-        
-        // Tamamlanmış satırı ana konteynere ekliyoruz
-        container.appendChild(wrapperDiv);
-
-        // Şimdi, YALNIZCA YENİ EKLEDİĞİMİZ SATIRIN içindeki elementleri bularak
-        // doğru input'ların görünmesini sağlayan fonksiyonu çağırıyoruz.
-        const newRow = wrapperDiv.querySelector('.reward-entry');
-        if (newRow) {
-            handleAdminRewardTypeChange(newRow.querySelector('.reward-type'), rewardData);
-        }
-    }
-}
-
-// MEVCUT saveWordGameSettings FONKSİYONUNU SİLİP BUNU YAPIŞTIR
-async function saveWordGameSettings(shouldResetProgress = false) {
-    if (!isAdmin) return;
-    
-    let confirmationMessage = '';
-    if (shouldResetProgress) {
-        confirmationMessage = "Bu işlem mevcut bulmacayı tamamen silip yenisini oluşturacak ve liderlik tablosunu sıfırlayacaktır. Emin misiniz?";
-    } else {
-        confirmationMessage = "Mevcut kelime oyunu ayarlarını bu şekilde güncellemek istediğinize emin misiniz? <br><br><small class='text-yellow-300'>Bu işlem oyuncuların mevcut serilerini SIFIRLAMAZ, sadece ödülleri günceller.</small>";
-    }
-    
-    const confirmed = await customConfirm(confirmationMessage);
-    if (!confirmed) return;
-
-    try {
-        const oldGameSnap = await db.ref('wordGame').once('value');
-        const oldGameData = oldGameSnap.val();
-
-        const questions = [];
-        const questionBlocks = document.querySelectorAll('#questionBlocksContainer > div');
-        let hasError = false;
-
-        for (const [qIndex, block] of questionBlocks.entries()) {
-            if (hasError) continue;
-            const questionText = block.querySelector('.question-text').value.trim();
-            const answer = block.querySelector('.answer-text').value.trim().toLocaleUpperCase('tr-TR');
-            
-            if (!questionText || !answer) continue;
-
-            const letters = [];
-            const rewardRows = block.querySelectorAll('.letter-rewards-container .reward-entry');
-            if (rewardRows.length !== answer.length) {
-                hasError = true;
-                throw new Error(`'${questionText}' sorusunun cevabındaki harf sayısı ile ödül sayısı eşleşmiyor!`);
-            }
-
-            for (let i = 0; i < answer.length; i++) {
-                const char = answer[i];
-                const reward = parseRewardDataFromRow(rewardRows[i]);
-                if (!reward) {
-                    hasError = true;
-                    throw new Error(`'${questionText}' sorusundaki '${char}' harfinin ödülü geçersiz.`);
-                }
-                
-                let letterState = {
-                    char: char,
-                    reward: reward,
-                    solved: false,
-                    solver: null,
-                    solvedAt: null
-                };
-
-                if (!shouldResetProgress && oldGameData && oldGameData.questions && oldGameData.questions[qIndex]) {
-                    const oldQuestion = oldGameData.questions[qIndex];
-                    if (oldQuestion.answer === answer && oldQuestion.letters[i] && oldQuestion.letters[i].solved) {
-                        letterState.solved = true;
-                        letterState.solver = oldQuestion.letters[i].solver;
-                        letterState.solvedAt = oldQuestion.letters[i].solvedAt;
-                    }
-                }
-                letters.push(letterState);
-            }
-            questions.push({ text: questionText, answer: answer, letters: letters });
-        }
-        
-        if (hasError) return;
-
-        // Yanlış cevap bekleme süresini al
-        const days = parseInt(document.getElementById('cooldownDays').value) || 0;
-        const hours = parseInt(document.getElementById('cooldownHours').value) || 0;
-        const minutes = parseInt(document.getElementById('cooldownMinutes').value) || 0;
-        const seconds = parseInt(document.getElementById('cooldownSeconds').value) || 0;
-        const totalCooldownSeconds = (days * 86400) + (hours * 3600) + (minutes * 60) + seconds;
-
-        // YENİ EKLENEN KISIM: Doğru cevap bekleme süresini al
-        const cDays = parseInt(document.getElementById('correctCooldownDays').value) || 0;
-        const cHours = parseInt(document.getElementById('correctCooldownHours').value) || 0;
-        const cMinutes = parseInt(document.getElementById('correctCooldownMinutes').value) || 0;
-        const cSeconds = parseInt(document.getElementById('correctCooldownSeconds').value) || 0;
-        const totalCorrectCooldownSeconds = (cDays * 86400) + (cHours * 3600) + (cMinutes * 60) + cSeconds;
-        // YENİ KISIM SONU
-
-        const updates = {};
-        updates['/wordGame/settings'] = {
-            cooldown: totalCooldownSeconds,
-            correctGuessCooldown: totalCorrectCooldownSeconds // Yeni ayarı kaydet
-        };
-        updates['/wordGame/questions'] = questions;
-
-        if (shouldResetProgress) {
-            logActivity('newWordGameStarted', 'WeizendTv', {});
-            updates['/wordGame/leaderboard'] = null; 
-            updates['/gameStats/wordGameChampion'] = null; // Şampiyonu da sıfırla
-            
-            const usersSnap = await db.ref('users').once('value');
-            if (usersSnap.exists()) {
-                usersSnap.forEach(user => {
-                    if (user.val().wordGameCooldown) {
-                        updates[`/users/${user.key}/wordGameCooldown`] = null;
-                    }
-                });
-            }
-
-            displayMessage("Kelime Oyunu başarıyla sıfırlandı ve yeni ayarlarla başlatıldı!");
-        } else {
-            displayMessage("Kelime Oyunu ayarları başarıyla güncellendi. Oyuncuların ilerlemesi korundu.");
-        }
-
-        await db.ref().update(updates);
-        closeWordGameAdminModal();
-
-    } catch (error) {
-        displayMessage(`Hata: ${error.message}`);
-    }
-}
-
 async function resetWordGame() {
     if (!isAdmin) return;
     const confirmed = await customConfirm("Tüm bulmacayı ve liderlik tablosunu sıfırlamak istediğinize emin misiniz?");
@@ -22763,9 +22820,8 @@ async function loadWordGameChampionPrize() {
     container.innerHTML += `<button onclick="saveWordGameChampionPrize()" class="w-full mt-2 py-2 bg-blue-700 hover:bg-blue-600 text-white font-bold rounded-lg md:col-span-3">Şampiyon Ödülünü Kaydet</button>`;
 }
 
-/**
- * Tüm harfler çözüldüğünde şampiyonu belirler ve ödülünü verir.
- */
+// ESKİ checkForGameCompletionAndAwardChampion FONKSİYONUNU SİL VE BUNU YAPIŞTIR
+
 async function checkForGameCompletionAndAwardChampion() {
     // Önce şampiyonun zaten belirlenip belirlenmediğini kontrol et
     const existingChampionSnap = await db.ref('gameStats/wordGameChampion').once('value');
@@ -22779,7 +22835,7 @@ async function checkForGameCompletionAndAwardChampion() {
     
     if (!gameData || !gameData.questions) return;
 
-    const allSolved = gameData.questions.every(q => q.letters.every(l => l.solved));
+    const allSolved = gameData.questions.every(q => (q.letters || []).every(l => l.solved));
 
     if (allSolved) {
         console.log("Tüm harfler çözüldü! Şampiyon belirleniyor...");
@@ -22813,6 +22869,7 @@ async function checkForGameCompletionAndAwardChampion() {
         const userRef = db.ref(`users/${winnerUsername}`);
         await userRef.transaction(userData => {
             if (userData) {
+                // applyRewardToUser fonksiyonunu çağırarak ödülü güvenli bir şekilde ekliyoruz.
                 applyRewardToUser(userData, prizeData);
             }
             return userData;
@@ -22866,7 +22923,8 @@ function renderWordGameStatsAndPrize(gameData) {
     container.classList.remove('hidden');
 }
 
-// --- GÜNCELLENEN FONKSİYON: ETKİNLİK BÖLÜMÜ ---
+// ESKİ renderActivityFeedEvents FONKSİYONUNU SİL VE BUNU YAPIŞTIR
+
 async function renderActivityFeedEvents() {
     const container = document.getElementById('activityFeedEvents');
     const toggleBtn = document.getElementById('eventsToggleBtn');
@@ -22875,9 +22933,12 @@ async function renderActivityFeedEvents() {
     container.innerHTML = `<p class="text-center text-gray-400">Etkinlik durumları yükleniyor...</p>`;
 
     try {
+        // ★★★ DEĞİŞİKLİK: Artık mağaza ürünlerini de çekiyoruz ★★★
         const [
             monsterSnap, weeklySnap, scoresSnap, wordGameSnap, 
-            cardStatusSnap, cardPrizeSnap, finishersSnap
+            cardStatusSnap, cardPrizeSnap, finishersSnap, 
+            lastMonsterChampionSnap, weeklyWinnerSnap, wordGameChampionSnap,
+            storeItemsSnap 
         ] = await Promise.all([
             db.ref('gameConfig/monsterBattle').once('value'),
             db.ref('gameConfig/weeklyClickCatchReset').once('value'),
@@ -22885,22 +22946,32 @@ async function renderActivityFeedEvents() {
             db.ref('wordGame').once('value'),
             db.ref('gameConfig/cardCollectionStatus').once('value'),
             db.ref('gameConfig/collectionGrandPrize').once('value'),
-            db.ref('gameStats/collectionFinishers').orderByChild('timestamp').limitToFirst(1).once('value')
+            db.ref('gameStats/collectionFinishers').orderByChild('timestamp').limitToFirst(1).once('value'),
+            db.ref('gameStats/lastMonsterChampion').once('value'),
+            db.ref('gameStats/weeklyClickCatchWinner').once('value'),
+            db.ref('gameStats/wordGameChampion').once('value'),
+            db.ref('storeItems').once('value') // Mağaza ürünlerini çek
         ]);
 
-        const monsterHtml = buildMonsterEventCard(monsterSnap.val());
-        const clickCatchHtml = buildClickCatchEventCard(weeklySnap.val(), scoresSnap.val());
-        const wordGameHtml = buildWordGameEventCard(wordGameSnap.val());
+        const monsterHtml = buildMonsterEventCard(monsterSnap.val(), lastMonsterChampionSnap.val());
+        const clickCatchHtml = buildClickCatchEventCard(weeklySnap.val(), scoresSnap.val(), weeklyWinnerSnap.val());
+        const wordGameHtml = buildWordGameEventCard(wordGameSnap.val(), wordGameChampionSnap.val());
         const cardCollectionHtml = buildCardCollectionEventCard(cardStatusSnap.val(), cardPrizeSnap.val(), finishersSnap.val());
+        const storeHtml = buildStoreEventCard(storeItemsSnap.val()); // ★★★ YENİ: Mağaza kartlarını oluştur ★★★
 
-        const allHtml = [monsterHtml, clickCatchHtml, wordGameHtml, cardCollectionHtml].filter(Boolean);
+        const allHtml = [storeHtml, monsterHtml, clickCatchHtml, wordGameHtml, cardCollectionHtml].filter(Boolean);
+        const hasActiveEvents = allHtml.some(html => html.includes('animate-pulse'));
 
         if (allHtml.length > 0) {
             container.innerHTML = allHtml.join('');
-            toggleBtn.classList.add('has-active-events'); // Aktif etkinlik varsa yeşil yap
+            if (hasActiveEvents) {
+                toggleBtn.classList.add('has-active-events');
+            } else {
+                toggleBtn.classList.remove('has-active-events');
+            }
         } else {
-            container.innerHTML = `<p class="text-center text-gray-400">Şu anda aktif bir etkinlik bulunmuyor.</p>`;
-            toggleBtn.classList.remove('has-active-events'); // Aktif etkinlik yoksa yeşil rengi kaldır
+            container.innerHTML = `<p class="text-center text-gray-400">Şu anda görüntülenecek bir etkinlik bulunmuyor.</p>`;
+            toggleBtn.classList.remove('has-active-events');
         }
 
     } catch (error) {
@@ -22910,25 +22981,110 @@ async function renderActivityFeedEvents() {
     }
 }
 
-function buildMonsterEventCard(battleData) {
-    if (!battleData || !battleData.monsterDetails) {
+// BU 3 YENİ FONKSİYONU SCRIPT BLOĞUNUN SONUNA EKLE
+
+function buildStoreEventCard(storeItems) {
+    if (!storeItems) return '';
+
+    let html = '';
+    if (eventCountdownInterval) clearInterval(eventCountdownInterval);
+    activeEventCountdowns = {};
+
+    const now = Date.now();
+
+    Object.entries(storeItems).forEach(([itemId, item]) => {
+        if (item.countdownDurationMinutes && item.createdAt) {
+            const endTime = item.createdAt + item.countdownDurationMinutes * 60 * 1000;
+            if (now < endTime) {
+                activeEventCountdowns[itemId] = { endTime: endTime };
+                const priceText = item.type === 'special' ? `${formatNumber(item.cost)} KP` : `${formatNumber(item.cost)} Puan`;
+
+                html += `
+                    <div class="p-3 bg-gray-900/50 rounded-lg border-l-4 border-green-500">
+                        <p class="font-bold text-green-400">Sınırlı Süreli Teklif!</p>
+                        <div class="flex items-center gap-3 my-2">
+                            <img src="${item.imageUrl || 'https://via.placeholder.com/150'}" class="w-12 h-12 rounded-md object-cover">
+                            <div>
+                                <p class="text-sm font-bold text-white">${item.name}</p>
+                                <p class="text-xs text-gray-300">Fiyat: <b class="text-yellow-300">${priceText}</b></p>
+                            </div>
+                        </div>
+                        <div id="event-countdown-${itemId}" class="text-xs text-yellow-300 font-bold animate-pulse"></div>
+                        <div class="flex justify-end items-center mt-2">
+                            <button onclick="buyItemFromEventCard('${itemId}')" class="text-xs py-1 px-3 bg-green-600 hover:bg-green-500 rounded-md">Şimdi Al</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+    });
+
+    if (Object.keys(activeEventCountdowns).length > 0) {
+        updateEventCountdowns();
+        eventCountdownInterval = setInterval(updateEventCountdowns, 1000);
+    }
+
+    return html;
+}
+
+function updateEventCountdowns() {
+    const now = Date.now();
+    for (const itemId in activeEventCountdowns) {
+        const { endTime } = activeEventCountdowns[itemId];
+        const countdownEl = document.getElementById(`event-countdown-${itemId}`);
+        if (!countdownEl) continue;
+
+        const timeLeft = endTime - now;
+
+        if (timeLeft > 0) {
+            const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+
+            let parts = [];
+            if (days > 0) parts.push(`${days}g`);
+            if (hours > 0) parts.push(`${hours}sa`);
+            if (minutes > 0) parts.push(`${minutes}d`);
+            if (seconds >= 0) parts.push(`${seconds}sn`);
+
+            countdownEl.textContent = `Teklifin Bitmesine: ${parts.join(' ')}`;
+        } else {
+            const eventCard = countdownEl.closest('.border-green-500');
+            if (eventCard) eventCard.remove();
+            delete activeEventCountdowns[itemId];
+        }
+    }
+}
+
+async function buyItemFromEventCard(itemId) {
+    // Bu fonksiyon, ana `buyItem` fonksiyonunu çağırarak kod tekrarını önler.
+    // Bu sayede mağazadaki tüm kontroller (bakiye, stok vb.) burada da geçerli olur.
+    await buyItem(itemId);
+}
+
+// ESKİ buildMonsterEventCard FONKSİYONUNU SİL VE BUNU YAPIŞTIR
+
+function buildMonsterEventCard(battleData, lastChampion) {
+    // ÖNCELİK 1: Canavar zaten yenilmiş mi veya hiç var olmamış mı?
+    if (!battleData || !battleData.monsterDetails || battleData.monsterDetails.currentHP <= 0) {
+        // Eğer bir önceki şampiyon bilgisi varsa, onu göster.
+        if (lastChampion) {
+            return `
+                <div class="p-3 bg-gray-900/50 rounded-lg border-l-4 border-red-500">
+                    <p class="font-bold text-red-400">Canavar Savaşı Etkinliği Bitti!</p>
+                    <p class="text-sm">Son Kazanan: <b class="text-white">${lastChampion.username}</b> (${formatNumber(lastChampion.totalDamage)} Hasar)</p>
+                    <p class="text-sm text-gray-400">Yeni canavarın gelmesini bekleyin.</p>
+                </div>
+            `;
+        }
+        // Eğer önceki şampiyon da yoksa, bu kartı hiç gösterme.
         return '';
     }
     
+    // ÖNCELİK 2: Etkinlik aktif, devam ediyor.
     const monster = battleData.monsterDetails;
     const prize = battleData.rewards?.onKillLeader;
-    
-    if (monster.currentHP <= 0) {
-        const winner = battleData.damageLeaderboard ? Object.keys(battleData.damageLeaderboard).sort((a,b) => battleData.damageLeaderboard[b].totalDamage - battleData.damageLeaderboard[a].totalDamage)[0] : null;
-        return `
-            <div class="p-3 bg-gray-900/50 rounded-lg border-l-4 border-red-500">
-                <p class="font-bold text-red-400">Canavar Savaşı Etkinliği Bitti!</p>
-                <p class="text-sm">Kazanan: <b class="text-white">${winner || 'Bilinmiyor'}</b></p>
-                <p class="text-sm text-gray-400">Yeni etkinlik için yönetici hazırlık yapıyor.</p>
-            </div>
-        `;
-    }
-    
     const leaderboard = battleData.damageLeaderboard || {};
     const leader = Object.keys(leaderboard).length > 0 ? Object.keys(leaderboard).sort((a,b) => leaderboard[b].totalDamage - leaderboard[a].totalDamage)[0] : null;
 
@@ -22946,11 +23102,24 @@ function buildMonsterEventCard(battleData) {
     `;
 }
 
-function buildClickCatchEventCard(weeklyData, scoresData) {
+// ESKİ buildClickCatchEventCard FONKSİYONUNU SİL VE BUNU YAPIŞTIR
+
+function buildClickCatchEventCard(weeklyData, scoresData, lastWinner) {
+    // ÖNCELİK 1: Haftalık etkinlik ayarları yoksa (yani hafta bitmişse), son kazananı göster.
     if (!weeklyData || !weeklyData.prize) {
+        if (lastWinner) {
+             return `
+                <div class="p-3 bg-gray-900/50 rounded-lg border-l-4 border-purple-500">
+                    <p class="font-bold text-purple-400">Tıkla-Yakala Haftalık Etkinliği Bitti!</p>
+                    <p class="text-sm">Son Kazanan: <b class="text-white">${lastWinner.winnerName}</b> (${formatNumber(lastWinner.winningScore)} Skor)</p>
+                    <p class="text-sm text-gray-400">Yeni haftanın başlamasını bekleyin.</p>
+                </div>
+            `;
+        }
         return '';
     }
 
+    // ÖNCELİK 2: Etkinlik aktif, devam ediyor.
     const prize = weeklyData.prize;
     const prizeText = prize.type === 'special' ? prize.name : formatRewardText(prize.type, prize.amount);
     
@@ -22974,24 +23143,27 @@ function buildClickCatchEventCard(weeklyData, scoresData) {
     `;
 }
 
-function buildWordGameEventCard(wordGameData) {
+// ESKİ buildWordGameEventCard FONKSİYONUNU SİL VE BUNU YAPIŞTIR
+
+function buildWordGameEventCard(wordGameData, championData) {
+    // ÖNCELİK 1: Eğer bir şampiyon belirlenmişse, etkinlik bitmiştir.
+    if (championData) {
+        return `
+            <div class="p-3 bg-gray-900/50 rounded-lg border-l-4 border-cyan-500">
+                <p class="font-bold text-cyan-400">Kelime Oyunu Etkinliği Bitti!</p>
+                <p class="text-sm">Son Şampiyon: <b class="text-white">${championData.username}</b> (${championData.score} Harf)</p>
+                <p class="text-sm text-gray-400">Yeni bulmacanın başlamasını bekleyin.</p>
+            </div>
+        `;
+    }
+
+    // ÖNCELİK 2: Şampiyon yok ama oyun verisi var, demek ki devam ediyor.
     if (!wordGameData || !wordGameData.questions) {
-        const lastWinner = wordGameData?.champion;
-        if (lastWinner) {
-            return `
-                <div class="p-3 bg-gray-900/50 rounded-lg border-l-4 border-cyan-500">
-                    <p class="font-bold text-cyan-400">Kelime Oyunu Etkinliği Bitti!</p>
-                    <p class="text-sm">Kazanan: <b class="text-white">${lastWinner.username}</b></p>
-                    <p class="text-sm text-gray-400">Yeni etkinlik için yönetici hazırlık yapıyor.</p>
-                </div>
-            `;
-        }
         return '';
     }
 
     const prize = wordGameData.settings?.championPrize;
     const prizeText = prize ? formatRewardText(prize.type, prize.amount || prize.value, prize.uses) : 'Belirlenmedi';
-
     const leaderboard = wordGameData.leaderboard;
     let leaderText = '1. sıra için oyuncu bekleniyor.';
     if (leaderboard) {
@@ -23014,16 +23186,19 @@ function buildWordGameEventCard(wordGameData) {
     `;
 }
 
+// ESKİ buildCardCollectionEventCard FONKSİYONUNU SİL VE BUNU YAPIŞTIR
+
 function buildCardCollectionEventCard(status, prizeData, finishersData) {
+    // ÖNCELİK 1: Sezon aktif değilse, bitmiş kabul edilir.
     if (status !== 'active') {
         if (finishersData) {
              const firstFinisher = Object.values(finishersData)[0];
              if (firstFinisher) {
                 return `
                     <div class="p-3 bg-gray-900/50 rounded-lg border-l-4 border-yellow-500">
-                        <p class="font-bold text-yellow-400">Kart Koleksiyonu Etkinliği Bitti!</p>
-                        <p class="text-sm">Kazanan: <b class="text-white">${firstFinisher.username}</b></p>
-                        <p class="text-sm text-gray-400">Yeni etkinlik için yönetici hazırlık yapıyor.</p>
+                        <p class="font-bold text-yellow-400">Kart Koleksiyonu Sezonu Bitti!</p>
+                        <p class="text-sm">İlk Tamamlayan: <b class="text-white">${firstFinisher.username}</b></p>
+                        <p class="text-sm text-gray-400">Yeni sezonun başlamasını bekleyin.</p>
                     </div>
                 `;
              }
@@ -23031,28 +23206,17 @@ function buildCardCollectionEventCard(status, prizeData, finishersData) {
         return '';
     }
     
+    // ÖNCELİK 2: Etkinlik aktif, devam ediyor.
     let prizeHtml = '<p class="text-sm text-gray-400">Henüz ödül belirlenmedi.</p>';
-    let firstPrizeHtml = '';
-    
     if (prizeData) {
         let prizeParts = [];
         if (prizeData.points > 0) prizeParts.push(`${formatNumber(prizeData.points)} Puan`);
         if (prizeData.boxRights > 0) prizeParts.push(`${prizeData.boxRights} Kutu Hakkı`);
-        if (prizeData.wheelTickets > 0) prizeParts.push(`${prizeData.wheelTickets} Çark Bileti`);
-        if (prizeData.iflasShields > 0) prizeParts.push(`${prizeData.iflasShields} İflas Kalkanı`);
-        if (prizeData.avatarName) prizeParts.push(`'${prizeData.avatarName}' Avatarı`);
+        if (prizeData.avatarName) prizeParts.push(`Özel Avatar`);
+        if (prizeData.description) prizeParts.push(`${prizeData.description}`);
         
         if (prizeParts.length > 0) {
-            prizeHtml = `<p class="text-sm"><b class="text-green-400">${prizeParts.join(' | ')}</b></p>`;
-        }
-
-        let firstPrizeParts = [];
-        if (prizeData.description) {
-            firstPrizeParts.push(prizeData.description);
-        }
-        
-        if(firstPrizeParts.length > 0) {
-            firstPrizeHtml = `<ul class="list-disc list-inside text-sm text-amber-300 pl-1">${firstPrizeParts.map(p => `<li>${p}</li>`).join('')}</ul>`;
+            prizeHtml = `<p class="text-sm">Büyük Ödül: <b class="text-green-400">${prizeParts.join(' | ')}</b></p>`;
         }
     }
 
@@ -23065,24 +23229,13 @@ function buildCardCollectionEventCard(status, prizeData, finishersData) {
     }
     
     return `
-        <div class="p-3 bg-gray-900/50 rounded-lg border-l-4 border-yellow-500 space-y-2">
-            <p class="font-bold text-yellow-400">Kart Koleksiyonu Etkinliği Başladı!</p>
-            
-            <div>
-                <p class="text-xs font-semibold text-gray-300">Koleksiyon Tamamlama Ödülleri:</p>
-                ${prizeHtml}
-            </div>
-
-            <div>
-                <p class="text-xs font-semibold text-gray-300">Koleksiyonu İlk Tamamlama Ödülleri:</p>
-                ${firstPrizeHtml}
-            </div>
-            
+        <div class="p-3 bg-gray-900/50 rounded-lg border-l-4 border-yellow-500">
+            <p class="font-bold text-yellow-400">Kart Koleksiyonu Sezonu Başladı!</p>
+            ${prizeHtml}
             <p class="text-sm">${leaderText}</p>
-
             <div class="flex justify-between items-center mt-2">
                 <span class="text-xs text-green-400 animate-pulse">Sezon Devam Ediyor</span>
-                <button onclick="goToSectionAndScroll('cardCollection', 'cardCollectionAlbum')" class="text-xs py-1 px-3 bg-yellow-600 hover:bg-yellow-500 rounded-md">Şimdi Git</button>
+                <button onclick="goToSectionAndScroll('cardCollection', 'collectionFinishersLeaderboard')" class="text-xs py-1 px-3 bg-yellow-600 hover:bg-yellow-500 rounded-md">Şimdi Git</button>
             </div>
         </div>
     `;
@@ -23117,6 +23270,16 @@ function goToSectionAndScroll(sectionId, elementId) {
             targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     }, 200); // 200 milisaniye gecikme
+}
+
+    async function deleteStoreItem(itemId) {
+    if (!isAdmin) return;
+    const confirmed = await customConfirm("Bu ürünü mağazadan kalıcı olarak silmek istediğinizden emin misiniz?");
+    if (confirmed) {
+        await storeItemsRef.child(itemId).remove();
+        displayMessage("Ürün başarıyla silindi.");
+        loadStoreItems(); // Listeyi anında yenile
+    }
 }
    
 // YENİ EKLENECEK FONKSİYONLAR SONU
