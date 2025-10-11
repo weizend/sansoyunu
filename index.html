@@ -23121,16 +23121,23 @@ function buildMonsterEventCard(battleData, lastChampion) {
     
     // Aktif Canavar Savaşı etkinliği varsa
     const monster = battleData.monsterDetails;
-    const prize = battleData.rewards?.onKillLeader;
+    const leaderPrize = battleData.rewards?.onKillLeader;
+    const lastHitPrize = battleData.rewards?.onLastHit;
     const leaderboard = battleData.damageLeaderboard || {};
     const leader = Object.keys(leaderboard).length > 0 ? Object.keys(leaderboard).sort((a,b) => leaderboard[b].totalDamage - leaderboard[a].totalDamage)[0] : null;
+
+    let lastHitPrizeHtml = '';
+    if (lastHitPrize) {
+        lastHitPrizeHtml = `<p class="text-sm mt-1">🎯 Son Vuruş Ödülü:<br><b class="text-green-400">${formatRewardText(lastHitPrize.type, lastHitPrize.value)}</b></p>`;
+    }
 
     return `
         <div class="p-3 bg-gray-900/50 rounded-lg border-l-4 border-red-500">
             <p class="font-bold text-red-400">Canavar Savaşı Etkinliği Başladı!</p>
             <p class="text-sm"><b class="text-white">${monster.name}</b> canavarı arenaya geldi.</p>
-            <p class="text-sm">Canavar Avcısı Ödülü:<br><b class="text-green-400">${prize ? formatRewardText(prize.type, prize.value) : 'Belirlenmedi'}</b></p>
-            <p class="text-sm">1. sırada: ${leader ? `<b class="text-white">${leader}</b> (${formatNumber(leaderboard[leader].totalDamage)} Hasar)` : 'Oyuncu bekleniyor.'}</p>
+            <p class="text-sm">👹 Canavar Avcısı Ödülü:<br><b class="text-green-400">${leaderPrize ? formatRewardText(leaderPrize.type, leaderPrize.value) : 'Belirlenmedi'}</b></p>
+            ${lastHitPrizeHtml}
+            <p class="text-sm mt-1">1. sırada: ${leader ? `<b class="text-white">${leader}</b> (${formatNumber(leaderboard[leader].totalDamage)} Hasar)` : 'Oyuncu bekleniyor.'}</p>
             <div class="flex justify-between items-center mt-2">
                 <span class="text-xs text-green-400 animate-pulse">Etkinlik devam ediyor</span>
                 <button onclick="goToSectionAndScroll('monsterBattle', 'attackMonsterBtn')" class="text-xs py-1 px-3 bg-red-600 hover:bg-red-500 rounded-md">Şimdi Git</button>
@@ -23149,7 +23156,8 @@ function buildClickCatchEventCard(weeklyData, scoresData, lastWinner) {
                 <div class="p-3 bg-gray-900/50 rounded-lg border-l-4 border-purple-500">
                     <p class="font-bold text-purple-400">Tıkla-Yakala Haftalık Etkinliği Bitti!</p>
                     <p class="text-sm">Son Kazanan: <b class="text-white">${lastWinner.winnerName}</b> (${formatNumber(lastWinner.winningScore || 0)} Skor)</p>
-                    <p class="text-sm text-gray-400">Yeni haftanın başlamasını bekleyin.</p>
+                    <p class="text-sm">Kazanılan Ödül: <b class="text-green-400">${lastWinner.prizeAwarded || 'Belirtilmemiş'}</b></p>
+                    <p class="text-sm text-gray-400 mt-1">Yeni haftanın başlamasını bekleyin.</p>
                 </div>
             `;
         }
