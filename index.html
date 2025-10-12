@@ -23015,8 +23015,6 @@ async function renderActivityFeedEvents() {
     container.innerHTML = `<p class="text-center text-gray-400">Etkinlik durumları yükleniyor...</p>`;
 
     try {
-        // --- DEĞİŞİKLİK BURADA BAŞLIYOR: Artık her veri çekme işlemine bir hata yakalayıcı ekliyoruz. ---
-        // Bu sayede biri başarısız olsa bile diğerleri çalışmaya devam eder.
         const results = await Promise.all([
             db.ref('gameConfig/monsterBattle').once('value').catch(e => { console.error("Monster data failed:", e); return null; }),
             db.ref('gameConfig/weeklyClickCatchReset').once('value').catch(e => { console.error("Weekly data failed:", e); return null; }),
@@ -23029,31 +23027,31 @@ async function renderActivityFeedEvents() {
             db.ref('storeItems').once('value').catch(e => { console.error("Store items failed:", e); return null; }),
             db.ref('clickCatchLobby').once('value').catch(e => { console.error("Lobby data failed:", e); return null; }),
             db.ref('gameConfig/lastEventUpdateTimestamp').once('value').catch(e => { console.error("Event timestamp failed:", e); return null; }),
-            // currentUser kontrolü ekleyerek bu satırın hata vermesini engelliyoruz.
-            currentUser ? db.ref(`users/${currentUser}/lastSeenEventsTimestamp`).once('value').catch(e => { console.error("User timestamp failed:", e); return null; }) : Promise.resolve(null)
+            currentUser ? db.ref(`users/${currentUser}`).once('value').catch(e => { console.error("User data failed:", e); return null; }) : Promise.resolve(null)
         ]);
 
         const [
             monsterSnap, weeklySnap, scoresSnap, wordGameSnap, 
             cardStatusSnap, lastMonsterChampionSnap, weeklyWinnerSnap, 
             wordGameChampionSnap, storeItemsSnap, lobbySnap,
-            lastEventUpdateSnap, userLastSeenSnap
+            lastEventUpdateSnap, userSnap // Kullanıcı verisini buradan alıyoruz
         ] = results;
-        // --- DEĞİŞİKLİK BURADA BİTİYOR ---
         
-        // Verileri kullanmadan önce var olup olmadıklarını kontrol ediyoruz.
+        const userData = userSnap ? userSnap.val() : {};
+
         const monsterHtml = await buildMonsterEventCard(monsterSnap ? monsterSnap.val() : null, lastMonsterChampionSnap ? lastMonsterChampionSnap.val() : null);
         const clickCatchHtml = await buildClickCatchEventCard(weeklySnap ? weeklySnap.val() : null, scoresSnap ? scoresSnap.val() : null, weeklyWinnerSnap ? weeklyWinnerSnap.val() : null);
         const wordGameHtml = await buildWordGameEventCard(wordGameSnap ? wordGameSnap.val() : null, wordGameChampionSnap ? wordGameChampionSnap.val() : null);
         const cardCollectionHtml = await buildCardCollectionEventCard();
-        const storeHtml = await buildStoreEventCard(storeItemsSnap ? storeItemsSnap.val() : null);
+        // Mağaza kartını oluştururken artık kullanıcı verisini de gönderiyoruz
+        const storeHtml = await buildStoreEventCard(storeItemsSnap ? storeItemsSnap.val() : null, userData);
         const lobbyHtml = await buildLobbyEventCard(lobbySnap ? lobbySnap.val() : null);
 
         const allHtml = [storeHtml, monsterHtml, lobbyHtml, clickCatchHtml, wordGameHtml, cardCollectionHtml].filter(Boolean);
         const hasActiveEvents = allHtml.some(html => html.includes('animate-pulse'));
 
         const lastEventTimestamp = lastEventUpdateSnap ? lastEventUpdateSnap.val() || 0 : 0;
-        const userLastSeenTimestamp = userLastSeenSnap ? userLastSeenSnap.val() || 0 : 0;
+        const userLastSeenTimestamp = userData.lastSeenEventsTimestamp || 0;
         const isNewEventAvailable = hasActiveEvents && (lastEventTimestamp > userLastSeenTimestamp);
 
         if (allHtml.length > 0) {
@@ -23294,35 +23292,46 @@ async function buildCardCollectionEventCard() {
 /**
  * Mağazadaki süreli teklifler için bir kart oluşturur.
  */
-function buildStoreEventCard(storeItems) {
+async function buildStoreEventCard(storeItems, userData) {
     if (!storeItems) return '';
     let html = '';
     const now = Date.now();
+    const userKasaPuani = userData.kasaPuani || 0; 
 
-    Object.entries(storeItems).forEach(([itemId, item]) => {
+    for (const [itemId, item] of Object.entries(storeItems)) {
         if (item.countdownDurationMinutes && item.createdAt) {
             const endTime = item.createdAt + item.countdownDurationMinutes * 60 * 1000;
             if (now < endTime) {
                 const priceText = item.type === 'special' ? `${formatNumber(item.cost)} KP` : `${formatNumber(item.cost)} Puan`;
+                
+                activeEventCountdowns[itemId] = { endTime: endTime };
+
                 html += `
                     <div class="p-3 bg-gray-900/50 rounded-lg border-l-4 border-green-500">
-                        <p class="font-bold text-green-400">Sınırlı Süreli Teklif!</p>
-                        <div class="flex items-center gap-3 my-2">
-                            <img src="${item.imageUrl || 'https://via.placeholder.com/150'}" class="w-12 h-12 rounded-md object-cover">
-                            <div>
-                                <p class="text-sm font-bold text-white">${item.name}</p>
-                                <p class="text-xs text-gray-300">Fiyat: <b class="text-yellow-300">${priceText}</b></p>
+                        <p class="font-bold text-green-400 mb-2">Sınırlı Süreli Teklif!</p>
+                        <div class="flex items-start gap-4">
+                            <img src="${item.imageUrl || 'https://via.placeholder.com/150'}" class="w-16 h-16 rounded-md object-cover flex-shrink-0">
+                            
+                            <div class="flex-grow flex flex-col items-start">
+                                <p class="font-bold text-white">${item.name}</p>
+                                <p class="text-sm text-gray-300">Fiyat: <b class="text-yellow-300">${priceText}</b></p>
+                                <p class="text-xs text-gray-400 mt-1">Mevcut KP: <b class="text-white">${formatNumber(userKasaPuani)}</b></p>
+                                <button onclick="goToSectionAndScroll('store', 'kasaTransferBolumu')" class="text-xs py-1 px-3 mt-2 bg-purple-700 hover:bg-purple-600 rounded-md">KP Ekle</button>
                             </div>
+                            
+                            <button onclick="buyItemFromEventCard('${itemId}')" class="text-sm py-2 px-4 bg-green-600 hover:bg-green-500 rounded-md self-center flex-shrink-0">Şimdi Al</button>
                         </div>
-                        <div id="event-countdown-${itemId}" class="text-xs text-yellow-300 font-bold animate-pulse"></div>
-                        <div class="flex justify-end items-center mt-2">
-                            <button onclick="buyItemFromEventCard('${itemId}')" class="text-xs py-1 px-3 bg-green-600 hover:bg-green-500 rounded-md">Şimdi Al</button>
-                        </div>
+                         <div id="event-countdown-${itemId}" class="text-xs text-yellow-300 font-bold mt-2 text-right"></div>
                     </div>
                 `;
             }
         }
-    });
+    }
+    
+    if (Object.keys(activeEventCountdowns).length > 0 && !eventCountdownInterval) {
+        eventCountdownInterval = setInterval(updateEventCountdowns, 1000);
+    }
+    
     return html;
 }
 
