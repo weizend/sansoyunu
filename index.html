@@ -12448,13 +12448,14 @@ function closeLobbySettingsModal() {
         if (!currentStats) {
             currentStats = { normal: 0, gold: 0, bomb: 0, time: 0, special: {} };
         }
-        // DEĞİŞİKLİK BURADA BAŞLIYOR
-        // Yakalanan her şeyi bilet sayısıyla çarpıyoruz.
-        currentStats.normal = (currentStats.normal || 0) + ((soloGameItemCounts.normal || 0) * ticketsUsedThisRound);
-        currentStats.gold = (currentStats.gold || 0) + ((soloGameItemCounts.gold || 0) * ticketsUsedThisRound);
-        currentStats.bomb = (currentStats.bomb || 0) + ((soloGameItemCounts.bomb || 0) * ticketsUsedThisRound);
-        currentStats.time = (currentStats.time || 0) + ((soloGameItemCounts.time || 0) * ticketsUsedThisRound);
+        // ★★★ İSTEDİĞİN GÜNCELLEME BURADA BAŞLIYOR ★★★
+        // Skor, bomba ve süre gibi temel öğeler artık bilet sayısıyla ÇARPILMIYOR. Sadece tıklanma sayısı ekleniyor.
+        currentStats.normal = (currentStats.normal || 0) + (soloGameItemCounts.normal || 0);
+        currentStats.gold = (currentStats.gold || 0) + (soloGameItemCounts.gold || 0);
+        currentStats.bomb = (currentStats.bomb || 0) + (soloGameItemCounts.bomb || 0);
+        currentStats.time = (currentStats.time || 0) + (soloGameItemCounts.time || 0);
 
+        // Özel eşyalar ise bilet sayısıyla ÇARPILMAYA DEVAM EDİYOR.
         if (soloGameItemCounts.special && Object.keys(soloGameItemCounts.special).length > 0) {
             if (!currentStats.special) {
                 currentStats.special = {};
@@ -12464,7 +12465,7 @@ function closeLobbySettingsModal() {
                 currentStats.special[type] = (currentStats.special[type] || 0) + count;
             }
         }
-        // DEĞİŞİKLİK BURADA BİTİYOR
+        // ★★★ GÜNCELLEME BURADA BİTİYOR ★★★
         return currentStats;
     });
     
