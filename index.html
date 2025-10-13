@@ -11431,7 +11431,7 @@ function handleSendItemTypeChange(selectElement) {
     }
 }
 
-// ESKİ saveStoreItem FONKSİYONUNU SİL VE BUNU YAPIŞTIR
+// MEVCUT saveStoreItem FONKSİYONUNU SİL VE BUNU YAPIŞTIR
 
 async function saveStoreItem() {
     if (!isAdmin) return;
@@ -11481,14 +11481,13 @@ async function saveStoreItem() {
                 throw new Error("Avatar tipi için 'Avatar Adı' ve 'Avatar Resim URL'si' alanları zorunludur.");
             }
         } else if (type === 'health_regen_potion') {
-            // ★★★ DEĞİŞİKLİK BURADA: Artık amount'u da okuyoruz ★★★
             const value = parseInt(document.getElementById('newItemValue').value);
-            const amount = parseInt(document.getElementById('newItemMultiplierDuration').value); // Duration input'unu amount için kullanıyoruz
+            const amount = parseInt(document.getElementById('newItemMultiplierDuration').value); 
             if (isNaN(value) || value <= 0 || isNaN(amount) || amount <= 0) {
                 throw new Error("Can Yenileme İksiri için geçerli bir 'Yüzde Değeri' ve 'Adet' girmelisiniz.");
             }
             itemData.value = value;
-            itemData.duration = amount; // duration alanına adeti kaydediyoruz
+            itemData.duration = amount; 
         } else {
             const typesThatNeedValue = [ 'boxRights', 'wheelTicket', 'clickCatchTicket', 'iflasShield', 'wildcard', 'card_pack', 'card_pack_normal', 'card_pack_gumus', 'card_pack_altin', 'card_pack_efsanevi', 'revival_stone', 'health_potion', 'damage_potion', 'defense_potion', 'crit_potion', 'crit_damage_potion', 'dodge_potion', 'pierce_potion' ];
             if (typesThatNeedValue.includes(type)) {
@@ -11507,9 +11506,20 @@ async function saveStoreItem() {
         if (editingItemId) {
             const existingItemSnap = await storeItemsRef.child(editingItemId).once('value');
             const existingItem = existingItemSnap.val();
-            itemData.createdAt = existingItem.createdAt || firebase.database.ServerValue.TIMESTAMP;
-            itemData.order = existingItem.order;
-            itemData.purchaseCount = existingItem.purchaseCount || 0;
+            
+            // --- YENİ EKLENEN VE SORUNU ÇÖZEN MANTIK ---
+            // Eğer yeni bir geri sayım süresi ayarlanıyorsa, başlangıç zamanını ŞİMDİ olarak güncelle.
+            if (totalMinutes > 0) {
+                itemData.createdAt = firebase.database.ServerValue.TIMESTAMP;
+            } else {
+                // Eğer geri sayım kaldırılıyorsa, eski zaman damgasını temizle.
+                itemData.createdAt = null; 
+            }
+            // --- KOD SONU ---
+
+            itemData.order = existingItem.order; // Mevcut sıralamasını koru
+            itemData.purchaseCount = existingItem.purchaseCount || 0; // Mevcut satın alma sayısını koru
+            
             await storeItemsRef.child(editingItemId).update(itemData);
             displayMessage(`'${name}' ürünü başarıyla güncellendi!`);
         } else {
