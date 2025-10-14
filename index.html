@@ -18672,7 +18672,7 @@ async function saveLoginStreakRewards(shouldResetProgress = false) {
     }
 }
       
-// MEVCUT openLoginStreakModal FONKSİYONUNU SİLİP BUNU YAPIŞTIRIN
+// MEVCUT openLoginStreakModal FONKSİYONUNU SİLİP, YERİNE BU KODU YAPIŞTIR
 async function openLoginStreakModal() {
     document.getElementById('loginStreakModal').style.display = 'flex';
     const container = document.getElementById('loginStreakRewardsContainer');
@@ -18696,27 +18696,45 @@ async function openLoginStreakModal() {
 
         if (!rewardsSnap.exists()) {
             container.innerHTML = '<p class="text-center col-span-full">Admin henüz bir giriş serisi oluşturmadı.</p>';
+            messageEl.textContent = 'Giriş serisi henüz aktif değil.';
             return;
         }
 
         const rewardsData = rewardsSnap.val();
         loginStreakRewardsCache = rewardsData;
         const userData = userSnap.val() || {};
-        const userStreak = userData.loginStreak || { currentDay: 1, lastClaimTimestamp: 0 };
+        const userRef = db.ref(`users/${currentUser}`);
+        let userStreak = userData.loginStreak || { currentDay: 1, lastClaimTimestamp: 0 };
 
         const now = getSyncedTime();
-        const cooldownMs = 20 * 60 * 60 * 1000;
-        const resetMs = 48 * 60 * 60 * 1000;
-        const lastClaimTime = userStreak.lastClaimTimestamp;
-        const canClaimToday = now > (lastClaimTime + cooldownMs);
-        const streakWillResetTime = lastClaimTime + resetMs;
+        const cooldownMs = 20 * 60 * 60 * 1000; // 20 saat
+        const resetMs = 48 * 60 * 60 * 1000; // 48 saat
 
-        if (lastClaimTime > 0 && now < streakWillResetTime) {
+        // --- YENİ VE DÜZELTİLMİŞ MANTIK BLOKU ---
+        let isStreakBroken = false;
+        // Eğer son ödülün üzerinden 48 saatten fazla geçtiyse, seriyi bozulmuş kabul et
+        if (userStreak.lastClaimTimestamp > 0 && now > (userStreak.lastClaimTimestamp + resetMs)) {
+            isStreakBroken = true;
+            // Lokal değişkenleri ve veritabanını sıfırla
+            userStreak = { currentDay: 1, lastClaimTimestamp: 0 };
+            userRef.update({ loginStreak: userStreak });
+        }
+        
+        if (isStreakBroken) {
+             // Eğer seri bu kontrol sırasında bozulduysa mesajı göster
+             messageEl.textContent = 'Serin bozuldu! 1. günden tekrar başla.';
+        } else if (userStreak.lastClaimTimestamp > 0) {
+            // Eğer seri aktifse (bozulmamışsa ve daha önce ödül alınmışsa), geri sayımı başlat
+            const streakWillResetTime = userStreak.lastClaimTimestamp + resetMs;
             startStreakResetCountdown(messageEl, streakWillResetTime);
         } else {
-             messageEl.textContent = 'Her gün giriş yaparak sıradaki ödülü al. Seriyi bozma!';
+            // Eğer hiç ödül alınmamışsa (yeni kullanıcı veya serisi önceden bozulmuşsa)
+            messageEl.textContent = 'Her gün giriş yaparak sıradaki ödülü al. Seriyi bozma!';
         }
+        // --- YENİ MANTIK BLOKU SONU ---
 
+        const canClaimToday = now > (userStreak.lastClaimTimestamp + cooldownMs);
+        
         container.innerHTML = '';
         rewardsData.forEach((dayData) => {
             const day = dayData.day;
@@ -18746,15 +18764,12 @@ async function openLoginStreakModal() {
             });
             rewardsListHtml += '</ul>';
             
-            // --- GÜNCELLEME BURADA BAŞLIYOR ---
             const avatarReward = (dayData.rewards || []).find(r => r.type === 'avatar');
             let imageOnClick = '';
             if (avatarReward && avatarReward.avatarImageUrl) {
                 const sanitizedId = sanitizeFirebaseKey(avatarReward.avatarImageUrl);
-                // Artık "false" parametresini de ekliyoruz ki "Nasıl Elde Edilir" bilgisi gizlensin.
                 imageOnClick = `onclick="showAvatarDetails('${sanitizedId}', false)"`;
             }
-            // --- GÜNCELLEME BURADA BİTİYOR ---
 
             const card = document.createElement('div');
             card.className = `streak-card ${status}`;
